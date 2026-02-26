@@ -289,28 +289,34 @@ Zustand selection storeで同期:
 
 ## 開発フェーズ
 
-### Phase 0: 基盤とコントラクト 🔴 逐次実行
+### Phase 0: 基盤とコントラクト ✅ 完了
 **全後続フェーズの前提条件。ここのインターフェース品質が全体を左右する。**
 
 1. pnpmモノレポ初期化 (`pnpm-workspace.yaml`)
 2. TypeScript設定（ルート + パッケージ別）
 3. `packages/shared` に全型定義・インターフェース・enumを実装
 4. 全パッケージのスタブ `package.json` を作成（依存関係定義）
-5. ESLint + Prettier + huskyセットアップ
+5. ESLint + Prettier セットアップ
 6. Vitest設定
-7. 各パッケージに `CLAUDE_INSTRUCTIONS.md` を配置（契約文書）
-8. 全パッケージが `@osce/shared` をimportしてビルドできることを確認
+7. 全パッケージが `@osce/shared` をimportしてビルドできることを確認
 
-**成果物**: 全インターフェースが定義済み。実装はまだないが、各パッケージは独立して開発開始可能。
+**成果物**: 全インターフェースが定義済み。各パッケージは独立して開発開始可能。
 
-### Phase 1: コアエンジン + パーサー 🟢 4並列開発可能
+### Phase 1: コアエンジン + パーサー ✅ 完了（4並列開発）
 
-| トラック | パッケージ | 主な作業 |
-|---------|-----------|---------|
-| A | `@osce/openscenario` | XML↔モデル変換、ラウンドトリップテスト |
-| B | `@osce/opendrive` | 道路パース、形状計算、メッシュ生成 |
-| C | `@osce/scenario-engine` | Zustandストア、Command/Undo、コンポーネントシステム |
-| D | `@osce/i18n` + `@osce/templates` | 翻訳、ユースケーステンプレート6-8種 |
+| トラック | パッケージ | 主な作業 | テスト |
+|---------|-----------|---------|--------|
+| A | `@osce/openscenario` | XML↔モデル変換、ラウンドトリップテスト | 75合格 |
+| B | `@osce/opendrive` | 道路パース、形状計算、メッシュ生成 | 64合格 |
+| C | `@osce/scenario-engine` | Zustandストア、Command/Undo、コンポーネントシステム | 108合格 |
+| D | `@osce/i18n` + `@osce/templates` | 翻訳(英日)、ユースケーステンプレート8種 | — |
+
+**Phase 1 成果物:**
+- `@osce/openscenario`: IXoscParser, IXoscSerializer, IValidator 実装。18種PrivateAction、6種GlobalAction、9種Position、14種Condition対応。Thirdparty 56ファイルのスモークテスト合格。
+- `@osce/opendrive`: IXodrParser 実装。5種ジオメトリ（line, arc, spiral, poly3, paramPoly3）、車線境界計算、Three.js用メッシュ生成（Float32Array/Uint32Array）。
+- `@osce/scenario-engine`: Zustand ストア + Immer。11種Commandクラス、Undo/Redo、CRUD操作、getElementById/getParentOfツリー探索、UseCaseComponent decompose/reconcile。
+- `@osce/i18n`: i18next + react-i18next、6 namespace、600+翻訳キー（英日）。
+- `@osce/templates`: 8ユースケース（CutIn, Overtaking, PedestrianCrossing, EmergencyBrake, FollowLeadVehicle, LaneChange, HighwayMerge, DecelerationToStop）、6アクションコンポーネント、visualHint対応。
 
 ### Phase 2: ビジュアルエディタ 🟢 3並列開発可能
 
