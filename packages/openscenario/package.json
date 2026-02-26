@@ -10,7 +10,8 @@
   },
   "scripts": {
     "build": "tsc --project tsconfig.json",
-    "dev": "tsc --project tsconfig.json --watch"
+    "dev": "tsc --project tsconfig.json --watch",
+    "test": "vitest run"
   },
   "dependencies": {
     "@osce/shared": "workspace:*",
