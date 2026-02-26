@@ -1,0 +1,17 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/shared" },
+    { "path": "packages/openscenario" },
+    { "path": "packages/opendrive" },
+    { "path": "packages/scenario-engine" },
+    { "path": "packages/node-editor" },
+    { "path": "packages/3d-viewer" },
+    { "path": "packages/mcp-server" },
+    { "path": "packages/esmini" },
+    { "path": "packages/templates" },
+    { "path": "packages/i18n" },
+    { "path": "apps/web" },
+    { "path": "apps/server" }
+  ]
+}

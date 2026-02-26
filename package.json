@@ -1,0 +1,32 @@
+{
+  "name": "gt-openscenario-editor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ASAM OpenSCENARIO graphical web editor",
+  "license": "Apache-2.0",
+  "scripts": {
+    "dev": "pnpm --filter @osce/web dev",
+    "dev:server": "pnpm --filter @osce/server dev",
+    "build": "pnpm -r build",
+    "build:shared": "pnpm --filter @osce/shared build",
+    "test": "vitest",
+    "test:e2e": "playwright test",
+    "lint": "eslint 'packages/*/src/**/*.{ts,tsx}' 'apps/*/src/**/*.{ts,tsx}'",
+    "lint:fix": "eslint --fix 'packages/*/src/**/*.{ts,tsx}' 'apps/*/src/**/*.{ts,tsx}'",
+    "format": "prettier --write 'packages/*/src/**/*.{ts,tsx}' 'apps/*/src/**/*.{ts,tsx}'",
+    "typecheck": "tsc --build",
+    "clean": "pnpm -r exec rm -rf dist && rm -f *.tsbuildinfo"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^3.0.0"
+  }
+}

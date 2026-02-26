@@ -1,0 +1,24 @@
+{
+  "name": "@osce/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/main.js",
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@osce/shared": "workspace:*",
+    "@osce/openscenario": "workspace:*",
+    "@osce/esmini": "workspace:*",
+    "@osce/mcp-server": "workspace:*",
+    "fastify": "^5.0.0",
+    "@fastify/websocket": "^11.0.0",
+    "@fastify/cors": "^10.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0"
+  }
+}
