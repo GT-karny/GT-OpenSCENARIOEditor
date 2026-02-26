@@ -1,2 +1,38 @@
 # Third-party libraries (download separately, not redistributable)
 Thirdparty/
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test
+coverage/
+test-results/
+playwright-report/
+
+# Tauri (future)
+apps/desktop/src-tauri/target/
+
+# Temporary files
+*.tmp
+*.log

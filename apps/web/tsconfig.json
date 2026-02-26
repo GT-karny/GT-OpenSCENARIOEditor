@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "composite": true,
+    "noEmit": true
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../../packages/shared" },
+    { "path": "../../packages/scenario-engine" },
+    { "path": "../../packages/node-editor" },
+    { "path": "../../packages/3d-viewer" },
+    { "path": "../../packages/openscenario" },
+    { "path": "../../packages/opendrive" },
+    { "path": "../../packages/i18n" },
+    { "path": "../../packages/templates" }
+  ]
+}

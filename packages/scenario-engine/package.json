@@ -1,0 +1,24 @@
+{
+  "name": "@osce/scenario-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "import": "./dist/index.js", "types": "./dist/index.d.ts" }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "dev": "tsc --project tsconfig.json --watch"
+  },
+  "dependencies": {
+    "@osce/shared": "workspace:*",
+    "zustand": "^5.0.0",
+    "immer": "^10.1.0",
+    "uuid": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/uuid": "^10.0.0"
+  }
+}
