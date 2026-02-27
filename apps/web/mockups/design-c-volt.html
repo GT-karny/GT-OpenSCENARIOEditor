@@ -1,0 +1,1679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VOLT — Cyberpunk Elegance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Exo+2:wght@300;400;500;600&family=M+PLUS+1p:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  /* ============================================
+     VOLT — Cyberpunk Elegance
+     Blade Runner × Neon Aesthetics
+     ============================================ */
+
+  :root {
+    --bg-void: #050210;
+    --bg-deep: #0A0515;
+    --bg-base: #0E081E;
+    --bg-surface: rgba(14, 8, 32, 0.92);
+    --bg-elevated: rgba(22, 12, 48, 0.7);
+    --bg-panel: rgba(16, 10, 38, 0.95);
+
+    /* Accent — Vivid Lavender to Electric Blue gradient */
+    --accent-violet: #A78BFA;
+    --accent-blue: #818CF8;
+    --accent-bright: #C4B5FD;
+    --accent-glow-violet: rgba(167, 139, 250, 0.2);
+    --accent-glow-blue: rgba(129, 140, 248, 0.15);
+    --accent-dim: rgba(167, 139, 250, 0.08);
+    --accent-neon: rgba(167, 139, 250, 0.35);
+
+    /* Text */
+    --text-primary: rgba(255, 255, 255, 0.93);
+    --text-secondary: rgba(255, 255, 255, 0.52);
+    --text-tertiary: rgba(255, 255, 255, 0.22);
+    --text-glow: #C4B5FD;
+    --text-neon: #A78BFA;
+
+    /* Borders */
+    --border-void: rgba(167, 139, 250, 0.04);
+    --border-subtle: rgba(167, 139, 250, 0.08);
+    --border-neon: rgba(167, 139, 250, 0.2);
+    --border-active: rgba(167, 139, 250, 0.4);
+    --border-bright: rgba(196, 181, 253, 0.3);
+
+    /* Semantic */
+    --success: #34D399;
+    --warning: #FBBF24;
+    --error: #F87171;
+    --info: #60A5FA;
+
+    /* Neon glow presets */
+    --neon-sm: 0 0 4px var(--accent-glow-violet), 0 0 8px var(--accent-glow-blue);
+    --neon-md: 0 0 8px var(--accent-glow-violet), 0 0 16px var(--accent-glow-blue);
+    --neon-lg: 0 0 12px var(--accent-glow-violet), 0 0 24px var(--accent-glow-blue), 0 0 48px rgba(167, 139, 250, 0.06);
+
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 12px;
+    --space-lg: 16px;
+    --space-xl: 24px;
+    --space-2xl: 32px;
+
+    --font-display: 'Orbitron', sans-serif;
+    --font-body: 'Exo 2', sans-serif;
+    --font-jp: 'M PLUS 1p', sans-serif;
+    --font-mono: 'Courier New', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-body), var(--font-jp);
+    background: var(--bg-void);
+    color: var(--text-primary);
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  /* ---- Grain Texture ---- */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-size: 512px;
+  }
+
+  /* ---- Ambient neon glow ---- */
+  .ambient-glow-1 {
+    position: fixed;
+    top: -20%;
+    right: -10%;
+    width: 50%;
+    height: 50%;
+    background: radial-gradient(ellipse, rgba(167, 139, 250, 0.07) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .ambient-glow-2 {
+    position: fixed;
+    bottom: -10%;
+    left: -15%;
+    width: 40%;
+    height: 40%;
+    background: radial-gradient(ellipse, rgba(129, 140, 248, 0.05) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ---- App Layout ---- */
+  .app {
+    display: grid;
+    grid-template-rows: 52px 1fr 26px;
+    height: 100vh;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ==== HEADER ==== */
+  .header {
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-xl);
+    gap: var(--space-xl);
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-neon);
+    position: relative;
+    z-index: 10;
+  }
+
+  /* Neon glow bottom border */
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent,
+      var(--accent-violet),
+      var(--accent-blue),
+      var(--accent-violet),
+      transparent
+    );
+    box-shadow: var(--neon-md);
+    opacity: 0.6;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  .logo-mark {
+    width: 30px;
+    height: 30px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Lightning bolt shape */
+  .logo-mark::before {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 22px;
+    background: linear-gradient(135deg, var(--accent-violet), var(--accent-blue));
+    clip-path: polygon(60% 0%, 100% 40%, 55% 40%, 75% 100%, 0% 55%, 45% 55%, 25% 0%);
+    filter: drop-shadow(0 0 4px var(--accent-glow-violet));
+  }
+
+  .logo-text {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    background: linear-gradient(135deg, var(--accent-violet) 0%, var(--accent-blue) 50%, var(--accent-bright) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 8px var(--accent-glow-violet));
+  }
+
+  .menu-items {
+    display: flex;
+    gap: 2px;
+  }
+
+  .menu-item {
+    padding: var(--space-sm) var(--space-lg);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.3s;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    position: relative;
+  }
+
+  .menu-item:hover {
+    color: var(--text-neon);
+    text-shadow: 0 0 8px var(--accent-glow-violet);
+  }
+
+  .header-spacer { flex: 1; }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    background: transparent;
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .action-btn:hover {
+    border-color: var(--border-neon);
+    color: var(--text-neon);
+    box-shadow: var(--neon-sm);
+  }
+
+  .action-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    fill: none;
+  }
+
+  .action-btn-text {
+    width: auto;
+    padding: 0 var(--space-lg);
+    gap: var(--space-sm);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-family: var(--font-body);
+  }
+
+  .action-btn-neon {
+    background: linear-gradient(135deg, rgba(167, 139, 250, 0.12), rgba(129, 140, 248, 0.08));
+    border-color: var(--border-neon);
+    color: var(--text-neon);
+    box-shadow: var(--neon-sm);
+  }
+
+  .action-btn-neon:hover {
+    box-shadow: var(--neon-md);
+    background: linear-gradient(135deg, rgba(167, 139, 250, 0.18), rgba(129, 140, 248, 0.12));
+    border-color: var(--border-active);
+  }
+
+  .divider-v {
+    width: 1px;
+    height: 24px;
+    background: linear-gradient(180deg, transparent, var(--border-neon), transparent);
+    margin: 0 var(--space-xs);
+  }
+
+  /* ==== MAIN ==== */
+  .main {
+    display: grid;
+    grid-template-columns: 244px 1fr 284px;
+    grid-template-rows: 1fr 200px;
+    overflow: hidden;
+  }
+
+  /* ==== LEFT SIDEBAR ==== */
+  .sidebar-left {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border-neon);
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Neon glow on right border */
+  .sidebar-left::after {
+    content: '';
+    position: absolute;
+    top: 10%;
+    right: -1px;
+    width: 1px;
+    height: 80%;
+    background: linear-gradient(180deg, transparent, var(--accent-neon), transparent);
+    box-shadow: var(--neon-sm);
+  }
+
+  .tab-bar {
+    display: flex;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .tab {
+    flex: 1;
+    padding: var(--space-md);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    text-align: center;
+    position: relative;
+    transition: all 0.3s;
+    font-family: var(--font-display);
+  }
+
+  .tab.active {
+    color: var(--text-neon);
+    text-shadow: 0 0 6px var(--accent-glow-violet);
+  }
+
+  .tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 15%;
+    right: 15%;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent-violet), var(--accent-blue));
+    box-shadow: var(--neon-md);
+  }
+
+  .tab:hover:not(.active) {
+    color: var(--text-secondary);
+  }
+
+  .panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-lg);
+  }
+
+  .panel-content::-webkit-scrollbar { width: 3px; }
+  .panel-content::-webkit-scrollbar-thumb {
+    background: var(--accent-neon);
+    box-shadow: var(--neon-sm);
+  }
+
+  .section-label {
+    font-family: var(--font-display);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: var(--space-md);
+    padding-left: var(--space-xs);
+  }
+
+  /* Entity Items — Neon style */
+  .entity-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-xs);
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 1px solid transparent;
+    position: relative;
+  }
+
+  .entity-item:hover {
+    background: var(--accent-dim);
+    border-color: var(--border-subtle);
+    box-shadow: inset 0 0 12px rgba(167, 139, 250, 0.03);
+  }
+
+  .entity-item.selected {
+    background: linear-gradient(135deg, rgba(167, 139, 250, 0.06), rgba(129, 140, 248, 0.04));
+    border-color: var(--border-neon);
+    box-shadow: var(--neon-sm), inset 0 0 16px rgba(167, 139, 250, 0.04);
+  }
+
+  .entity-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-neon);
+    background: var(--bg-elevated);
+    transition: all 0.3s;
+  }
+
+  .entity-item:hover .entity-icon,
+  .entity-item.selected .entity-icon {
+    box-shadow: var(--neon-sm);
+  }
+
+  .entity-icon svg {
+    width: 15px;
+    height: 15px;
+    stroke: var(--accent-violet);
+    stroke-width: 1.5;
+    fill: none;
+    filter: drop-shadow(0 0 2px var(--accent-glow-violet));
+  }
+
+  .entity-info { flex: 1; min-width: 0; }
+
+  .entity-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: 0.02em;
+  }
+
+  .entity-type {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.04em;
+  }
+
+  .entity-badge {
+    padding: 2px 8px;
+    font-family: var(--font-display);
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-neon);
+    border: 1px solid var(--border-neon);
+    background: var(--accent-dim);
+    box-shadow: var(--neon-sm);
+  }
+
+  /* Templates */
+  .template-card {
+    padding: var(--space-lg);
+    border: 1px solid var(--border-subtle);
+    margin-bottom: var(--space-sm);
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .template-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(135deg, rgba(167, 139, 250, 0.03), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .template-card:hover {
+    border-color: var(--border-neon);
+    box-shadow: var(--neon-md);
+  }
+
+  .template-card:hover::before {
+    opacity: 1;
+  }
+
+  .template-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: var(--space-xs);
+    letter-spacing: 0.02em;
+    position: relative;
+  }
+
+  .template-desc {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    line-height: 1.5;
+    position: relative;
+  }
+
+  .template-tag {
+    display: inline-block;
+    margin-top: var(--space-sm);
+    padding: 1px 8px;
+    font-family: var(--font-display);
+    font-size: 8px;
+    font-weight: 600;
+    color: var(--accent-blue);
+    border: 1px solid rgba(129, 140, 248, 0.2);
+    letter-spacing: 0.1em;
+    position: relative;
+  }
+
+  /* ==== CENTER ==== */
+  .center {
+    display: grid;
+    grid-template-rows: 1fr 160px;
+    overflow: hidden;
+  }
+
+  /* Node Editor */
+  .node-editor {
+    position: relative;
+    background: var(--bg-deep);
+    overflow: hidden;
+  }
+
+  /* Grid with gradient fade */
+  .node-editor::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(167, 139, 250, 0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(167, 139, 250, 0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 30%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 30%, transparent 100%);
+    pointer-events: none;
+  }
+
+  .node-editor-label {
+    position: absolute;
+    top: var(--space-lg);
+    left: var(--space-xl);
+    font-family: var(--font-display);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    z-index: 2;
+  }
+
+  /* Nodes — Neon Glow Style */
+  .node {
+    position: absolute;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-subtle);
+    min-width: 170px;
+    transition: all 0.3s;
+    animation: nodeGlowIn 0.6s ease-out both;
+  }
+
+  .node:hover {
+    border-color: var(--border-neon);
+    box-shadow: var(--neon-md);
+  }
+
+  @keyframes nodeGlowIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.96);
+      box-shadow: none;
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      box-shadow: var(--neon-sm);
+    }
+  }
+
+  .node-header {
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: 1px solid var(--border-void);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    position: relative;
+  }
+
+  /* Neon accent line under header */
+  .node-header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: var(--space-md);
+    right: var(--space-md);
+    height: 1px;
+    background: linear-gradient(90deg, var(--accent-violet), var(--accent-blue), transparent);
+    opacity: 0.3;
+  }
+
+  .node-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--accent-violet);
+    box-shadow: 0 0 6px var(--accent-glow-violet);
+    animation: neonPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes neonPulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--accent-glow-violet); }
+    50% { opacity: 0.6; box-shadow: 0 0 3px var(--accent-glow-violet); }
+  }
+
+  .node-dot.blue {
+    background: var(--accent-blue);
+    box-shadow: 0 0 6px var(--accent-glow-blue);
+  }
+
+  .node-dot.warn {
+    background: var(--warning);
+    box-shadow: 0 0 6px rgba(251, 191, 36, 0.3);
+  }
+
+  .node-dot.ok {
+    background: var(--success);
+    box-shadow: 0 0 6px rgba(52, 211, 153, 0.3);
+  }
+
+  .node-title {
+    font-family: var(--font-display);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-neon);
+    text-shadow: 0 0 4px var(--accent-glow-violet);
+  }
+
+  .node-body { padding: var(--space-md); }
+
+  .node-field {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: var(--text-secondary);
+    padding: var(--space-xs) 0;
+  }
+
+  .node-value {
+    color: var(--text-glow);
+    font-weight: 500;
+    font-family: var(--font-mono);
+    text-shadow: 0 0 4px var(--accent-glow-violet);
+  }
+
+  .node-port {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: var(--bg-void);
+    border: 1.5px solid var(--accent-violet);
+    box-shadow: 0 0 4px var(--accent-glow-violet);
+    top: 50%;
+    transform: translateY(-50%) rotate(45deg);
+  }
+
+  .node-port.left { left: -5px; }
+  .node-port.right { right: -5px; }
+
+  /* Connection lines — glowing */
+  .connections-svg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .connection-line {
+    fill: none;
+    stroke: url(#neonGradient);
+    stroke-width: 1.5;
+    opacity: 0.5;
+    filter: drop-shadow(0 0 3px var(--accent-glow-violet));
+  }
+
+  /* Timeline */
+  .timeline {
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border-neon);
+    padding: var(--space-lg) var(--space-xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    position: relative;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 15%;
+    right: 15%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-neon), transparent);
+    box-shadow: var(--neon-sm);
+  }
+
+  .timeline-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .timeline-title {
+    font-family: var(--font-display);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+  }
+
+  .timeline-time {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-neon);
+    letter-spacing: 0.08em;
+    text-shadow: 0 0 8px var(--accent-glow-violet);
+  }
+
+  .timeline-ruler {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 var(--space-xs);
+  }
+
+  .timeline-tick {
+    font-size: 9px;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+  }
+
+  .timeline-tracks {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .timeline-track {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    height: 26px;
+  }
+
+  .track-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    width: 90px;
+    flex-shrink: 0;
+    letter-spacing: 0.02em;
+  }
+
+  .track-bar-container {
+    flex: 1;
+    height: 100%;
+    position: relative;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-void);
+  }
+
+  .track-bar {
+    position: absolute;
+    height: 100%;
+    transition: all 0.3s;
+  }
+
+  .track-bar.neon-violet {
+    background: linear-gradient(90deg,
+      rgba(167, 139, 250, 0.15),
+      rgba(167, 139, 250, 0.08));
+    border-right: 2px solid var(--accent-violet);
+    box-shadow: inset 0 0 8px rgba(167, 139, 250, 0.05);
+  }
+
+  .track-bar.neon-blue {
+    background: linear-gradient(90deg,
+      rgba(129, 140, 248, 0.12),
+      rgba(129, 140, 248, 0.06));
+    border-right: 2px solid var(--accent-blue);
+    box-shadow: inset 0 0 8px rgba(129, 140, 248, 0.04);
+  }
+
+  .playhead {
+    position: absolute;
+    top: -2px;
+    width: 2px;
+    height: calc(100% + 4px);
+    background: var(--accent-violet);
+    box-shadow: var(--neon-md);
+    z-index: 2;
+  }
+
+  /* ==== RIGHT SIDEBAR ==== */
+  .sidebar-right {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-panel);
+    border-left: 1px solid var(--border-neon);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .sidebar-right::before {
+    content: '';
+    position: absolute;
+    top: 10%;
+    left: -1px;
+    width: 1px;
+    height: 80%;
+    background: linear-gradient(180deg, transparent, var(--accent-neon), transparent);
+    box-shadow: var(--neon-sm);
+    z-index: 2;
+  }
+
+  /* Property Fields */
+  .prop-group { margin-bottom: var(--space-xl); }
+
+  .prop-group-title {
+    font-family: var(--font-display);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: var(--space-md);
+  }
+
+  .prop-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-md);
+  }
+
+  .prop-label {
+    font-size: 10px;
+    color: var(--text-secondary);
+    letter-spacing: 0.04em;
+  }
+
+  .prop-input {
+    height: 34px;
+    padding: 0 var(--space-md);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    font-size: 12px;
+    font-family: var(--font-body), var(--font-jp);
+    font-weight: 400;
+    outline: none;
+    transition: all 0.3s;
+  }
+
+  .prop-input:focus {
+    border-color: var(--border-neon);
+    box-shadow: var(--neon-sm);
+  }
+
+  .prop-input-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-sm);
+  }
+
+  .prop-input-labeled {
+    position: relative;
+  }
+
+  .prop-input-labeled .prop-input {
+    width: 100%;
+    padding-left: 28px;
+  }
+
+  .prop-input-prefix {
+    position: absolute;
+    left: var(--space-sm);
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-neon);
+    text-shadow: 0 0 4px var(--accent-glow-violet);
+  }
+
+  .prop-slider-container {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  .prop-slider {
+    flex: 1;
+    height: 2px;
+    background: var(--border-subtle);
+    border: none;
+    appearance: none;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .prop-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: var(--accent-violet);
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 0 6px var(--accent-glow-violet);
+  }
+
+  .prop-slider-value {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    font-weight: 500;
+    color: var(--text-glow);
+    min-width: 44px;
+    text-align: right;
+    text-shadow: 0 0 4px var(--accent-glow-violet);
+  }
+
+  /* Validation */
+  .validation-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    margin-bottom: 2px;
+    transition: all 0.3s;
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+
+  .validation-item:hover {
+    background: var(--accent-dim);
+    border-color: var(--border-subtle);
+    box-shadow: inset 0 0 12px rgba(167, 139, 250, 0.03);
+  }
+
+  .validation-dot {
+    width: 6px;
+    height: 6px;
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+
+  .validation-dot.warn {
+    background: var(--warning);
+    box-shadow: 0 0 6px rgba(251, 191, 36, 0.3);
+  }
+
+  .validation-dot.info {
+    background: var(--info);
+    box-shadow: 0 0 6px rgba(96, 165, 250, 0.3);
+  }
+
+  .validation-text {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .validation-source {
+    font-size: 9px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+    font-family: var(--font-mono);
+  }
+
+  /* ==== 3D VIEWER ==== */
+  .viewer-area {
+    grid-column: 1 / -1;
+    position: relative;
+    background: var(--bg-deep);
+    border-top: 1px solid var(--border-neon);
+    overflow: hidden;
+  }
+
+  .viewer-area::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 15%;
+    right: 15%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-neon), transparent);
+    box-shadow: var(--neon-md);
+    z-index: 3;
+  }
+
+  /* Perspective road with neon */
+  .viewer-road {
+    position: absolute;
+    bottom: 0;
+    left: 0; right: 0;
+    height: 75%;
+    background:
+      linear-gradient(0deg, rgba(167, 139, 250, 0.04) 0%, transparent 80%);
+    clip-path: polygon(33% 0%, 67% 0%, 100% 100%, 0% 100%);
+  }
+
+  /* Road center line — neon */
+  .viewer-road-center {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    height: 65%;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 14px,
+      var(--accent-neon) 14px,
+      var(--accent-neon) 28px
+    );
+    box-shadow: 0 0 8px var(--accent-glow-violet);
+  }
+
+  /* Road edge lines */
+  .viewer-road-edge {
+    position: absolute;
+    bottom: 0;
+    width: 1px;
+    height: 65%;
+    background: linear-gradient(0deg, rgba(129, 140, 248, 0.15), transparent);
+  }
+
+  .viewer-road-edge.left {
+    left: 35%;
+    transform: skewX(15deg);
+  }
+
+  .viewer-road-edge.right {
+    right: 35%;
+    transform: skewX(-15deg);
+  }
+
+  .viewer-horizon {
+    position: absolute;
+    top: 28%;
+    left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent,
+      rgba(167, 139, 250, 0.08),
+      rgba(129, 140, 248, 0.12),
+      rgba(167, 139, 250, 0.08),
+      transparent
+    );
+    box-shadow: 0 0 12px var(--accent-glow-blue);
+  }
+
+  .viewer-label {
+    position: absolute;
+    top: var(--space-lg);
+    left: var(--space-xl);
+    font-family: var(--font-display);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    z-index: 2;
+  }
+
+  .viewer-controls {
+    position: absolute;
+    top: var(--space-lg);
+    right: var(--space-xl);
+    display: flex;
+    gap: 2px;
+    z-index: 2;
+  }
+
+  .viewer-btn {
+    padding: var(--space-xs) var(--space-md);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    background: var(--bg-panel);
+    border: 1px solid var(--border-subtle);
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: var(--font-body);
+  }
+
+  .viewer-btn.active {
+    color: var(--text-neon);
+    border-color: var(--border-neon);
+    background: var(--accent-dim);
+    box-shadow: var(--neon-sm);
+    text-shadow: 0 0 4px var(--accent-glow-violet);
+  }
+
+  .viewer-btn:hover:not(.active) {
+    border-color: var(--border-subtle);
+    color: var(--text-secondary);
+  }
+
+  /* Entity markers — glowing */
+  .viewer-entity {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    z-index: 3;
+    animation: entityBreathe 3s ease-in-out infinite alternate;
+  }
+
+  .viewer-entity-box {
+    width: 34px;
+    height: 16px;
+    border: 1px solid var(--accent-neon);
+    background: rgba(167, 139, 250, 0.08);
+    box-shadow: var(--neon-sm);
+    transition: all 0.3s;
+  }
+
+  .viewer-entity-box:hover {
+    box-shadow: var(--neon-md);
+  }
+
+  .viewer-entity-label {
+    font-family: var(--font-display);
+    font-size: 8px;
+    font-weight: 600;
+    color: var(--text-neon);
+    letter-spacing: 0.1em;
+    text-shadow: 0 0 4px var(--accent-glow-violet);
+    text-transform: uppercase;
+  }
+
+  @keyframes entityBreathe {
+    from { transform: translateY(0); filter: brightness(1); }
+    to { transform: translateY(-3px); filter: brightness(1.1); }
+  }
+
+  /* ==== STATUSBAR ==== */
+  .statusbar {
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-xl);
+    gap: var(--space-xl);
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-neon);
+    font-size: 10px;
+    color: var(--text-tertiary);
+    letter-spacing: 0.04em;
+    position: relative;
+  }
+
+  .statusbar::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 20%;
+    right: 20%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-neon), transparent);
+    box-shadow: var(--neon-sm);
+  }
+
+  .status-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+
+  .status-dot {
+    width: 5px;
+    height: 5px;
+    background: var(--success);
+    box-shadow: 0 0 6px rgba(52, 211, 153, 0.4);
+    animation: statusNeon 2s ease-in-out infinite;
+  }
+
+  @keyframes statusNeon {
+    0%, 100% { opacity: 1; box-shadow: 0 0 6px rgba(52, 211, 153, 0.4); }
+    50% { opacity: 0.5; box-shadow: 0 0 3px rgba(52, 211, 153, 0.2); }
+  }
+
+  .status-spacer { flex: 1; }
+
+  /* ==== ANIMATIONS ==== */
+  .fade-in { animation: fadeIn 0.6s ease-out both; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .slide-in-left { animation: slideInLeft 0.5s ease-out both; }
+  @keyframes slideInLeft { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: translateX(0); } }
+
+  .slide-in-right { animation: slideInRight 0.5s ease-out both; }
+  @keyframes slideInRight { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: translateX(0); } }
+
+  .stagger-1 { animation-delay: 0.08s; }
+  .stagger-2 { animation-delay: 0.14s; }
+  .stagger-3 { animation-delay: 0.2s; }
+  .stagger-4 { animation-delay: 0.26s; }
+  .stagger-5 { animation-delay: 0.32s; }
+  .stagger-6 { animation-delay: 0.38s; }
+
+  /* Glitch micro effect on hover */
+  @keyframes glitch {
+    0%, 100% { transform: translate(0); }
+    25% { transform: translate(-1px, 1px); }
+    50% { transform: translate(1px, -1px); }
+    75% { transform: translate(-1px, 0); }
+  }
+
+  /* Design label */
+  .design-label {
+    position: fixed;
+    bottom: 34px;
+    right: var(--space-xl);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    pointer-events: none;
+  }
+
+  .design-label-title {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    background: linear-gradient(135deg, var(--accent-violet), var(--accent-blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    opacity: 0.15;
+    text-transform: uppercase;
+  }
+
+  .design-label-sub {
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    color: var(--text-tertiary);
+    opacity: 0.35;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<div class="ambient-glow-1"></div>
+<div class="ambient-glow-2"></div>
+
+<div class="app">
+  <!-- ===== HEADER ===== -->
+  <header class="header fade-in">
+    <div class="logo">
+      <div class="logo-mark"></div>
+      <span class="logo-text">VOLT</span>
+    </div>
+
+    <div class="menu-items">
+      <span class="menu-item">File</span>
+      <span class="menu-item">Edit</span>
+      <span class="menu-item">View</span>
+      <span class="menu-item">Scenario</span>
+      <span class="menu-item">Simulate</span>
+    </div>
+
+    <div class="header-spacer"></div>
+
+    <div class="header-actions">
+      <button class="action-btn" title="Undo">
+        <svg viewBox="0 0 24 24"><path d="M3 10h10a5 5 0 0 1 0 10H9"/><polyline points="7 14 3 10 7 6"/></svg>
+      </button>
+      <button class="action-btn" title="Redo">
+        <svg viewBox="0 0 24 24"><path d="M21 10H11a5 5 0 0 0 0 10h4"/><polyline points="17 14 21 10 17 6"/></svg>
+      </button>
+
+      <div class="divider-v"></div>
+
+      <button class="action-btn action-btn-text action-btn-neon">
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg>
+        Validate
+      </button>
+
+      <button class="action-btn action-btn-text" style="border-color: var(--border-subtle); color: var(--text-secondary);">
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Run
+      </button>
+
+      <div class="divider-v"></div>
+
+      <button class="action-btn" title="Settings">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="main">
+
+    <!-- Left Sidebar -->
+    <aside class="sidebar-left slide-in-left">
+      <div class="tab-bar">
+        <div class="tab active">Entities</div>
+        <div class="tab">Templates</div>
+      </div>
+      <div class="panel-content">
+        <div class="section-label stagger-1 fade-in">Entities</div>
+
+        <div class="entity-item selected stagger-2 fade-in">
+          <div class="entity-icon">
+            <svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="1"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+          </div>
+          <div class="entity-info">
+            <div class="entity-name">Ego Vehicle</div>
+            <div class="entity-type">Vehicle &middot; car</div>
+          </div>
+          <span class="entity-badge">Ego</span>
+        </div>
+
+        <div class="entity-item stagger-3 fade-in">
+          <div class="entity-icon">
+            <svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="1"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+          </div>
+          <div class="entity-info">
+            <div class="entity-name">Target Vehicle</div>
+            <div class="entity-type">Vehicle &middot; car</div>
+          </div>
+        </div>
+
+        <div class="entity-item stagger-4 fade-in">
+          <div class="entity-icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M8 20l4-4 4 4"/></svg>
+          </div>
+          <div class="entity-info">
+            <div class="entity-name">Pedestrian_01</div>
+            <div class="entity-type">Pedestrian</div>
+          </div>
+        </div>
+
+        <div style="height: var(--space-xl);"></div>
+
+        <div class="section-label stagger-5 fade-in">Templates</div>
+
+        <div class="template-card stagger-5 fade-in">
+          <div class="template-name">Cut-In Scenario</div>
+          <div class="template-desc">Vehicle merges from adjacent lane in front of ego</div>
+          <span class="template-tag">Highway</span>
+        </div>
+
+        <div class="template-card stagger-6 fade-in">
+          <div class="template-name">Pedestrian Crossing</div>
+          <div class="template-desc">Pedestrian crosses road at designated crossing</div>
+          <span class="template-tag">Urban</span>
+        </div>
+
+        <div class="template-card fade-in" style="animation-delay: 0.4s;">
+          <div class="template-name">Emergency Brake</div>
+          <div class="template-desc">Sudden braking event for collision avoidance</div>
+          <span class="template-tag">Safety</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Center -->
+    <div class="center fade-in">
+      <!-- Node Editor -->
+      <div class="node-editor">
+        <div class="node-editor-label">Node Editor</div>
+
+        <svg class="connections-svg" viewBox="0 0 1000 600" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color: #A78BFA; stop-opacity: 0.6" />
+              <stop offset="100%" style="stop-color: #818CF8; stop-opacity: 0.3" />
+            </linearGradient>
+          </defs>
+          <path class="connection-line" d="M 278 130 C 350 130, 350 100, 390 100" />
+          <path class="connection-line" d="M 278 130 C 350 130, 350 230, 390 230" />
+          <path class="connection-line" d="M 558 100 C 620 100, 620 165, 670 165" />
+          <path class="connection-line" d="M 558 230 C 620 230, 620 185, 670 185" />
+        </svg>
+
+        <div class="node" style="left: 70px; top: 90px; animation-delay: 0.2s;">
+          <div class="node-header">
+            <div class="node-dot"></div>
+            <span class="node-title">Storyboard</span>
+          </div>
+          <div class="node-body">
+            <div class="node-field">
+              <span>Init</span>
+              <span class="node-value">3 actions</span>
+            </div>
+            <div class="node-field">
+              <span>Stories</span>
+              <span class="node-value">1</span>
+            </div>
+          </div>
+          <div class="node-port right"></div>
+        </div>
+
+        <div class="node" style="left: 330px; top: 60px; animation-delay: 0.35s;">
+          <div class="node-header">
+            <div class="node-dot blue"></div>
+            <span class="node-title">Cut-In Story</span>
+          </div>
+          <div class="node-body">
+            <div class="node-field">
+              <span>Acts</span>
+              <span class="node-value">1</span>
+            </div>
+          </div>
+          <div class="node-port left"></div>
+          <div class="node-port right"></div>
+        </div>
+
+        <div class="node" style="left: 330px; top: 190px; animation-delay: 0.45s;">
+          <div class="node-header">
+            <div class="node-dot warn"></div>
+            <span class="node-title">Speed Action</span>
+          </div>
+          <div class="node-body">
+            <div class="node-field">
+              <span>Target</span>
+              <span class="node-value">30.0 m/s</span>
+            </div>
+            <div class="node-field">
+              <span>Dynamics</span>
+              <span class="node-value">linear</span>
+            </div>
+          </div>
+          <div class="node-port left"></div>
+          <div class="node-port right"></div>
+        </div>
+
+        <div class="node" style="left: 610px; top: 125px; animation-delay: 0.55s;">
+          <div class="node-header">
+            <div class="node-dot ok"></div>
+            <span class="node-title">Trigger</span>
+          </div>
+          <div class="node-body">
+            <div class="node-field">
+              <span>Type</span>
+              <span class="node-value">Distance</span>
+            </div>
+            <div class="node-field">
+              <span>Value</span>
+              <span class="node-value">20.0 m</span>
+            </div>
+            <div class="node-field">
+              <span>Entity</span>
+              <span class="node-value">Ego</span>
+            </div>
+          </div>
+          <div class="node-port left"></div>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="timeline fade-in" style="animation-delay: 0.3s;">
+        <div class="timeline-header">
+          <span class="timeline-title">Timeline</span>
+          <span class="timeline-time">00:05.200</span>
+        </div>
+        <div class="timeline-ruler">
+          <span class="timeline-tick">0s</span>
+          <span class="timeline-tick">2s</span>
+          <span class="timeline-tick">4s</span>
+          <span class="timeline-tick">6s</span>
+          <span class="timeline-tick">8s</span>
+          <span class="timeline-tick">10s</span>
+        </div>
+        <div class="timeline-tracks">
+          <div class="timeline-track">
+            <span class="track-label">Ego Vehicle</span>
+            <div class="track-bar-container">
+              <div class="track-bar neon-violet" style="left: 0%; width: 52%"></div>
+              <div class="playhead" style="left: 52%"></div>
+            </div>
+          </div>
+          <div class="timeline-track">
+            <span class="track-label">Target Vehicle</span>
+            <div class="track-bar-container">
+              <div class="track-bar neon-blue" style="left: 20%; width: 32%"></div>
+            </div>
+          </div>
+          <div class="timeline-track">
+            <span class="track-label">Pedestrian_01</span>
+            <div class="track-bar-container">
+              <div class="track-bar neon-violet" style="left: 40%; width: 25%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Sidebar -->
+    <aside class="sidebar-right slide-in-right">
+      <div class="tab-bar">
+        <div class="tab active">Properties</div>
+        <div class="tab">Validation</div>
+      </div>
+      <div class="panel-content">
+        <div class="prop-group stagger-1 fade-in">
+          <div class="prop-group-title">Entity — Ego Vehicle</div>
+
+          <div class="prop-field">
+            <label class="prop-label">Name</label>
+            <input class="prop-input" type="text" value="Ego Vehicle" />
+          </div>
+
+          <div class="prop-field">
+            <label class="prop-label">Vehicle Type</label>
+            <input class="prop-input" type="text" value="car" />
+          </div>
+        </div>
+
+        <div class="prop-group stagger-2 fade-in">
+          <div class="prop-group-title">Initial Position</div>
+
+          <div class="prop-field">
+            <label class="prop-label">Position</label>
+            <div class="prop-input-row">
+              <div class="prop-input-labeled">
+                <span class="prop-input-prefix">X</span>
+                <input class="prop-input" type="text" value="100.0" />
+              </div>
+              <div class="prop-input-labeled">
+                <span class="prop-input-prefix">Y</span>
+                <input class="prop-input" type="text" value="0.0" />
+              </div>
+            </div>
+          </div>
+
+          <div class="prop-field">
+            <label class="prop-label">Heading (deg)</label>
+            <div class="prop-slider-container">
+              <input class="prop-slider" type="range" min="0" max="360" value="0" />
+              <span class="prop-slider-value">0.0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="prop-group stagger-3 fade-in">
+          <div class="prop-group-title">Initial Speed</div>
+          <div class="prop-field">
+            <label class="prop-label">Speed (m/s)</label>
+            <div class="prop-slider-container">
+              <input class="prop-slider" type="range" min="0" max="60" value="30" />
+              <span class="prop-slider-value">30.0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="prop-group stagger-4 fade-in">
+          <div class="prop-group-title">Bounding Box</div>
+          <div class="prop-field">
+            <label class="prop-label">Dimensions (L &times; W &times; H)</label>
+            <div class="prop-input-row" style="grid-template-columns: 1fr 1fr 1fr;">
+              <input class="prop-input" type="text" value="4.5" />
+              <input class="prop-input" type="text" value="1.8" />
+              <input class="prop-input" type="text" value="1.4" />
+            </div>
+          </div>
+        </div>
+
+        <div style="height: var(--space-lg);"></div>
+        <div class="section-label stagger-5 fade-in">Validation</div>
+
+        <div class="validation-item stagger-5 fade-in">
+          <div class="validation-dot warn"></div>
+          <div>
+            <div class="validation-text">Speed exceeds typical range for urban scenario</div>
+            <div class="validation-source">Ego Vehicle &rarr; Init &rarr; SpeedAction</div>
+          </div>
+        </div>
+
+        <div class="validation-item stagger-6 fade-in">
+          <div class="validation-dot info"></div>
+          <div>
+            <div class="validation-text">No road network loaded</div>
+            <div class="validation-source">RoadNetwork &rarr; LogicFile</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 3D Viewer -->
+    <div class="viewer-area fade-in" style="animation-delay: 0.4s;">
+      <div class="viewer-road"></div>
+      <div class="viewer-road-center"></div>
+      <div class="viewer-road-edge left"></div>
+      <div class="viewer-road-edge right"></div>
+      <div class="viewer-horizon"></div>
+
+      <div class="viewer-label">3D Viewer</div>
+      <div class="viewer-controls">
+        <button class="viewer-btn active">Ortho</button>
+        <button class="viewer-btn">Persp</button>
+        <button class="viewer-btn">Follow</button>
+      </div>
+
+      <div class="viewer-entity" style="left: 45%; bottom: 40%;">
+        <div class="viewer-entity-box"></div>
+        <span class="viewer-entity-label">Ego</span>
+      </div>
+      <div class="viewer-entity" style="left: 56%; bottom: 54%; animation-delay: 0.5s;">
+        <div class="viewer-entity-box" style="width: 28px; height: 14px; border-color: rgba(129, 140, 248, 0.3); box-shadow: 0 0 8px var(--accent-glow-blue);"></div>
+        <span class="viewer-entity-label">Target</span>
+      </div>
+      <div class="viewer-entity" style="left: 37%; bottom: 34%; animation-delay: 1s;">
+        <div class="viewer-entity-box" style="width: 10px; height: 10px;"></div>
+        <span class="viewer-entity-label">Ped_01</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===== STATUSBAR ===== -->
+  <footer class="statusbar fade-in" style="animation-delay: 0.5s;">
+    <div class="status-item">
+      <div class="status-dot"></div>
+      Ready
+    </div>
+    <div class="status-item">scenario_cutin.xosc</div>
+    <div class="status-item">Entities: 3</div>
+    <div class="status-spacer"></div>
+    <div class="status-item">OpenSCENARIO v1.2</div>
+    <div class="status-item">v0.1.0</div>
+  </footer>
+</div>
+
+<div class="design-label">
+  <div class="design-label-title">VOLT</div>
+  <div class="design-label-sub">Cyberpunk Elegance</div>
+</div>
+
+<script>
+  document.querySelectorAll('.tab-bar').forEach(bar => {
+    bar.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        bar.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+      });
+    });
+  });
+
+  document.querySelectorAll('.prop-slider').forEach(slider => {
+    const value = slider.parentElement.querySelector('.prop-slider-value');
+    if (value) {
+      slider.addEventListener('input', () => {
+        value.textContent = parseFloat(slider.value).toFixed(1);
+      });
+    }
+  });
+
+  document.querySelectorAll('.viewer-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.viewer-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

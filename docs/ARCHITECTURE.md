@@ -318,13 +318,25 @@ Zustand selection storeで同期:
 - `@osce/i18n`: i18next + react-i18next、6 namespace、600+翻訳キー（英日）。
 - `@osce/templates`: 8ユースケース（CutIn, Overtaking, PedestrianCrossing, EmergencyBrake, FollowLeadVehicle, LaneChange, HighwayMerge, DecelerationToStop）、6アクションコンポーネント、visualHint対応。
 
-### Phase 2: ビジュアルエディタ 🟢 3並列開発可能
+### Phase 2: ビジュアルエディタ ✅ 完了（3並列開発）
 
-| トラック | パッケージ | 主な作業 |
-|---------|-----------|---------|
-| E | `@osce/node-editor` | カスタムノード、レイアウト、タイムライン、プロパティパネル |
-| F | `@osce/3d-viewer` | 道路描画、車線表示、エンティティ、レーンID表示 |
-| G | `apps/web` | メインレイアウト、ツールバー、パネル統合、ファイル操作 |
+| トラック | パッケージ | 主な作業 | テスト |
+|---------|-----------|---------|--------|
+| E | `@osce/node-editor` | カスタムノード、レイアウト、タイムライン、プロパティパネル | 49合格 |
+| F | `@osce/3d-viewer` | 道路描画、車線表示、エンティティ、レーンID表示 | 36合格 |
+| G | `apps/web` | メインレイアウト、ツールバー、パネル統合、ファイル操作 | 21合格 |
+
+**Phase 2 成果物:**
+- `@osce/node-editor`: React Flow v12ベース。11種カスタムノード（Storyboard, Init, Entity, Story, Act, ManeuverGroup, Maneuver, Event, Action, Trigger, Condition）、Dagre自動レイアウト（TB/LR方向）、タイムラインビュー（エンティティ別トラック+イベントマーカー）、7種プロパティエディタ、HierarchyEdge（実線）+TriggerEdge（破線）、MiniMap+Controls、scenario-engine双方向同期、ノード折りたたみ。scenario-engineにupdate系コマンド7種を追加（UpdateStory, UpdateAct, UpdateManeuverGroup, UpdateManeuver, UpdateEvent, UpdateAction, UpdateCondition）。
+- `@osce/3d-viewer`: React Three Fiber + drei。OpenDRIVE道路描画（RoadNetwork, RoadMesh, LaneMesh, RoadMarkLine, RoadLabels）、エンティティ表示（Vehicle, Pedestrian, MiscObject + EntityLabel）、カメラコントロール、SceneEnvironment、viewer-store（Zustand）、シミュレーション再生（SimulationOverlay + useSimulationPlayback）、エンティティインタラクション、車線タイプ別色分け、位置解決ユーティリティ。
+- `apps/web`: Vite 6 + React 19。react-resizable-panelsによる4パネルレイアウト（ノードエディタ/3Dビューア/サイドバー/タイムライン）、shadcn/ui 15コンポーネント + Tailwind v4テーマ、ツールバー（ファイル操作/Undo-Redo/バリデーション/言語切替/StatusBar）、@osce/scenario-engine Zustand統合（Context Provider）、@osce/i18n EN/JA切替、File System Access API + フォールバック、キーボードショートカット（Ctrl+Z/Y/S/O）、エンティティ管理パネル、テンプレートパレット（カテゴリ別+パラメータダイアログ）、プロパティパネル、バリデーションパネル、editor-store（localStorage永続化）。
+
+**Phase 2 残課題（Phase 3-4で対応）:**
+- apps/webの3d-viewer/node-editorプレースホルダーを実コンポーネントに統合
+- ドラッグ&ドロップ（テンプレートパレット → ノードエディタ）
+- コンテキストメニュー（右クリックでノード追加/削除）
+- Deleteキーによるノード削除ショートカット
+- 明示的なError Boundaryコンポーネント
 
 ### Phase 3: バックエンド + 統合 🟢 3並列開発可能
 

@@ -1,0 +1,1805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GRID — SF Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=M+PLUS+1p:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  /* ============================================
+     GRID — SF Command Center
+     NASA Mission Control × Star Trek LCARS
+     ============================================ */
+
+  :root {
+    --bg-deep: #060412;
+    --bg-base: #0F0820;
+    --bg-surface: rgba(16, 10, 36, 0.85);
+    --bg-elevated: rgba(24, 16, 52, 0.7);
+    --bg-panel: rgba(18, 12, 42, 0.9);
+
+    /* Accent — Ethereal Lavender */
+    --accent: #B4A0E5;
+    --accent-dim: rgba(180, 160, 229, 0.1);
+    --accent-glow: rgba(180, 160, 229, 0.15);
+    --accent-bright: #D0C4F0;
+    --accent-line: rgba(180, 160, 229, 0.25);
+
+    /* Sub-accent — Cyan */
+    --cyan: #67E8F9;
+    --cyan-dim: rgba(103, 232, 249, 0.08);
+    --cyan-glow: rgba(103, 232, 249, 0.12);
+    --cyan-line: rgba(103, 232, 249, 0.2);
+
+    /* Text */
+    --text-primary: rgba(255, 255, 255, 0.9);
+    --text-secondary: rgba(255, 255, 255, 0.5);
+    --text-tertiary: rgba(255, 255, 255, 0.25);
+    --text-accent: #B4A0E5;
+    --text-cyan: #67E8F9;
+
+    /* Borders */
+    --border-subtle: rgba(180, 160, 229, 0.06);
+    --border-glow: rgba(180, 160, 229, 0.15);
+    --border-active: rgba(180, 160, 229, 0.3);
+    --border-cyan: rgba(103, 232, 249, 0.15);
+
+    /* Semantic */
+    --success: #6EE7B7;
+    --warning: #FCD34D;
+    --error: #FCA5A5;
+    --info: #67E8F9;
+
+    /* Spacing */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 12px;
+    --space-lg: 16px;
+    --space-xl: 24px;
+    --space-2xl: 32px;
+
+    --font-en: 'Rajdhani', sans-serif;
+    --font-jp: 'M PLUS 1p', sans-serif;
+    --font-mono: 'Courier New', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-en), var(--font-jp);
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  /* ---- Dot Grid Background ---- */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image: radial-gradient(circle, rgba(180, 160, 229, 0.04) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  /* ---- Ambient radial ---- */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    height: 40%;
+    background: radial-gradient(ellipse at center top, rgba(103, 232, 249, 0.03) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ---- HUD Corner Brackets ---- */
+  .hud-corners {
+    position: relative;
+  }
+
+  .hud-corners::before,
+  .hud-corners::after {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  .hud-corners::before {
+    top: 0;
+    left: 0;
+    border-top: 1px solid var(--accent-line);
+    border-left: 1px solid var(--accent-line);
+  }
+
+  .hud-corners::after {
+    bottom: 0;
+    right: 0;
+    border-bottom: 1px solid var(--accent-line);
+    border-right: 1px solid var(--accent-line);
+  }
+
+  .hud-corners-cyan::before {
+    border-color: var(--cyan-line);
+  }
+
+  .hud-corners-cyan::after {
+    border-color: var(--cyan-line);
+  }
+
+  /* ---- App Layout ---- */
+  .app {
+    display: grid;
+    grid-template-rows: 52px 1fr 24px;
+    height: 100vh;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ==== HEADER ==== */
+  .header {
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-xl);
+    gap: var(--space-xl);
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-glow);
+    position: relative;
+    z-index: 10;
+  }
+
+  /* Glow line at bottom of header */
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      var(--accent-line) 20%,
+      var(--accent-line) 80%,
+      transparent 100%
+    );
+    box-shadow: 0 0 8px var(--accent-glow);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  .logo-mark {
+    position: relative;
+    width: 28px;
+    height: 28px;
+  }
+
+  .logo-mark::before {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border: 1.5px solid var(--accent);
+    transform: rotate(45deg);
+    opacity: 0.6;
+  }
+
+  .logo-mark::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 6px;
+    height: 6px;
+    background: var(--cyan);
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 8px var(--cyan-glow);
+  }
+
+  .logo-text {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    color: var(--text-accent);
+    text-transform: uppercase;
+  }
+
+  .logo-sub {
+    font-size: 9px;
+    font-weight: 400;
+    letter-spacing: 0.3em;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    margin-top: -2px;
+  }
+
+  .menu-items {
+    display: flex;
+    gap: 2px;
+  }
+
+  .menu-item {
+    padding: var(--space-sm) var(--space-lg);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    position: relative;
+  }
+
+  .menu-item:hover {
+    color: var(--text-cyan);
+    background: var(--cyan-dim);
+  }
+
+  .menu-item:hover::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: var(--space-sm);
+    right: var(--space-sm);
+    height: 1px;
+    background: var(--cyan);
+    opacity: 0.4;
+  }
+
+  .header-spacer { flex: 1; }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    background: transparent;
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .action-btn:hover {
+    border-color: var(--border-glow);
+    color: var(--text-accent);
+    box-shadow: 0 0 8px var(--accent-glow);
+  }
+
+  .action-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    fill: none;
+  }
+
+  .action-btn-text {
+    width: auto;
+    padding: 0 var(--space-lg);
+    gap: var(--space-sm);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-family: var(--font-en);
+  }
+
+  .action-btn-primary {
+    background: var(--cyan-dim);
+    border-color: var(--border-cyan);
+    color: var(--text-cyan);
+  }
+
+  .action-btn-primary:hover {
+    box-shadow: 0 0 12px var(--cyan-glow);
+    background: rgba(103, 232, 249, 0.12);
+  }
+
+  .divider-v {
+    width: 1px;
+    height: 24px;
+    background: var(--border-glow);
+    margin: 0 var(--space-xs);
+  }
+
+  /* Coordinate-style label */
+  .coord-label {
+    font-size: 9px;
+    font-family: var(--font-mono);
+    color: var(--text-tertiary);
+    letter-spacing: 0.08em;
+  }
+
+  /* ==== MAIN ==== */
+  .main {
+    display: grid;
+    grid-template-columns: 240px 1fr 280px;
+    grid-template-rows: 1fr 200px;
+    overflow: hidden;
+  }
+
+  /* ==== LEFT SIDEBAR ==== */
+  .sidebar-left {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border-glow);
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Glow border */
+  .sidebar-left::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: -1px;
+    width: 1px;
+    height: 100%;
+    background: linear-gradient(180deg, var(--accent-line), transparent 30%, transparent 70%, var(--accent-line));
+    box-shadow: 0 0 4px var(--accent-glow);
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--border-subtle);
+    gap: var(--space-sm);
+  }
+
+  .panel-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-accent);
+  }
+
+  .panel-count {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: var(--text-tertiary);
+    margin-left: auto;
+  }
+
+  .tab-bar {
+    display: flex;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .tab {
+    flex: 1;
+    padding: var(--space-md);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    text-align: center;
+    position: relative;
+    transition: all 0.2s;
+  }
+
+  .tab.active {
+    color: var(--text-accent);
+  }
+
+  .tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent-glow);
+  }
+
+  .tab:hover:not(.active) {
+    color: var(--text-secondary);
+    background: var(--accent-dim);
+  }
+
+  .panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-lg);
+  }
+
+  .panel-content::-webkit-scrollbar { width: 3px; }
+  .panel-content::-webkit-scrollbar-thumb { background: var(--border-glow); }
+
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: var(--space-md);
+  }
+
+  .section-label::before {
+    content: '//';
+    color: var(--accent-line);
+    font-family: var(--font-mono);
+  }
+
+  /* Entity Item — HUD style */
+  .entity-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-xs);
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    position: relative;
+  }
+
+  .entity-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    background: transparent;
+    transition: background 0.2s;
+  }
+
+  .entity-item:hover {
+    background: var(--accent-dim);
+    border-color: var(--border-subtle);
+  }
+
+  .entity-item:hover::before {
+    background: var(--accent-line);
+  }
+
+  .entity-item.selected {
+    background: var(--accent-dim);
+    border-color: var(--border-glow);
+  }
+
+  .entity-item.selected::before {
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent-glow);
+  }
+
+  .entity-icon {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-glow);
+    position: relative;
+  }
+
+  .entity-icon::before,
+  .entity-icon::after {
+    content: '';
+    position: absolute;
+    width: 4px;
+    height: 4px;
+  }
+
+  .entity-icon::before {
+    top: -1px;
+    left: -1px;
+    border-top: 1px solid var(--accent-line);
+    border-left: 1px solid var(--accent-line);
+  }
+
+  .entity-icon::after {
+    bottom: -1px;
+    right: -1px;
+    border-bottom: 1px solid var(--accent-line);
+    border-right: 1px solid var(--accent-line);
+  }
+
+  .entity-icon svg {
+    width: 14px;
+    height: 14px;
+    stroke: var(--accent);
+    stroke-width: 1.5;
+    fill: none;
+  }
+
+  .entity-info { flex: 1; min-width: 0; }
+
+  .entity-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: 0.03em;
+  }
+
+  .entity-type {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+    letter-spacing: 0.05em;
+  }
+
+  .entity-badge {
+    padding: 2px 8px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-cyan);
+    border: 1px solid var(--border-cyan);
+    background: var(--cyan-dim);
+  }
+
+  /* Templates */
+  .template-card {
+    padding: var(--space-lg);
+    border: 1px solid var(--border-subtle);
+    margin-bottom: var(--space-sm);
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .template-card:hover {
+    border-color: var(--border-glow);
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
+
+  .template-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 6px; height: 6px;
+    border-top: 1px solid var(--accent-line);
+    border-left: 1px solid var(--accent-line);
+  }
+
+  .template-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 6px; height: 6px;
+    border-bottom: 1px solid var(--accent-line);
+    border-right: 1px solid var(--accent-line);
+  }
+
+  .template-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: 0.04em;
+    margin-bottom: var(--space-xs);
+  }
+
+  .template-desc {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    line-height: 1.6;
+  }
+
+  .template-tag {
+    display: inline-block;
+    margin-top: var(--space-sm);
+    padding: 1px 6px;
+    font-size: 9px;
+    font-family: var(--font-mono);
+    color: var(--text-cyan);
+    border: 1px solid var(--border-cyan);
+    letter-spacing: 0.05em;
+  }
+
+  /* ==== CENTER ==== */
+  .center {
+    display: grid;
+    grid-template-rows: 1fr 160px;
+    overflow: hidden;
+  }
+
+  /* Node Editor */
+  .node-editor {
+    position: relative;
+    background: var(--bg-base);
+    overflow: hidden;
+  }
+
+  /* Larger dot grid for node editor */
+  .node-editor::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(180, 160, 229, 0.035) 1px, transparent 1px);
+    background-size: 32px 32px;
+    pointer-events: none;
+  }
+
+  /* Coordinate crosshair */
+  .node-editor::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(0deg, transparent calc(50% - 0.5px), rgba(180, 160, 229, 0.04) 50%, transparent calc(50% + 0.5px)),
+      linear-gradient(90deg, transparent calc(50% - 0.5px), rgba(180, 160, 229, 0.04) 50%, transparent calc(50% + 0.5px));
+    pointer-events: none;
+  }
+
+  .node-editor-label {
+    position: absolute;
+    top: var(--space-lg);
+    left: var(--space-xl);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    z-index: 2;
+  }
+
+  .node-editor-label::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border: 1px solid var(--accent-line);
+    transform: rotate(45deg);
+  }
+
+  .node-editor-coord {
+    position: absolute;
+    top: var(--space-lg);
+    right: var(--space-xl);
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: var(--text-tertiary);
+    letter-spacing: 0.05em;
+    z-index: 2;
+  }
+
+  /* Nodes — HUD Style */
+  .node {
+    position: absolute;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-glow);
+    min-width: 170px;
+    transition: all 0.3s;
+    animation: nodeSlideIn 0.5s ease-out both;
+  }
+
+  .node:hover {
+    border-color: var(--border-active);
+    box-shadow: 0 0 16px var(--accent-glow);
+  }
+
+  /* HUD corner marks on nodes */
+  .node::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px;
+    width: 8px; height: 8px;
+    border-top: 2px solid var(--accent);
+    border-left: 2px solid var(--accent);
+  }
+
+  .node::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; right: -1px;
+    width: 8px; height: 8px;
+    border-bottom: 2px solid var(--accent);
+    border-right: 2px solid var(--accent);
+  }
+
+  @keyframes nodeSlideIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .node-header {
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .node-indicator {
+    width: 8px;
+    height: 2px;
+    background: var(--accent);
+  }
+
+  .node-indicator.cyan { background: var(--cyan); }
+  .node-indicator.warning { background: var(--warning); }
+  .node-indicator.success { background: var(--success); }
+
+  .node-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-accent);
+  }
+
+  .node-id {
+    font-size: 9px;
+    font-family: var(--font-mono);
+    color: var(--text-tertiary);
+    margin-left: auto;
+  }
+
+  .node-body { padding: var(--space-md); }
+
+  .node-field {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: var(--text-secondary);
+    padding: var(--space-xs) 0;
+  }
+
+  .node-value {
+    color: var(--text-cyan);
+    font-weight: 600;
+    font-family: var(--font-mono);
+    letter-spacing: 0.03em;
+  }
+
+  .node-port {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border: 1.5px solid var(--accent);
+    background: var(--bg-deep);
+    top: 50%;
+    transform: translateY(-50%) rotate(45deg);
+  }
+
+  .node-port.left { left: -5px; }
+  .node-port.right { right: -5px; }
+
+  /* Connection lines */
+  .connections-svg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .connection-line {
+    fill: none;
+    stroke: var(--accent-line);
+    stroke-width: 1;
+    stroke-dasharray: 4, 4;
+    opacity: 0.6;
+  }
+
+  /* Timeline */
+  .timeline {
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border-glow);
+    padding: var(--space-lg) var(--space-xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    position: relative;
+  }
+
+  /* Glow line at top */
+  .timeline::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-line), transparent);
+    box-shadow: 0 0 6px var(--accent-glow);
+  }
+
+  .timeline-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .timeline-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .timeline-title::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border: 1px solid var(--accent-line);
+    transform: rotate(45deg);
+  }
+
+  .timeline-time {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-cyan);
+    font-family: var(--font-mono);
+    letter-spacing: 0.1em;
+  }
+
+  .timeline-ruler {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 var(--space-xs);
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: var(--space-xs);
+  }
+
+  .timeline-tick {
+    font-size: 9px;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+    letter-spacing: 0.05em;
+  }
+
+  .timeline-tracks {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .timeline-track {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    height: 26px;
+  }
+
+  .track-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    width: 90px;
+    flex-shrink: 0;
+    letter-spacing: 0.03em;
+  }
+
+  .track-bar-container {
+    flex: 1;
+    height: 100%;
+    position: relative;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .track-bar {
+    position: absolute;
+    height: 100%;
+    border-right: 2px solid var(--accent);
+    transition: all 0.3s;
+  }
+
+  .track-bar.purple {
+    background: linear-gradient(90deg, rgba(180, 160, 229, 0.15), rgba(180, 160, 229, 0.08));
+  }
+
+  .track-bar.cyan {
+    background: linear-gradient(90deg, rgba(103, 232, 249, 0.12), rgba(103, 232, 249, 0.06));
+    border-right-color: var(--cyan);
+  }
+
+  .playhead {
+    position: absolute;
+    top: 0;
+    width: 1px;
+    height: 100%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan-glow);
+    z-index: 2;
+  }
+
+  /* ==== RIGHT SIDEBAR ==== */
+  .sidebar-right {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-panel);
+    border-left: 1px solid var(--border-glow);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .sidebar-right::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -1px;
+    width: 1px;
+    height: 100%;
+    background: linear-gradient(180deg, var(--accent-line), transparent 30%, transparent 70%, var(--accent-line));
+    box-shadow: 0 0 4px var(--accent-glow);
+    z-index: 2;
+  }
+
+  /* Property Fields */
+  .prop-group {
+    margin-bottom: var(--space-xl);
+  }
+
+  .prop-group-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: var(--space-md);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .prop-group-title::before {
+    content: '>';
+    font-family: var(--font-mono);
+    color: var(--accent-line);
+  }
+
+  .prop-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-md);
+  }
+
+  .prop-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .prop-input {
+    height: 34px;
+    padding: 0 var(--space-md);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-family: var(--font-en), var(--font-jp);
+    font-weight: 500;
+    outline: none;
+    transition: all 0.2s;
+    letter-spacing: 0.03em;
+  }
+
+  .prop-input:focus {
+    border-color: var(--border-active);
+    box-shadow: 0 0 8px var(--accent-glow);
+  }
+
+  .prop-input-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-sm);
+  }
+
+  .prop-input-labeled {
+    position: relative;
+  }
+
+  .prop-input-labeled .prop-input {
+    width: 100%;
+    padding-left: 28px;
+  }
+
+  .prop-input-prefix {
+    position: absolute;
+    left: var(--space-sm);
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-cyan);
+    font-family: var(--font-mono);
+  }
+
+  .prop-slider-container {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  .prop-slider {
+    flex: 1;
+    height: 2px;
+    background: var(--border-glow);
+    border: none;
+    appearance: none;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .prop-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 10px;
+    height: 10px;
+    background: var(--accent);
+    border: none;
+    cursor: pointer;
+    transform: rotate(45deg);
+  }
+
+  .prop-slider-value {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: var(--text-cyan);
+    min-width: 48px;
+    text-align: right;
+    letter-spacing: 0.05em;
+  }
+
+  /* Validation */
+  .validation-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    margin-bottom: 2px;
+    border-left: 2px solid transparent;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .validation-item:hover {
+    background: var(--accent-dim);
+  }
+
+  .validation-item.warn { border-left-color: var(--warning); }
+  .validation-item.info-type { border-left-color: var(--info); }
+  .validation-item.error-type { border-left-color: var(--error); }
+
+  .validation-icon {
+    font-size: 9px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 1px;
+    width: 16px;
+    text-align: center;
+  }
+
+  .validation-icon.warn { color: var(--warning); }
+  .validation-icon.info-type { color: var(--info); }
+
+  .validation-text {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    font-weight: 500;
+  }
+
+  .validation-source {
+    font-size: 9px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.03em;
+  }
+
+  /* ==== 3D VIEWER ==== */
+  .viewer-area {
+    grid-column: 1 / -1;
+    position: relative;
+    background: var(--bg-base);
+    border-top: 1px solid var(--border-glow);
+    overflow: hidden;
+  }
+
+  /* Glow border */
+  .viewer-area::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cyan-line), transparent);
+    box-shadow: 0 0 6px var(--cyan-glow);
+    z-index: 2;
+  }
+
+  /* Grid floor perspective */
+  .viewer-grid {
+    position: absolute;
+    bottom: 0;
+    left: 0; right: 0;
+    height: 80%;
+    background:
+      linear-gradient(rgba(180, 160, 229, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(180, 160, 229, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    transform: perspective(600px) rotateX(60deg);
+    transform-origin: bottom center;
+    opacity: 0.5;
+  }
+
+  .viewer-horizon {
+    position: absolute;
+    top: 25%;
+    left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(103, 232, 249, 0.08), transparent);
+  }
+
+  .viewer-label {
+    position: absolute;
+    top: var(--space-lg);
+    left: var(--space-xl);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    z-index: 2;
+  }
+
+  .viewer-label::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border: 1px solid var(--cyan-line);
+    transform: rotate(45deg);
+  }
+
+  .viewer-coord {
+    position: absolute;
+    bottom: var(--space-lg);
+    left: var(--space-xl);
+    font-size: 9px;
+    font-family: var(--font-mono);
+    color: var(--text-tertiary);
+    letter-spacing: 0.05em;
+    z-index: 2;
+  }
+
+  .viewer-controls {
+    position: absolute;
+    top: var(--space-lg);
+    right: var(--space-xl);
+    display: flex;
+    gap: 2px;
+    z-index: 2;
+  }
+
+  .viewer-btn {
+    padding: var(--space-xs) var(--space-md);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    background: var(--bg-panel);
+    border: 1px solid var(--border-subtle);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-en);
+  }
+
+  .viewer-btn.active {
+    color: var(--text-cyan);
+    border-color: var(--border-cyan);
+    background: var(--cyan-dim);
+    box-shadow: 0 0 8px var(--cyan-glow);
+  }
+
+  .viewer-btn:hover:not(.active) {
+    border-color: var(--border-glow);
+    color: var(--text-secondary);
+  }
+
+  /* Entity markers */
+  .viewer-entity {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    z-index: 3;
+  }
+
+  .viewer-entity-box {
+    width: 36px;
+    height: 18px;
+    border: 1px solid var(--accent-line);
+    position: relative;
+  }
+
+  .viewer-entity-box::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px;
+    width: 4px; height: 4px;
+    border-top: 1px solid var(--accent);
+    border-left: 1px solid var(--accent);
+  }
+
+  .viewer-entity-box::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; right: -1px;
+    width: 4px; height: 4px;
+    border-bottom: 1px solid var(--accent);
+    border-right: 1px solid var(--accent);
+  }
+
+  .viewer-entity-label {
+    font-size: 9px;
+    font-family: var(--font-mono);
+    color: var(--text-tertiary);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* Scan line animation */
+  .scanline {
+    position: absolute;
+    left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(103, 232, 249, 0.08), transparent);
+    animation: scanline 4s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  @keyframes scanline {
+    0% { top: 0%; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+  }
+
+  /* ==== STATUSBAR ==== */
+  .statusbar {
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-xl);
+    gap: var(--space-xl);
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-glow);
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    letter-spacing: 0.05em;
+  }
+
+  .status-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+
+  .status-dot {
+    width: 5px;
+    height: 5px;
+    background: var(--success);
+    transform: rotate(45deg);
+    animation: statusBlink 2s ease-in-out infinite;
+  }
+
+  @keyframes statusBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .status-spacer { flex: 1; }
+
+  /* ==== ANIMATIONS ==== */
+  .fade-in { animation: fadeIn 0.5s ease-out both; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .slide-in-left { animation: slideInLeft 0.4s ease-out both; }
+  @keyframes slideInLeft { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: translateX(0); } }
+
+  .slide-in-right { animation: slideInRight 0.4s ease-out both; }
+  @keyframes slideInRight { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: translateX(0); } }
+
+  .stagger-1 { animation-delay: 0.05s; }
+  .stagger-2 { animation-delay: 0.1s; }
+  .stagger-3 { animation-delay: 0.15s; }
+  .stagger-4 { animation-delay: 0.2s; }
+  .stagger-5 { animation-delay: 0.25s; }
+  .stagger-6 { animation-delay: 0.3s; }
+
+  /* Design label */
+  .design-label {
+    position: fixed;
+    bottom: 32px;
+    right: var(--space-xl);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    pointer-events: none;
+  }
+
+  .design-label-title {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--text-accent);
+    opacity: 0.12;
+    text-transform: uppercase;
+  }
+
+  .design-label-sub {
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    color: var(--text-tertiary);
+    opacity: 0.35;
+    text-transform: uppercase;
+    font-family: var(--font-mono);
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ===== HEADER ===== -->
+  <header class="header fade-in">
+    <div class="logo">
+      <div class="logo-mark"></div>
+      <div>
+        <div class="logo-text">GRID</div>
+      </div>
+    </div>
+
+    <div class="menu-items">
+      <span class="menu-item">File</span>
+      <span class="menu-item">Edit</span>
+      <span class="menu-item">View</span>
+      <span class="menu-item">Scenario</span>
+      <span class="menu-item">Simulate</span>
+    </div>
+
+    <div class="header-spacer"></div>
+
+    <span class="coord-label">SYS:NOMINAL</span>
+
+    <div class="header-actions">
+      <button class="action-btn" title="Undo">
+        <svg viewBox="0 0 24 24"><path d="M3 10h10a5 5 0 0 1 0 10H9"/><polyline points="7 14 3 10 7 6"/></svg>
+      </button>
+      <button class="action-btn" title="Redo">
+        <svg viewBox="0 0 24 24"><path d="M21 10H11a5 5 0 0 0 0 10h4"/><polyline points="17 14 21 10 17 6"/></svg>
+      </button>
+
+      <div class="divider-v"></div>
+
+      <button class="action-btn action-btn-text action-btn-primary">
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg>
+        Validate
+      </button>
+
+      <button class="action-btn action-btn-text" style="border-color: var(--border-glow); color: var(--text-accent);">
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Run
+      </button>
+
+      <div class="divider-v"></div>
+
+      <button class="action-btn" title="Settings">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="main">
+
+    <!-- Left Sidebar -->
+    <aside class="sidebar-left slide-in-left">
+      <div class="tab-bar">
+        <div class="tab active">Entities</div>
+        <div class="tab">Templates</div>
+      </div>
+      <div class="panel-content">
+        <div class="section-label stagger-1 fade-in">Active Entities</div>
+
+        <div class="entity-item selected stagger-2 fade-in">
+          <div class="entity-icon">
+            <svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="1"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+          </div>
+          <div class="entity-info">
+            <div class="entity-name">Ego Vehicle</div>
+            <div class="entity-type">VEH::CAR</div>
+          </div>
+          <span class="entity-badge">EGO</span>
+        </div>
+
+        <div class="entity-item stagger-3 fade-in">
+          <div class="entity-icon">
+            <svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="1"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+          </div>
+          <div class="entity-info">
+            <div class="entity-name">Target Vehicle</div>
+            <div class="entity-type">VEH::CAR</div>
+          </div>
+        </div>
+
+        <div class="entity-item stagger-4 fade-in">
+          <div class="entity-icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><path d="M12 8v8M8 20l4-4 4 4"/></svg>
+          </div>
+          <div class="entity-info">
+            <div class="entity-name">Pedestrian_01</div>
+            <div class="entity-type">PED::ADULT</div>
+          </div>
+        </div>
+
+        <div style="height: var(--space-xl);"></div>
+
+        <div class="section-label stagger-5 fade-in">Mission Templates</div>
+
+        <div class="template-card stagger-5 fade-in hud-corners">
+          <div class="template-name">Cut-In Scenario</div>
+          <div class="template-desc">Vehicle merges from adjacent lane ahead of ego</div>
+          <span class="template-tag">HIGHWAY</span>
+        </div>
+
+        <div class="template-card stagger-6 fade-in hud-corners">
+          <div class="template-name">Pedestrian Crossing</div>
+          <div class="template-desc">Pedestrian crosses at designated crossing point</div>
+          <span class="template-tag">URBAN</span>
+        </div>
+
+        <div class="template-card fade-in" style="animation-delay: 0.35s;">
+          <div class="template-name">Emergency Brake</div>
+          <div class="template-desc">Sudden braking event for collision avoidance</div>
+          <span class="template-tag">SAFETY</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Center -->
+    <div class="center fade-in">
+      <!-- Node Editor -->
+      <div class="node-editor">
+        <div class="node-editor-label">Node Editor</div>
+        <div class="node-editor-coord">X:0.00 Y:0.00 Z:1.00</div>
+
+        <div class="scanline"></div>
+
+        <svg class="connections-svg" viewBox="0 0 1000 600" preserveAspectRatio="none">
+          <path class="connection-line" d="M 278 140 C 350 140, 350 105, 390 105" />
+          <path class="connection-line" d="M 278 140 C 350 140, 350 240, 390 240" />
+          <path class="connection-line" d="M 558 105 C 620 105, 620 170, 670 170" />
+          <path class="connection-line" d="M 558 240 C 620 240, 620 190, 670 190" />
+        </svg>
+
+        <div class="node" style="left: 70px; top: 100px; animation-delay: 0.2s;">
+          <div class="node-header">
+            <div class="node-indicator"></div>
+            <span class="node-title">Storyboard</span>
+            <span class="node-id">#001</span>
+          </div>
+          <div class="node-body">
+            <div class="node-field">
+              <span>Init</span>
+              <span class="node-value">3 ACT</span>
+            </div>
+            <div class="node-field">
+              <span>Stories</span>
+              <span class="node-value">1</span>
+            </div>
+          </div>
+          <div class="node-port right"></div>
+        </div>
+
+        <div class="node" style="left: 330px; top: 65px; animation-delay: 0.35s;">
+          <div class="node-header">
+            <div class="node-indicator cyan"></div>
+            <span class="node-title">Cut-In Story</span>
+            <span class="node-id">#002</span>
+          </div>
+          <div class="node-body">
+            <div class="node-field">
+              <span>Acts</span>
+              <span class="node-value">1</span>
+            </div>
+            <div class="node-field">
+              <span>Status</span>
+              <span class="node-value" style="color: var(--success);">READY</span>
+            </div>
+          </div>
+          <div class="node-port left"></div>
+          <div class="node-port right"></div>
+        </div>
+
+        <div class="node" style="left: 330px; top: 200px; animation-delay: 0.45s;">
+          <div class="node-header">
+            <div class="node-indicator warning"></div>
+            <span class="node-title">Speed Action</span>
+            <span class="node-id">#003</span>
+          </div>
+          <div class="node-body">
+            <div class="node-field">
+              <span>Target</span>
+              <span class="node-value">30.0 m/s</span>
+            </div>
+            <div class="node-field">
+              <span>Dynamics</span>
+              <span class="node-value">LINEAR</span>
+            </div>
+          </div>
+          <div class="node-port left"></div>
+          <div class="node-port right"></div>
+        </div>
+
+        <div class="node" style="left: 610px; top: 130px; animation-delay: 0.55s;">
+          <div class="node-header">
+            <div class="node-indicator success"></div>
+            <span class="node-title">Trigger</span>
+            <span class="node-id">#004</span>
+          </div>
+          <div class="node-body">
+            <div class="node-field">
+              <span>Type</span>
+              <span class="node-value">DIST</span>
+            </div>
+            <div class="node-field">
+              <span>Value</span>
+              <span class="node-value">20.0 m</span>
+            </div>
+            <div class="node-field">
+              <span>Ref</span>
+              <span class="node-value">EGO</span>
+            </div>
+          </div>
+          <div class="node-port left"></div>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="timeline fade-in" style="animation-delay: 0.3s;">
+        <div class="timeline-header">
+          <span class="timeline-title">Timeline</span>
+          <span class="timeline-time">T+005.200</span>
+        </div>
+        <div class="timeline-ruler">
+          <span class="timeline-tick">T+000</span>
+          <span class="timeline-tick">T+002</span>
+          <span class="timeline-tick">T+004</span>
+          <span class="timeline-tick">T+006</span>
+          <span class="timeline-tick">T+008</span>
+          <span class="timeline-tick">T+010</span>
+        </div>
+        <div class="timeline-tracks">
+          <div class="timeline-track">
+            <span class="track-label">Ego Vehicle</span>
+            <div class="track-bar-container">
+              <div class="track-bar purple" style="left: 0%; width: 52%"></div>
+              <div class="playhead" style="left: 52%"></div>
+            </div>
+          </div>
+          <div class="timeline-track">
+            <span class="track-label">Target Vehicle</span>
+            <div class="track-bar-container">
+              <div class="track-bar cyan" style="left: 20%; width: 32%"></div>
+            </div>
+          </div>
+          <div class="timeline-track">
+            <span class="track-label">Pedestrian_01</span>
+            <div class="track-bar-container">
+              <div class="track-bar purple" style="left: 40%; width: 25%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Sidebar -->
+    <aside class="sidebar-right slide-in-right">
+      <div class="tab-bar">
+        <div class="tab active">Properties</div>
+        <div class="tab">Validation</div>
+      </div>
+      <div class="panel-content">
+        <div class="prop-group stagger-1 fade-in">
+          <div class="prop-group-title">Entity — Ego Vehicle</div>
+
+          <div class="prop-field">
+            <label class="prop-label">Designation</label>
+            <input class="prop-input" type="text" value="Ego Vehicle" />
+          </div>
+
+          <div class="prop-field">
+            <label class="prop-label">Classification</label>
+            <input class="prop-input" type="text" value="VEH::CAR" />
+          </div>
+        </div>
+
+        <div class="prop-group stagger-2 fade-in">
+          <div class="prop-group-title">Position Vector</div>
+
+          <div class="prop-field">
+            <label class="prop-label">Coordinates</label>
+            <div class="prop-input-row">
+              <div class="prop-input-labeled">
+                <span class="prop-input-prefix">X</span>
+                <input class="prop-input" type="text" value="100.0" />
+              </div>
+              <div class="prop-input-labeled">
+                <span class="prop-input-prefix">Y</span>
+                <input class="prop-input" type="text" value="0.0" />
+              </div>
+            </div>
+          </div>
+
+          <div class="prop-field">
+            <label class="prop-label">Heading (deg)</label>
+            <div class="prop-slider-container">
+              <input class="prop-slider" type="range" min="0" max="360" value="0" />
+              <span class="prop-slider-value">000.0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="prop-group stagger-3 fade-in">
+          <div class="prop-group-title">Velocity</div>
+          <div class="prop-field">
+            <label class="prop-label">Speed (m/s)</label>
+            <div class="prop-slider-container">
+              <input class="prop-slider" type="range" min="0" max="60" value="30" />
+              <span class="prop-slider-value">030.0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="prop-group stagger-4 fade-in">
+          <div class="prop-group-title">Bounding Box</div>
+          <div class="prop-field">
+            <label class="prop-label">Dimensions (L &times; W &times; H)</label>
+            <div class="prop-input-row" style="grid-template-columns: 1fr 1fr 1fr;">
+              <input class="prop-input" type="text" value="4.50" />
+              <input class="prop-input" type="text" value="1.80" />
+              <input class="prop-input" type="text" value="1.40" />
+            </div>
+          </div>
+        </div>
+
+        <div style="height: var(--space-lg);"></div>
+        <div class="section-label stagger-5 fade-in">System Alerts</div>
+
+        <div class="validation-item warn stagger-5 fade-in">
+          <span class="validation-icon warn">!</span>
+          <div>
+            <div class="validation-text">Speed exceeds nominal range for urban scenario</div>
+            <div class="validation-source">EGO &gt; Init &gt; SpeedAction</div>
+          </div>
+        </div>
+
+        <div class="validation-item info-type stagger-6 fade-in">
+          <span class="validation-icon info-type">i</span>
+          <div>
+            <div class="validation-text">No road network loaded</div>
+            <div class="validation-source">RoadNetwork &gt; LogicFile</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 3D Viewer -->
+    <div class="viewer-area fade-in" style="animation-delay: 0.4s;">
+      <div class="viewer-grid"></div>
+      <div class="viewer-horizon"></div>
+      <div class="scanline" style="animation-delay: 2s;"></div>
+
+      <div class="viewer-label">3D Viewport</div>
+      <div class="viewer-coord">POS: X100.0 Y0.0 Z0.0 | HDG: 0.00</div>
+
+      <div class="viewer-controls">
+        <button class="viewer-btn active">Ortho</button>
+        <button class="viewer-btn">Persp</button>
+        <button class="viewer-btn">Follow</button>
+      </div>
+
+      <div class="viewer-entity" style="left: 44%; bottom: 38%;">
+        <div class="viewer-entity-box"></div>
+        <span class="viewer-entity-label">EGO</span>
+      </div>
+      <div class="viewer-entity" style="left: 56%; bottom: 52%;">
+        <div class="viewer-entity-box" style="width: 30px; height: 16px; border-color: var(--cyan-line);"></div>
+        <span class="viewer-entity-label">TGT</span>
+      </div>
+      <div class="viewer-entity" style="left: 36%; bottom: 33%;">
+        <div class="viewer-entity-box" style="width: 10px; height: 10px;"></div>
+        <span class="viewer-entity-label">PED01</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===== STATUSBAR ===== -->
+  <footer class="statusbar fade-in" style="animation-delay: 0.5s;">
+    <div class="status-item">
+      <div class="status-dot"></div>
+      SYS:NOMINAL
+    </div>
+    <div class="status-item">FILE:scenario_cutin.xosc</div>
+    <div class="status-item">ENT:3</div>
+    <div class="status-spacer"></div>
+    <div class="status-item">OSCE:v1.2</div>
+    <div class="status-item">BUILD:0.1.0</div>
+  </footer>
+</div>
+
+<div class="design-label">
+  <div class="design-label-title">GRID</div>
+  <div class="design-label-sub">SF Command Center</div>
+</div>
+
+<script>
+  document.querySelectorAll('.tab-bar').forEach(bar => {
+    bar.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        bar.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+      });
+    });
+  });
+
+  document.querySelectorAll('.prop-slider').forEach(slider => {
+    const value = slider.parentElement.querySelector('.prop-slider-value');
+    if (value) {
+      slider.addEventListener('input', () => {
+        value.textContent = parseFloat(slider.value).toFixed(1).padStart(5, '0');
+      });
+    }
+  });
+
+  document.querySelectorAll('.viewer-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.viewer-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>
