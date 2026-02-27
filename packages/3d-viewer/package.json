@@ -10,7 +10,9 @@
   },
   "scripts": {
     "build": "tsc --project tsconfig.json",
-    "dev": "tsc --project tsconfig.json --watch"
+    "dev": "tsc --project tsconfig.json --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@osce/shared": "workspace:*",
@@ -18,10 +20,16 @@
     "@osce/scenario-engine": "workspace:*",
     "three": "^0.172.0",
     "@react-three/fiber": "^9.0.0",
-    "@react-three/drei": "^9.0.0"
+    "@react-three/drei": "^9.0.0",
+    "zustand": "^5.0.0"
   },
   "peerDependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/three": "^0.172.0"
   }
 }
