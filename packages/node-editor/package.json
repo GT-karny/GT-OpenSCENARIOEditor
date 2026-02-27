@@ -10,16 +10,25 @@
   },
   "scripts": {
     "build": "tsc --project tsconfig.json",
-    "dev": "tsc --project tsconfig.json --watch"
+    "dev": "tsc --project tsconfig.json --watch",
+    "test": "vitest run"
   },
   "dependencies": {
     "@osce/shared": "workspace:*",
     "@osce/scenario-engine": "workspace:*",
     "@xyflow/react": "^12.0.0",
-    "@dagrejs/dagre": "^1.1.0"
+    "@dagrejs/dagre": "^1.1.0",
+    "zustand": "^5.0.0",
+    "lucide-react": "^0.468.0"
   },
   "peerDependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "vitest": "^3.0.0",
+    "jsdom": "^25.0.0"
   }
 }

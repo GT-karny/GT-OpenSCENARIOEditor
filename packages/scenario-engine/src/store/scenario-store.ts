@@ -44,10 +44,28 @@ import {
   SetInitPositionCommand,
   SetInitSpeedCommand,
 } from '../commands/init-commands.js';
+import {
+  UpdateStoryCommand,
+  UpdateActCommand,
+  UpdateManeuverGroupCommand,
+  UpdateManeuverCommand,
+  UpdateEventCommand,
+  UpdateActionCommand,
+  UpdateConditionCommand,
+} from '../commands/update-commands.js';
 import { getElementById as _getElementById, getParentOf as _getParentOf } from '../operations/tree-traversal.js';
 
 export interface ScenarioStore extends ScenarioState, IScenarioService {
   getCommandHistory(): CommandHistory;
+
+  // Update operations (beyond IScenarioService)
+  updateStory(storyId: string, updates: Partial<Story>): void;
+  updateAct(actId: string, updates: Partial<Act>): void;
+  updateManeuverGroup(groupId: string, updates: Partial<ManeuverGroup>): void;
+  updateManeuver(maneuverId: string, updates: Partial<Maneuver>): void;
+  updateEvent(eventId: string, updates: Partial<ScenarioEvent>): void;
+  updateAction(actionId: string, updates: Partial<ScenarioAction>): void;
+  updateCondition(conditionId: string, updates: Partial<Condition>): void;
 }
 
 export function createScenarioStore() {
@@ -126,6 +144,12 @@ export function createScenarioStore() {
         syncUndoRedo();
       },
 
+      updateStory: (storyId: string, updates: Partial<Story>): void => {
+        const cmd = new UpdateStoryCommand(storyId, updates, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
       // --- Act operations ---
       addAct: (storyId: string, partial: Partial<Act>): Act => {
         const cmd = new AddActCommand(storyId, partial, getDoc, setDoc);
@@ -136,6 +160,12 @@ export function createScenarioStore() {
 
       removeAct: (actId: string): void => {
         const cmd = new RemoveActCommand(actId, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
+      updateAct: (actId: string, updates: Partial<Act>): void => {
+        const cmd = new UpdateActCommand(actId, updates, getDoc, setDoc);
         commandHistory.execute(cmd);
         syncUndoRedo();
       },
@@ -154,6 +184,12 @@ export function createScenarioStore() {
         syncUndoRedo();
       },
 
+      updateManeuverGroup: (groupId: string, updates: Partial<ManeuverGroup>): void => {
+        const cmd = new UpdateManeuverGroupCommand(groupId, updates, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
       // --- Maneuver operations ---
       addManeuver: (groupId: string, partial: Partial<Maneuver>): Maneuver => {
         const cmd = new AddManeuverCommand(groupId, partial, getDoc, setDoc);
@@ -164,6 +200,12 @@ export function createScenarioStore() {
 
       removeManeuver: (maneuverId: string): void => {
         const cmd = new RemoveManeuverCommand(maneuverId, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
+      updateManeuver: (maneuverId: string, updates: Partial<Maneuver>): void => {
+        const cmd = new UpdateManeuverCommand(maneuverId, updates, getDoc, setDoc);
         commandHistory.execute(cmd);
         syncUndoRedo();
       },
@@ -182,6 +224,12 @@ export function createScenarioStore() {
         syncUndoRedo();
       },
 
+      updateEvent: (eventId: string, updates: Partial<ScenarioEvent>): void => {
+        const cmd = new UpdateEventCommand(eventId, updates, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
       // --- Action operations ---
       addAction: (eventId: string, partial: Partial<ScenarioAction>): ScenarioAction => {
         const cmd = new AddActionCommand(eventId, partial, getDoc, setDoc);
@@ -192,6 +240,12 @@ export function createScenarioStore() {
 
       removeAction: (actionId: string): void => {
         const cmd = new RemoveActionCommand(actionId, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
+      updateAction: (actionId: string, updates: Partial<ScenarioAction>): void => {
+        const cmd = new UpdateActionCommand(actionId, updates, getDoc, setDoc);
         commandHistory.execute(cmd);
         syncUndoRedo();
       },
@@ -231,6 +285,12 @@ export function createScenarioStore() {
 
       removeCondition: (conditionId: string): void => {
         const cmd = new RemoveConditionCommand(conditionId, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
+      updateCondition: (conditionId: string, updates: Partial<Condition>): void => {
+        const cmd = new UpdateConditionCommand(conditionId, updates, getDoc, setDoc);
         commandHistory.execute(cmd);
         syncUndoRedo();
       },
