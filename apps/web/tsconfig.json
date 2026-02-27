@@ -4,7 +4,11 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "composite": true,
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "baseUrl": "."
   },
   "include": ["src"],
   "references": [
