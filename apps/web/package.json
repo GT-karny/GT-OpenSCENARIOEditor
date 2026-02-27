@@ -11,6 +11,10 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@fontsource/exo-2": "^5.2.8",
+    "@fontsource/jetbrains-mono": "^5.2.8",
+    "@fontsource/m-plus-1p": "^5.2.9",
+    "@fontsource/orbitron": "^5.2.8",
     "@osce/shared": "workspace:*",
     "@osce/scenario-engine": "workspace:*",
     "@osce/node-editor": "workspace:*",

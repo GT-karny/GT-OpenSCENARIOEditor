@@ -5,7 +5,7 @@ export function NodeEditorPlaceholder() {
   const { t } = useTranslation('common');
 
   return (
-    <div className="flex items-center justify-center h-full bg-muted/30 rounded-lg border border-dashed">
+    <div className="flex items-center justify-center h-full border border-border/50">
       <div className="text-center text-muted-foreground">
         <LayoutGrid className="mx-auto mb-2 h-8 w-8" />
         <p className="text-sm font-medium">{t('panels.nodeEditor')}</p>

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { EditorLayout } from './components/layout/EditorLayout';
+import { CursorLight } from './components/apex/CursorLight';
 import { useKeyboardShortcuts } from './hooks/use-keyboard-shortcuts';
 import { useScenarioStoreApi } from './stores/use-scenario-store';
 import { useEditorStore } from './stores/editor-store';
@@ -16,5 +17,10 @@ export default function App() {
     return unsub;
   }, [storeApi]);
 
-  return <EditorLayout />;
+  return (
+    <>
+      <CursorLight />
+      <EditorLayout />
+    </>
+  );
 }

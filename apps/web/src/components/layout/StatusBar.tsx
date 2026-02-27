@@ -11,7 +11,7 @@ export function StatusBar() {
   const isDirty = useEditorStore((s) => s.isDirty);
 
   return (
-    <div className="flex items-center justify-between px-3 py-1 border-t bg-muted/50 text-xs text-muted-foreground">
+    <div className="flex items-center justify-between px-3 py-1 border-t border-border bg-card backdrop-blur-xl text-xs text-muted-foreground">
       <div className="flex items-center gap-4">
         <span>
           {t('labels.entities')}: {entityCount}
@@ -22,7 +22,7 @@ export function StatusBar() {
         {validationResult && (
           <span
             className={
-              validationResult.valid ? 'text-green-600' : 'text-destructive'
+              validationResult.valid ? 'text-success' : 'text-destructive'
             }
           >
             {validationResult.errors.length} errors, {validationResult.warnings.length} warnings

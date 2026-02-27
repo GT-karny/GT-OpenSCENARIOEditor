@@ -1,34 +1,266 @@
+/* ============================================
+   APEX Design Identity — fontsource imports
+   All fonts: SIL Open Font License (OFL 1.1)
+   ============================================ */
+@import "@fontsource/orbitron/400.css";
+@import "@fontsource/orbitron/500.css";
+@import "@fontsource/orbitron/600.css";
+@import "@fontsource/orbitron/700.css";
+@import "@fontsource/exo-2/300.css";
+@import "@fontsource/exo-2/400.css";
+@import "@fontsource/exo-2/500.css";
+@import "@fontsource/exo-2/600.css";
+@import "@fontsource/exo-2/700.css";
+@import "@fontsource/m-plus-1p/300.css";
+@import "@fontsource/m-plus-1p/400.css";
+@import "@fontsource/m-plus-1p/500.css";
+@import "@fontsource/m-plus-1p/700.css";
+@import "@fontsource/jetbrains-mono/400.css";
+
 @import "tailwindcss";
 
+/* ============================================
+   APEX v4 — Tailwind @theme tokens
+   ============================================ */
 @theme {
-  --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(240 10% 3.9%);
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(240 10% 3.9%);
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(240 10% 3.9%);
-  --color-primary: hsl(240 5.9% 10%);
-  --color-primary-foreground: hsl(0 0% 98%);
-  --color-secondary: hsl(240 4.8% 95.9%);
-  --color-secondary-foreground: hsl(240 5.9% 10%);
-  --color-muted: hsl(240 4.8% 95.9%);
-  --color-muted-foreground: hsl(240 3.8% 46.1%);
-  --color-accent: hsl(240 4.8% 95.9%);
-  --color-accent-foreground: hsl(240 5.9% 10%);
-  --color-destructive: hsl(0 84.2% 60.2%);
-  --color-destructive-foreground: hsl(0 0% 98%);
-  --color-border: hsl(240 5.9% 90%);
-  --color-input: hsl(240 5.9% 90%);
-  --color-ring: hsl(240 5.9% 10%);
-  --radius: 0.5rem;
+  /* shadcn color tokens → APEX dark purple */
+  --color-background: #0C081D;
+  --color-foreground: rgba(255, 255, 255, 0.93);
+  --color-card: rgba(20, 14, 48, 0.48);
+  --color-card-foreground: rgba(255, 255, 255, 0.93);
+  --color-popover: rgba(26, 18, 60, 0.90);
+  --color-popover-foreground: rgba(255, 255, 255, 0.93);
+  --color-primary: #B8ABEB;
+  --color-primary-foreground: #0C081D;
+  --color-secondary: rgba(26, 18, 60, 0.40);
+  --color-secondary-foreground: rgba(255, 255, 255, 0.93);
+  --color-muted: rgba(20, 14, 48, 0.48);
+  --color-muted-foreground: rgba(255, 255, 255, 0.48);
+  --color-accent: rgba(155, 132, 232, 0.15);
+  --color-accent-foreground: rgba(255, 255, 255, 0.93);
+  --color-destructive: #E88A8A;
+  --color-destructive-foreground: #0C081D;
+  --color-border: rgba(180, 170, 230, 0.07);
+  --color-input: rgba(180, 170, 230, 0.14);
+  --color-ring: #9B84E8;
+  --radius: 0px;
+
+  /* APEX extended semantic colors */
+  --color-success: #5DD8A8;
+  --color-warning: #E8C942;
+  --color-info: #88B8E8;
+
+  /* APEX accent variants */
+  --color-accent-vivid: #9B84E8;
+  --color-accent-2: #7B88E8;
+  --color-accent-bright: #D0C6F2;
+
+  /* APEX glass tokens */
+  --color-glass-1: rgba(20, 14, 48, 0.48);
+  --color-glass-2: rgba(26, 18, 60, 0.40);
+  --color-glass-hover: rgba(36, 26, 80, 0.48);
+  --color-glass-active: rgba(42, 30, 90, 0.52);
+  --color-glass-edge: rgba(180, 170, 230, 0.07);
+  --color-glass-edge-mid: rgba(180, 170, 230, 0.14);
+  --color-glass-edge-bright: rgba(190, 180, 240, 0.22);
+  --color-glass-edge-active: rgba(190, 180, 240, 0.32);
+
+  /* APEX text tokens */
+  --color-text-primary: rgba(255, 255, 255, 0.93);
+  --color-text-secondary: rgba(255, 255, 255, 0.48);
+  --color-text-tertiary: rgba(255, 255, 255, 0.20);
+
+  /* Font families */
+  --font-display: 'Orbitron', sans-serif;
+  --font-body: 'Exo 2', 'M PLUS 1p', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
 }
 
+/* ============================================
+   Base layer
+   ============================================ */
 @layer base {
   * {
     @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Grain overlay (subtle noise texture) */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.016;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 256px;
+  }
+}
+
+/* ============================================
+   APEX utility classes
+   ============================================ */
+@utility font-display {
+  font-family: var(--font-display);
+}
+
+@utility font-mono {
+  font-family: var(--font-mono);
+}
+
+@utility glow-sm {
+  box-shadow: 0 0 5px rgba(155, 132, 232, 0.12), 0 0 10px rgba(123, 136, 232, 0.05);
+}
+
+@utility glow-md {
+  box-shadow: 0 0 8px rgba(155, 132, 232, 0.18), 0 0 18px rgba(123, 136, 232, 0.07);
+}
+
+@utility glow-lg {
+  box-shadow: 0 0 14px rgba(155, 132, 232, 0.22), 0 0 28px rgba(123, 136, 232, 0.09);
+}
+
+@utility glow-edge {
+  box-shadow: 0 0 1px rgba(190, 180, 240, 0.4);
+}
+
+@utility divider-glow {
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(155, 132, 232, 0.20) 30%,
+    rgba(155, 132, 232, 0.30) 50%,
+    rgba(155, 132, 232, 0.20) 70%,
+    transparent
+  );
+  box-shadow: 0 0 5px rgba(155, 132, 232, 0.12);
+}
+
+@utility divider-glow-v {
+  width: 1px;
+  background: linear-gradient(180deg,
+    transparent,
+    rgba(155, 132, 232, 0.20) 30%,
+    rgba(155, 132, 232, 0.30) 50%,
+    rgba(155, 132, 232, 0.20) 70%,
+    transparent
+  );
+  box-shadow: 0 0 5px rgba(155, 132, 232, 0.12);
+}
+
+/* ============================================
+   APEX Glass system (cursor-reactive)
+   Used by GlassPanel component (Phase A)
+   ============================================ */
+@layer components {
+  .glass {
+    background: var(--color-glass-1);
+    backdrop-filter: blur(28px) saturate(1.3);
+    -webkit-backdrop-filter: blur(28px) saturate(1.3);
+    border: 1px solid var(--color-glass-edge);
+    position: relative;
+    transition: border-color 0.25s, background 0.25s, box-shadow 0.25s;
+  }
+
+  .glass:hover {
+    border-color: var(--color-glass-edge-mid);
+    background: var(--color-glass-hover);
+  }
+
+  .glass-elevated {
+    background: var(--color-glass-2);
+    border-color: var(--color-glass-edge-mid);
+    box-shadow: 0 0 1px rgba(190, 180, 240, 0.4);
+  }
+
+  .glass-active {
+    border-color: var(--color-glass-edge-active);
+    background: var(--color-glass-active);
+    box-shadow: 0 0 5px rgba(155, 132, 232, 0.12), 0 0 10px rgba(123, 136, 232, 0.05), 0 0 1px rgba(190, 180, 240, 0.4);
+  }
+
+  /* Wide light: surface reflection (follows cursor) */
+  .glass::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      300px circle at var(--local-x, 50%) var(--local-y, 50%),
+      rgba(255, 255, 255, 0.04) 0%,
+      rgba(255, 255, 255, 0.01) 35%,
+      transparent 70%
+    );
+    pointer-events: none;
+    z-index: 1;
+    opacity: var(--light-intensity, 0);
+    transition: opacity 0.15s;
+  }
+
+  /* Hot light: edge-only specular (rose lavender, mask trick) */
+  .glass::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 2px;
+    background: radial-gradient(
+      150px circle at var(--local-x, 50%) var(--local-y, 50%),
+      rgba(255, 235, 245, 0.95) 0%,
+      rgba(255, 190, 225, 0.50) 25%,
+      rgba(255, 140, 210, 0.22) 55%,
+      transparent 100%
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 1;
+    opacity: var(--hot-intensity, 0);
+    transition: opacity 0.12s;
+  }
+
+  /* Cursor light ambient overlay */
+  .cursor-light {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9998;
+    background: radial-gradient(
+      400px circle at var(--mx, 50%) var(--my, 50%),
+      rgba(184, 171, 235, 0.018) 0%,
+      rgba(184, 171, 235, 0.008) 30%,
+      rgba(184, 171, 235, 0.002) 60%,
+      transparent 100%
+    );
+    transition: opacity 0.3s;
+  }
+
+  /* Static ambient gradients */
+  .ambient-1 {
+    position: fixed;
+    top: -25%;
+    right: -15%;
+    width: 55%;
+    height: 55%;
+    background: radial-gradient(ellipse, rgba(155, 132, 232, 0.04) 0%, transparent 65%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .ambient-2 {
+    position: fixed;
+    bottom: -15%;
+    left: -10%;
+    width: 40%;
+    height: 40%;
+    background: radial-gradient(ellipse, rgba(123, 136, 232, 0.03) 0%, transparent 65%);
+    pointer-events: none;
+    z-index: 0;
   }
 }

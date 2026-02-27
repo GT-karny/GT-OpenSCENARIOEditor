@@ -10,8 +10,8 @@ export function HeaderToolbar() {
   const { t } = useTranslation('common');
 
   return (
-    <div className="flex items-center gap-1 px-2 py-1 border-b bg-background">
-      <span className="text-sm font-semibold mr-2">{t('app.title')}</span>
+    <div className="relative flex items-center gap-1 px-2 py-1 border-b border-border bg-card backdrop-blur-xl">
+      <span className="text-sm font-display font-semibold tracking-wider mr-2">{t('app.title')}</span>
       <Separator orientation="vertical" className="h-6" />
       <FileMenu />
       <Separator orientation="vertical" className="h-6" />
