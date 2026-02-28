@@ -6,6 +6,8 @@ export type { NodeEditorProps } from './components/NodeEditor.js';
 export { NodeEditorToolbar } from './components/NodeEditorToolbar.js';
 export { TimelineView } from './components/TimelineView.js';
 export type { TimelineViewProps } from './components/TimelineView.js';
+export { TimelineRuler } from './components/TimelineRuler.js';
+export type { TimelineRulerProps } from './components/TimelineRuler.js';
 export { PropertyPanel } from './components/PropertyPanel.js';
 export type { PropertyPanelProps } from './components/PropertyPanel.js';
 
@@ -50,3 +52,6 @@ export { getActionTypeLabel, getActionSummary } from './utils/action-display.js'
 export { getConditionTypeLabel, getConditionSummary, getTriggerSummary } from './utils/condition-display.js';
 export { detectElementType } from './utils/detect-element-type.js';
 export { getNodeColor } from './utils/color-map.js';
+export { computeTimeAxisConfig } from './utils/compute-time-axis.js';
+export type { TimeAxisConfig, TimeAxisTick } from './utils/compute-time-axis.js';
+export { ENTITY_LABEL_WIDTH } from './utils/timeline-constants.js';

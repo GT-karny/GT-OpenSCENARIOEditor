@@ -1,11 +1,13 @@
 /**
- * Timeline panel showing per-entity event tracks.
+ * Timeline panel showing per-entity event tracks with time axis ruler.
  */
 
-import { useContext } from 'react';
+import { useContext, useMemo } from 'react';
 import { EditorStoreContext } from './NodeEditorProvider.js';
+import { TimelineRuler } from './TimelineRuler.js';
 import { TimelineTrack } from './TimelineTrack.js';
 import { useTimelineData } from '../hooks/use-timeline-sync.js';
+import { computeTimeAxisConfig } from '../utils/compute-time-axis.js';
 
 export interface TimelineViewProps {
   className?: string;
@@ -16,29 +18,33 @@ export function TimelineView({ className, pixelsPerSecond = 40 }: TimelineViewPr
   const store = useContext(EditorStoreContext);
   const tracks = useTimelineData();
 
+  const timeAxisConfig = useMemo(
+    () => computeTimeAxisConfig(tracks, pixelsPerSecond),
+    [tracks, pixelsPerSecond],
+  );
+
   const handleEventClick = (eventId: string) => {
     store?.getState().setSelectedElementIds([eventId]);
   };
 
   if (tracks.length === 0) {
     return (
-      <div className={`p-4 text-sm text-gray-400 ${className ?? ''}`}>
+      <div
+        className={`p-4 text-sm ${className ?? ''}`}
+        style={{ color: 'var(--color-text-secondary, rgba(255, 255, 255, 0.48))' }}
+      >
         No entities in scenario
       </div>
     );
   }
 
   return (
-    <div className={`flex flex-col border-t border-gray-300 overflow-auto ${className ?? ''}`}>
-      {/* Time axis header */}
-      <div className="flex border-b border-gray-300 bg-gray-50">
-        <div className="w-32 shrink-0 px-2 py-1 text-[10px] font-medium text-gray-500 border-r border-gray-200">
-          Entity
-        </div>
-        <div className="flex-1 px-2 py-1 text-[10px] font-medium text-gray-500">
-          Time / Events →
-        </div>
-      </div>
+    <div
+      className={`flex flex-col overflow-auto ${className ?? ''}`}
+      style={{ borderTop: '1px solid var(--color-glass-edge, rgba(180, 170, 230, 0.07))' }}
+    >
+      {/* Time axis ruler */}
+      <TimelineRuler config={timeAxisConfig} />
 
       {/* Entity tracks */}
       {tracks.map((track) => (
@@ -49,6 +55,7 @@ export function TimelineView({ className, pixelsPerSecond = 40 }: TimelineViewPr
           events={track.events}
           onEventClick={handleEventClick}
           pixelsPerSecond={pixelsPerSecond}
+          timeAxisConfig={timeAxisConfig}
         />
       ))}
     </div>
