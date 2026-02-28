@@ -79,4 +79,22 @@ export const common = {
     parking: 'Parking',
     general: 'General',
   },
+  contextMenu: {
+    toggleCollapse: 'Toggle Collapse',
+    addEntity: 'Add Entity',
+    addStory: 'Add Story',
+    addAct: 'Add Act',
+    addManeuverGroup: 'Add ManeuverGroup',
+    addManeuver: 'Add Maneuver',
+    addEvent: 'Add Event',
+    addAction: 'Add Action',
+    delete: 'Delete',
+  },
+  deleteDialog: {
+    title: 'Delete {{type}}?',
+    description: '"{{name}}" has {{count}} child element(s) that will also be deleted.',
+    undoHint: 'This action can be undone with Ctrl+Z.',
+    confirm: 'Delete',
+    cancel: 'Cancel',
+  },
 } as const;

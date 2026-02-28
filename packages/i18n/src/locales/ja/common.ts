@@ -79,4 +79,22 @@ export const common = {
     parking: '駐車',
     general: '汎用',
   },
+  contextMenu: {
+    toggleCollapse: '折りたたみ切替',
+    addEntity: 'エンティティを追加',
+    addStory: 'ストーリーを追加',
+    addAct: 'アクトを追加',
+    addManeuverGroup: 'マヌーバグループを追加',
+    addManeuver: 'マヌーバを追加',
+    addEvent: 'イベントを追加',
+    addAction: 'アクションを追加',
+    delete: '削除',
+  },
+  deleteDialog: {
+    title: '{{type}}を削除しますか？',
+    description: '「{{name}}」には{{count}}個の子要素があり、一緒に削除されます。',
+    undoHint: 'Ctrl+Zで元に戻せます。',
+    confirm: '削除',
+    cancel: 'キャンセル',
+  },
 } as const;
