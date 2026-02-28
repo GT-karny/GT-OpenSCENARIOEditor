@@ -55,15 +55,25 @@
   --color-accent-2: #7B88E8;
   --color-accent-bright: #D0C6F2;
 
+  /* APEX background tokens */
+  --color-bg-void: #050311;
+  --color-bg-deep: #09061A;
+
   /* APEX glass tokens */
   --color-glass-1: rgba(20, 14, 48, 0.48);
   --color-glass-2: rgba(26, 18, 60, 0.40);
+  --color-glass-3: rgba(32, 22, 70, 0.32);
   --color-glass-hover: rgba(36, 26, 80, 0.48);
   --color-glass-active: rgba(42, 30, 90, 0.52);
   --color-glass-edge: rgba(180, 170, 230, 0.07);
   --color-glass-edge-mid: rgba(180, 170, 230, 0.14);
   --color-glass-edge-bright: rgba(190, 180, 240, 0.22);
   --color-glass-edge-active: rgba(190, 180, 240, 0.32);
+
+  /* APEX accent extended tokens */
+  --color-accent-dim: rgba(184, 171, 235, 0.08);
+  --color-accent-glow: rgba(155, 132, 232, 0.15);
+  --color-divider-glow: rgba(155, 132, 232, 0.20);
 
   /* APEX text tokens */
   --color-text-primary: rgba(255, 255, 255, 0.93);
@@ -88,6 +98,24 @@
     font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
   }
+
+  /* Entrance keyframes */
+  @keyframes enter {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes enterL {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes enterR {
+    from { opacity: 0; transform: translateX(10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  /* Custom scrollbar — 3px thin */
+  .panel-scroll::-webkit-scrollbar { width: 3px; }
+  .panel-scroll::-webkit-scrollbar-thumb { background: var(--color-glass-edge-mid); }
 
   /* Grain overlay (subtle noise texture) */
   body::before {
@@ -141,6 +169,25 @@
   box-shadow: 0 0 5px rgba(155, 132, 232, 0.12);
 }
 
+@utility enter {
+  animation: enter 0.45s ease-out both;
+}
+
+@utility enter-l {
+  animation: enterL 0.4s ease-out both;
+}
+
+@utility enter-r {
+  animation: enterR 0.4s ease-out both;
+}
+
+@utility d1 { animation-delay: 0.06s; }
+@utility d2 { animation-delay: 0.12s; }
+@utility d3 { animation-delay: 0.18s; }
+@utility d4 { animation-delay: 0.24s; }
+@utility d5 { animation-delay: 0.30s; }
+@utility d6 { animation-delay: 0.36s; }
+
 @utility divider-glow-v {
   width: 1px;
   background: linear-gradient(180deg,
@@ -184,8 +231,30 @@
     box-shadow: 0 0 5px rgba(155, 132, 232, 0.12), 0 0 10px rgba(123, 136, 232, 0.05), 0 0 1px rgba(190, 180, 240, 0.4);
   }
 
-  /* Wide light: surface reflection (follows cursor) */
-  .glass::before {
+  /* ---- glass-item: lightweight cursor-reactive element ----
+     Use on entity rows, template cards, and other small items
+     that should reflect the cursor light without full panel glass. */
+  .glass-item {
+    position: relative;
+    border: 1px solid transparent;
+    transition: border-color 0.25s, background 0.25s, box-shadow 0.25s;
+  }
+
+  .glass-item:hover {
+    border-color: var(--color-glass-edge);
+    background: var(--color-accent-dim);
+  }
+
+  .glass-item.selected {
+    background: linear-gradient(135deg, rgba(155, 132, 232, 0.07), rgba(123, 136, 232, 0.03));
+    border-color: var(--color-glass-edge-bright);
+    box-shadow: 0 0 5px rgba(155, 132, 232, 0.12), 0 0 10px rgba(123, 136, 232, 0.05),
+      inset 0 0 20px rgba(155, 132, 232, 0.02);
+  }
+
+  /* Wide light: surface reflection (follows cursor) — shared by .glass and .glass-item */
+  .glass::before,
+  .glass-item::before {
     content: '';
     position: absolute;
     inset: 0;
@@ -201,8 +270,9 @@
     transition: opacity 0.15s;
   }
 
-  /* Hot light: edge-only specular (rose lavender, mask trick) */
-  .glass::after {
+  /* Hot light: edge-only specular (rose lavender, mask trick) — shared */
+  .glass::after,
+  .glass-item::after {
     content: '';
     position: absolute;
     inset: 0;
@@ -223,6 +293,96 @@
     z-index: 1;
     opacity: var(--hot-intensity, 0);
     transition: opacity 0.12s;
+  }
+
+  /* Header glow divider — bottom edge neon line */
+  .header-glow {
+    position: relative;
+  }
+  .header-glow::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 8%;
+    right: 8%;
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent,
+      rgba(155, 132, 232, 0.20) 30%,
+      rgba(155, 132, 232, 0.30) 50%,
+      rgba(155, 132, 232, 0.20) 70%,
+      transparent
+    );
+    box-shadow: 0 0 5px rgba(155, 132, 232, 0.12), 0 0 10px rgba(123, 136, 232, 0.05);
+  }
+
+  /* Statusbar glow divider — top edge neon line */
+  .statusbar-glow {
+    position: relative;
+  }
+  .statusbar-glow::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 15%;
+    right: 15%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(155, 132, 232, 0.20), transparent);
+    box-shadow: 0 0 1px rgba(190, 180, 240, 0.4);
+  }
+
+  /* Node editor grid background */
+  .node-editor-grid {
+    position: relative;
+  }
+  .node-editor-grid::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(184, 171, 235, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(184, 171, 235, 0.04) 1px, transparent 1px);
+    background-size: 28px 28px;
+    mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 20%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 20%, transparent 100%);
+    pointer-events: none;
+  }
+
+  /* APEX tab styling — Orbitron uppercase with glow underline */
+  .apex-tab {
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    position: relative;
+    transition: color 0.2s, background 0.2s;
+    padding: 12px;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .apex-tab[data-state="active"] {
+    color: var(--color-accent-vivid);
+    background: var(--color-accent-dim);
+    box-shadow: none;
+  }
+
+  .apex-tab[data-state="active"]::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 15%;
+    right: 15%;
+    height: 1.5px;
+    background: linear-gradient(90deg, var(--color-accent-vivid), var(--color-accent-2));
+    box-shadow: 0 0 5px rgba(155, 132, 232, 0.12), 0 0 10px rgba(123, 136, 232, 0.05);
+  }
+
+  .apex-tab:hover:not([data-state="active"]) {
+    color: var(--color-text-secondary);
+    background: rgba(155, 132, 232, 0.03);
   }
 
   /* Cursor light ambient overlay */

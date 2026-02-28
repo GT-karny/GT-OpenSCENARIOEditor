@@ -25,7 +25,7 @@ export function useCursorLight() {
     root.style.setProperty('--my', my.current + 'px');
 
     // Find all glass elements that react to cursor light
-    const elements = document.querySelectorAll<HTMLElement>('.glass');
+    const elements = document.querySelectorAll<HTMLElement>('.glass, .glass-item');
 
     elements.forEach((el) => {
       const rect = el.getBoundingClientRect();
