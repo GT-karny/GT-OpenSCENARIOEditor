@@ -1,7 +1,8 @@
-import type { ScenarioAction, TransitionDynamics } from '@osce/shared';
+import type { ScenarioAction, TransitionDynamics, Position } from '@osce/shared';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { EnumSelect } from './EnumSelect';
+import { PositionEditor } from './PositionEditor';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { DYNAMICS_SHAPES } from '../../constants/osc-enum-values';
 
@@ -20,9 +21,16 @@ export function ActionPropertyEditor({ action }: ActionPropertyEditorProps) {
     storeApi.getState().updateAction(action.id, { action: updatedAction } as Partial<ScenarioAction>);
   };
 
+  const handlePositionChange = (fieldName: string, newPosition: Position) => {
+    const updatedAction = { ...action.action, [fieldName]: newPosition };
+    storeApi.getState().updateAction(action.id, { action: updatedAction } as Partial<ScenarioAction>);
+  };
+
   const actionType = action.action.type;
   const hasDynamics =
     actionType === 'speedAction' || actionType === 'laneChangeAction';
+
+  const positionFields = getActionPositionFields(action.action);
 
   return (
     <div className="space-y-4">
@@ -52,8 +60,53 @@ export function ActionPropertyEditor({ action }: ActionPropertyEditorProps) {
           }
         />
       )}
+
+      {positionFields.map(({ fieldName, label, position }) => (
+        <div key={fieldName} className="space-y-1">
+          {label && <p className="text-xs font-medium text-muted-foreground">{label}</p>}
+          <PositionEditor
+            position={position}
+            onChange={(p) => handlePositionChange(fieldName, p)}
+          />
+        </div>
+      ))}
     </div>
   );
+}
+
+interface ActionPositionField {
+  fieldName: string;
+  label: string | null;
+  position: Position;
+}
+
+function getActionPositionFields(innerAction: ScenarioAction['action']): ActionPositionField[] {
+  const fields: ActionPositionField[] = [];
+  const a = innerAction as Record<string, unknown>;
+
+  switch (innerAction.type) {
+    case 'teleportAction':
+    case 'acquirePositionAction':
+      if (a.position && typeof a.position === 'object' && 'type' in (a.position as object)) {
+        fields.push({ fieldName: 'position', label: null, position: a.position as Position });
+      }
+      break;
+    case 'synchronizeAction':
+      if (a.targetPositionMaster && typeof a.targetPositionMaster === 'object' && 'type' in (a.targetPositionMaster as object)) {
+        fields.push({ fieldName: 'targetPositionMaster', label: 'Master Position', position: a.targetPositionMaster as Position });
+      }
+      if (a.targetPosition && typeof a.targetPosition === 'object' && 'type' in (a.targetPosition as object)) {
+        fields.push({ fieldName: 'targetPosition', label: 'Target Position', position: a.targetPosition as Position });
+      }
+      break;
+    case 'routingAction':
+      if (a.position && typeof a.position === 'object' && 'type' in (a.position as object)) {
+        fields.push({ fieldName: 'position', label: null, position: a.position as Position });
+      }
+      break;
+  }
+
+  return fields;
 }
 
 interface DynamicsEditorProps {
