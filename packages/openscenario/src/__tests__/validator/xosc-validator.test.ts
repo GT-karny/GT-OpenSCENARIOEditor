@@ -3,17 +3,14 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { XoscParser } from '../../parser/xosc-parser.js';
 import { XoscValidator } from '../../validator/xosc-validator.js';
-import { REPO_ROOT } from '../test-helpers.js';
+import { EXAMPLES_DIR } from '../test-helpers.js';
 
 const parser = new XoscParser();
 const validator = new XoscValidator();
 
 describe('XoscValidator', () => {
   it('validates a parsed CutIn.xosc with no errors', () => {
-    const xml = readFileSync(
-      resolve(REPO_ROOT, 'Thirdparty/openscenario-v1.2.0/Examples/CutIn.xosc'),
-      'utf-8',
-    );
+    const xml = readFileSync(resolve(EXAMPLES_DIR, 'CutIn.xosc'), 'utf-8');
     const doc = parser.parse(xml);
     const result = validator.validate(doc);
 
@@ -22,10 +19,7 @@ describe('XoscValidator', () => {
   });
 
   it('detects missing entity reference', () => {
-    const xml = readFileSync(
-      resolve(REPO_ROOT, 'Thirdparty/openscenario-v1.2.0/Examples/CutIn.xosc'),
-      'utf-8',
-    );
+    const xml = readFileSync(resolve(EXAMPLES_DIR, 'CutIn.xosc'), 'utf-8');
     const doc = parser.parse(xml);
 
     // Inject a bad reference

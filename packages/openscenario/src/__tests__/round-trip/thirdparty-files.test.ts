@@ -1,41 +1,49 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { resolve } from 'node:path';
 import { XoscParser } from '../../parser/xosc-parser.js';
-import { REPO_ROOT } from '../test-helpers.js';
+import { EXAMPLES_DIR, XOSC_DIR, THIRDPARTY_DIR, GT_SIM_AVAILABLE } from '../test-helpers.js';
 
 const parser = new XoscParser();
 
-function getXoscFiles(dir: string): string[] {
-  const absDir = resolve(REPO_ROOT, dir);
-  if (!existsSync(absDir)) return [];
-  return readdirSync(absDir)
-    .filter((f) => f.endsWith('.xosc'))
-    .map((f) => join(dir, f));
+function getXoscFiles(absDir: string, label: string): { absDir: string; label: string; files: string[] } {
+  if (!existsSync(absDir)) return { absDir, label, files: [] };
+  const files = readdirSync(absDir).filter((f) => f.endsWith('.xosc'));
+  return { absDir, label, files };
 }
 
-describe('Parse all Thirdparty .xosc files without throwing', () => {
-  const dirs = [
-    'Thirdparty/openscenario-v1.2.0/Examples',
-    'Thirdparty/esmini-demo_Windows/esmini-demo/resources/xosc',
-    'Thirdparty/GT_Sim_v0.6.0-rc/resources/xosc',
+describe('Parse all fixture .xosc files without throwing', () => {
+  const groups = [
+    getXoscFiles(EXAMPLES_DIR, 'openscenario-v1.2.0/Examples'),
+    getXoscFiles(XOSC_DIR, 'esmini/xosc'),
   ];
 
-  for (const dir of dirs) {
-    const files = getXoscFiles(dir);
-
+  for (const { absDir, label, files } of groups) {
     if (files.length === 0) {
-      it.skip(`no files found in ${dir}`, () => {});
+      it.skip(`no files found in ${label}`, () => {});
       continue;
     }
 
-    describe(dir.split('/').pop()!, () => {
+    describe(label, () => {
       for (const file of files) {
-        it(`parses ${file.split('/').pop()} without error`, () => {
-          const xml = readFileSync(resolve(REPO_ROOT, file), 'utf-8');
+        it(`parses ${file} without error`, () => {
+          const xml = readFileSync(resolve(absDir, file), 'utf-8');
           expect(() => parser.parse(xml)).not.toThrow();
         });
       }
     });
   }
+
+  // GT_Sim scenarios (only when Thirdparty is available locally)
+  describe.skipIf(!GT_SIM_AVAILABLE)('GT_Sim', () => {
+    const gtSimDir = resolve(THIRDPARTY_DIR, 'GT_Sim_v0.6.0-rc/resources/xosc');
+    const { files } = getXoscFiles(gtSimDir, 'GT_Sim');
+
+    for (const file of files) {
+      it(`parses ${file} without error`, () => {
+        const xml = readFileSync(resolve(gtSimDir, file), 'utf-8');
+        expect(() => parser.parse(xml)).not.toThrow();
+      });
+    }
+  });
 });

@@ -2,17 +2,17 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { XoscParser } from '../../parser/xosc-parser.js';
-import { REPO_ROOT } from '../test-helpers.js';
+import { EXAMPLES_DIR } from '../test-helpers.js';
 
 const parser = new XoscParser();
 
-function readXosc(relativePath: string): string {
-  return readFileSync(resolve(REPO_ROOT, relativePath), 'utf-8');
+function readXosc(file: string): string {
+  return readFileSync(resolve(EXAMPLES_DIR, file), 'utf-8');
 }
 
 describe('XoscParser', () => {
   describe('parse CutIn.xosc', () => {
-    const xml = readXosc('Thirdparty/openscenario-v1.2.0/Examples/CutIn.xosc');
+    const xml = readXosc('CutIn.xosc');
     const doc = parser.parse(xml);
 
     it('parses FileHeader', () => {
@@ -59,7 +59,7 @@ describe('XoscParser', () => {
 
   describe('parse SimpleOvertake.xosc', () => {
     it('parses without error', () => {
-      const xml = readXosc('Thirdparty/openscenario-v1.2.0/Examples/SimpleOvertake.xosc');
+      const xml = readXosc('SimpleOvertake.xosc');
       const doc = parser.parse(xml);
       expect(doc.entities.length).toBeGreaterThan(0);
       expect(doc.storyboard.stories.length).toBeGreaterThan(0);

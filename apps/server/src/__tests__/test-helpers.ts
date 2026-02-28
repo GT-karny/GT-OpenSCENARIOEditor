@@ -26,14 +26,5 @@ export const XOSC_DIR = resolve(REPO_ROOT, 'test-fixtures/esmini/xosc');
 /** esmini demo xodr fixtures */
 export const XODR_DIR = resolve(REPO_ROOT, 'test-fixtures/esmini/xodr');
 
-/** OpenSCENARIO v1.2.0 official examples */
-export const EXAMPLES_DIR = resolve(REPO_ROOT, 'test-fixtures/openscenario-v1.2.0/Examples');
-
 /** Whether committed test fixtures are available */
 export const FIXTURES_AVAILABLE = existsSync(XOSC_DIR);
-
-/** Thirdparty dir (may not exist on CI) */
-export const THIRDPARTY_DIR = resolve(REPO_ROOT, 'Thirdparty');
-
-/** Whether Thirdparty/GT_Sim is available (local only) */
-export const GT_SIM_AVAILABLE = existsSync(resolve(THIRDPARTY_DIR, 'GT_Sim_v0.6.0-rc'));

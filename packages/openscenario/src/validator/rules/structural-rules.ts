@@ -6,6 +6,16 @@ export function validateStructuralRules(
   warnings: ValidationIssue[],
 ): void {
   // STRUCT_001: FileHeader required fields
+  if (!doc.fileHeader) {
+    errors.push({
+      code: 'STRUCT_001',
+      message: 'FileHeader is missing',
+      messageKey: 'validation.struct001',
+      severity: 'error',
+      path: 'fileHeader',
+    });
+    return;
+  }
   if (!doc.fileHeader.date && !doc.fileHeader.description) {
     warnings.push({
       code: 'STRUCT_001',

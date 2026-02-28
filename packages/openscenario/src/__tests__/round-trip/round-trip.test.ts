@@ -4,14 +4,10 @@ import { resolve } from 'node:path';
 import { XoscParser } from '../../parser/xosc-parser.js';
 import { XoscSerializer } from '../../serializer/xosc-serializer.js';
 import type { ScenarioDocument } from '@osce/shared';
-import { REPO_ROOT } from '../test-helpers.js';
+import { EXAMPLES_DIR, XOSC_DIR, THIRDPARTY_DIR, GT_SIM_AVAILABLE } from '../test-helpers.js';
 
 const parser = new XoscParser();
 const serializer = new XoscSerializer();
-
-function readXosc(relativePath: string): string {
-  return readFileSync(resolve(REPO_ROOT, relativePath), 'utf-8');
-}
 
 /**
  * Deep clone a ScenarioDocument, stripping all `id` fields
@@ -28,44 +24,32 @@ function stripVolatile(doc: ScenarioDocument): any {
 }
 
 describe('Round-trip: parse → serialize → parse', () => {
-  const testFiles = [
-    // OpenSCENARIO v1.2.0 official examples
-    'Thirdparty/openscenario-v1.2.0/Examples/CutIn.xosc',
-    'Thirdparty/openscenario-v1.2.0/Examples/SimpleOvertake.xosc',
-    'Thirdparty/openscenario-v1.2.0/Examples/EndOfTrafficJam.xosc',
-    'Thirdparty/openscenario-v1.2.0/Examples/DoubleLaneChanger.xosc',
-    'Thirdparty/openscenario-v1.2.0/Examples/CloseVehicleCrossing.xosc',
-    'Thirdparty/openscenario-v1.2.0/Examples/EndOfTrafficJamParameterSet.xosc',
-    'Thirdparty/openscenario-v1.2.0/Examples/EndofTrafficJamNeighboringLaneOccupied.xosc',
-    'Thirdparty/openscenario-v1.2.0/Examples/FastOvertakeWithReInitialization.xosc',
-    'Thirdparty/openscenario-v1.2.0/Examples/Overtaker.xosc',
-    'Thirdparty/openscenario-v1.2.0/Examples/SequentialEvents_0-100-0kph_Explicit.xosc',
-    'Thirdparty/openscenario-v1.2.0/Examples/SequentialEvents_0-100-0kph_Implicit.xosc',
-    'Thirdparty/openscenario-v1.2.0/Examples/SlowPrecedingVehicle.xosc',
-    'Thirdparty/openscenario-v1.2.0/Examples/SlowPrecedingVehicleDeterministicParameterSet.xosc',
-    'Thirdparty/openscenario-v1.2.0/Examples/SlowPrecedingVehicleStochasticParameterSet.xosc',
-    'Thirdparty/openscenario-v1.2.0/Examples/SynchronizedArrivalToIntersection.xosc',
-    'Thirdparty/openscenario-v1.2.0/Examples/TrafficJam.xosc',
-    // GT_Sim scenarios (subset)
-    'Thirdparty/GT_Sim_v0.6.0-rc/resources/xosc/acc-test.xosc',
-    'Thirdparty/GT_Sim_v0.6.0-rc/resources/xosc/alks-test.xosc',
-    'Thirdparty/GT_Sim_v0.6.0-rc/resources/xosc/cut-in.xosc',
-    'Thirdparty/GT_Sim_v0.6.0-rc/resources/xosc/LaneChangeTest.xosc',
-    'Thirdparty/GT_Sim_v0.6.0-rc/resources/xosc/SmoothBrakeTest.xosc',
-    'Thirdparty/GT_Sim_v0.6.0-rc/resources/xosc/alks_cut-in.xosc',
-    'Thirdparty/GT_Sim_v0.6.0-rc/resources/xosc/alks_cut-out.xosc',
-    'Thirdparty/GT_Sim_v0.6.0-rc/resources/xosc/alks_decelerate.xosc',
-    'Thirdparty/GT_Sim_v0.6.0-rc/resources/xosc/car_walk.xosc',
-    'Thirdparty/GT_Sim_v0.6.0-rc/resources/xosc/cut-in_environment.xosc',
+  // OpenSCENARIO v1.2.0 official examples
+  const exampleFiles = [
+    'CutIn.xosc',
+    'SimpleOvertake.xosc',
+    'EndOfTrafficJam.xosc',
+    'DoubleLaneChanger.xosc',
+    'CloseVehicleCrossing.xosc',
+    'EndOfTrafficJamParameterSet.xosc',
+    'EndofTrafficJamNeighboringLaneOccupied.xosc',
+    'FastOvertakeWithReInitialization.xosc',
+    'Overtaker.xosc',
+    'SequentialEvents_0-100-0kph_Explicit.xosc',
+    'SequentialEvents_0-100-0kph_Implicit.xosc',
+    'SlowPrecedingVehicle.xosc',
+    'SlowPrecedingVehicleDeterministicParameterSet.xosc',
+    'SlowPrecedingVehicleStochasticParameterSet.xosc',
+    'SynchronizedArrivalToIntersection.xosc',
+    'TrafficJam.xosc',
   ];
 
-  for (const file of testFiles) {
-    it(`round-trips ${file.split('/').pop()}`, () => {
+  for (const file of exampleFiles) {
+    it(`round-trips ${file}`, () => {
       let xml: string;
       try {
-        xml = readXosc(file);
+        xml = readFileSync(resolve(EXAMPLES_DIR, file), 'utf-8');
       } catch {
-        // File may not exist in test environment
         return;
       }
 
@@ -76,11 +60,59 @@ describe('Round-trip: parse → serialize → parse', () => {
       expect(stripVolatile(doc1)).toEqual(stripVolatile(doc2));
     });
   }
+
+  // esmini scenarios
+  const esminiFiles = ['cut-in.xosc', 'acc-test.xosc', 'alks-test.xosc'];
+
+  for (const file of esminiFiles) {
+    it(`round-trips esmini/${file}`, () => {
+      let xml: string;
+      try {
+        xml = readFileSync(resolve(XOSC_DIR, file), 'utf-8');
+      } catch {
+        return;
+      }
+
+      const doc1 = parser.parse(xml);
+      const xml2 = serializer.serializeFormatted(doc1);
+      const doc2 = parser.parse(xml2);
+
+      expect(stripVolatile(doc1)).toEqual(stripVolatile(doc2));
+    });
+  }
+
+  // GT_Sim scenarios (only when Thirdparty is available locally)
+  describe.skipIf(!GT_SIM_AVAILABLE)('GT_Sim scenarios', () => {
+    const gtSimFiles = [
+      'alks_cut-in.xosc',
+      'alks_cut-out.xosc',
+      'alks_decelerate.xosc',
+      'car_walk.xosc',
+      'cut-in_environment.xosc',
+    ];
+
+    for (const file of gtSimFiles) {
+      it(`round-trips GT_Sim/${file}`, () => {
+        let xml: string;
+        try {
+          xml = readFileSync(resolve(THIRDPARTY_DIR, 'GT_Sim_v0.6.0-rc/resources/xosc', file), 'utf-8');
+        } catch {
+          return;
+        }
+
+        const doc1 = parser.parse(xml);
+        const xml2 = serializer.serializeFormatted(doc1);
+        const doc2 = parser.parse(xml2);
+
+        expect(stripVolatile(doc1)).toEqual(stripVolatile(doc2));
+      });
+    }
+  });
 });
 
 describe('Serializer output', () => {
   it('produces valid XML declaration', () => {
-    const xml = readXosc('Thirdparty/openscenario-v1.2.0/Examples/CutIn.xosc');
+    const xml = readFileSync(resolve(EXAMPLES_DIR, 'CutIn.xosc'), 'utf-8');
     const doc = parser.parse(xml);
     const output = serializer.serializeFormatted(doc);
 
@@ -90,7 +122,7 @@ describe('Serializer output', () => {
   });
 
   it('does not include _editor metadata', () => {
-    const xml = readXosc('Thirdparty/openscenario-v1.2.0/Examples/CutIn.xosc');
+    const xml = readFileSync(resolve(EXAMPLES_DIR, 'CutIn.xosc'), 'utf-8');
     const doc = parser.parse(xml);
     const output = serializer.serializeFormatted(doc);
 
@@ -100,11 +132,10 @@ describe('Serializer output', () => {
   });
 
   it('compact serialize produces no indentation', () => {
-    const xml = readXosc('Thirdparty/openscenario-v1.2.0/Examples/CutIn.xosc');
+    const xml = readFileSync(resolve(EXAMPLES_DIR, 'CutIn.xosc'), 'utf-8');
     const doc = parser.parse(xml);
     const compact = serializer.serialize(doc);
 
-    // Compact should not have indented lines (after the XML declaration)
     const lines = compact.split('\n').slice(1);
     for (const line of lines) {
       if (line.trim()) {

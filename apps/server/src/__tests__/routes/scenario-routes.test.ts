@@ -3,19 +3,7 @@ import path from 'node:path';
 import { readFileSync } from 'node:fs';
 import { buildApp } from '../../app.js';
 import type { FastifyInstance } from 'fastify';
-
-function findRepoRoot(): string {
-  let dir = path.resolve(__dirname, '../../../../..');
-  if (dir.includes('.claude')) {
-    dir = dir.replace(/[/\\]\.claude[/\\]worktrees[/\\][^/\\]+/, '');
-  }
-  return dir;
-}
-
-const XOSC_DIR = path.join(
-  findRepoRoot(),
-  'Thirdparty/esmini-demo_Windows/esmini-demo/resources/xosc',
-);
+import { XOSC_DIR } from '../test-helpers.js';
 
 describe('Scenario Routes', () => {
   let app: FastifyInstance;

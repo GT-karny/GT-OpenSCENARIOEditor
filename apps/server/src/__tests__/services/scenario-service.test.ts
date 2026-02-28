@@ -2,29 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { ScenarioService } from '../../services/scenario-service.js';
-
-// Use sample files from Thirdparty in main repo root
-// Worktrees don't include untracked dirs, so we resolve to the main repo
-function findRepoRoot(): string {
-  // The worktree is at <repo>/.claude/worktrees/server/
-  // Go up from __dirname to find the root with Thirdparty
-  let dir = path.resolve(__dirname, '../../../../..');
-  // If in worktree, go to main repo
-  if (dir.includes('.claude')) {
-    dir = dir.replace(/[/\\]\.claude[/\\]worktrees[/\\][^/\\]+/, '');
-  }
-  return dir;
-}
-
-const REPO_ROOT = findRepoRoot();
-const XOSC_DIR = path.join(
-  REPO_ROOT,
-  'Thirdparty/esmini-demo_Windows/esmini-demo/resources/xosc',
-);
-const XODR_DIR = path.join(
-  REPO_ROOT,
-  'Thirdparty/esmini-demo_Windows/esmini-demo/resources/xodr',
-);
+import { XOSC_DIR, XODR_DIR } from '../test-helpers.js';
 
 describe('ScenarioService', () => {
   const service = new ScenarioService();

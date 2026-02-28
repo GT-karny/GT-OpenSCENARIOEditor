@@ -4,18 +4,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { buildApp } from '../../app.js';
 import type { FastifyInstance } from 'fastify';
-
-function findRepoRoot(): string {
-  let dir = path.resolve(__dirname, '../../../../..');
-  if (dir.includes('.claude')) {
-    dir = dir.replace(/[/\\]\.claude[/\\]worktrees[/\\][^/\\]+/, '');
-  }
-  return dir;
-}
-
-const REPO_ROOT = findRepoRoot();
-const XOSC_DIR = path.join(REPO_ROOT, 'Thirdparty/esmini-demo_Windows/esmini-demo/resources/xosc');
-const XODR_DIR = path.join(REPO_ROOT, 'Thirdparty/esmini-demo_Windows/esmini-demo/resources/xodr');
+import { XOSC_DIR, XODR_DIR } from '../test-helpers.js';
 
 describe('File Routes', () => {
   let app: FastifyInstance;
