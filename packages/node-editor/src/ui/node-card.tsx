@@ -88,7 +88,7 @@ export function NodeCard({
 
   return (
     <div
-      className={`glass rounded-lg min-w-[168px] max-w-[280px] overflow-hidden ${selected ? 'glass-active' : ''}`}
+      className={`glass rounded-lg min-w-[168px] max-w-[280px] overflow-visible ${selected ? 'glass-active' : ''}`}
       style={cardStyle}
     >
       {selected && <div style={accentBarStyle} />}
