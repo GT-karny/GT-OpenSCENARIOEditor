@@ -1,0 +1,65 @@
+# Codex Auto-merge Workflow
+#
+# Codex が PR をレビューした結果に応じて自動アクションを実行:
+#   - approved   → auto-merge (squash) を有効化（CI 完了待ち）
+#   - コメント/変更要求 → "needs-changes" ラベルを付与
+#
+# 前提条件 (リポジトリの Settings で手動設定が必要):
+#   1. Settings > General > "Allow auto-merge" を ON にする
+#   2. (推奨) Settings > Branches > Branch protection rule で
+#      "CI" を Required status check に追加する
+
+name: Codex Auto-merge
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+env:
+  # Codex の GitHub ユーザー名。変更があればここを修正する
+  CODEX_BOT_USER: chatgpt-codex-connector
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  handle-codex-review:
+    name: Handle Codex Review
+    runs-on: ubuntu-latest
+    if: github.event.review.user.login == 'chatgpt-codex-connector'
+    steps:
+      - name: Codex approved — enable auto-merge
+        if: github.event.review.state == 'approved'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "✅ Codex approved PR #${{ github.event.pull_request.number }}"
+          gh pr merge ${{ github.event.pull_request.number }} \
+            --repo ${{ github.repository }} \
+            --squash \
+            --auto
+          # needs-changes ラベルが残っていたら外す
+          gh pr edit ${{ github.event.pull_request.number }} \
+            --repo ${{ github.repository }} \
+            --remove-label "needs-changes" 2>/dev/null || true
+
+      - name: Codex requested changes — add label
+        if: github.event.review.state == 'changes_requested'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "📝 Codex requested changes on PR #${{ github.event.pull_request.number }}"
+          gh pr edit ${{ github.event.pull_request.number }} \
+            --repo ${{ github.repository }} \
+            --add-label "needs-changes"
+
+      - name: Codex commented — add label
+        if: github.event.review.state == 'commented'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "💬 Codex commented on PR #${{ github.event.pull_request.number }}"
+          gh pr edit ${{ github.event.pull_request.number }} \
+            --repo ${{ github.repository }} \
+            --add-label "needs-changes"

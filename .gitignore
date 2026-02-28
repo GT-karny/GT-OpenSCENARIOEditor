@@ -40,3 +40,10 @@ apps/desktop/src-tauri/target/
 # Temporary files
 *.tmp
 *.log
+
+# Claude Code auto-generated (skills, plugins, worktrees)
+.claude/skills/
+.claude/spec/
+.claude/template/
+.claude/worktrees/
+.claude-plugin/
