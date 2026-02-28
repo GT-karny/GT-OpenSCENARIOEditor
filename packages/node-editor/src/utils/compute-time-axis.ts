@@ -33,6 +33,10 @@ export function computeTimeAxisConfig(
   tracks: ReadonlyArray<{ events: ReadonlyArray<{ startTime: number | null }> }>,
   pixelsPerSecond: number,
 ): TimeAxisConfig {
+  const pps = Number.isFinite(pixelsPerSecond) && pixelsPerSecond > 0
+    ? pixelsPerSecond
+    : 40;
+
   const allTimes = tracks.flatMap((t) =>
     t.events
       .map((e) => e.startTime)
@@ -46,7 +50,7 @@ export function computeTimeAxisConfig(
 
   // Ensure right padding accommodates the minimum event width (80px)
   const MIN_EVENT_WIDTH_PX = 80;
-  const minPaddingSeconds = MIN_EVENT_WIDTH_PX / pixelsPerSecond;
+  const minPaddingSeconds = MIN_EVENT_WIDTH_PX / pps;
   const tickPadding = Math.max(
     tickInterval,
     Math.ceil(minPaddingSeconds / tickInterval) * tickInterval,
@@ -58,7 +62,7 @@ export function computeTimeAxisConfig(
   for (let t = 0; t <= maxTime; t += tickInterval) {
     ticks.push({
       time: t,
-      x: t * pixelsPerSecond,
+      x: t * pps,
       label: `${t}s`,
     });
   }
@@ -66,7 +70,7 @@ export function computeTimeAxisConfig(
   return {
     maxTime,
     tickInterval,
-    totalWidth: maxTime * pixelsPerSecond,
+    totalWidth: maxTime * pps,
     ticks,
   };
 }

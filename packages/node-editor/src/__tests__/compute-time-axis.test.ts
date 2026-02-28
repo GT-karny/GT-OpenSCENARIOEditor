@@ -84,6 +84,18 @@ describe('computeTimeAxisConfig', () => {
     expect(config.ticks[0].x).toBe(0);
   });
 
+  it('clamps zero pixelsPerSecond to safe default', () => {
+    const config = computeTimeAxisConfig([], 0);
+    expect(Number.isFinite(config.totalWidth)).toBe(true);
+    expect(config.ticks.length).toBeGreaterThan(0);
+  });
+
+  it('clamps negative pixelsPerSecond to safe default', () => {
+    const config = computeTimeAxisConfig([], -10);
+    expect(Number.isFinite(config.totalWidth)).toBe(true);
+    expect(config.totalWidth).toBeGreaterThan(0);
+  });
+
   it('spans across multiple tracks', () => {
     const tracks = [
       { events: [{ startTime: 3 }] },
