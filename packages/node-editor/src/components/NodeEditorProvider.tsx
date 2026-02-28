@@ -46,7 +46,12 @@ function SyncBridge({
     }
   }, [selectedElementIds, editorStore]);
 
-  // Sync external focusNodeId into editor store
+  // focusNodeId round-trip flow:
+  // 1. Parent sets focusNodeId prop (e.g. from validation error click)
+  // 2. This effect syncs it into the node-editor store
+  // 3. NodeFocusBridge (inside ReactFlow) reads it, calls fitView(), then clears it
+  // 4. The subscription below detects the clear and fires onFocusComplete
+  // 5. Parent clears its own focusNodeId state
   useEffect(() => {
     if (focusNodeId) {
       editorStore.getState().setFocusNodeId(focusNodeId);
