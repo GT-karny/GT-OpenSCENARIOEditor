@@ -1,16 +1,17 @@
 import { useTranslation } from '@osce/i18n';
 import { ScrollArea } from '../ui/scroll-area';
 import { PropertyEditor } from '../property/PropertyEditor';
-import { useScenarioStoreApi } from '../../stores/use-scenario-store';
+import { useScenarioStore } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
 
 export function PropertyPanel() {
   const { t } = useTranslation('common');
   const selectedIds = useEditorStore((s) => s.selection.selectedElementIds);
-  const storeApi = useScenarioStoreApi();
-
   const selectedId = selectedIds[0] ?? null;
-  const element = selectedId ? storeApi.getState().getElementById(selectedId) : null;
+
+  const element = useScenarioStore((s) =>
+    selectedId ? s.getElementById(selectedId) : null,
+  );
 
   return (
     <div className="flex flex-col h-full">
