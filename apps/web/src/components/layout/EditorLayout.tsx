@@ -37,13 +37,13 @@ export function EditorLayout() {
           <PanelGroup direction="horizontal">
             {/* Left sidebar */}
             <Panel defaultSize={20} minSize={12} maxSize={35}>
-              <GlassPanel className="h-full">
+              <div className="h-full bg-[var(--color-bg-deep)] enter-l">
                 <Tabs defaultValue="entities" className="flex flex-col h-full">
-                  <TabsList className="mx-2 mt-1">
-                    <TabsTrigger value="entities" className="text-xs">
+                  <TabsList className="bg-[var(--color-glass-1)] backdrop-blur-[28px] rounded-none p-0">
+                    <TabsTrigger value="entities" className="apex-tab flex-1">
                       {t('panels.entityList')}
                     </TabsTrigger>
-                    <TabsTrigger value="templates" className="text-xs">
+                    <TabsTrigger value="templates" className="apex-tab flex-1">
                       {t('panels.templates')}
                     </TabsTrigger>
                   </TabsList>
@@ -54,14 +54,14 @@ export function EditorLayout() {
                     <TemplatePalettePanel />
                   </TabsContent>
                 </Tabs>
-              </GlassPanel>
+              </div>
             </Panel>
 
             <ResizeHandle />
 
             {/* Center area */}
             <Panel defaultSize={55} minSize={30}>
-              <PanelGroup direction="vertical">
+              <PanelGroup direction="vertical" className="enter d2">
                 {/* Node editor */}
                 <Panel defaultSize={65} minSize={20}>
                   <NodeEditorPlaceholder />
@@ -80,13 +80,13 @@ export function EditorLayout() {
 
             {/* Right sidebar */}
             <Panel defaultSize={25} minSize={15} maxSize={40}>
-              <GlassPanel className="h-full">
+              <div className="h-full bg-[var(--color-bg-deep)] enter-r">
                 <Tabs defaultValue="properties" className="flex flex-col h-full">
-                  <TabsList className="mx-2 mt-1">
-                    <TabsTrigger value="properties" className="text-xs">
+                  <TabsList className="bg-[var(--color-glass-1)] backdrop-blur-[28px] rounded-none p-0">
+                    <TabsTrigger value="properties" className="apex-tab flex-1">
                       {t('panels.properties')}
                     </TabsTrigger>
-                    <TabsTrigger value="validation" className="text-xs">
+                    <TabsTrigger value="validation" className="apex-tab flex-1">
                       {t('panels.validation')}
                     </TabsTrigger>
                   </TabsList>
@@ -97,7 +97,7 @@ export function EditorLayout() {
                     <ValidationPanel />
                   </TabsContent>
                 </Tabs>
-              </GlassPanel>
+              </div>
             </Panel>
           </PanelGroup>
         </Panel>
@@ -106,9 +106,9 @@ export function EditorLayout() {
 
         {/* 3D Viewer */}
         <Panel defaultSize={30} minSize={10}>
-          <GlassPanel variant="elevated" className="h-full">
+          <div className="h-full bg-[var(--color-bg-deep)] enter d5">
             <ViewerPlaceholder />
-          </GlassPanel>
+          </div>
         </Panel>
       </PanelGroup>
 
