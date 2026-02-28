@@ -360,29 +360,59 @@ sequenceDiagram
 - `@osce/3d-viewer`: React Three Fiber + drei。OpenDRIVE道路描画（RoadNetwork, RoadMesh, LaneMesh, RoadMarkLine, RoadLabels）、エンティティ表示（Vehicle, Pedestrian, MiscObject + EntityLabel）、カメラコントロール、SceneEnvironment、viewer-store（Zustand）、シミュレーション再生（SimulationOverlay + useSimulationPlayback）、エンティティインタラクション、車線タイプ別色分け、位置解決ユーティリティ。
 - `apps/web`: Vite 6 + React 19。react-resizable-panelsによる4パネルレイアウト（ノードエディタ/3Dビューア/サイドバー/タイムライン）、shadcn/ui 15コンポーネント + Tailwind v4テーマ、ツールバー（ファイル操作/Undo-Redo/バリデーション/言語切替/StatusBar）、@osce/scenario-engine Zustand統合（Context Provider）、@osce/i18n EN/JA切替、File System Access API + フォールバック、キーボードショートカット（Ctrl+Z/Y/S/O）、エンティティ管理パネル、テンプレートパレット（カテゴリ別+パラメータダイアログ）、プロパティパネル、バリデーションパネル、editor-store（localStorage永続化）。
 
-**Phase 2 残課題（Phase 3-4で対応）:**
-- apps/webの3d-viewer/node-editorプレースホルダーを実コンポーネントに統合
-- ドラッグ&ドロップ（テンプレートパレット → ノードエディタ）
-- コンテキストメニュー（右クリックでノード追加/削除）
-- Deleteキーによるノード削除ショートカット
-- 明示的なError Boundaryコンポーネント
+**Phase 2 残課題 → Phase 4 Track K で解決済み ✅:**
+- ~~apps/webの3d-viewer/node-editorプレースホルダーを実コンポーネントに統合~~
+- ~~ドラッグ&ドロップ（テンプレートパレット → ノードエディタ）~~
+- ~~コンテキストメニュー（右クリックでノード追加/削除）~~
+- ~~Deleteキーによるノード削除ショートカット~~
+- ~~明示的なError Boundaryコンポーネント~~
 
-### Phase 3: バックエンド + 統合 🟢 3並列開発可能
+### Phase 3: バックエンド + 統合 + デザイン ✅ 完了（3並列開発 + デザイン修正）
 
-| トラック | パッケージ | 主な作業 |
-|---------|-----------|---------|
-| H | `apps/server` | Fastifyサーバー、WebSocket、ファイルI/O、GT_Sim連携ブリッジ |
-| I | `@osce/esmini` | GT_Sim HTTPクライアント、gRPC OSIストリーミング、GroundTruth→SimulationFrame変換 |
-| J | `@osce/mcp-server` | MCPツール実装、リソース定義 |
+| トラック | パッケージ | 主な作業 | テスト |
+|---------|-----------|---------|--------|
+| H | `apps/server` | Fastifyサーバー、WebSocket、ファイルI/O、GT_Sim連携ブリッジ | 37合格 |
+| I | `@osce/esmini` | GT_Sim HTTPクライアント、gRPC OSIストリーミング、GroundTruth→SimulationFrame変換 | 36合格 |
+| J | `@osce/mcp-server` | MCPツール実装、リソース/プロンプト定義 | 59合格 |
+| — | `apps/web` (APEX v4) | デザインモックアップとの乖離修正 | — |
 
-### Phase 4: 統合テスト + ポリッシュ 🔴 全トラック合流
+**Phase 3 成果物:**
+- `apps/server`: Fastify + CORS + WebSocket。FileService（ファイルI/O）、ScenarioService（XOSC/XODRパース・シリアライズ）、SimulationService（シミュレーションライフサイクル）、MockEsminiService。REST 10エンドポイント（/api/files/open-xosc, save-xosc, open-xodr, browse, validate + /api/scenario/export-xml, import-xml + /api/simulation/start, stop, status）。WebSocketハンドラ。
+- `@osce/esmini`: IEsminiService 実装。GtSimRestClient（シナリオアップロード、シミュレーション作成/状態取得）、GtSimGrpcClient（gRPC OSI GroundTruth ストリーミング）、GroundTruthConverter（OSI→SimulationFrame変換）。クライアント側フレームバッファリング。エラーリカバリ（REST失敗時のstatus復元）。dispose()によるリソース解放。Proto: `service_groundtruth.proto` (package `osi.server`)。
+- `@osce/mcp-server`: MCP SDK準拠。51ツール（エンティティCRUD、アクション追加、ストーリーボード操作、テンプレート適用、Undo/Redo等）、2リソース（シナリオデータ、テンプレートカタログ）、2プロンプト（create_cut_in_scenario, create_scenario_from_description）。
+- `apps/web` (APEX v4デザイン修正): モックアップ `design-apex-v4.html` に忠実なスタイリング修正。ヘッダー（50px高、ペンタゴンロゴ、グラデーションテキスト、グロウディバイダー）、ステータスバー（26px高、グロウライン、ステータスドット）、サイドバー（bg-deep背景）、タブ（Orbitron uppercase、アクセントグロウ下線）、ノードエディタ（28pxグリッド+放射状フェードマスク）、エントランスアニメーション、glass-itemシステム（カーソルリアクティブ hover/selected）、3pxカスタムスクロールバー。
 
-- E2Eテスト（Playwright）
-- ラウンドトリップテスト（.xosc → 編集 → 保存 → ロード → 検証）
-- GT_Sim統合テスト
-- MCP統合テスト
-- 日本語翻訳レビュー
-- パフォーマンス最適化
+### Phase 4: 統合 + ポリッシュ 🟢
+
+| トラック | 主な作業 | 状態 | プロンプト |
+|---------|---------|------|-----------|
+| K | コンポーネント統合 + UI強化 | ✅ 完了 | `docs/PHASE4_TRACK_K.md` |
+| L | WebSocketクライアント + シミュレーション状態管理 | ✅ 完了 | `docs/PHASE4_TRACK_L.md` |
+| M | Playwright E2E + 統合テスト + ポリッシュ | 🟢 次作業 | `docs/PHASE4_TRACK_M.md` |
+
+**Track K 成果物:**
+- プレースホルダー差し替え: NodeEditorPlaceholder → `<NodeEditor>`（React Flow）、ViewerPlaceholder → `<ScenarioViewer>`（Three.js）、TimelinePlaceholder → `<TimelineView>`
+- NodeEditorProvider によるストア分離（node-editor内部store vs apps/web editor-store）
+- 選択同期: NodeEditor ↔ ScenarioViewer ↔ PropertyPanel（useEditorStore経由）
+- Error Boundary: パネル別（NodeEditor, Viewer, Timeline）のクラスコンポーネント、APEXスタイリング
+- ドラッグ&ドロップ: TemplateCard → NodeEditor領域（useTemplateDrop hook、ParameterDialog連携）
+- コンテキストメニュー: ノードエディタ内の右クリック（空白領域: エンティティ/ストーリー追加、ノード上: 削除）
+- Delete/Backspaceキーによる要素削除（useElementDelete hook、detectElementType）
+- NodeEditor拡張props（onDrop, onDragOver, onPaneContextMenu, onNodeContextMenu, deleteKeyCode, disableBuiltinShortcuts）
+- 共有ユーティリティ: `lib/dom-utils.ts`（isInputFocused）
+
+**Track L 成果物:**
+- WebSocketクライアント: `use-websocket.ts`（自動再接続・指数バックオフ・ハートビート30秒・型安全send）
+- サーバー接続API: `use-server-connection.ts`（openFile, saveFile, startSimulation, stopSimulation）+ `ServerConnectionProvider`（React Context）
+- シミュレーション状態ストア: `simulation-store.ts`（Zustand、status/frames/playback、requestAnimationFrameベース再生、シーク、速度変更0.25x〜4x）
+- ツールバー統合: `SimulationButtons.tsx`（Run/Stop）、StatusBar WebSocket接続状態表示（connecting/connected/disconnected/error）
+- 再生UI: `SimulationTimeline.tsx`（Play/Pause、シークバー、速度セレクタ、フレームカウンタ）
+- WebSocket メッセージ型: `types/ws-messages.ts`（サーバー側と完全一致）
+- i18n: シミュレーション操作・接続状態の翻訳キー追加（en/ja）
+- トースト通知: sonner + APEXグラススタイリング（ファイル操作結果、エラー通知）
+- File System Access API フォールバック（サーバー未接続時）
+
+Track M は K+L マージ済みの main ブランチ上で実施。
 
 ### 将来フェーズ
 - Tauriデスクトップアプリ (`apps/desktop`)
