@@ -7,18 +7,23 @@
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "dev": "tsx watch src/main.ts",
-    "start": "node dist/main.js"
+    "start": "node dist/main.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@osce/shared": "workspace:*",
     "@osce/openscenario": "workspace:*",
     "@osce/esmini": "workspace:*",
+    "@osce/opendrive": "workspace:*",
     "@osce/mcp-server": "workspace:*",
     "fastify": "^5.0.0",
     "@fastify/websocket": "^11.0.0",
     "@fastify/cors": "^10.0.0"
   },
   "devDependencies": {
-    "tsx": "^4.19.0"
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "vitest": "^3.0.0"
   }
 }
