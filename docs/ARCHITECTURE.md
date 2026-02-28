@@ -382,13 +382,13 @@ sequenceDiagram
 - `@osce/mcp-server`: MCP SDK準拠。51ツール（エンティティCRUD、アクション追加、ストーリーボード操作、テンプレート適用、Undo/Redo等）、2リソース（シナリオデータ、テンプレートカタログ）、2プロンプト（create_cut_in_scenario, create_scenario_from_description）。
 - `apps/web` (APEX v4デザイン修正): モックアップ `design-apex-v4.html` に忠実なスタイリング修正。ヘッダー（50px高、ペンタゴンロゴ、グラデーションテキスト、グロウディバイダー）、ステータスバー（26px高、グロウライン、ステータスドット）、サイドバー（bg-deep背景）、タブ（Orbitron uppercase、アクセントグロウ下線）、ノードエディタ（28pxグリッド+放射状フェードマスク）、エントランスアニメーション、glass-itemシステム（カーソルリアクティブ hover/selected）、3pxカスタムスクロールバー。
 
-### Phase 4: 統合 + ポリッシュ 🟢
+### Phase 4: 統合 + ポリッシュ ✅ 完了
 
 | トラック | 主な作業 | 状態 | プロンプト |
 |---------|---------|------|-----------|
 | K | コンポーネント統合 + UI強化 | ✅ 完了 | `docs/PHASE4_TRACK_K.md` |
 | L | WebSocketクライアント + シミュレーション状態管理 | ✅ 完了 | `docs/PHASE4_TRACK_L.md` |
-| M | Playwright E2E + 統合テスト + ポリッシュ | 🟢 次作業 | `docs/PHASE4_TRACK_M.md` |
+| M | Playwright E2E + 統合テスト + ポリッシュ | ✅ 完了 | `docs/PHASE4_TRACK_M.md` |
 
 **Track K 成果物:**
 - プレースホルダー差し替え: NodeEditorPlaceholder → `<NodeEditor>`（React Flow）、ViewerPlaceholder → `<ScenarioViewer>`（Three.js）、TimelinePlaceholder → `<TimelineView>`
@@ -412,7 +412,29 @@ sequenceDiagram
 - トースト通知: sonner + APEXグラススタイリング（ファイル操作結果、エラー通知）
 - File System Access API フォールバック（サーバー未接続時）
 
-Track M は K+L マージ済みの main ブランチ上で実施。
+**Track M 成果物:**
+- Playwright E2Eテストインフラ: `playwright.config.ts`（デュアルwebServer: バックエンド+フロントエンド）、`global-setup.ts`（teardown関数パターン）
+- Mock E2Eスペック6種: app-startup, entity-crud, template-apply, file-operations, i18n, validation
+- GT_Sim統合E2Eスペック3種: gt-sim-connection, gt-sim-simulation, gt-sim-upload（`GT_SIM_URL`環境変数による条件分岐）
+- アクセシビリティ: ARIA roles/aria-labels/data-testid を8コンポーネントに追加（StatusBar, EntityListItem, HeaderToolbar, SimulationTimeline等）
+- ラウンドトリップテスト拡張: OpenSCENARIO v1.2.0全16サンプル + GT_Sim 10シナリオ対応
+- サーバー側: `GtSimService`/`MockEsminiService` の`GT_SIM_URL`環境変数による動的切替
+- `vitest.config.ts`: e2e/および.claude/をユニットテスト対象から除外
+- `cross-env`導入（Windows互換テストスクリプト）
+- レビュー10件対応（globalSetup修正、role="status"スコープ縮小、waitForTimeout排除、正規表現修正等）
+
+### Phase 5: 成熟度管理 ✅ 完了
+
+| トラック | 主な作業 | 状態 |
+|---------|---------|------|
+| maturity-track-a | 能力マトリクスシステム | ✅ 完了 |
+
+**成果物:**
+- 能力マトリクスシステム: 11ドメイン（core, 3d, backend, devops, i18n, mcp, opendrive, qa, sim, templates, ux）のJSON定義（`docs/maturity/capabilities/*.json`）
+- マトリクス自動生成: `scripts/maturity/generate-matrix.mjs` → `docs/maturity/matrix.json` + `docs/maturity/matrix.md`
+- JSONスキーマバリデーション: `docs/maturity/schema/capability.schema.json` + `scripts/maturity/validate-capabilities.mjs`
+- ブラウザビューア: `docs/maturity/viewer.html`（`scripts/maturity/serve-viewer.mjs`で起動）
+- ガバナンス: `docs/maturity/GOVERNANCE.md`（運用ルール）、`docs/maturity/README.md`（概要）
 
 ### 将来フェーズ
 - Tauriデスクトップアプリ (`apps/desktop`)
