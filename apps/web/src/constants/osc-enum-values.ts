@@ -50,6 +50,7 @@ export const MISC_OBJECT_CATEGORIES: readonly MiscObjectCategory[] = [
   'trafficIsland',
   'tree',
   'vegetation',
+  'wind',
 ] as const;
 
 export const CONDITION_EDGES: readonly ConditionEdge[] = [
