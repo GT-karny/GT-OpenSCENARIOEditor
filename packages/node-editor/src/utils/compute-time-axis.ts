@@ -2,6 +2,8 @@
  * Pure utility to compute time axis configuration for the timeline ruler.
  */
 
+import { MIN_EVENT_WIDTH } from './timeline-constants.js';
+
 export interface TimeAxisTick {
   /** Time in seconds */
   time: number;
@@ -48,9 +50,8 @@ export function computeTimeAxisConfig(
 
   const tickInterval = displayMax <= 20 ? 1 : displayMax <= 60 ? 5 : 10;
 
-  // Ensure right padding accommodates the minimum event width (80px)
-  const MIN_EVENT_WIDTH_PX = 80;
-  const minPaddingSeconds = MIN_EVENT_WIDTH_PX / pps;
+  // Ensure right padding accommodates the minimum event width
+  const minPaddingSeconds = MIN_EVENT_WIDTH / pps;
   const tickPadding = Math.max(
     tickInterval,
     Math.ceil(minPaddingSeconds / tickInterval) * tickInterval,

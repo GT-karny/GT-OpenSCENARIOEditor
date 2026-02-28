@@ -3,6 +3,7 @@
  * Renders above entity tracks in the timeline, showing second-based tick marks.
  */
 
+import { useTranslation } from '@osce/i18n';
 import type { TimeAxisConfig } from '../utils/compute-time-axis.js';
 import { ENTITY_LABEL_WIDTH } from '../utils/timeline-constants.js';
 
@@ -11,6 +12,8 @@ export interface TimelineRulerProps {
 }
 
 export function TimelineRuler({ config }: TimelineRulerProps) {
+  const { t } = useTranslation('common');
+
   return (
     <div
       className="flex shrink-0"
@@ -35,7 +38,7 @@ export function TimelineRuler({ config }: TimelineRulerProps) {
             color: 'var(--color-text-tertiary, rgba(255, 255, 255, 0.20))',
           }}
         >
-          Entity
+          {t('timeline.entity')}
         </span>
       </div>
 

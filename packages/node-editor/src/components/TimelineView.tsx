@@ -3,6 +3,7 @@
  */
 
 import { useContext, useMemo } from 'react';
+import { useTranslation } from '@osce/i18n';
 import { EditorStoreContext } from './NodeEditorProvider.js';
 import { TimelineRuler } from './TimelineRuler.js';
 import { TimelineTrack } from './TimelineTrack.js';
@@ -15,6 +16,7 @@ export interface TimelineViewProps {
 }
 
 export function TimelineView({ className, pixelsPerSecond = 40 }: TimelineViewProps) {
+  const { t } = useTranslation('common');
   const store = useContext(EditorStoreContext);
   const tracks = useTimelineData();
 
@@ -33,7 +35,7 @@ export function TimelineView({ className, pixelsPerSecond = 40 }: TimelineViewPr
         className={`p-4 text-sm ${className ?? ''}`}
         style={{ color: 'var(--color-text-secondary, rgba(255, 255, 255, 0.48))' }}
       >
-        No entities in scenario
+        {t('timeline.noEntities')}
       </div>
     );
   }

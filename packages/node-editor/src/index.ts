@@ -54,4 +54,4 @@ export { detectElementType } from './utils/detect-element-type.js';
 export { getNodeColor } from './utils/color-map.js';
 export { computeTimeAxisConfig } from './utils/compute-time-axis.js';
 export type { TimeAxisConfig, TimeAxisTick } from './utils/compute-time-axis.js';
-export { ENTITY_LABEL_WIDTH } from './utils/timeline-constants.js';
+export { ENTITY_LABEL_WIDTH, MIN_EVENT_WIDTH } from './utils/timeline-constants.js';

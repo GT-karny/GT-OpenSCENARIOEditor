@@ -2,8 +2,9 @@
  * Clickable event block in the timeline with APEX glass styling.
  */
 
-import type { CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { getActionTypeLabel } from '../utils/action-display.js';
+import { MIN_EVENT_WIDTH } from '../utils/timeline-constants.js';
 
 export interface TimelineEventData {
   eventId: string;
@@ -32,20 +33,35 @@ const unselectedStyle: CSSProperties = {
   color: 'var(--color-text-secondary, rgba(255, 255, 255, 0.48))',
 };
 
+const hoverStyle: CSSProperties = {
+  background: 'linear-gradient(135deg, rgba(155, 132, 232, 0.18), rgba(123, 136, 232, 0.12))',
+  borderColor: 'var(--color-glass-edge-bright, rgba(190, 180, 240, 0.15))',
+  color: 'var(--color-text-primary, rgba(255, 255, 255, 0.93))',
+};
+
 export function TimelineEvent({ event, onClick, pixelsPerSecond }: TimelineEventProps) {
-  const width = Math.max(80, event.actionTypes.length * 30);
+  const [hovered, setHovered] = useState(false);
+  const width = Math.max(MIN_EVENT_WIDTH, event.actionTypes.length * 30);
   const left = event.startTime != null ? event.startTime * pixelsPerSecond : 0;
+
+  const resolvedStyle = event.selected
+    ? selectedStyle
+    : hovered
+      ? hoverStyle
+      : unselectedStyle;
 
   return (
     <button
       onClick={() => onClick(event.eventId)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       className="absolute h-8 rounded text-[10px] px-2 flex items-center gap-1 border transition-colors cursor-pointer truncate"
       style={{
         left: `${left}px`,
         width: `${width}px`,
         top: '50%',
         transform: 'translateY(-50%)',
-        ...(event.selected ? selectedStyle : unselectedStyle),
+        ...resolvedStyle,
       }}
       title={event.eventName}
     >

@@ -32,6 +32,10 @@ export const common = {
     templates: 'テンプレート',
     simulation: 'シミュレーション',
   },
+  timeline: {
+    entity: 'エンティティ',
+    noEntities: 'シナリオにエンティティがありません',
+  },
   labels: {
     name: '名前',
     description: '説明',
