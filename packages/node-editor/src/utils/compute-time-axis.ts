@@ -44,9 +44,15 @@ export function computeTimeAxisConfig(
 
   const tickInterval = displayMax <= 20 ? 1 : displayMax <= 60 ? 5 : 10;
 
-  // Round up to the next tick boundary + one extra interval for right-side padding
+  // Ensure right padding accommodates the minimum event width (80px)
+  const MIN_EVENT_WIDTH_PX = 80;
+  const minPaddingSeconds = MIN_EVENT_WIDTH_PX / pixelsPerSecond;
+  const tickPadding = Math.max(
+    tickInterval,
+    Math.ceil(minPaddingSeconds / tickInterval) * tickInterval,
+  );
   const maxTime =
-    Math.ceil(displayMax / tickInterval) * tickInterval + tickInterval;
+    Math.ceil(displayMax / tickInterval) * tickInterval + tickPadding;
 
   const ticks: TimeAxisTick[] = [];
   for (let t = 0; t <= maxTime; t += tickInterval) {

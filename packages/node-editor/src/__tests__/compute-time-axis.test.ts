@@ -69,6 +69,15 @@ describe('computeTimeAxisConfig', () => {
     expect(config.maxTime).toBeGreaterThan(10);
   });
 
+  it('ensures right padding accommodates minimum event width (80px)', () => {
+    // At 40pps, 80px = 2s — padding should be at least 2 tick intervals (not 1)
+    const tracks = [{ events: [{ startTime: 10 }] }];
+    const config = computeTimeAxisConfig(tracks, 40);
+    // Event at 10s with 80px width extends to 10s + 80/40 = 12s
+    // totalWidth must be >= 10 * 40 + 80 = 480
+    expect(config.totalWidth).toBeGreaterThanOrEqual(10 * 40 + 80);
+  });
+
   it('starts ticks at 0s', () => {
     const config = computeTimeAxisConfig([{ events: [{ startTime: 5 }] }], 40);
     expect(config.ticks[0].time).toBe(0);
