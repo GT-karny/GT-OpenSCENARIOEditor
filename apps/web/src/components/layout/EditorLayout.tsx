@@ -7,7 +7,7 @@ import { TemplatePalettePanel } from '../panels/TemplatePalettePanel';
 import { PropertyPanel } from '../panels/PropertyPanel';
 import { ValidationPanel } from '../panels/ValidationPanel';
 import { NodeEditorPlaceholder } from '../panels/NodeEditorPlaceholder';
-import { TimelinePlaceholder } from '../panels/TimelinePlaceholder';
+import { SimulationTimeline } from '../panels/SimulationTimeline';
 import { ViewerPlaceholder } from '../panels/ViewerPlaceholder';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { useTranslation } from '@osce/i18n';
@@ -70,7 +70,7 @@ export function EditorLayout() {
                 {/* Timeline */}
                 <Panel defaultSize={35} minSize={15}>
                   <GlassPanel className="h-full">
-                    <TimelinePlaceholder />
+                    <SimulationTimeline />
                   </GlassPanel>
                 </Panel>
               </PanelGroup>
