@@ -8,7 +8,8 @@ export function NodeHandle(props: HandleProps) {
   return (
     <Handle
       {...props}
-      className="!w-2 !h-2 !bg-gray-400 !border-2 !border-white"
+      className="!w-2 !h-2 !border-2"
+      style={{ background: 'var(--color-glass-edge-bright, rgba(190, 180, 240, 0.22))', borderColor: 'var(--color-bg-deep, #09061A)' }}
     />
   );
 }

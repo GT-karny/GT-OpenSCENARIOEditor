@@ -13,8 +13,8 @@ export interface BadgeProps {
 export function Badge({ children, variant = 'default', className = '' }: BadgeProps) {
   const base = 'inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium';
   const variants = {
-    default: 'bg-black/10 text-current',
-    outline: 'border border-current/30 text-current',
+    default: 'bg-white/8 text-current',
+    outline: 'border border-white/15 text-current',
   };
 
   return (

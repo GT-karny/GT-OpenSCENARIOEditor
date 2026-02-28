@@ -77,6 +77,19 @@
   --color-accent-glow: rgba(155, 132, 232, 0.15);
   --color-divider-glow: rgba(155, 132, 232, 0.20);
 
+  /* APEX node type accent colors */
+  --color-node-storyboard: rgba(148, 163, 184, 0.6);
+  --color-node-init: rgba(93, 216, 168, 0.6);
+  --color-node-entity: rgba(136, 184, 232, 0.6);
+  --color-node-story: rgba(123, 136, 232, 0.6);
+  --color-node-act: rgba(155, 132, 232, 0.6);
+  --color-node-maneuver-group: rgba(184, 171, 235, 0.6);
+  --color-node-maneuver: rgba(208, 198, 242, 0.6);
+  --color-node-event: rgba(232, 201, 66, 0.6);
+  --color-node-action: rgba(232, 160, 90, 0.6);
+  --color-node-trigger: rgba(232, 138, 138, 0.6);
+  --color-node-condition: rgba(200, 180, 240, 0.6);
+
   /* APEX text tokens */
   --color-text-primary: rgba(255, 255, 255, 0.93);
   --color-text-secondary: rgba(255, 255, 255, 0.48);
