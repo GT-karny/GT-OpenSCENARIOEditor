@@ -1,5 +1,6 @@
 # Third-party libraries (download separately, not redistributable)
 Thirdparty/
+!Thirdparty/open-simulation-interface/
 
 # Dependencies
 node_modules/

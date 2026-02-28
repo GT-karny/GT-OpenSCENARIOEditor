@@ -1,0 +1,13 @@
+syntax = "proto2";
+
+package osi.server;
+
+// NOTE: esmini side imports as "osi3/osi_groundtruth.proto" but our includeDirs
+// points directly to the OSI proto directory, so we import without the osi3/ prefix.
+// The package name and service definition are identical to esmini's server-side proto.
+import "osi_groundtruth.proto";
+import "google/protobuf/empty.proto";
+
+service GroundTruthService {
+    rpc StreamGroundTruth(google.protobuf.Empty) returns (stream osi3.GroundTruth);
+}

@@ -9,10 +9,21 @@
     ".": { "import": "./dist/index.js", "types": "./dist/index.d.ts" }
   },
   "scripts": {
-    "build": "tsc --project tsconfig.json",
-    "dev": "tsc --project tsconfig.json --watch"
+    "build": "tsc --project tsconfig.json && node -e \"const fs=require('fs');fs.cpSync('src/generated','dist/generated',{recursive:true})\"",
+    "dev": "tsc --project tsconfig.json --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "proto:version": "node scripts/generate-version-proto.mjs",
+    "proto:gen": "pnpm proto:version && pbjs -t static-module -w es6 --es6 -o src/generated/osi.js -p ../../Thirdparty/open-simulation-interface -p proto proto/gt_sim_service.proto && pbts -o src/generated/osi.d.ts src/generated/osi.js"
   },
   "dependencies": {
-    "@osce/shared": "workspace:*"
+    "@osce/shared": "workspace:*",
+    "@grpc/grpc-js": "^1.12.0",
+    "@grpc/proto-loader": "^0.7.0",
+    "protobufjs": "^7.4.0"
+  },
+  "devDependencies": {
+    "protobufjs-cli": "^1.1.0",
+    "vitest": "^3.0.0"
   }
 }

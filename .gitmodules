@@ -1,0 +1,3 @@
+[submodule "Thirdparty/open-simulation-interface"]
+	path = Thirdparty/open-simulation-interface
+	url = https://github.com/OpenSimulationInterface/open-simulation-interface.git
