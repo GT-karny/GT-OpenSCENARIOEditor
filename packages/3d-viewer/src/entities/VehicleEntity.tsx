@@ -4,7 +4,7 @@
  */
 
 import React, { useRef } from 'react';
-import * as THREE from 'three';
+import type * as THREE from 'three';
 import { Outlines } from '@react-three/drei';
 import type { ScenarioEntity } from '@osce/shared';
 import { getEntityGeometry, getEntityColor } from '../utils/entity-geometry.js';
