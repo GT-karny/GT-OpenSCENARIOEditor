@@ -8,17 +8,21 @@ interface ValidationIssueRowProps {
 
 export function ValidationIssueRow({ issue }: ValidationIssueRowProps) {
   const setSelection = useEditorStore((s) => s.setSelection);
+  const setFocusNodeId = useEditorStore((s) => s.setFocusNodeId);
+
+  const navigable = !!issue.elementId;
 
   const handleClick = () => {
     if (issue.elementId) {
       setSelection({ selectedElementIds: [issue.elementId] });
+      setFocusNodeId(issue.elementId);
     }
   };
 
   return (
     <button
       onClick={handleClick}
-      className="w-full text-left px-3 py-2 hover:bg-accent transition-colors border-b last:border-b-0"
+      className={`w-full text-left px-3 py-2 hover:bg-accent transition-colors border-b last:border-b-0 ${navigable ? 'cursor-pointer' : 'cursor-default'}`}
     >
       <div className="flex items-start gap-2">
         {issue.severity === 'error' ? (

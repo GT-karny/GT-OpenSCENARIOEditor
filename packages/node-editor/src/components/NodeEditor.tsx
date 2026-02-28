@@ -21,6 +21,7 @@ import { osceEdgeTypes } from '../edges/edge-registry.js';
 import { useEditorStore } from '../hooks/use-editor-store.js';
 import { useNodeSelection } from '../hooks/use-node-selection.js';
 import { useKeyboardShortcuts } from '../hooks/use-keyboard-shortcuts.js';
+import { NodeFocusBridge } from './NodeFocusBridge.js';
 
 export interface NodeEditorProps {
   onSelectionChange?: (ids: string[]) => void;
@@ -88,6 +89,7 @@ export function NodeEditor({
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
       >
+        <NodeFocusBridge />
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
         <Controls />
         <MiniMap

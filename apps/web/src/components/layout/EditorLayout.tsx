@@ -53,10 +53,15 @@ export function EditorLayout() {
   const selectedElementIds = useEditorStore((s) => s.selection.selectedElementIds);
   const roadNetwork = useEditorStore((s) => s.roadNetwork);
   const preferences = useEditorStore((s) => s.preferences);
+  const focusNodeId = useEditorStore((s) => s.focusNodeId);
   const selectedEntityId = selectedElementIds.length === 1 ? selectedElementIds[0] : null;
 
   const handleSelectionChange = useCallback((ids: string[]) => {
     useEditorStore.getState().setSelection({ selectedElementIds: ids });
+  }, []);
+
+  const handleFocusComplete = useCallback(() => {
+    useEditorStore.getState().setFocusNodeId(null);
   }, []);
 
   const handleEntitySelect = useCallback((entityId: string) => {
@@ -178,6 +183,8 @@ export function EditorLayout() {
                 scenarioStore={scenarioStoreApi}
                 selectedElementIds={selectedElementIds}
                 onSelectionChange={handleSelectionChange}
+                focusNodeId={focusNodeId}
+                onFocusComplete={handleFocusComplete}
               >
                 <PanelGroup direction="vertical" className="enter d2">
                   {/* Node editor */}
