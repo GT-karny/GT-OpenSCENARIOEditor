@@ -46,9 +46,8 @@ test.describe('File Operations', () => {
 
     // After import, entities from CutIn.xosc should appear
     // CutIn.xosc typically has entities like "Ego" and "OverTaker"
-    await page.waitForTimeout(1000); // Wait for parsing
     const statusBar = page.getByTestId('status-bar');
-    await expect(statusBar).not.toContainText(/Entities.*0|エンティティ.*0/);
+    await expect(statusBar).not.toContainText(/Entities:\s*0(?!\d)|エンティティ:\s*0(?!\d)/, { timeout: 5000 });
   });
 
   test('should support Undo/Redo with keyboard shortcuts', async ({ page }) => {

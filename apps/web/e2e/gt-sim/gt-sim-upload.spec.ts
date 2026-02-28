@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { GT_SIM_API } from './constants';
 
 test.describe('GT_Sim Scenario Upload', () => {
   test.skip(!process.env.USE_GT_SIM, 'GT_Sim not available');
@@ -66,7 +67,7 @@ test.describe('GT_Sim Scenario Upload', () => {
 
     // Upload scenario
     const uploadRes = await request.post(
-      'http://127.0.0.1:8000/api/scenarios/upload',
+      `${GT_SIM_API}/api/scenarios/upload`,
       {
         headers: { 'Content-Type': 'application/xml' },
         data: minimalXosc,
@@ -78,7 +79,7 @@ test.describe('GT_Sim Scenario Upload', () => {
 
     // Run simulation
     const simRes = await request.post(
-      'http://127.0.0.1:8000/api/simulations',
+      `${GT_SIM_API}/api/simulations`,
       {
         data: {
           scenario_id,
@@ -95,22 +96,25 @@ test.describe('GT_Sim Scenario Upload', () => {
     for (let i = 0; i < 30 && status === 'running'; i++) {
       await new Promise((r) => setTimeout(r, 1000));
       const statusRes = await request.get(
-        `http://127.0.0.1:8000/api/simulations/${job_id}`,
+        `${GT_SIM_API}/api/simulations/${job_id}`,
       );
       const statusBody = await statusRes.json();
       status = statusBody.status;
     }
 
-    expect(['completed', 'failed']).toContain(status);
-
-    // If completed, check metrics
-    if (status === 'completed') {
-      const metricsRes = await request.get(
-        `http://127.0.0.1:8000/api/results/${job_id}/metrics`,
-      );
-      expect(metricsRes.ok()).toBeTruthy();
-      const metrics = await metricsRes.json();
-      expect(metrics).toHaveProperty('duration');
+    if (status === 'failed') {
+      const statusRes = await request.get(`${GT_SIM_API}/api/simulations/${job_id}`);
+      const detail = await statusRes.json();
+      console.warn('Simulation failed:', detail.error_message);
     }
+    expect(status).toBe('completed');
+
+    // Check metrics
+    const metricsRes = await request.get(
+      `${GT_SIM_API}/api/results/${job_id}/metrics`,
+    );
+    expect(metricsRes.ok()).toBeTruthy();
+    const metrics = await metricsRes.json();
+    expect(metrics).toHaveProperty('duration');
   });
 });

@@ -86,7 +86,7 @@ test.describe('Entity CRUD Operations', () => {
     const statusBar = page.getByTestId('status-bar');
 
     // Initially 0 entities
-    await expect(statusBar).toContainText(/Entities.*0|エンティティ.*0/);
+    await expect(statusBar).toContainText(/Entities:\s*0(?!\d)|エンティティ:\s*0(?!\d)/);
 
     // Add an entity
     await page.getByRole('button', { name: 'Add new entity' }).click();
@@ -94,6 +94,6 @@ test.describe('Entity CRUD Operations', () => {
     await page.getByRole('dialog').getByRole('button', { name: /Add|追加/ }).click();
 
     // Count should update
-    await expect(statusBar).toContainText(/Entities.*1|エンティティ.*1/);
+    await expect(statusBar).toContainText(/Entities:\s*1(?!\d)|エンティティ:\s*1(?!\d)/);
   });
 });

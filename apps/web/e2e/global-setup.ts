@@ -1,4 +1,4 @@
-import { execFile, type ChildProcess } from 'child_process';
+import { execFile } from 'child_process';
 import { resolve } from 'path';
 
 const GT_SIM_EXE = resolve(
@@ -30,21 +30,18 @@ async function waitForHealth(url: string, timeout: number): Promise<void> {
 export default async function globalSetup() {
   if (!process.env.USE_GT_SIM) return;
 
-  const proc = execFile(
-    GT_SIM_EXE,
-    ['--host', '127.0.0.1', '--port', '8000'],
-    { cwd: GT_SIM_CWD },
-  );
+  const proc = execFile(GT_SIM_EXE, ['--host', '127.0.0.1', '--port', '8000'], {
+    cwd: GT_SIM_CWD,
+  });
+
+  proc.on('error', (err) => {
+    console.error('Failed to start GT_Sim:', err.message);
+  });
 
   await waitForHealth(HEALTH_URL, MAX_WAIT_MS);
 
-  // Store process for teardown
-  (globalThis as Record<string, unknown>).__GT_SIM_PROC__ = proc;
-}
-
-export async function globalTeardown() {
-  const proc = (globalThis as Record<string, unknown>).__GT_SIM_PROC__ as
-    | ChildProcess
-    | undefined;
-  if (proc) proc.kill();
+  // Playwright pattern: return teardown function from globalSetup
+  return async () => {
+    proc.kill();
+  };
 }

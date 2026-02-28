@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
+  globalSetup: process.env.USE_GT_SIM ? './e2e/global-setup.ts' : undefined,
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,

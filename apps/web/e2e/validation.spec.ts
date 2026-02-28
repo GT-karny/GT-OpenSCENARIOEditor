@@ -46,6 +46,6 @@ test.describe('Validation', () => {
     await page.getByRole('button', { name: 'Validate' }).click();
 
     const statusBar = page.getByTestId('status-bar');
-    await expect(statusBar).toContainText(/errors|warnings/);
+    await expect(statusBar).toContainText(/errors|warnings/, { timeout: 5000 });
   });
 });

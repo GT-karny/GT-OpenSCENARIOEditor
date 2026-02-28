@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { GT_SIM_API } from './constants';
 
 test.describe('GT_Sim Simulation Execution', () => {
   test.skip(!process.env.USE_GT_SIM, 'GT_Sim not available');
@@ -61,7 +62,7 @@ test.describe('GT_Sim Simulation Execution', () => {
   }) => {
     // Get first available scenario
     const scenariosRes = await request.get(
-      'http://127.0.0.1:8000/api/scenarios',
+      `${GT_SIM_API}/api/scenarios`,
     );
     const scenarios = await scenariosRes.json();
     const scenario = scenarios.find(
@@ -73,7 +74,7 @@ test.describe('GT_Sim Simulation Execution', () => {
 
     // Start simulation
     const simRes = await request.post(
-      'http://127.0.0.1:8000/api/simulations',
+      `${GT_SIM_API}/api/simulations`,
       {
         data: {
           scenario_id: scenario.scenario_id,
@@ -91,7 +92,7 @@ test.describe('GT_Sim Simulation Execution', () => {
     for (let i = 0; i < 60 && status === 'running'; i++) {
       await new Promise((r) => setTimeout(r, 1000));
       const statusRes = await request.get(
-        `http://127.0.0.1:8000/api/simulations/${job_id}`,
+        `${GT_SIM_API}/api/simulations/${job_id}`,
       );
       const statusBody = await statusRes.json();
       status = statusBody.status;
@@ -101,7 +102,7 @@ test.describe('GT_Sim Simulation Execution', () => {
 
     // Get metrics
     const metricsRes = await request.get(
-      `http://127.0.0.1:8000/api/results/${job_id}/metrics`,
+      `${GT_SIM_API}/api/results/${job_id}/metrics`,
     );
     expect(metricsRes.ok()).toBeTruthy();
   });

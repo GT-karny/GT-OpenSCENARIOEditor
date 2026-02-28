@@ -1,17 +1,18 @@
 import { test, expect } from '@playwright/test';
+import { GT_SIM_API } from './constants';
 
 test.describe('GT_Sim Connection', () => {
   test.skip(!process.env.USE_GT_SIM, 'GT_Sim not available');
 
   test('should pass health check', async ({ request }) => {
-    const res = await request.get('http://127.0.0.1:8000/api/health');
+    const res = await request.get(`${GT_SIM_API}/api/health`);
     expect(res.ok()).toBeTruthy();
     const body = await res.json();
     expect(body.status).toBe('ok');
   });
 
   test('should return scenario list with 78+ scenarios', async ({ request }) => {
-    const res = await request.get('http://127.0.0.1:8000/api/scenarios');
+    const res = await request.get(`${GT_SIM_API}/api/scenarios`);
     expect(res.ok()).toBeTruthy();
     const body = await res.json();
     expect(Array.isArray(body)).toBeTruthy();
@@ -27,7 +28,7 @@ test.describe('GT_Sim Connection', () => {
   });
 
   test('should show system configuration', async ({ request }) => {
-    const res = await request.get('http://127.0.0.1:8000/api/config/system');
+    const res = await request.get(`${GT_SIM_API}/api/config/system`);
     expect(res.ok()).toBeTruthy();
     const body = await res.json();
     expect(body).toHaveProperty('scenario_count');
