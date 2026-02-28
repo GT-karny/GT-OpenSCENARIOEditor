@@ -87,12 +87,15 @@ export function NodeEditorContextMenu({
     && !NON_DELETABLE_TYPES.has(position.nodeType);
 
   const hasCollapse = position.nodeId !== null && onToggleCollapse !== undefined;
+  const hasItems = addOptions.length > 0 || showDelete || hasCollapse;
 
-  // Don't render an empty menu (e.g. init, trigger nodes with no actions)
-  if (addOptions.length === 0 && !showDelete && !hasCollapse) {
-    onClose();
-    return null;
-  }
+  // Close empty menus (e.g. init, trigger nodes) via effect to avoid
+  // state updates during render.
+  useEffect(() => {
+    if (!hasItems) onClose();
+  }, [hasItems, onClose]);
+
+  if (!hasItems) return null;
 
   const style: React.CSSProperties = {
     left: position.x,
