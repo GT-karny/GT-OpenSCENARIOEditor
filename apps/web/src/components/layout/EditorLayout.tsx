@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import type { Node } from '@xyflow/react';
-import { NodeEditorProvider, NodeEditor, TimelineView } from '@osce/node-editor';
-import type { OsceNodeData } from '@osce/node-editor';
+import { NodeEditorProvider, NodeEditor, TimelineView, detectElementType } from '@osce/node-editor';
+import type { OsceNodeData, OsceNodeType } from '@osce/node-editor';
 import { ScenarioViewer } from '@osce/3d-viewer';
 import { HeaderToolbar } from './HeaderToolbar';
 import { StatusBar } from './StatusBar';
@@ -13,6 +13,8 @@ import { PropertyPanel } from '../panels/PropertyPanel';
 import { ValidationPanel } from '../panels/ValidationPanel';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { NodeEditorContextMenu } from '../node-editor/NodeEditorContextMenu';
+import type { ContextMenuPosition } from '../node-editor/NodeEditorContextMenu';
+import { DeleteConfirmationDialog } from '../node-editor/DeleteConfirmationDialog';
 import { SimulationTimeline } from '../panels/SimulationTimeline';
 import { ParameterDialog } from '../template/ParameterDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
@@ -21,6 +23,8 @@ import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
 import { useTemplateDrop } from '../../hooks/use-template-drop';
 import { useElementDelete } from '../../hooks/use-element-delete';
+import { useElementAdd } from '../../hooks/use-element-add';
+import { getDirectChildCount } from '../../lib/count-descendants';
 
 function ResizeHandle() {
   return (
@@ -32,6 +36,13 @@ function ResizeHandleH() {
   return (
     <PanelResizeHandle className="h-[1px] divider-glow hover:h-[3px] transition-all data-[resize-handle-active]:h-[3px]" />
   );
+}
+
+interface DeleteRequest {
+  id: string;
+  elementName: string;
+  elementType: string;
+  childCount: number;
 }
 
 export function EditorLayout() {
@@ -65,43 +76,69 @@ export function EditorLayout() {
   } = useTemplateDrop();
 
   // --- Context Menu ---
-  const [contextMenu, setContextMenu] = useState<{
-    x: number;
-    y: number;
-    nodeId: string | null;
-  } | null>(null);
+  const [contextMenu, setContextMenu] = useState<ContextMenuPosition | null>(null);
 
   const handlePaneContextMenu = useCallback((event: MouseEvent | React.MouseEvent) => {
     event.preventDefault();
-    setContextMenu({ x: event.clientX, y: event.clientY, nodeId: null });
+    setContextMenu({ x: event.clientX, y: event.clientY, nodeId: null, nodeType: null });
   }, []);
 
   const handleNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node<OsceNodeData>) => {
       event.preventDefault();
-      setContextMenu({ x: event.clientX, y: event.clientY, nodeId: node.id });
+      setContextMenu({
+        x: event.clientX,
+        y: event.clientY,
+        nodeId: node.id,
+        nodeType: node.data.osceType,
+      });
     },
     [],
   );
 
-  // --- Delete ---
+  // --- Add Child ---
+  const { addChildToNode } = useElementAdd();
+
+  const handleAddChild = useCallback(
+    (childType: OsceNodeType) => {
+      addChildToNode(contextMenu?.nodeId ?? null, childType);
+    },
+    [contextMenu, addChildToNode],
+  );
+
+  // --- Delete with confirmation ---
   const { deleteElementById } = useElementDelete();
-
-  const handleAddEntity = useCallback(() => {
-    scenarioStoreApi.getState().addEntity({ name: 'NewEntity' });
-  }, [scenarioStoreApi]);
-
-  const handleAddStory = useCallback(() => {
-    scenarioStoreApi.getState().addStory({ name: 'NewStory' });
-  }, [scenarioStoreApi]);
+  const [deleteRequest, setDeleteRequest] = useState<DeleteRequest | null>(null);
 
   const handleDeleteNode = useCallback(
     (nodeId: string) => {
-      deleteElementById(nodeId);
-      useEditorStore.getState().clearSelection();
+      const store = scenarioStoreApi.getState();
+      const element = store.getElementById(nodeId);
+      if (!element) return;
+
+      const type = detectElementType(element);
+      if (!type) return;
+
+      const childCount = getDirectChildCount(element, type);
+      const name = (element as { name?: string }).name ?? type;
+
+      if (childCount > 0) {
+        setDeleteRequest({ id: nodeId, elementName: name, elementType: type, childCount });
+      } else {
+        deleteElementById(nodeId);
+        useEditorStore.getState().clearSelection();
+      }
     },
-    [deleteElementById],
+    [scenarioStoreApi, deleteElementById],
   );
+
+  const handleConfirmDelete = useCallback(() => {
+    if (deleteRequest) {
+      deleteElementById(deleteRequest.id);
+      useEditorStore.getState().clearSelection();
+    }
+    setDeleteRequest(null);
+  }, [deleteRequest, deleteElementById]);
 
   return (
     <div className="relative flex flex-col h-screen overflow-hidden">
@@ -241,12 +278,21 @@ export function EditorLayout() {
       {contextMenu && (
         <NodeEditorContextMenu
           position={contextMenu}
-          onAddEntity={handleAddEntity}
-          onAddStory={handleAddStory}
+          onAddChild={handleAddChild}
           onDeleteNode={handleDeleteNode}
           onClose={() => setContextMenu(null)}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        open={deleteRequest !== null}
+        onOpenChange={(open) => { if (!open) setDeleteRequest(null); }}
+        elementName={deleteRequest?.elementName ?? ''}
+        elementType={deleteRequest?.elementType ?? ''}
+        childCount={deleteRequest?.childCount ?? 0}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }

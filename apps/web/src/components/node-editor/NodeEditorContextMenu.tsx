@@ -1,17 +1,19 @@
 import { useEffect, useRef } from 'react';
 import { Trash2, Plus, FoldVertical } from 'lucide-react';
 import { useTranslation } from '@osce/i18n';
+import type { OsceNodeType } from '@osce/node-editor';
+import { getAddChildOptions, paneAddOptions, NON_DELETABLE_TYPES } from '../../lib/node-hierarchy';
 
-interface ContextMenuPosition {
+export interface ContextMenuPosition {
   x: number;
   y: number;
   nodeId: string | null;
+  nodeType: OsceNodeType | null;
 }
 
 interface NodeEditorContextMenuProps {
   position: ContextMenuPosition;
-  onAddEntity: () => void;
-  onAddStory: () => void;
+  onAddChild: (childType: OsceNodeType) => void;
   onDeleteNode: (nodeId: string) => void;
   onToggleCollapse?: (nodeId: string) => void;
   onClose: () => void;
@@ -47,8 +49,7 @@ function MenuSeparator() {
 
 export function NodeEditorContextMenu({
   position,
-  onAddEntity,
-  onAddStory,
+  onAddChild,
   onDeleteNode,
   onToggleCollapse,
   onClose,
@@ -77,7 +78,25 @@ export function NodeEditorContextMenu({
     };
   }, [onClose]);
 
-  // Adjust position to keep menu within viewport
+  const addOptions = position.nodeType
+    ? getAddChildOptions(position.nodeType)
+    : paneAddOptions;
+
+  const showDelete = position.nodeId !== null
+    && position.nodeType !== null
+    && !NON_DELETABLE_TYPES.has(position.nodeType);
+
+  const hasCollapse = position.nodeId !== null && onToggleCollapse !== undefined;
+  const hasItems = addOptions.length > 0 || showDelete || hasCollapse;
+
+  // Close empty menus (e.g. init, trigger nodes) via effect to avoid
+  // state updates during render.
+  useEffect(() => {
+    if (!hasItems) onClose();
+  }, [hasItems, onClose]);
+
+  if (!hasItems) return null;
+
   const style: React.CSSProperties = {
     left: position.x,
     top: position.y,
@@ -89,38 +108,35 @@ export function NodeEditorContextMenu({
       className="fixed z-50 min-w-[180px] bg-[var(--color-popover)] backdrop-blur-[28px] border border-[var(--color-glass-edge)] rounded-md shadow-lg py-1"
       style={style}
     >
-      {position.nodeId ? (
+      {position.nodeId && onToggleCollapse && (
         <>
-          {onToggleCollapse && (
-            <>
-              <MenuItem
-                icon={FoldVertical}
-                label={t('contextMenu.toggleCollapse', 'Toggle Collapse')}
-                onClick={() => {
-                  onToggleCollapse(position.nodeId!);
-                  onClose();
-                }}
-              />
-              <MenuSeparator />
-            </>
-          )}
           <MenuItem
-            icon={Plus}
-            label={t('contextMenu.addEntity', 'Add Entity')}
+            icon={FoldVertical}
+            label={t('contextMenu.toggleCollapse', 'Toggle Collapse')}
             onClick={() => {
-              onAddEntity();
-              onClose();
-            }}
-          />
-          <MenuItem
-            icon={Plus}
-            label={t('contextMenu.addStory', 'Add Story')}
-            onClick={() => {
-              onAddStory();
+              onToggleCollapse(position.nodeId!);
               onClose();
             }}
           />
           <MenuSeparator />
+        </>
+      )}
+
+      {addOptions.map((option) => (
+        <MenuItem
+          key={option.childType}
+          icon={Plus}
+          label={t(option.i18nKey, option.i18nFallback)}
+          onClick={() => {
+            onAddChild(option.childType);
+            onClose();
+          }}
+        />
+      ))}
+
+      {showDelete && (
+        <>
+          {addOptions.length > 0 && <MenuSeparator />}
           <MenuItem
             icon={Trash2}
             label={t('contextMenu.delete', 'Delete')}
@@ -129,25 +145,6 @@ export function NodeEditorContextMenu({
               onClose();
             }}
             destructive
-          />
-        </>
-      ) : (
-        <>
-          <MenuItem
-            icon={Plus}
-            label={t('contextMenu.addEntity', 'Add Entity')}
-            onClick={() => {
-              onAddEntity();
-              onClose();
-            }}
-          />
-          <MenuItem
-            icon={Plus}
-            label={t('contextMenu.addStory', 'Add Story')}
-            onClick={() => {
-              onAddStory();
-              onClose();
-            }}
           />
         </>
       )}
