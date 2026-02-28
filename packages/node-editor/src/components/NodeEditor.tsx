@@ -94,6 +94,7 @@ export function NodeEditor({
           nodeStrokeWidth={3}
           zoomable
           pannable
+          maskColor="rgba(9, 6, 26, 0.80)"
         />
       </ReactFlow>
     </div>

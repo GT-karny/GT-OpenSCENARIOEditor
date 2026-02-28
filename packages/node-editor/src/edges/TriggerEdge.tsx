@@ -20,7 +20,7 @@ export function TriggerEdge(props: EdgeProps) {
     <BaseEdge
       {...props}
       path={edgePath}
-      style={{ stroke: '#f43f5e', strokeWidth: 1.5, strokeDasharray: '5 5' }}
+      style={{ stroke: 'rgba(232, 138, 138, 0.65)', strokeWidth: 2, strokeDasharray: '6 4' }}
     />
   );
 }
