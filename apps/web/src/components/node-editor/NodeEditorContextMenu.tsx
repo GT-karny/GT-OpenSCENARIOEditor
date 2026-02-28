@@ -86,6 +86,14 @@ export function NodeEditorContextMenu({
     && position.nodeType !== null
     && !NON_DELETABLE_TYPES.has(position.nodeType);
 
+  const hasCollapse = position.nodeId !== null && onToggleCollapse !== undefined;
+
+  // Don't render an empty menu (e.g. init, trigger nodes with no actions)
+  if (addOptions.length === 0 && !showDelete && !hasCollapse) {
+    onClose();
+    return null;
+  }
+
   const style: React.CSSProperties = {
     left: position.x,
     top: position.y,
