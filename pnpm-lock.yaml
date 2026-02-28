@@ -260,12 +260,22 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.0.0
         version: 1.27.1(zod@4.3.6)
+      '@osce/openscenario':
+        specifier: workspace:*
+        version: link:../openscenario
       '@osce/scenario-engine':
         specifier: workspace:*
         version: link:../scenario-engine
       '@osce/shared':
         specifier: workspace:*
         version: link:../shared
+      '@osce/templates':
+        specifier: workspace:*
+        version: link:../templates
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.13
 
   packages/node-editor:
     dependencies:

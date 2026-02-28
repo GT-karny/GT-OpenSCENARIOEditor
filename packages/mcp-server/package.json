@@ -15,6 +15,11 @@
   "dependencies": {
     "@osce/shared": "workspace:*",
     "@osce/scenario-engine": "workspace:*",
+    "@osce/openscenario": "workspace:*",
+    "@osce/templates": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0"
   }
 }
