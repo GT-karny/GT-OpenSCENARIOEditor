@@ -364,7 +364,7 @@
   }
 
   .apex-tab[data-state="active"] {
-    color: var(--color-accent-vivid);
+    color: var(--color-primary);
     background: var(--color-accent-dim);
     box-shadow: none;
   }

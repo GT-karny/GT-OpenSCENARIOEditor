@@ -13,7 +13,7 @@ interface EntityListItemProps {
 
 function getEntityCategory(entity: ScenarioEntity): string | undefined {
   const def = entity.definition;
-  if (!def || 'type' in def) return undefined; // CatalogReference
+  if (!def || def.kind === 'catalogReference') return undefined;
   switch (def.kind) {
     case 'vehicle':
       return def.vehicleCategory;
