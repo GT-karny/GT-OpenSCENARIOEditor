@@ -7,11 +7,11 @@ import type { StoreApi } from 'zustand';
 import type { ScenarioStore } from '@osce/scenario-engine';
 import { ScenarioStoreContext } from '../components/NodeEditorProvider.js';
 
-export function useKeyboardShortcuts() {
+export function useKeyboardShortcuts(disabled = false) {
   const scenarioStore = useContext(ScenarioStoreContext);
 
   useEffect(() => {
-    if (!scenarioStore) return;
+    if (!scenarioStore || disabled) return;
 
     function handleKeyDown(e: KeyboardEvent) {
       const store = scenarioStore as StoreApi<ScenarioStore>;
@@ -29,5 +29,5 @@ export function useKeyboardShortcuts() {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [scenarioStore]);
+  }, [scenarioStore, disabled]);
 }
