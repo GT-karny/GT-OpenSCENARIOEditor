@@ -24,10 +24,25 @@ import { useKeyboardShortcuts } from '../hooks/use-keyboard-shortcuts.js';
 
 export interface NodeEditorProps {
   onSelectionChange?: (ids: string[]) => void;
+  onDrop?: (event: React.DragEvent) => void;
+  onDragOver?: (event: React.DragEvent) => void;
+  onPaneContextMenu?: (event: MouseEvent | React.MouseEvent) => void;
+  onNodeContextMenu?: (event: React.MouseEvent, node: Node<OsceNodeData>) => void;
+  deleteKeyCode?: string | string[] | null;
+  disableBuiltinShortcuts?: boolean;
   className?: string;
 }
 
-export function NodeEditor({ onSelectionChange, className }: NodeEditorProps) {
+export function NodeEditor({
+  onSelectionChange,
+  onDrop,
+  onDragOver,
+  onPaneContextMenu,
+  onNodeContextMenu,
+  deleteKeyCode = null,
+  disableBuiltinShortcuts = false,
+  className,
+}: NodeEditorProps) {
   const nodes = useEditorStore((s) => s.nodes);
   const edges = useEditorStore((s) => s.edges);
   const setNodes = useEditorStore((s) => s.setNodes);
@@ -35,7 +50,7 @@ export function NodeEditor({ onSelectionChange, className }: NodeEditorProps) {
   const setViewport = useEditorStore((s) => s.setViewport);
 
   const { handleSelectionChange } = useNodeSelection(onSelectionChange);
-  useKeyboardShortcuts();
+  useKeyboardShortcuts(disableBuiltinShortcuts);
 
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => {
@@ -62,6 +77,11 @@ export function NodeEditor({ onSelectionChange, className }: NodeEditorProps) {
         onEdgesChange={onEdgesChange}
         onSelectionChange={handleSelectionChange}
         onMoveEnd={(_event, viewport) => setViewport(viewport)}
+        onDrop={onDrop}
+        onDragOver={onDragOver}
+        onPaneContextMenu={onPaneContextMenu}
+        onNodeContextMenu={onNodeContextMenu}
+        deleteKeyCode={deleteKeyCode}
         fitView
         fitViewOptions={{ padding: 0.2 }}
         minZoom={0.1}
