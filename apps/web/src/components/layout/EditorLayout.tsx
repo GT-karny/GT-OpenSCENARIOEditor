@@ -13,6 +13,7 @@ import { PropertyPanel } from '../panels/PropertyPanel';
 import { ValidationPanel } from '../panels/ValidationPanel';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { NodeEditorContextMenu } from '../node-editor/NodeEditorContextMenu';
+import { SimulationTimeline } from '../panels/SimulationTimeline';
 import { ParameterDialog } from '../template/ParameterDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { useTranslation } from '@osce/i18n';
@@ -162,12 +163,13 @@ export function EditorLayout() {
                     </ErrorBoundary>
                   </Panel>
                   <ResizeHandleH />
-                  {/* Timeline */}
+                  {/* Timeline + Simulation playback */}
                   <Panel defaultSize={35} minSize={15}>
-                    <GlassPanel className="h-full">
+                    <GlassPanel className="h-full flex flex-col">
                       <ErrorBoundary fallbackTitle="Timeline Error">
-                        <TimelineView className="h-full" />
+                        <TimelineView className="flex-1" />
                       </ErrorBoundary>
+                      <SimulationTimeline />
                     </GlassPanel>
                   </Panel>
                 </PanelGroup>
