@@ -1,0 +1,289 @@
+{
+  "domain": "templates",
+  "capabilities": [
+    {
+      "id": "templates.use_case_coverage",
+      "domain": "templates",
+      "title_ja": "ユースケーステンプレート網羅性",
+      "required_level": "L3",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "ユースケーステンプレート網羅性に関する仕様が実装と整合している",
+        "ユースケーステンプレート網羅性の正常系と代表的な異常系が検証可能である",
+        "ユースケーステンプレート網羅性の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/templates/src/use-cases"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "シナリオパターン網羅を拡張する"
+      ],
+      "owner": "templates-team",
+      "target_date": "2026-03-24",
+      "purpose_ja": "テンプレート機能の観点で「ユースケーステンプレート網羅性」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/templates/src/use-cases。機能要件としてユースケーステンプレート網羅性の実装・検証・可視化を含む。",
+      "done_definition_ja": "ユースケーステンプレート網羅性が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "主要運転シナリオをテンプレート化し、初期作成の手間を大幅に削減する機能。"
+    },
+    {
+      "id": "templates.action_component_coverage",
+      "domain": "templates",
+      "title_ja": "アクションコンポーネント網羅性",
+      "required_level": "L3",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "アクションコンポーネント網羅性に関する仕様が実装と整合している",
+        "アクションコンポーネント網羅性の正常系と代表的な異常系が検証可能である",
+        "アクションコンポーネント網羅性の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/templates/src/action-components"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "アクションコンポーネント網羅性は運用上の不足が残っている"
+      ],
+      "owner": "templates-team",
+      "target_date": "2026-03-24",
+      "purpose_ja": "テンプレート機能の観点で「アクションコンポーネント網羅性」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/templates/src/action-components。機能要件としてアクションコンポーネント網羅性の実装・検証・可視化を含む。",
+      "done_definition_ja": "アクションコンポーネント網羅性が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "Action部品を再利用可能に揃え、細粒度編集を効率化する機能。"
+    },
+    {
+      "id": "templates.parameter_validation",
+      "domain": "templates",
+      "title_ja": "テンプレートパラメータ妥当性",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "テンプレートパラメータ妥当性に関する仕様が実装と整合している",
+        "テンプレートパラメータ妥当性の正常系と代表的な異常系が検証可能である",
+        "テンプレートパラメータ妥当性の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/templates/src/helpers"
+        ],
+        "tests": [
+          "apps/web/src/__tests__/components/TemplatePalettePanel.test.tsx"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "テンプレートパラメータ妥当性は運用上の不足が残っている"
+      ],
+      "owner": "templates-team",
+      "target_date": "2026-03-18",
+      "purpose_ja": "テンプレート機能の観点で「テンプレートパラメータ妥当性」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/templates/src/helpers。機能要件としてテンプレートパラメータ妥当性の実装・検証・可視化を含む。",
+      "done_definition_ja": "テンプレートパラメータ妥当性が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "入力パラメータの妥当性を検査し、不正テンプレート適用を事前に防ぐ機能。"
+    },
+    {
+      "id": "templates.localized_metadata",
+      "domain": "templates",
+      "title_ja": "テンプレートメタデータ多言語化",
+      "required_level": "L2",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "テンプレートメタデータ多言語化に関する仕様が実装と整合している",
+        "テンプレートメタデータ多言語化の正常系と代表的な異常系が検証可能である",
+        "テンプレートメタデータ多言語化の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/templates/src/metadata"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "テンプレートメタデータ多言語化は運用上の不足が残っている"
+      ],
+      "owner": "templates-team",
+      "target_date": "2026-03-20",
+      "purpose_ja": "テンプレート機能の観点で「テンプレートメタデータ多言語化」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/templates/src/metadata。機能要件としてテンプレートメタデータ多言語化の実装・検証・可視化を含む。",
+      "done_definition_ja": "テンプレートメタデータ多言語化が required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "テンプレート説明を多言語化し、言語差による選択ミスを減らす機能。"
+    },
+    {
+      "id": "templates.preview_generation",
+      "domain": "templates",
+      "title_ja": "テンプレート適用前プレビュー",
+      "required_level": "L2",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "テンプレート適用前プレビューに関する仕様が実装と整合している",
+        "テンプレート適用前プレビューの正常系と代表的な異常系が検証可能である",
+        "テンプレート適用前プレビューの状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/web/src/components/template/ParameterDialog.tsx"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "テンプレート適用前プレビューは運用上の不足が残っている"
+      ],
+      "owner": "templates-team",
+      "target_date": "2026-03-26",
+      "purpose_ja": "テンプレート機能の観点で「テンプレート適用前プレビュー」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/web/src/components/template/ParameterDialog.tsx。機能要件としてテンプレート適用前プレビューの実装・検証・可視化を含む。",
+      "done_definition_ja": "テンプレート適用前プレビューが required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "適用前に生成内容を確認できるようにし、期待外れ適用を防ぐ機能。"
+    },
+    {
+      "id": "templates.apply_consistency",
+      "domain": "templates",
+      "title_ja": "テンプレート適用整合",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "テンプレート適用整合に関する仕様が実装と整合している",
+        "テンプレート適用整合の正常系と代表的な異常系が検証可能である",
+        "テンプレート適用整合の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/web/src/hooks/use-template-apply.ts"
+        ],
+        "tests": [
+          "apps/web/src/__tests__/components/TemplatePalettePanel.test.tsx"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "テンプレート適用整合は運用上の不足が残っている"
+      ],
+      "owner": "templates-team",
+      "target_date": "2026-03-14",
+      "purpose_ja": "テンプレート機能の観点で「テンプレート適用整合」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/web/src/hooks/use-template-apply.ts。機能要件としてテンプレート適用整合の実装・検証・可視化を含む。",
+      "done_definition_ja": "テンプレート適用整合が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "テンプレート適用結果を一貫化し、同条件で同結果を再現する機能。"
+    },
+    {
+      "id": "templates.quality_rank",
+      "domain": "templates",
+      "title_ja": "テンプレート品質ランク付け",
+      "required_level": "L2",
+      "current_level": "L0",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "テンプレート品質ランク付けに関する仕様が実装と整合している",
+        "テンプレート品質ランク付けの正常系と代表的な異常系が検証可能である",
+        "テンプレート品質ランク付けの状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/templates/src/metadata"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "テンプレート品質ランク付けは運用上の不足が残っている"
+      ],
+      "owner": "templates-team",
+      "target_date": "2026-04-03",
+      "purpose_ja": "テンプレート機能の観点で「テンプレート品質ランク付け」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/templates/src/metadata。機能要件としてテンプレート品質ランク付けの実装・検証・可視化を含む。",
+      "done_definition_ja": "テンプレート品質ランク付けが required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "テンプレート品質を可視化し、採用優先度を判断しやすくする機能。"
+    },
+    {
+      "id": "templates.catalog_alignment",
+      "domain": "templates",
+      "title_ja": "カタログ参照整合",
+      "required_level": "L2",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "カタログ参照整合に関する仕様が実装と整合している",
+        "カタログ参照整合の正常系と代表的な異常系が検証可能である",
+        "カタログ参照整合の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/templates/src/helpers/actions.ts"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "カタログ参照整合は運用上の不足が残っている"
+      ],
+      "owner": "templates-team",
+      "target_date": "2026-03-28",
+      "purpose_ja": "テンプレート機能の観点で「カタログ参照整合」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/templates/src/helpers/actions.ts。機能要件としてカタログ参照整合の実装・検証・可視化を含む。",
+      "done_definition_ja": "カタログ参照整合が required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "カタログ参照整合を維持し、実行時に参照切れが起きない状態を保つ機能。"
+    }
+  ]
+}

@@ -1,0 +1,297 @@
+{
+  "domain": "core",
+  "capabilities": [
+    {
+      "id": "core.xosc_roundtrip_consistency",
+      "domain": "core",
+      "title_ja": "XOSCラウンドトリップ整合性",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "XOSCラウンドトリップ整合性に関する仕様が実装と整合している",
+        "XOSCラウンドトリップ整合性の正常系と代表的な異常系が検証可能である",
+        "XOSCラウンドトリップ整合性の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/openscenario/src/parser/xosc-parser.ts"
+        ],
+        "tests": [
+          "packages/openscenario/src/__tests__/round-trip/round-trip.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "一部アクションで双方向整合が不十分"
+      ],
+      "owner": "core-team",
+      "target_date": "2026-03-10",
+      "purpose_ja": "OpenSCENARIO編集コアの観点で「XOSCラウンドトリップ整合性」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/openscenario/src/parser/xosc-parser.ts。機能要件としてXOSCラウンドトリップ整合性の実装・検証・可視化を含む。",
+      "done_definition_ja": "XOSCラウンドトリップ整合性が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "XOSCの parse→serialize→parse を往復してもシナリオ意味が変質しないことを保証する機能。"
+    },
+    {
+      "id": "core.param_variable_modify_mapping",
+      "domain": "core",
+      "title_ja": "Parameter/Variable modifyマッピング整合",
+      "required_level": "L3",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "Parameter/Variable modifyマッピング整合に関する仕様が実装と整合している",
+        "Parameter/Variable modifyマッピング整合の正常系と代表的な異常系が検証可能である",
+        "Parameter/Variable modifyマッピング整合の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/openscenario/src/serializer/build-actions.ts"
+        ],
+        "tests": [
+          "packages/openscenario/src/__tests__/round-trip/round-trip.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "modify rule名の表現揺れを解消する必要がある"
+      ],
+      "owner": "core-team",
+      "target_date": "2026-03-12",
+      "purpose_ja": "OpenSCENARIO編集コアの観点で「Parameter/Variable modifyマッピング整合」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/openscenario/src/serializer/build-actions.ts。機能要件としてParameter/Variable modifyマッピング整合の実装・検証・可視化を含む。",
+      "done_definition_ja": "Parameter/Variable modifyマッピング整合が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "ParameterAction/VariableAction の modify ルールが入出力で一致し、変換時の意味ずれを防ぐ機能。"
+    },
+    {
+      "id": "core.unknown_element_tolerance",
+      "domain": "core",
+      "title_ja": "未知要素の寛容パース",
+      "required_level": "L3",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "未知要素の寛容パースに関する仕様が実装と整合している",
+        "未知要素の寛容パースの正常系と代表的な異常系が検証可能である",
+        "未知要素の寛容パースの状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/openscenario/src/parser/parse-actions.ts"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "未知要素で即時エラーになるケースがある"
+      ],
+      "owner": "core-team",
+      "target_date": "2026-03-18",
+      "purpose_ja": "OpenSCENARIO編集コアの観点で「未知要素の寛容パース」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/openscenario/src/parser/parse-actions.ts。機能要件として未知要素の寛容パースの実装・検証・可視化を含む。",
+      "done_definition_ja": "未知要素の寛容パースが required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "未知要素を扱う際に即時停止を避け、取り込み継続と警告提示を両立する耐障害機能。"
+    },
+    {
+      "id": "core.validator_rule_coverage",
+      "domain": "core",
+      "title_ja": "バリデーションルール網羅性",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "バリデーションルール網羅性に関する仕様が実装と整合している",
+        "バリデーションルール網羅性の正常系と代表的な異常系が検証可能である",
+        "バリデーションルール網羅性の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/openscenario/src/validator/xosc-validator.ts"
+        ],
+        "tests": [
+          "packages/openscenario/src/__tests__/validator/xosc-validator.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "仕様網羅の追加精査が必要"
+      ],
+      "owner": "core-team",
+      "target_date": "2026-03-20",
+      "purpose_ja": "OpenSCENARIO編集コアの観点で「バリデーションルール網羅性」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/openscenario/src/validator/xosc-validator.ts。機能要件としてバリデーションルール網羅性の実装・検証・可視化を含む。",
+      "done_definition_ja": "バリデーションルール網羅性が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "構造・参照・値の妥当性を検証し、シナリオ品質を編集段階で担保する検証機能。"
+    },
+    {
+      "id": "core.schema_version_support",
+      "domain": "core",
+      "title_ja": "OpenSCENARIOバージョン互換管理",
+      "required_level": "L2",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "OpenSCENARIOバージョン互換管理に関する仕様が実装と整合している",
+        "OpenSCENARIOバージョン互換管理の正常系と代表的な異常系が検証可能である",
+        "OpenSCENARIOバージョン互換管理の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/shared/src/types/scenario.ts"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "互換ポリシーの明文化が不足"
+      ],
+      "owner": "core-team",
+      "target_date": "2026-03-24",
+      "purpose_ja": "OpenSCENARIO編集コアの観点で「OpenSCENARIOバージョン互換管理」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/shared/src/types/scenario.ts。機能要件としてOpenSCENARIOバージョン互換管理の実装・検証・可視化を含む。",
+      "done_definition_ja": "OpenSCENARIOバージョン互換管理が required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "OpenSCENARIOバージョン差異を管理し、互換範囲外データの混入を抑止する互換管理機能。"
+    },
+    {
+      "id": "core.import_error_recovery",
+      "domain": "core",
+      "title_ja": "インポート失敗時の回復導線",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "インポート失敗時の回復導線に関する仕様が実装と整合している",
+        "インポート失敗時の回復導線の正常系と代表的な異常系が検証可能である",
+        "インポート失敗時の回復導線の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/web/src/hooks/use-file-operations.ts"
+        ],
+        "tests": [
+          "apps/web/src/__tests__/hooks/use-file-operations.test.tsx"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "失敗時の代替操作導線を拡張する必要がある"
+      ],
+      "owner": "core-team",
+      "target_date": "2026-03-28",
+      "purpose_ja": "OpenSCENARIO編集コアの観点で「インポート失敗時の回復導線」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/web/src/hooks/use-file-operations.ts。機能要件としてインポート失敗時の回復導線の実装・検証・可視化を含む。",
+      "done_definition_ja": "インポート失敗時の回復導線が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "インポート失敗時に原因を提示し、再試行や代替操作へ戻せる回復導線を提供する機能。"
+    },
+    {
+      "id": "core.command_undo_redo_integrity",
+      "domain": "core",
+      "title_ja": "Undo/Redo整合性",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "Undo/Redo整合性に関する仕様が実装と整合している",
+        "Undo/Redo整合性の正常系と代表的な異常系が検証可能である",
+        "Undo/Redo整合性の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/scenario-engine/src/store/scenario-store.ts"
+        ],
+        "tests": [
+          "packages/scenario-engine/src/__tests__/command-history.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "複合編集ケースの回帰網羅を増やす必要がある"
+      ],
+      "owner": "core-team",
+      "target_date": "2026-03-14",
+      "purpose_ja": "OpenSCENARIO編集コアの観点で「Undo/Redo整合性」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/scenario-engine/src/store/scenario-store.ts。機能要件としてUndo/Redo整合性の実装・検証・可視化を含む。",
+      "done_definition_ja": "Undo/Redo整合性が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "複数操作のUndo/Redoで状態遷移が破綻しないことを保証し、編集作業の可逆性を担保する機能。"
+    },
+    {
+      "id": "core.id_stability_policy",
+      "domain": "core",
+      "title_ja": "要素ID安定性ポリシー",
+      "required_level": "L2",
+      "current_level": "L2",
+      "status": "done",
+      "acceptance_criteria_ja": [
+        "要素ID安定性ポリシーに関する仕様が実装と整合している",
+        "要素ID安定性ポリシーの正常系と代表的な異常系が検証可能である",
+        "要素ID安定性ポリシーの状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/scenario-engine/src/store/defaults.ts"
+        ],
+        "tests": [
+          "packages/scenario-engine/src/__tests__/defaults.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "ID再生成方針のドキュメント化が残っている"
+      ],
+      "owner": "core-team",
+      "target_date": "2026-03-07",
+      "purpose_ja": "OpenSCENARIO編集コアの観点で「要素ID安定性ポリシー」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/scenario-engine/src/store/defaults.ts。機能要件として要素ID安定性ポリシーの実装・検証・可視化を含む。",
+      "done_definition_ja": "要素ID安定性ポリシーが required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "要素IDの一意性と安定参照を維持し、編集・同期・追跡の基盤を成立させる機能。"
+    }
+  ]
+}

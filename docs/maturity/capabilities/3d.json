@@ -1,0 +1,295 @@
+{
+  "domain": "3d",
+  "capabilities": [
+    {
+      "id": "3d.road_rendering_pipeline",
+      "domain": "3d",
+      "title_ja": "道路描画パイプライン整備",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "道路描画パイプライン整備に関する仕様が実装と整合している",
+        "道路描画パイプライン整備の正常系と代表的な異常系が検証可能である",
+        "道路描画パイプライン整備の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/3d-viewer/src/road/RoadNetwork.tsx"
+        ],
+        "tests": [
+          "packages/3d-viewer/src/__tests__/utils/lane-type-colors.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "道路描画パイプライン整備は運用上の不足が残っている"
+      ],
+      "owner": "viewer-team",
+      "target_date": "2026-03-12",
+      "purpose_ja": "3D描画の観点で「道路描画パイプライン整備」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/3d-viewer/src/road/RoadNetwork.tsx。機能要件として道路描画パイプライン整備の実装・検証・可視化を含む。",
+      "done_definition_ja": "道路描画パイプライン整備が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "OpenDRIVEの道路構造を、3Dビューで破綻なく一貫表示するための基盤機能。"
+    },
+    {
+      "id": "3d.entity_primitive_rendering",
+      "domain": "3d",
+      "title_ja": "エンティティ基本描画",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "エンティティ基本描画に関する仕様が実装と整合している",
+        "エンティティ基本描画の正常系と代表的な異常系が検証可能である",
+        "エンティティ基本描画の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/3d-viewer/src/entities/EntityGroup.tsx"
+        ],
+        "tests": [
+          "packages/3d-viewer/src/__tests__/utils/entity-geometry.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "エンティティ基本描画は運用上の不足が残っている"
+      ],
+      "owner": "viewer-team",
+      "target_date": "2026-03-15",
+      "purpose_ja": "3D描画の観点で「エンティティ基本描画」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/3d-viewer/src/entities/EntityGroup.tsx。機能要件としてエンティティ基本描画の実装・検証・可視化を含む。",
+      "done_definition_ja": "エンティティ基本描画が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "車両・歩行者・障害物などのシナリオ主体を、最低限識別可能な形で3D空間に表示する機能。"
+    },
+    {
+      "id": "3d.relative_route_geo_resolution",
+      "domain": "3d",
+      "title_ja": "relative/route/geo位置解決",
+      "required_level": "L3",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "relative/route/geo位置解決に関する仕様が実装と整合している",
+        "relative/route/geo位置解決の正常系と代表的な異常系が検証可能である",
+        "relative/route/geo位置解決の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/3d-viewer/src/utils/position-resolver.ts"
+        ],
+        "tests": [
+          "packages/3d-viewer/src/__tests__/utils/position-resolver.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "relative/route/geoの解決が未対応"
+      ],
+      "owner": "viewer-team",
+      "target_date": "2026-03-10",
+      "purpose_ja": "3D描画の観点で「relative/route/geo位置解決」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/3d-viewer/src/utils/position-resolver.ts。機能要件としてrelative/route/geo位置解決の実装・検証・可視化を含む。",
+      "done_definition_ja": "relative/route/geo位置解決が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "relative/route/geo形式の位置定義を実座標へ解決し、シナリオ上の意図した配置を3Dで再現する機能。"
+    },
+    {
+      "id": "3d.playback_ui_wiring",
+      "domain": "3d",
+      "title_ja": "3D再生UI連携",
+      "required_level": "L3",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "3D再生UI連携に関する仕様が実装と整合している",
+        "3D再生UI連携の正常系と代表的な異常系が検証可能である",
+        "3D再生UI連携の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/3d-viewer/src/components/ScenarioViewer.tsx"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "シミュレーションフレーム配線が未接続箇所あり"
+      ],
+      "owner": "viewer-team",
+      "target_date": "2026-03-11",
+      "purpose_ja": "3D描画の観点で「3D再生UI連携」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/3d-viewer/src/components/ScenarioViewer.tsx。機能要件として3D再生UI連携の実装・検証・可視化を含む。",
+      "done_definition_ja": "3D再生UI連携が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "シミュレーション再生状態（時刻・フレーム・再生制御）を3D表示と同期させる接続機能。"
+    },
+    {
+      "id": "3d.camera_focus_behavior",
+      "domain": "3d",
+      "title_ja": "カメラフォーカス挙動",
+      "required_level": "L2",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "カメラフォーカス挙動に関する仕様が実装と整合している",
+        "カメラフォーカス挙動の正常系と代表的な異常系が検証可能である",
+        "カメラフォーカス挙動の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/3d-viewer/src/scene/CameraController.tsx"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "カメラフォーカス挙動は運用上の不足が残っている"
+      ],
+      "owner": "viewer-team",
+      "target_date": "2026-03-18",
+      "purpose_ja": "3D描画の観点で「カメラフォーカス挙動」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/3d-viewer/src/scene/CameraController.tsx。機能要件としてカメラフォーカス挙動の実装・検証・可視化を含む。",
+      "done_definition_ja": "カメラフォーカス挙動が required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "選択対象へ素早く視点を移し、編集・確認対象を見失わない操作性を担保する機能。"
+    },
+    {
+      "id": "3d.label_visibility_control",
+      "domain": "3d",
+      "title_ja": "道路/エンティティラベル制御",
+      "required_level": "L2",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "道路/エンティティラベル制御に関する仕様が実装と整合している",
+        "道路/エンティティラベル制御の正常系と代表的な異常系が検証可能である",
+        "道路/エンティティラベル制御の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/3d-viewer/src/road/RoadLabels.tsx"
+        ],
+        "tests": [
+          "packages/3d-viewer/src/__tests__/store/viewer-store.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "道路/エンティティラベル制御は運用上の不足が残っている"
+      ],
+      "owner": "viewer-team",
+      "target_date": "2026-03-20",
+      "purpose_ja": "3D描画の観点で「道路/エンティティラベル制御」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/3d-viewer/src/road/RoadLabels.tsx。機能要件として道路/エンティティラベル制御の実装・検証・可視化を含む。",
+      "done_definition_ja": "道路/エンティティラベル制御が required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "道路ID・車線ID・エンティティ名などの補助情報を、必要に応じて表示/非表示し認知負荷を調整する機能。"
+    },
+    {
+      "id": "3d.simulation_overlay_consistency",
+      "domain": "3d",
+      "title_ja": "シミュレーションオーバーレイ整合",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "シミュレーションオーバーレイ整合に関する仕様が実装と整合している",
+        "シミュレーションオーバーレイ整合の正常系と代表的な異常系が検証可能である",
+        "シミュレーションオーバーレイ整合の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/3d-viewer/src/scenario/SimulationOverlay.tsx"
+        ],
+        "tests": [
+          "packages/3d-viewer/src/__tests__/scenario/entity-positions.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "シミュレーションオーバーレイ整合は運用上の不足が残っている"
+      ],
+      "owner": "viewer-team",
+      "target_date": "2026-03-22",
+      "purpose_ja": "3D描画の観点で「シミュレーションオーバーレイ整合」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/3d-viewer/src/scenario/SimulationOverlay.tsx。機能要件としてシミュレーションオーバーレイ整合の実装・検証・可視化を含む。",
+      "done_definition_ja": "シミュレーションオーバーレイ整合が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "シミュレーション中の動的状態を、編集時の静的状態と矛盾なく重ねて表示する整合機能。"
+    },
+    {
+      "id": "3d.visual_asset_upgrade",
+      "domain": "3d",
+      "title_ja": "3Dアセット高度化（モデル/アニメ）",
+      "required_level": "L3",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "3Dアセット高度化（モデル/アニメ）に関する仕様が実装と整合している",
+        "3Dアセット高度化（モデル/アニメ）の正常系と代表的な異常系が検証可能である",
+        "3Dアセット高度化（モデル/アニメ）の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/3d-viewer/src/entities/VehicleEntity.tsx"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "プリミティブ中心表現からの拡張が必要"
+      ],
+      "owner": "viewer-team",
+      "target_date": "2026-03-30",
+      "purpose_ja": "3D描画の観点で「3Dアセット高度化（モデル/アニメ）」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/3d-viewer/src/entities/VehicleEntity.tsx。機能要件として3Dアセット高度化（モデル/アニメ）の実装・検証・可視化を含む。",
+      "done_definition_ja": "3Dアセット高度化（モデル/アニメ）が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "プリミティブ表示を実用的なモデル/アニメーションへ拡張し、シナリオ理解と妥当性判断の精度を上げる機能。"
+    }
+  ]
+}

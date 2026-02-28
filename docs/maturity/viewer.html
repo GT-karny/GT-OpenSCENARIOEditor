@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Maturity Viewer</title>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --panel: #111827;
+        --panel-2: #1f2937;
+        --text: #e5e7eb;
+        --muted: #9ca3af;
+        --ok: #22c55e;
+        --partial: #f59e0b;
+        --gap: #ef4444;
+        --blocked: #a855f7;
+        --border: #374151;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: linear-gradient(120deg, #0b1020 0%, var(--bg) 40%, #0b1328 100%);
+        color: var(--text);
+        font-family: "Segoe UI", "Yu Gothic UI", sans-serif;
+      }
+      .wrap { max-width: 1400px; margin: 0 auto; padding: 20px; }
+      h1 { margin: 0 0 8px; font-size: 26px; }
+      .muted { color: var(--muted); font-size: 13px; }
+      .panel {
+        background: rgba(17,24,39,.85);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px;
+        margin-top: 14px;
+      }
+      .grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
+      .card { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px; }
+      .k { font-size: 12px; color: var(--muted); }
+      .v { font-size: 24px; margin-top: 4px; }
+      .filters { display: grid; grid-template-columns: 1.3fr 1fr 1fr 2fr; gap: 10px; }
+      input, select {
+        width: 100%; padding: 8px 10px; border-radius: 8px;
+        border: 1px solid var(--border); background: #0b1224; color: var(--text);
+      }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      th, td { border-bottom: 1px solid #263043; padding: 8px 6px; vertical-align: top; text-align: left; }
+      th { color: #cbd5e1; position: sticky; top: 0; background: #111827; }
+      .scroll { max-height: 62vh; overflow: auto; border: 1px solid var(--border); border-radius: 10px; }
+      .layout { display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px; }
+      .detail {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: #0b1224;
+        padding: 10px;
+        min-height: 62vh;
+        max-height: 62vh;
+        overflow: auto;
+      }
+      .badge { padding: 2px 7px; border-radius: 999px; font-size: 11px; font-weight: 600; display: inline-block; }
+      .done { background: rgba(34,197,94,.2); color: #86efac; }
+      .partial { background: rgba(245,158,11,.2); color: #fcd34d; }
+      .gap { background: rgba(239,68,68,.2); color: #fca5a5; }
+      .blocked { background: rgba(168,85,247,.2); color: #d8b4fe; }
+      .right { text-align: right; }
+      .small { font-size: 11px; color: var(--muted); }
+      tr.selectable { cursor: pointer; }
+      tr.selectable:hover { background: rgba(59,130,246,.08); }
+      tr.active { background: rgba(59,130,246,.18); }
+      .section-title { margin: 10px 0 4px; color: #93c5fd; font-size: 12px; }
+      ul { margin: 6px 0 10px 18px; padding: 0; }
+      @media (max-width: 1024px) {
+        .grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+        .filters { grid-template-columns: 1fr; }
+        .layout { grid-template-columns: 1fr; }
+        .detail { min-height: auto; max-height: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Capability Maturity Viewer</h1>
+      <div class="muted" id="meta">読み込み中...</div>
+
+      <div class="panel grid" id="summaryCards"></div>
+
+      <div class="panel">
+        <div class="filters">
+          <input id="q" placeholder="検索（id / タイトル / owner）" />
+          <select id="domain"></select>
+          <select id="status"></select>
+          <select id="level"></select>
+        </div>
+      </div>
+
+      <div class="panel layout">
+        <div>
+          <div class="small">件数: <span id="count">0</span></div>
+          <div class="scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Domain</th>
+                  <th>Capability</th>
+                  <th>Status</th>
+                  <th>Level</th>
+                  <th>Owner</th>
+                  <th>Target</th>
+                </tr>
+              </thead>
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="detail" id="detail">
+          <div class="muted">一覧からCapabilityをクリックすると詳細を表示します。</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const state = { items: [], selectedId: null, filtered: [] };
+      const $ = (id) => document.getElementById(id);
+
+      function badge(status) {
+        return `<span class="badge ${status}">${status}</span>`;
+      }
+
+      function fillSelect(el, options, first = "all") {
+        el.innerHTML = "";
+        const opt0 = document.createElement("option");
+        opt0.value = first;
+        opt0.textContent = first === "all" ? "すべて" : first;
+        el.appendChild(opt0);
+        options.forEach((o) => {
+          const op = document.createElement("option");
+          op.value = o;
+          op.textContent = o;
+          el.appendChild(op);
+        });
+      }
+
+      function renderSummary(items) {
+        const done = items.filter((x) => x.effective_status === "done").length;
+        const partial = items.filter((x) => x.effective_status === "partial").length;
+        const gap = items.filter((x) => x.effective_status === "gap").length;
+        const blocked = items.filter((x) => x.effective_status === "blocked").length;
+        const total = items.length;
+        $("summaryCards").innerHTML = `
+          <div class="card"><div class="k">Total</div><div class="v">${total}</div></div>
+          <div class="card"><div class="k">Done</div><div class="v" style="color:var(--ok)">${done}</div></div>
+          <div class="card"><div class="k">Partial</div><div class="v" style="color:var(--partial)">${partial}</div></div>
+          <div class="card"><div class="k">Gap/Blocked</div><div class="v" style="color:var(--gap)">${gap + blocked}</div></div>
+        `;
+      }
+
+      function list(items) {
+        if (!Array.isArray(items) || items.length === 0) return "<div class='small'>-</div>";
+        return `<ul>${items.map((x) => `<li>${x}</li>`).join("")}</ul>`;
+      }
+
+      function links(items) {
+        if (!Array.isArray(items) || items.length === 0) return "<div class='small'>-</div>";
+        return `<ul>${items.map((x) => `<li><code>${x}</code></li>`).join("")}</ul>`;
+      }
+
+      function renderDetail(item) {
+        if (!item) {
+          $("detail").innerHTML = `<div class="muted">一覧からCapabilityをクリックすると詳細を表示します。</div>`;
+          return;
+        }
+        $("detail").innerHTML = `
+          <div><code>${item.id}</code></div>
+          <h3 style="margin:6px 0 0;">${item.title_ja}</h3>
+          <div class="small">${badge(item.effective_status)} ${item.domain} / ${item.effective_level} / required ${item.required_level}</div>
+          <div class="section-title">機能の意味</div>
+          <div>${item.meaning_ja || "-"}</div>
+          <div class="section-title">目的</div>
+          <div>${item.purpose_ja || "-"}</div>
+          <div class="section-title">対象範囲</div>
+          <div>${item.scope_ja || "-"}</div>
+          <div class="section-title">完了定義</div>
+          <div>${item.done_definition_ja || "-"}</div>
+          <div class="section-title">検証手順</div>
+          ${list(item.verification_steps_ja)}
+          <div class="section-title">受け入れ条件</div>
+          ${list(item.acceptance_criteria_ja)}
+          <div class="section-title">不足点</div>
+          ${list(item.gaps_ja)}
+          <div class="section-title">証跡 (impl/tests/e2e/ops)</div>
+          ${links(item.evidence?.impl)}
+          ${links(item.evidence?.tests)}
+          ${links(item.evidence?.e2e)}
+          ${links(item.evidence?.ops)}
+          <div class="section-title">Owner / Target</div>
+          <div>${item.owner || "-"} / ${item.target_date || "-"}</div>
+        `;
+      }
+
+      function applyFilters() {
+        const q = $("q").value.trim().toLowerCase();
+        const domain = $("domain").value;
+        const status = $("status").value;
+        const level = $("level").value;
+
+        state.filtered = state.items.filter((x) => {
+          if (domain !== "all" && x.domain !== domain) return false;
+          if (status !== "all" && x.effective_status !== status) return false;
+          if (level !== "all" && x.effective_level !== level) return false;
+          if (!q) return true;
+          return (
+            x.id.toLowerCase().includes(q) ||
+            x.title_ja.toLowerCase().includes(q) ||
+            (x.owner || "").toLowerCase().includes(q)
+          );
+        });
+
+        $("count").textContent = state.filtered.length;
+        if (!state.selectedId || !state.filtered.some((x) => x.id === state.selectedId)) {
+          state.selectedId = state.filtered[0]?.id || null;
+        }
+        $("rows").innerHTML = state.filtered.map((x) => `
+          <tr class="selectable ${x.id === state.selectedId ? "active" : ""}" data-id="${x.id}">
+            <td><code>${x.id}</code></td>
+            <td>${x.domain}</td>
+            <td>${x.title_ja}</td>
+            <td>${badge(x.effective_status)}</td>
+            <td>${x.effective_level} / ${x.required_level}</td>
+            <td>${x.owner || "-"}</td>
+            <td>${x.target_date || "-"}</td>
+          </tr>
+        `).join("");
+        document.querySelectorAll("tr.selectable").forEach((tr) => {
+          tr.addEventListener("click", () => {
+            state.selectedId = tr.dataset.id;
+            applyFilters();
+          });
+        });
+        renderDetail(state.filtered.find((x) => x.id === state.selectedId) || null);
+      }
+
+      async function boot() {
+        const res = await fetch("./matrix.json", { cache: "no-store" });
+        if (!res.ok) throw new Error("matrix.json load failed");
+        const data = await res.json();
+        state.items = data.capabilities || [];
+        $("meta").textContent = `generated_at: ${data.generated_at} / total: ${data.total}`;
+
+        fillSelect($("domain"), [...new Set(state.items.map((x) => x.domain))].sort());
+        fillSelect($("status"), ["done", "partial", "gap", "blocked"]);
+        fillSelect($("level"), ["L0", "L1", "L2", "L3", "L4"]);
+
+        ["q", "domain", "status", "level"].forEach((id) =>
+          $(id).addEventListener(id === "q" ? "input" : "change", applyFilters)
+        );
+
+        renderSummary(state.items);
+        applyFilters();
+      }
+
+      boot().catch((err) => {
+        $("meta").textContent = `読み込みに失敗: ${err.message} / pnpm maturity:view で開いてください`;
+      });
+    </script>
+  </body>
+</html>

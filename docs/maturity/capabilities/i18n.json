@@ -1,0 +1,287 @@
+{
+  "domain": "i18n",
+  "capabilities": [
+    {
+      "id": "i18n.resource_coverage",
+      "domain": "i18n",
+      "title_ja": "翻訳リソース網羅率",
+      "required_level": "L3",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "翻訳リソース網羅率に関する仕様が実装と整合している",
+        "翻訳リソース網羅率の正常系と代表的な異常系が検証可能である",
+        "翻訳リソース網羅率の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/i18n/src/locales"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "未翻訳キー検出を強化する"
+      ],
+      "owner": "i18n-team",
+      "target_date": "2026-03-16",
+      "purpose_ja": "国際化対応の観点で「翻訳リソース網羅率」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/i18n/src/locales。機能要件として翻訳リソース網羅率の実装・検証・可視化を含む。",
+      "done_definition_ja": "翻訳リソース網羅率が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "翻訳キーを網羅し、言語切替時の未翻訳表示を最小化する機能。"
+    },
+    {
+      "id": "i18n.hardcoded_text_elimination",
+      "domain": "i18n",
+      "title_ja": "ハードコード文言排除",
+      "required_level": "L3",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "ハードコード文言排除に関する仕様が実装と整合している",
+        "ハードコード文言排除の正常系と代表的な異常系が検証可能である",
+        "ハードコード文言排除の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/web/src/components"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "ハードコード文言排除は運用上の不足が残っている"
+      ],
+      "owner": "i18n-team",
+      "target_date": "2026-03-20",
+      "purpose_ja": "国際化対応の観点で「ハードコード文言排除」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/web/src/components。機能要件としてハードコード文言排除の実装・検証・可視化を含む。",
+      "done_definition_ja": "ハードコード文言排除が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "UIのハードコード文言を排除し、翻訳不能箇所をなくす機能。"
+    },
+    {
+      "id": "i18n.language_toggle_consistency",
+      "domain": "i18n",
+      "title_ja": "言語切替一貫性",
+      "required_level": "L2",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "言語切替一貫性に関する仕様が実装と整合している",
+        "言語切替一貫性の正常系と代表的な異常系が検証可能である",
+        "言語切替一貫性の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/web/src/components/toolbar/LanguageToggle.tsx"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "言語切替一貫性は運用上の不足が残っている"
+      ],
+      "owner": "i18n-team",
+      "target_date": "2026-03-18",
+      "purpose_ja": "国際化対応の観点で「言語切替一貫性」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/web/src/components/toolbar/LanguageToggle.tsx。機能要件として言語切替一貫性の実装・検証・可視化を含む。",
+      "done_definition_ja": "言語切替一貫性が required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "言語切替時の表示崩れや文脈ズレを防ぎ、一貫した表示を保つ機能。"
+    },
+    {
+      "id": "i18n.pluralization_rules",
+      "domain": "i18n",
+      "title_ja": "複数形・数量表現ルール",
+      "required_level": "L2",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "複数形・数量表現ルールに関する仕様が実装と整合している",
+        "複数形・数量表現ルールの正常系と代表的な異常系が検証可能である",
+        "複数形・数量表現ルールの状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/i18n/src/config.ts"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "複数形・数量表現ルールは運用上の不足が残っている"
+      ],
+      "owner": "i18n-team",
+      "target_date": "2026-03-26",
+      "purpose_ja": "国際化対応の観点で「複数形・数量表現ルール」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/i18n/src/config.ts。機能要件として複数形・数量表現ルールの実装・検証・可視化を含む。",
+      "done_definition_ja": "複数形・数量表現ルールが required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "数量に応じた自然な文言変化を実装し、意味誤解を防ぐ機能。"
+    },
+    {
+      "id": "i18n.test_localized_ui",
+      "domain": "i18n",
+      "title_ja": "ローカライズUIテスト",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "ローカライズUIテストに関する仕様が実装と整合している",
+        "ローカライズUIテストの正常系と代表的な異常系が検証可能である",
+        "ローカライズUIテストの状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/web/src/__tests__/components/ValidationPanel.test.tsx"
+        ],
+        "tests": [
+          "apps/web/src/__tests__/components/ValidationPanel.test.tsx"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "ローカライズUIテストは運用上の不足が残っている"
+      ],
+      "owner": "i18n-team",
+      "target_date": "2026-03-22",
+      "purpose_ja": "国際化対応の観点で「ローカライズUIテスト」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/web/src/__tests__/components/ValidationPanel.test.tsx。機能要件としてローカライズUIテストの実装・検証・可視化を含む。",
+      "done_definition_ja": "ローカライズUIテストが required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "多言語表示をテストで検証し、翻訳変更によるUI回帰を抑える機能。"
+    },
+    {
+      "id": "i18n.date_number_locale",
+      "domain": "i18n",
+      "title_ja": "日付/数値ロケール表示",
+      "required_level": "L2",
+      "current_level": "L0",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "日付/数値ロケール表示に関する仕様が実装と整合している",
+        "日付/数値ロケール表示の正常系と代表的な異常系が検証可能である",
+        "日付/数値ロケール表示の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/web/src/lib"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "日付/数値ロケール表示は運用上の不足が残っている"
+      ],
+      "owner": "i18n-team",
+      "target_date": "2026-03-30",
+      "purpose_ja": "国際化対応の観点で「日付/数値ロケール表示」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/web/src/lib。機能要件として日付/数値ロケール表示の実装・検証・可視化を含む。",
+      "done_definition_ja": "日付/数値ロケール表示が required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "日付・数値をロケール準拠で表示し、地域依存の読み違いを防ぐ機能。"
+    },
+    {
+      "id": "i18n.fallback_policy",
+      "domain": "i18n",
+      "title_ja": "翻訳フォールバック方針",
+      "required_level": "L2",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "翻訳フォールバック方針に関する仕様が実装と整合している",
+        "翻訳フォールバック方針の正常系と代表的な異常系が検証可能である",
+        "翻訳フォールバック方針の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/i18n/src/config.ts"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "翻訳フォールバック方針は運用上の不足が残っている"
+      ],
+      "owner": "i18n-team",
+      "target_date": "2026-03-25",
+      "purpose_ja": "国際化対応の観点で「翻訳フォールバック方針」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/i18n/src/config.ts。機能要件として翻訳フォールバック方針の実装・検証・可視化を含む。",
+      "done_definition_ja": "翻訳フォールバック方針が required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "翻訳欠落時のフォールバックを定義し、表示不能を回避する機能。"
+    },
+    {
+      "id": "i18n.translation_review_flow",
+      "domain": "i18n",
+      "title_ja": "翻訳レビュー運用フロー",
+      "required_level": "L2",
+      "current_level": "L0",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "翻訳レビュー運用フローに関する仕様が実装と整合している",
+        "翻訳レビュー運用フローの正常系と代表的な異常系が検証可能である",
+        "翻訳レビュー運用フローの状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "docs/PHASE4_TRACK_M.md"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "翻訳レビュー運用フローは運用上の不足が残っている"
+      ],
+      "owner": "i18n-team",
+      "target_date": "2026-04-04",
+      "purpose_ja": "国際化対応の観点で「翻訳レビュー運用フロー」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は docs/PHASE4_TRACK_M.md。機能要件として翻訳レビュー運用フローの実装・検証・可視化を含む。",
+      "done_definition_ja": "翻訳レビュー運用フローが required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "翻訳更新のレビュー手順を標準化し、品質ばらつきを抑える機能。"
+    }
+  ]
+}

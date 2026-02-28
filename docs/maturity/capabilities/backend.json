@@ -1,0 +1,293 @@
+{
+  "domain": "backend",
+  "capabilities": [
+    {
+      "id": "backend.file_api_stability",
+      "domain": "backend",
+      "title_ja": "ファイルAPI安定性",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "ファイルAPI安定性に関する仕様が実装と整合している",
+        "ファイルAPI安定性の正常系と代表的な異常系が検証可能である",
+        "ファイルAPI安定性の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/server/src/routes/file-routes.ts"
+        ],
+        "tests": [
+          "apps/server/src/__tests__/routes/file-routes.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "ファイルAPI安定性は運用上の不足が残っている"
+      ],
+      "owner": "backend-team",
+      "target_date": "2026-03-08",
+      "purpose_ja": "バックエンドAPIの観点で「ファイルAPI安定性」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/server/src/routes/file-routes.ts。機能要件としてファイルAPI安定性の実装・検証・可視化を含む。",
+      "done_definition_ja": "ファイルAPI安定性が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "XOSC/XODRの読込・保存・検証APIを破壊せず運用し、編集ワークフローの土台を安定させる機能。"
+    },
+    {
+      "id": "backend.scenario_api_stability",
+      "domain": "backend",
+      "title_ja": "シナリオAPI安定性",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "シナリオAPI安定性に関する仕様が実装と整合している",
+        "シナリオAPI安定性の正常系と代表的な異常系が検証可能である",
+        "シナリオAPI安定性の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/server/src/routes/scenario-routes.ts"
+        ],
+        "tests": [
+          "apps/server/src/__tests__/routes/scenario-routes.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "シナリオAPI安定性は運用上の不足が残っている"
+      ],
+      "owner": "backend-team",
+      "target_date": "2026-03-08",
+      "purpose_ja": "バックエンドAPIの観点で「シナリオAPI安定性」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/server/src/routes/scenario-routes.ts。機能要件としてシナリオAPI安定性の実装・検証・可視化を含む。",
+      "done_definition_ja": "シナリオAPI安定性が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "シナリオのimport/export APIでデータ欠落や契約逸脱を防ぎ、編集結果を安全に受け渡す機能。"
+    },
+    {
+      "id": "backend.simulation_api_stability",
+      "domain": "backend",
+      "title_ja": "シミュレーションAPI安定性",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "シミュレーションAPI安定性に関する仕様が実装と整合している",
+        "シミュレーションAPI安定性の正常系と代表的な異常系が検証可能である",
+        "シミュレーションAPI安定性の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/server/src/routes/simulation-routes.ts"
+        ],
+        "tests": [
+          "apps/server/src/__tests__/routes/simulation-routes.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "シミュレーションAPI安定性は運用上の不足が残っている"
+      ],
+      "owner": "backend-team",
+      "target_date": "2026-03-09",
+      "purpose_ja": "バックエンドAPIの観点で「シミュレーションAPI安定性」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/server/src/routes/simulation-routes.ts。機能要件としてシミュレーションAPI安定性の実装・検証・可視化を含む。",
+      "done_definition_ja": "シミュレーションAPI安定性が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "シミュレーション開始・停止・状態取得APIを安定提供し、実行制御を確実に行うための機能。"
+    },
+    {
+      "id": "backend.input_contract_validation",
+      "domain": "backend",
+      "title_ja": "入力契約バリデーション強化",
+      "required_level": "L3",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "入力契約バリデーション強化に関する仕様が実装と整合している",
+        "入力契約バリデーション強化の正常系と代表的な異常系が検証可能である",
+        "入力契約バリデーション強化の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/server/src/utils/errors.ts"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "入力契約バリデーション強化は運用上の不足が残っている"
+      ],
+      "owner": "backend-team",
+      "target_date": "2026-03-20",
+      "purpose_ja": "バックエンドAPIの観点で「入力契約バリデーション強化」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/server/src/utils/errors.ts。機能要件として入力契約バリデーション強化の実装・検証・可視化を含む。",
+      "done_definition_ja": "入力契約バリデーション強化が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "API入力を契約どおりに検査し、不正リクエストが内部処理へ侵入するのを防ぐ防波堤機能。"
+    },
+    {
+      "id": "backend.authz_baseline",
+      "domain": "backend",
+      "title_ja": "認証/権限制御基盤",
+      "required_level": "L3",
+      "current_level": "L0",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "認証/権限制御基盤に関する仕様が実装と整合している",
+        "認証/権限制御基盤の正常系と代表的な異常系が検証可能である",
+        "認証/権限制御基盤の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/server/src/app.ts"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "認証と認可の仕組みが未整備"
+      ],
+      "owner": "backend-team",
+      "target_date": "2026-04-09",
+      "purpose_ja": "バックエンドAPIの観点で「認証/権限制御基盤」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/server/src/app.ts。機能要件として認証/権限制御基盤の実装・検証・可視化を含む。",
+      "done_definition_ja": "認証/権限制御基盤が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "利用者・権限に応じて操作可能範囲を制御し、誤操作や不正操作による影響を限定する機能。"
+    },
+    {
+      "id": "backend.audit_logging",
+      "domain": "backend",
+      "title_ja": "監査ログ方針",
+      "required_level": "L2",
+      "current_level": "L0",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "監査ログ方針に関する仕様が実装と整合している",
+        "監査ログ方針の正常系と代表的な異常系が検証可能である",
+        "監査ログ方針の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/server/src/app.ts"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "監査ログ方針は運用上の不足が残っている"
+      ],
+      "owner": "backend-team",
+      "target_date": "2026-04-01",
+      "purpose_ja": "バックエンドAPIの観点で「監査ログ方針」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/server/src/app.ts。機能要件として監査ログ方針の実装・検証・可視化を含む。",
+      "done_definition_ja": "監査ログ方針が required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "誰がいつ何を実行したかを追跡可能にし、障害調査と説明責任を成立させる機能。"
+    },
+    {
+      "id": "backend.ws_error_contract",
+      "domain": "backend",
+      "title_ja": "WebSocketエラー契約統一",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "WebSocketエラー契約統一に関する仕様が実装と整合している",
+        "WebSocketエラー契約統一の正常系と代表的な異常系が検証可能である",
+        "WebSocketエラー契約統一の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/server/src/websocket/ws-handler.ts"
+        ],
+        "tests": [
+          "apps/server/src/__tests__/websocket/ws-handler.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "WebSocketエラー契約統一は運用上の不足が残っている"
+      ],
+      "owner": "backend-team",
+      "target_date": "2026-03-14",
+      "purpose_ja": "バックエンドAPIの観点で「WebSocketエラー契約統一」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/server/src/websocket/ws-handler.ts。機能要件としてWebSocketエラー契約統一の実装・検証・可視化を含む。",
+      "done_definition_ja": "WebSocketエラー契約統一が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "WebSocket通信時のエラー形式を統一し、クライアント側で一貫した復旧処理を可能にする機能。"
+    },
+    {
+      "id": "backend.operational_limits",
+      "domain": "backend",
+      "title_ja": "運用上限値設定（rate/size）",
+      "required_level": "L2",
+      "current_level": "L0",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "運用上限値設定（rate/size）に関する仕様が実装と整合している",
+        "運用上限値設定（rate/size）の正常系と代表的な異常系が検証可能である",
+        "運用上限値設定（rate/size）の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/server/src/app.ts"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "運用上限値設定（rate/size）は運用上の不足が残っている"
+      ],
+      "owner": "backend-team",
+      "target_date": "2026-03-28",
+      "purpose_ja": "バックエンドAPIの観点で「運用上限値設定（rate/size）」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/server/src/app.ts。機能要件として運用上限値設定（rate/size）の実装・検証・可視化を含む。",
+      "done_definition_ja": "運用上限値設定（rate/size）が required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "レート・ペイロードサイズ等の上限を明確化し、過負荷や悪用によるサービス劣化を防ぐ機能。"
+    }
+  ]
+}

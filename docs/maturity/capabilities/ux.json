@@ -1,0 +1,293 @@
+{
+  "domain": "ux",
+  "capabilities": [
+    {
+      "id": "ux.layout_responsiveness",
+      "domain": "ux",
+      "title_ja": "統合レイアウトのレスポンシブ品質",
+      "required_level": "L3",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "統合レイアウトのレスポンシブ品質に関する仕様が実装と整合している",
+        "統合レイアウトのレスポンシブ品質の正常系と代表的な異常系が検証可能である",
+        "統合レイアウトのレスポンシブ品質の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/web/src/components/layout/EditorLayout.tsx"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "狭幅表示で操作密度が高い"
+      ],
+      "owner": "web-team",
+      "target_date": "2026-03-21",
+      "purpose_ja": "エディタUXの観点で「統合レイアウトのレスポンシブ品質」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/web/src/components/layout/EditorLayout.tsx。機能要件として統合レイアウトのレスポンシブ品質の実装・検証・可視化を含む。",
+      "done_definition_ja": "統合レイアウトのレスポンシブ品質が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "画面サイズに応じて編集要素を破綻なく配置し、主要操作を常に継続可能にする機能。"
+    },
+    {
+      "id": "ux.deep_property_editing",
+      "domain": "ux",
+      "title_ja": "Event/Action/Triggerの詳細編集",
+      "required_level": "L3",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "Event/Action/Triggerの詳細編集に関する仕様が実装と整合している",
+        "Event/Action/Triggerの詳細編集の正常系と代表的な異常系が検証可能である",
+        "Event/Action/Triggerの詳細編集の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/web/src/components/property/PropertyEditor.tsx"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "Entity以外は閲覧中心のため編集導線を拡張する"
+      ],
+      "owner": "web-team",
+      "target_date": "2026-03-12",
+      "purpose_ja": "エディタUXの観点で「Event/Action/Triggerの詳細編集」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/web/src/components/property/PropertyEditor.tsx。機能要件としてEvent/Action/Triggerの詳細編集の実装・検証・可視化を含む。",
+      "done_definition_ja": "Event/Action/Triggerの詳細編集が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "主要要素の詳細属性をUIから直接編集できるようにし、XML手編集依存を減らす機能。"
+    },
+    {
+      "id": "ux.template_discovery",
+      "domain": "ux",
+      "title_ja": "テンプレート検索・フィルタ",
+      "required_level": "L2",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "テンプレート検索・フィルタに関する仕様が実装と整合している",
+        "テンプレート検索・フィルタの正常系と代表的な異常系が検証可能である",
+        "テンプレート検索・フィルタの状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/web/src/components/panels/TemplatePalettePanel.tsx"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "テンプレート検索・フィルタは運用上の不足が残っている"
+      ],
+      "owner": "web-team",
+      "target_date": "2026-03-15",
+      "purpose_ja": "エディタUXの観点で「テンプレート検索・フィルタ」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/web/src/components/panels/TemplatePalettePanel.tsx。機能要件としてテンプレート検索・フィルタの実装・検証・可視化を含む。",
+      "done_definition_ja": "テンプレート検索・フィルタが required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "必要なテンプレートへ素早く到達できる探索導線を提供し、作業開始コストを下げる機能。"
+    },
+    {
+      "id": "ux.validation_focus_navigation",
+      "domain": "ux",
+      "title_ja": "バリデーションから該当要素への遷移",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "バリデーションから該当要素への遷移に関する仕様が実装と整合している",
+        "バリデーションから該当要素への遷移の正常系と代表的な異常系が検証可能である",
+        "バリデーションから該当要素への遷移の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/web/src/components/validation/ValidationIssueList.tsx"
+        ],
+        "tests": [
+          "apps/web/src/__tests__/components/ValidationPanel.test.tsx"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "バリデーションから該当要素への遷移は運用上の不足が残っている"
+      ],
+      "owner": "web-team",
+      "target_date": "2026-03-18",
+      "purpose_ja": "エディタUXの観点で「バリデーションから該当要素への遷移」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/web/src/components/validation/ValidationIssueList.tsx。機能要件としてバリデーションから該当要素への遷移の実装・検証・可視化を含む。",
+      "done_definition_ja": "バリデーションから該当要素への遷移が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "検証結果から該当要素へ即座に移動できるようにし、修正ループを短縮する機能。"
+    },
+    {
+      "id": "ux.shortcut_consistency",
+      "domain": "ux",
+      "title_ja": "キーボードショートカット整合",
+      "required_level": "L2",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "キーボードショートカット整合に関する仕様が実装と整合している",
+        "キーボードショートカット整合の正常系と代表的な異常系が検証可能である",
+        "キーボードショートカット整合の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/web/src/hooks/use-keyboard-shortcuts.ts"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "コンテキスト別の衝突解決が必要"
+      ],
+      "owner": "web-team",
+      "target_date": "2026-03-23",
+      "purpose_ja": "エディタUXの観点で「キーボードショートカット整合」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/web/src/hooks/use-keyboard-shortcuts.ts。機能要件としてキーボードショートカット整合の実装・検証・可視化を含む。",
+      "done_definition_ja": "キーボードショートカット整合が required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "ショートカット挙動を文脈横断で統一し、操作ミスと学習コストを抑える機能。"
+    },
+    {
+      "id": "ux.error_recovery_flow",
+      "domain": "ux",
+      "title_ja": "エラー時の回復フロー",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "エラー時の回復フローに関する仕様が実装と整合している",
+        "エラー時の回復フローの正常系と代表的な異常系が検証可能である",
+        "エラー時の回復フローの状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/web/src/components/ErrorBoundary.tsx"
+        ],
+        "tests": [
+          "apps/web/src/__tests__/hooks/use-file-operations.test.tsx"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "エラー時の回復フローは運用上の不足が残っている"
+      ],
+      "owner": "web-team",
+      "target_date": "2026-03-25",
+      "purpose_ja": "エディタUXの観点で「エラー時の回復フロー」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/web/src/components/ErrorBoundary.tsx。機能要件としてエラー時の回復フローの実装・検証・可視化を含む。",
+      "done_definition_ja": "エラー時の回復フローが required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "失敗時に復旧手順を提示し、ユーザーが編集状態を維持したまま回復できる機能。"
+    },
+    {
+      "id": "ux.selection_sync_feedback",
+      "domain": "ux",
+      "title_ja": "ノード/3D/一覧の選択同期可視化",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "ノード/3D/一覧の選択同期可視化に関する仕様が実装と整合している",
+        "ノード/3D/一覧の選択同期可視化の正常系と代表的な異常系が検証可能である",
+        "ノード/3D/一覧の選択同期可視化の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/web/src/stores/editor-store.ts"
+        ],
+        "tests": [
+          "apps/web/src/__tests__/stores/editor-store.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "ノード/3D/一覧の選択同期可視化は運用上の不足が残っている"
+      ],
+      "owner": "web-team",
+      "target_date": "2026-03-17",
+      "purpose_ja": "エディタUXの観点で「ノード/3D/一覧の選択同期可視化」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/web/src/stores/editor-store.ts。機能要件としてノード/3D/一覧の選択同期可視化の実装・検証・可視化を含む。",
+      "done_definition_ja": "ノード/3D/一覧の選択同期可視化が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "一覧・ノード・3D間で選択状態を同期し、現在対象の認知負荷を下げる機能。"
+    },
+    {
+      "id": "ux.accessibility_baseline",
+      "domain": "ux",
+      "title_ja": "アクセシビリティ基盤",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "アクセシビリティ基盤に関する仕様が実装と整合している",
+        "アクセシビリティ基盤の正常系と代表的な異常系が検証可能である",
+        "アクセシビリティ基盤の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/web/src/components/ui"
+        ],
+        "tests": [
+          "apps/web/src/__tests__/components/EntityListPanel.test.tsx"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "キーボード操作とariaの追加検証が必要"
+      ],
+      "owner": "web-team",
+      "target_date": "2026-03-29",
+      "purpose_ja": "エディタUXの観点で「アクセシビリティ基盤」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/web/src/components/ui。機能要件としてアクセシビリティ基盤の実装・検証・可視化を含む。",
+      "done_definition_ja": "アクセシビリティ基盤が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "キーボード操作や視認性要件を満たし、多様な利用条件で編集可能にする基盤機能。"
+    }
+  ]
+}

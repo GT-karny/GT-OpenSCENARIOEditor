@@ -1,0 +1,293 @@
+{
+  "domain": "qa",
+  "capabilities": [
+    {
+      "id": "qa.unit_coverage_core",
+      "domain": "qa",
+      "title_ja": "コアユニットテスト維持",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "コアユニットテスト維持に関する仕様が実装と整合している",
+        "コアユニットテスト維持の正常系と代表的な異常系が検証可能である",
+        "コアユニットテスト維持の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/openscenario/src/__tests__"
+        ],
+        "tests": [
+          "packages/openscenario/src/__tests__/round-trip/round-trip.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "コアユニットテスト維持は運用上の不足が残っている"
+      ],
+      "owner": "qa-team",
+      "target_date": "2026-03-10",
+      "purpose_ja": "テスト品質の観点で「コアユニットテスト維持」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/openscenario/src/__tests__。機能要件としてコアユニットテスト維持の実装・検証・可視化を含む。",
+      "done_definition_ja": "コアユニットテスト維持が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "コアロジックの単体回帰を継続監視し、基礎品質の劣化を早期検知する機能。"
+    },
+    {
+      "id": "qa.unit_coverage_viewer",
+      "domain": "qa",
+      "title_ja": "3Dユニットテスト維持",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "3Dユニットテスト維持に関する仕様が実装と整合している",
+        "3Dユニットテスト維持の正常系と代表的な異常系が検証可能である",
+        "3Dユニットテスト維持の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/3d-viewer/src/__tests__"
+        ],
+        "tests": [
+          "packages/3d-viewer/src/__tests__/utils/position-resolver.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "3Dユニットテスト維持は運用上の不足が残っている"
+      ],
+      "owner": "qa-team",
+      "target_date": "2026-03-10",
+      "purpose_ja": "テスト品質の観点で「3Dユニットテスト維持」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/3d-viewer/src/__tests__。機能要件として3Dユニットテスト維持の実装・検証・可視化を含む。",
+      "done_definition_ja": "3Dユニットテスト維持が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "3D関連ロジックの単体回帰を継続検知し、描画品質劣化を防ぐ機能。"
+    },
+    {
+      "id": "qa.server_route_tests",
+      "domain": "qa",
+      "title_ja": "サーバールートテスト整備",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "サーバールートテスト整備に関する仕様が実装と整合している",
+        "サーバールートテスト整備の正常系と代表的な異常系が検証可能である",
+        "サーバールートテスト整備の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/server/src/__tests__/routes"
+        ],
+        "tests": [
+          "apps/server/src/__tests__/routes/file-routes.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "サーバールートテスト整備は運用上の不足が残っている"
+      ],
+      "owner": "qa-team",
+      "target_date": "2026-03-12",
+      "purpose_ja": "テスト品質の観点で「サーバールートテスト整備」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/server/src/__tests__/routes。機能要件としてサーバールートテスト整備の実装・検証・可視化を含む。",
+      "done_definition_ja": "サーバールートテスト整備が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "サーバールートの契約をテストで固定し、API退行を防ぐ機能。"
+    },
+    {
+      "id": "qa.playwright_smoke_pack",
+      "domain": "qa",
+      "title_ja": "Playwrightスモークパック",
+      "required_level": "L3",
+      "current_level": "L0",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "Playwrightスモークパックに関する仕様が実装と整合している",
+        "Playwrightスモークパックの正常系と代表的な異常系が検証可能である",
+        "Playwrightスモークパックの状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "docs/PHASE4_TRACK_M.md"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "E2Eスイートを実体化する必要がある"
+      ],
+      "owner": "qa-team",
+      "target_date": "2026-03-20",
+      "purpose_ja": "テスト品質の観点で「Playwrightスモークパック」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は docs/PHASE4_TRACK_M.md。機能要件としてPlaywrightスモークパックの実装・検証・可視化を含む。",
+      "done_definition_ja": "Playwrightスモークパックが required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "主要UI導線を短時間で検証し、PR段階で重大回帰を弾く機能。"
+    },
+    {
+      "id": "qa.playwright_full_regression",
+      "domain": "qa",
+      "title_ja": "Playwrightフル回帰",
+      "required_level": "L3",
+      "current_level": "L0",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "Playwrightフル回帰に関する仕様が実装と整合している",
+        "Playwrightフル回帰の正常系と代表的な異常系が検証可能である",
+        "Playwrightフル回帰の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "docs/PHASE4_TRACK_M.md"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "Playwrightフル回帰は運用上の不足が残っている"
+      ],
+      "owner": "qa-team",
+      "target_date": "2026-04-01",
+      "purpose_ja": "テスト品質の観点で「Playwrightフル回帰」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は docs/PHASE4_TRACK_M.md。機能要件としてPlaywrightフル回帰の実装・検証・可視化を含む。",
+      "done_definition_ja": "Playwrightフル回帰が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "広範囲シナリオを夜間検証し、統合不具合の蓄積を防ぐ機能。"
+    },
+    {
+      "id": "qa.artifact_retention",
+      "domain": "qa",
+      "title_ja": "失敗時証跡保存（trace/video）",
+      "required_level": "L3",
+      "current_level": "L0",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "失敗時証跡保存（trace/video）に関する仕様が実装と整合している",
+        "失敗時証跡保存（trace/video）の正常系と代表的な異常系が検証可能である",
+        "失敗時証跡保存（trace/video）の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "docs/PHASE4_TRACK_M.md"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "失敗時証跡保存（trace/video）は運用上の不足が残っている"
+      ],
+      "owner": "qa-team",
+      "target_date": "2026-03-28",
+      "purpose_ja": "テスト品質の観点で「失敗時証跡保存（trace/video）」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は docs/PHASE4_TRACK_M.md。機能要件として失敗時証跡保存（trace/video）の実装・検証・可視化を含む。",
+      "done_definition_ja": "失敗時証跡保存（trace/video）が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "失敗時証跡を保存し、再現調査と原因特定を高速化する機能。"
+    },
+    {
+      "id": "qa.contract_tests_maturity",
+      "domain": "qa",
+      "title_ja": "契約テスト整備",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "契約テスト整備に関する仕様が実装と整合している",
+        "契約テスト整備の正常系と代表的な異常系が検証可能である",
+        "契約テスト整備の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/server/src/__tests__/routes/scenario-routes.test.ts"
+        ],
+        "tests": [
+          "apps/server/src/__tests__/routes/scenario-routes.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "契約テスト整備は運用上の不足が残っている"
+      ],
+      "owner": "qa-team",
+      "target_date": "2026-03-18",
+      "purpose_ja": "テスト品質の観点で「契約テスト整備」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/server/src/__tests__/routes/scenario-routes.test.ts。機能要件として契約テスト整備の実装・検証・可視化を含む。",
+      "done_definition_ja": "契約テスト整備が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "境界契約テストを整備し、実装変更時の互換破壊を抑止する機能。"
+    },
+    {
+      "id": "qa.flaky_test_control",
+      "domain": "qa",
+      "title_ja": "フレーキーテスト制御",
+      "required_level": "L2",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "フレーキーテスト制御に関する仕様が実装と整合している",
+        "フレーキーテスト制御の正常系と代表的な異常系が検証可能である",
+        "フレーキーテスト制御の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/web/src/__tests__"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "フレーキーテスト制御は運用上の不足が残っている"
+      ],
+      "owner": "qa-team",
+      "target_date": "2026-03-24",
+      "purpose_ja": "テスト品質の観点で「フレーキーテスト制御」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/web/src/__tests__。機能要件としてフレーキーテスト制御の実装・検証・可視化を含む。",
+      "done_definition_ja": "フレーキーテスト制御が required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "不安定テストを管理して信号品質を維持し、CI信頼性を保つ機能。"
+    }
+  ]
+}

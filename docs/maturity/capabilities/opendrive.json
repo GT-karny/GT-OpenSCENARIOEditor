@@ -1,0 +1,297 @@
+{
+  "domain": "opendrive",
+  "capabilities": [
+    {
+      "id": "opendrive.xodr_parser_coverage",
+      "domain": "opendrive",
+      "title_ja": "XODRパーサー網羅性",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "XODRパーサー網羅性に関する仕様が実装と整合している",
+        "XODRパーサー網羅性の正常系と代表的な異常系が検証可能である",
+        "XODRパーサー網羅性の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/opendrive/src/parser/xodr-parser.ts"
+        ],
+        "tests": [
+          "packages/opendrive/src/__tests__/parser/xodr-parser.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "複雑道路データの境界ケース追加が必要"
+      ],
+      "owner": "opendrive-team",
+      "target_date": "2026-03-14",
+      "purpose_ja": "OpenDRIVE処理の観点で「XODRパーサー網羅性」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/opendrive/src/parser/xodr-parser.ts。機能要件としてXODRパーサー網羅性の実装・検証・可視化を含む。",
+      "done_definition_ja": "XODRパーサー網羅性が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "OpenDRIVE記述を漏れなく内部モデルへ取り込み、道路データ入力の信頼性を確保する機能。"
+    },
+    {
+      "id": "opendrive.geometry_accuracy",
+      "domain": "opendrive",
+      "title_ja": "幾何計算精度",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "幾何計算精度に関する仕様が実装と整合している",
+        "幾何計算精度の正常系と代表的な異常系が検証可能である",
+        "幾何計算精度の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/opendrive/src/geometry"
+        ],
+        "tests": [
+          "packages/opendrive/src/__tests__/geometry/reference-line.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "スパイラル連結部の誤差検証を拡張する"
+      ],
+      "owner": "opendrive-team",
+      "target_date": "2026-03-18",
+      "purpose_ja": "OpenDRIVE処理の観点で「幾何計算精度」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/opendrive/src/geometry。機能要件として幾何計算精度の実装・検証・可視化を含む。",
+      "done_definition_ja": "幾何計算精度が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "道路中心線・曲率・接線などの幾何計算誤差を抑え、位置解決の基礎精度を担保する機能。"
+    },
+    {
+      "id": "opendrive.mesh_generation_quality",
+      "domain": "opendrive",
+      "title_ja": "道路メッシュ生成品質",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "道路メッシュ生成品質に関する仕様が実装と整合している",
+        "道路メッシュ生成品質の正常系と代表的な異常系が検証可能である",
+        "道路メッシュ生成品質の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/opendrive/src/mesh/road-mesh-generator.ts"
+        ],
+        "tests": [
+          "packages/opendrive/src/__tests__/mesh/road-mesh-generator.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "高密度道路でのパフォーマンス検証が不足"
+      ],
+      "owner": "opendrive-team",
+      "target_date": "2026-03-22",
+      "purpose_ja": "OpenDRIVE処理の観点で「道路メッシュ生成品質」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/opendrive/src/mesh/road-mesh-generator.ts。機能要件として道路メッシュ生成品質の実装・検証・可視化を含む。",
+      "done_definition_ja": "道路メッシュ生成品質が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "道路形状を破綻なくメッシュ化し、3D表示時の欠け・ねじれ・段差を防ぐ機能。"
+    },
+    {
+      "id": "opendrive.lane_boundary_consistency",
+      "domain": "opendrive",
+      "title_ja": "車線境界計算整合性",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "車線境界計算整合性に関する仕様が実装と整合している",
+        "車線境界計算整合性の正常系と代表的な異常系が検証可能である",
+        "車線境界計算整合性の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/opendrive/src/geometry/lane-boundary.ts"
+        ],
+        "tests": [
+          "packages/opendrive/src/__tests__/geometry/lane-boundary.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "車線境界計算整合性は運用上の不足が残っている"
+      ],
+      "owner": "opendrive-team",
+      "target_date": "2026-03-20",
+      "purpose_ja": "OpenDRIVE処理の観点で「車線境界計算整合性」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/opendrive/src/geometry/lane-boundary.ts。機能要件として車線境界計算整合性の実装・検証・可視化を含む。",
+      "done_definition_ja": "車線境界計算整合性が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "車線境界計算を一貫させ、隣接車線との接続不整合を防止する機能。"
+    },
+    {
+      "id": "opendrive.elevation_profile_support",
+      "domain": "opendrive",
+      "title_ja": "標高プロファイル対応",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "標高プロファイル対応に関する仕様が実装と整合している",
+        "標高プロファイル対応の正常系と代表的な異常系が検証可能である",
+        "標高プロファイル対応の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/opendrive/src/geometry/reference-line.ts"
+        ],
+        "tests": [
+          "packages/opendrive/src/__tests__/integration/parse-and-mesh.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "標高プロファイル対応は運用上の不足が残っている"
+      ],
+      "owner": "opendrive-team",
+      "target_date": "2026-03-24",
+      "purpose_ja": "OpenDRIVE処理の観点で「標高プロファイル対応」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/opendrive/src/geometry/reference-line.ts。機能要件として標高プロファイル対応の実装・検証・可視化を含む。",
+      "done_definition_ja": "標高プロファイル対応が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "標高変化を正確に反映し、坂道や起伏のある道路を3D上で再現する機能。"
+    },
+    {
+      "id": "opendrive.large_map_optimization",
+      "domain": "opendrive",
+      "title_ja": "大規模地図最適化",
+      "required_level": "L3",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "大規模地図最適化に関する仕様が実装と整合している",
+        "大規模地図最適化の正常系と代表的な異常系が検証可能である",
+        "大規模地図最適化の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/opendrive/src/mesh/road-mesh-generator.ts"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "LOD・分割ロード戦略が未整備"
+      ],
+      "owner": "opendrive-team",
+      "target_date": "2026-03-30",
+      "purpose_ja": "OpenDRIVE処理の観点で「大規模地図最適化」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/opendrive/src/mesh/road-mesh-generator.ts。機能要件として大規模地図最適化の実装・検証・可視化を含む。",
+      "done_definition_ja": "大規模地図最適化が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "大規模地図でも描画遅延やメモリ過多を抑え、実用的な操作速度を維持する機能。"
+    },
+    {
+      "id": "opendrive.roadmark_semantics",
+      "domain": "opendrive",
+      "title_ja": "RoadMark意味解釈整備",
+      "required_level": "L2",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "RoadMark意味解釈整備に関する仕様が実装と整合している",
+        "RoadMark意味解釈整備の正常系と代表的な異常系が検証可能である",
+        "RoadMark意味解釈整備の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/opendrive/src/mesh/road-mark-mesh.ts"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "線種ごとの意味表現が限定的"
+      ],
+      "owner": "opendrive-team",
+      "target_date": "2026-03-26",
+      "purpose_ja": "OpenDRIVE処理の観点で「RoadMark意味解釈整備」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/opendrive/src/mesh/road-mark-mesh.ts。機能要件としてRoadMark意味解釈整備の実装・検証・可視化を含む。",
+      "done_definition_ja": "RoadMark意味解釈整備が required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "路面標示の種類・意味を保持して描画し、道路ルール理解に必要な情報を可視化する機能。"
+    },
+    {
+      "id": "opendrive.import_diagnostics",
+      "domain": "opendrive",
+      "title_ja": "XODR読込診断メッセージ",
+      "required_level": "L2",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "XODR読込診断メッセージに関する仕様が実装と整合している",
+        "XODR読込診断メッセージの正常系と代表的な異常系が検証可能である",
+        "XODR読込診断メッセージの状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/server/src/services/scenario-service.ts"
+        ],
+        "tests": [
+          "apps/server/src/__tests__/services/scenario-service.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "警告分類の粒度改善が必要"
+      ],
+      "owner": "opendrive-team",
+      "target_date": "2026-03-16",
+      "purpose_ja": "OpenDRIVE処理の観点で「XODR読込診断メッセージ」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/server/src/services/scenario-service.ts。機能要件としてXODR読込診断メッセージの実装・検証・可視化を含む。",
+      "done_definition_ja": "XODR読込診断メッセージが required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "XODR読込失敗時に原因位置と内容を提示し、修正判断を早める診断機能。"
+    }
+  ]
+}
