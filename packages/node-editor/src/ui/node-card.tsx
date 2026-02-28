@@ -128,7 +128,6 @@ export function NodeCard({
           style={{
             fontSize: '10.5px',
             color: 'var(--color-text-secondary, rgba(255, 255, 255, 0.48))',
-            position: 'relative',
             zIndex: 2,
           }}
         >
