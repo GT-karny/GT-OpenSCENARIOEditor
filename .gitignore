@@ -34,6 +34,9 @@ playwright-report/
 # Tauri (future)
 apps/desktop/src-tauri/target/
 
+# Playwright MCP logs
+.playwright-mcp/
+
 # Temporary files
 *.tmp
 *.log
