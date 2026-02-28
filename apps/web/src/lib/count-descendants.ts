@@ -42,12 +42,14 @@ function arrayLen(val: unknown): number {
   return Array.isArray(val) ? val.length : 0;
 }
 
-/** Count total conditions inside a Trigger's conditionGroups. */
+/** Count nested trigger content (groups + their conditions). */
 function triggerConditionCount(trigger: unknown): number {
   if (!trigger || typeof trigger !== 'object') return 0;
   const groups = (trigger as Record<string, unknown>).conditionGroups;
-  if (!Array.isArray(groups)) return 0;
-  let total = 0;
+  if (!Array.isArray(groups) || groups.length === 0) return 0;
+  // Count the groups themselves — even empty groups are user-created data
+  // that would be cascade-deleted with the parent element.
+  let total = groups.length;
   for (const g of groups) {
     if (g && typeof g === 'object') {
       total += arrayLen((g as Record<string, unknown>).conditions);
