@@ -22,7 +22,7 @@ function IdleView() {
   const { t } = useTranslation('common');
 
   return (
-    <div data-testid="simulation-timeline-idle" className="flex items-center justify-center h-full">
+    <div data-testid="simulation-timeline-idle" className="flex items-center justify-center py-4 shrink-0">
       <div className="text-center text-muted-foreground">
         <Timer className="mx-auto mb-2 h-8 w-8" />
         <p className="text-sm font-medium">{t('panels.timeline')}</p>
@@ -39,7 +39,7 @@ function RunningView() {
   const currentTime = frames.length > 0 ? frames[frames.length - 1].time : 0;
 
   return (
-    <div data-testid="simulation-timeline-running" className="flex items-center justify-center h-full">
+    <div data-testid="simulation-timeline-running" className="flex items-center justify-center py-4 shrink-0">
       <div className="text-center text-muted-foreground">
         <div className="flex items-center justify-center gap-2 mb-2">
           <div
