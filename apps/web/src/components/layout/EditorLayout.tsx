@@ -147,6 +147,7 @@ export function EditorLayout() {
                   <Panel defaultSize={65} minSize={20}>
                     <ErrorBoundary fallbackTitle="Node Editor Error">
                       <div
+                        data-testid="node-editor-panel"
                         className={`h-full node-editor-grid ${isDragOver ? 'ring-2 ring-[var(--color-accent-1)] ring-inset' : ''}`}
                         onDragLeave={handleDragLeave}
                       >
@@ -206,7 +207,7 @@ export function EditorLayout() {
 
         {/* 3D Viewer */}
         <Panel defaultSize={30} minSize={10}>
-          <div className="h-full bg-[var(--color-bg-deep)] enter d5">
+          <div data-testid="viewer-3d-panel" className="h-full bg-[var(--color-bg-deep)] enter d5">
             <ErrorBoundary fallbackTitle="3D Viewer Error">
               <ScenarioViewer
                 scenarioStore={scenarioStoreApi}

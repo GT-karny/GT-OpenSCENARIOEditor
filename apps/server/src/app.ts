@@ -4,6 +4,7 @@ import websocket from '@fastify/websocket';
 import { FileService } from './services/file-service.js';
 import { ScenarioService } from './services/scenario-service.js';
 import { SimulationService } from './services/simulation-service.js';
+import { GtSimService } from '@osce/esmini';
 import { MockEsminiService } from './services/mock-esmini-service.js';
 import { fileRoutes } from './routes/file-routes.js';
 import { scenarioRoutes } from './routes/scenario-routes.js';
@@ -29,12 +30,25 @@ export async function buildApp() {
   // Services
   const fileService = new FileService();
   const scenarioService = new ScenarioService();
-  const esminiService = new MockEsminiService();
+  const esminiService = process.env.GT_SIM_URL
+    ? new GtSimService({
+        restBaseUrl: process.env.GT_SIM_URL,
+        grpcHost: process.env.GT_SIM_GRPC ?? '127.0.0.1:50051',
+        timeout: 30_000,
+      })
+    : new MockEsminiService();
   const simulationService = new SimulationService(esminiService);
 
   app.decorate('fileService', fileService);
   app.decorate('scenarioService', scenarioService);
   app.decorate('simulationService', simulationService);
+
+  // Cleanup GtSimService gRPC channel on shutdown
+  app.addHook('onClose', async () => {
+    if ('dispose' in esminiService) {
+      (esminiService as GtSimService).dispose();
+    }
+  });
 
   // Error handler
   registerErrorHandler(app);

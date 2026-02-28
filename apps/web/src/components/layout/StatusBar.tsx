@@ -74,10 +74,11 @@ export function StatusBar() {
   const statusLabel = useStatusLabel(connStatus, simStatus);
 
   return (
-    <div className="relative flex items-center justify-between h-[26px] px-6 border-t border-[var(--color-glass-edge-mid)] bg-[var(--color-glass-1)] backdrop-blur-[28px] saturate-[1.3] text-[10px] text-[var(--color-text-tertiary)] tracking-[0.03em] statusbar-glow enter" style={{ animationDelay: '0.4s' }}>
+    <div role="status" data-testid="status-bar" className="relative flex items-center justify-between h-[26px] px-6 border-t border-[var(--color-glass-edge-mid)] bg-[var(--color-glass-1)] backdrop-blur-[28px] saturate-[1.3] text-[10px] text-[var(--color-text-tertiary)] tracking-[0.03em] statusbar-glow enter" style={{ animationDelay: '0.4s' }}>
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-1">
           <div
+            data-testid="status-dot"
             className="w-[5px] h-[5px]"
             style={{ backgroundColor: dot.color, boxShadow: dot.shadow }}
           />

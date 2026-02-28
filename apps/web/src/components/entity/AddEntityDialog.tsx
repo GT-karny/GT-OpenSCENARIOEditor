@@ -54,6 +54,7 @@ export function AddEntityDialog({ open, onOpenChange }: AddEntityDialogProps) {
             <Label htmlFor="entity-name">{t('labels.name')}</Label>
             <Input
               id="entity-name"
+              aria-required
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Ego, TargetVehicle"

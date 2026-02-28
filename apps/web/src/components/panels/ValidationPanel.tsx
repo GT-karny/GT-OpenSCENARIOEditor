@@ -18,11 +18,11 @@ export function ValidationPanel() {
         <h3 className="text-xs font-semibold">{t('panels.validation')}</h3>
         <div className="flex items-center gap-2">
           {result && (
-            <Badge variant={result.valid ? 'secondary' : 'destructive'} className="text-[10px]">
+            <Badge data-testid="validation-summary" variant={result.valid ? 'secondary' : 'destructive'} className="text-[10px]">
               {result.errors.length}E / {result.warnings.length}W
             </Badge>
           )}
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={runValidation}>
+          <Button variant="ghost" size="icon" className="h-6 w-6" aria-label="Run validation" onClick={runValidation}>
             <CheckCircle className="h-3.5 w-3.5" />
           </Button>
         </div>

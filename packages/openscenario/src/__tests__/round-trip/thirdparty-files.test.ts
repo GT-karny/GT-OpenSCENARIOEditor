@@ -18,6 +18,7 @@ describe('Parse all Thirdparty .xosc files without throwing', () => {
   const dirs = [
     'Thirdparty/openscenario-v1.2.0/Examples',
     'Thirdparty/esmini-demo_Windows/esmini-demo/resources/xosc',
+    'Thirdparty/GT_Sim_v0.6.0-rc/resources/xosc',
   ];
 
   for (const dir of dirs) {

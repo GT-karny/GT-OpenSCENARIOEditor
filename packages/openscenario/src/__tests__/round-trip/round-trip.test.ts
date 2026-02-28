@@ -29,10 +29,34 @@ function stripVolatile(doc: ScenarioDocument): any {
 
 describe('Round-trip: parse → serialize → parse', () => {
   const testFiles = [
+    // OpenSCENARIO v1.2.0 official examples
     'Thirdparty/openscenario-v1.2.0/Examples/CutIn.xosc',
     'Thirdparty/openscenario-v1.2.0/Examples/SimpleOvertake.xosc',
     'Thirdparty/openscenario-v1.2.0/Examples/EndOfTrafficJam.xosc',
     'Thirdparty/openscenario-v1.2.0/Examples/DoubleLaneChanger.xosc',
+    'Thirdparty/openscenario-v1.2.0/Examples/CloseVehicleCrossing.xosc',
+    'Thirdparty/openscenario-v1.2.0/Examples/EndOfTrafficJamParameterSet.xosc',
+    'Thirdparty/openscenario-v1.2.0/Examples/EndofTrafficJamNeighboringLaneOccupied.xosc',
+    'Thirdparty/openscenario-v1.2.0/Examples/FastOvertakeWithReInitialization.xosc',
+    'Thirdparty/openscenario-v1.2.0/Examples/Overtaker.xosc',
+    'Thirdparty/openscenario-v1.2.0/Examples/SequentialEvents_0-100-0kph_Explicit.xosc',
+    'Thirdparty/openscenario-v1.2.0/Examples/SequentialEvents_0-100-0kph_Implicit.xosc',
+    'Thirdparty/openscenario-v1.2.0/Examples/SlowPrecedingVehicle.xosc',
+    'Thirdparty/openscenario-v1.2.0/Examples/SlowPrecedingVehicleDeterministicParameterSet.xosc',
+    'Thirdparty/openscenario-v1.2.0/Examples/SlowPrecedingVehicleStochasticParameterSet.xosc',
+    'Thirdparty/openscenario-v1.2.0/Examples/SynchronizedArrivalToIntersection.xosc',
+    'Thirdparty/openscenario-v1.2.0/Examples/TrafficJam.xosc',
+    // GT_Sim scenarios (subset)
+    'Thirdparty/GT_Sim_v0.6.0-rc/resources/xosc/acc-test.xosc',
+    'Thirdparty/GT_Sim_v0.6.0-rc/resources/xosc/alks-test.xosc',
+    'Thirdparty/GT_Sim_v0.6.0-rc/resources/xosc/cut-in.xosc',
+    'Thirdparty/GT_Sim_v0.6.0-rc/resources/xosc/LaneChangeTest.xosc',
+    'Thirdparty/GT_Sim_v0.6.0-rc/resources/xosc/SmoothBrakeTest.xosc',
+    'Thirdparty/GT_Sim_v0.6.0-rc/resources/xosc/alks_cut-in.xosc',
+    'Thirdparty/GT_Sim_v0.6.0-rc/resources/xosc/alks_cut-out.xosc',
+    'Thirdparty/GT_Sim_v0.6.0-rc/resources/xosc/alks_decelerate.xosc',
+    'Thirdparty/GT_Sim_v0.6.0-rc/resources/xosc/car_walk.xosc',
+    'Thirdparty/GT_Sim_v0.6.0-rc/resources/xosc/cut-in_environment.xosc',
   ];
 
   for (const file of testFiles) {

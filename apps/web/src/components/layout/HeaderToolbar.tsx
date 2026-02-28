@@ -11,10 +11,11 @@ export function HeaderToolbar() {
   const { t } = useTranslation('common');
 
   return (
-    <div className="relative flex items-center h-[50px] px-6 gap-6 bg-[var(--color-glass-1)] backdrop-blur-[40px] saturate-[1.5] border-b border-[var(--color-glass-edge-mid)] header-glow z-10 enter">
+    <div role="banner" className="relative flex items-center h-[50px] px-6 gap-6 bg-[var(--color-glass-1)] backdrop-blur-[40px] saturate-[1.5] border-b border-[var(--color-glass-edge-mid)] header-glow z-10 enter">
       {/* Logo: pentagon mark + gradient text */}
       <div className="flex items-center gap-2">
         <div
+          aria-label="APEX Logo"
           className="w-6 h-6 shrink-0"
           style={{
             background:

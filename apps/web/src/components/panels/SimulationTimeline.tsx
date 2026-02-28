@@ -22,7 +22,7 @@ function IdleView() {
   const { t } = useTranslation('common');
 
   return (
-    <div className="flex items-center justify-center h-full">
+    <div data-testid="simulation-timeline-idle" className="flex items-center justify-center h-full">
       <div className="text-center text-muted-foreground">
         <Timer className="mx-auto mb-2 h-8 w-8" />
         <p className="text-sm font-medium">{t('panels.timeline')}</p>
@@ -39,7 +39,7 @@ function RunningView() {
   const currentTime = frames.length > 0 ? frames[frames.length - 1].time : 0;
 
   return (
-    <div className="flex items-center justify-center h-full">
+    <div data-testid="simulation-timeline-running" className="flex items-center justify-center h-full">
       <div className="text-center text-muted-foreground">
         <div className="flex items-center justify-center gap-2 mb-2">
           <div
@@ -80,13 +80,14 @@ function PlaybackControls() {
   };
 
   return (
-    <div className="flex items-center gap-3 h-full px-4">
+    <div role="group" aria-label="Simulation playback controls" data-testid="playback-controls" className="flex items-center gap-3 h-full px-4">
       {/* Transport controls */}
       <div className="flex items-center gap-1">
         <Button
           variant="ghost"
           size="icon"
           className="h-7 w-7"
+          aria-label="Skip to start"
           onClick={() => seekTo(0)}
           disabled={totalFrames === 0}
         >
@@ -96,6 +97,7 @@ function PlaybackControls() {
           variant="ghost"
           size="icon"
           className="h-7 w-7"
+          aria-label={isPlaying ? 'Pause simulation' : 'Play simulation'}
           onClick={handlePlayPause}
           disabled={totalFrames === 0}
         >
@@ -109,6 +111,7 @@ function PlaybackControls() {
           variant="ghost"
           size="icon"
           className="h-7 w-7"
+          aria-label="Skip to end"
           onClick={() => seekTo(totalFrames - 1)}
           disabled={totalFrames === 0}
         >
@@ -119,6 +122,7 @@ function PlaybackControls() {
       {/* Seek bar */}
       <div className="flex-1 mx-2">
         <Slider
+          aria-label="Seek simulation timeline"
           min={0}
           max={Math.max(totalFrames - 1, 0)}
           step={1}
@@ -130,7 +134,7 @@ function PlaybackControls() {
       </div>
 
       {/* Time display */}
-      <span className="text-[10px] tabular-nums text-[var(--color-text-tertiary)] min-w-[100px] text-center">
+      <span data-testid="time-display" className="text-[10px] tabular-nums text-[var(--color-text-tertiary)] min-w-[100px] text-center">
         {formatTime(currentTime)} / {formatTime(totalTime)}
       </span>
 
@@ -140,6 +144,7 @@ function PlaybackControls() {
           <Button
             variant="ghost"
             size="sm"
+            aria-label="Playback speed"
             className="text-[10px] h-6 px-2 min-w-[40px]"
           >
             {playbackSpeed}x

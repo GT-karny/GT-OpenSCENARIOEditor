@@ -18,7 +18,7 @@ export function LanguageToggle() {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={toggle}>
+        <Button variant="ghost" size="sm" className="text-xs gap-1" aria-label={preferences.language === 'en' ? 'Switch to Japanese' : 'Switch to English'} data-testid="language-toggle" onClick={toggle}>
           <Languages className="h-4 w-4" />
           {preferences.language === 'en' ? 'EN' : 'JA'}
         </Button>

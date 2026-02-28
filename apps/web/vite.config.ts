@@ -10,4 +10,7 @@ export default defineConfig({
       '@': resolve(__dirname, './src'),
     },
   },
+  test: {
+    exclude: ['e2e/**', 'node_modules/**'],
+  },
 });
