@@ -10,6 +10,7 @@
     { "path": "../../packages/shared" },
     { "path": "../../packages/openscenario" },
     { "path": "../../packages/esmini" },
+    { "path": "../../packages/opendrive" },
     { "path": "../../packages/mcp-server" }
   ]
 }
