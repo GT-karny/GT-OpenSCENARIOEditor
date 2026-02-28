@@ -1,5 +1,8 @@
 import { detectElementType } from './ElementTypeDetector';
 import { EntityPropertyEditor } from './EntityPropertyEditor';
+import { ActionPropertyEditor } from './ActionPropertyEditor';
+import { EventPropertyEditor } from './EventPropertyEditor';
+import { ConditionPropertyEditor } from './ConditionPropertyEditor';
 
 interface PropertyEditorProps {
   element: unknown;
@@ -14,27 +17,10 @@ export function PropertyEditor({ element }: PropertyEditorProps) {
       return <EntityPropertyEditor entity={detected.element} />;
 
     case 'event':
-      return (
-        <div className="space-y-2">
-          <p className="text-sm font-medium">Event: {detected.element.name}</p>
-          <p className="text-xs text-muted-foreground">
-            Priority: {detected.element.priority}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Actions: {detected.element.actions.length}
-          </p>
-        </div>
-      );
+      return <EventPropertyEditor event={detected.element} />;
 
     case 'action':
-      return (
-        <div className="space-y-2">
-          <p className="text-sm font-medium">Action: {detected.element.name}</p>
-          <p className="text-xs text-muted-foreground">
-            Type: {'type' in detected.element.action ? String(detected.element.action.type) : 'unknown'}
-          </p>
-        </div>
-      );
+      return <ActionPropertyEditor action={detected.element} />;
 
     case 'story':
       return (
@@ -57,14 +43,7 @@ export function PropertyEditor({ element }: PropertyEditorProps) {
       );
 
     case 'trigger':
-      return (
-        <div className="space-y-2">
-          <p className="text-sm font-medium">Trigger</p>
-          <p className="text-xs text-muted-foreground">
-            Condition Groups: {detected.element.conditionGroups.length}
-          </p>
-        </div>
-      );
+      return <ConditionPropertyEditor trigger={detected.element} />;
 
     default:
       return (
