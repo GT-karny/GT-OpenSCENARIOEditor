@@ -1,0 +1,285 @@
+{
+  "domain": "devops",
+  "capabilities": [
+    {
+      "id": "devops.maturity_schema_validation",
+      "domain": "devops",
+      "title_ja": "Capabilityスキーマ検証運用",
+      "required_level": "L2",
+      "current_level": "L1",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "Capabilityスキーマ検証運用に関する仕様が実装と整合している",
+        "Capabilityスキーマ検証運用の正常系と代表的な異常系が検証可能である",
+        "Capabilityスキーマ検証運用の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "scripts/maturity/validate-capabilities.mjs"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "Capabilityスキーマ検証運用は運用上の不足が残っている"
+      ],
+      "owner": "devops-team",
+      "target_date": "2026-03-07",
+      "purpose_ja": "運用基盤の観点で「Capabilityスキーマ検証運用」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は scripts/maturity/validate-capabilities.mjs。機能要件としてCapabilityスキーマ検証運用の実装・検証・可視化を含む。",
+      "done_definition_ja": "Capabilityスキーマ検証運用が required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "Capability定義の形式崩れを自動検出し、運用データ品質を守る機能。"
+    },
+    {
+      "id": "devops.maturity_matrix_generation",
+      "domain": "devops",
+      "title_ja": "Matrix自動生成運用",
+      "required_level": "L2",
+      "current_level": "L1",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "Matrix自動生成運用に関する仕様が実装と整合している",
+        "Matrix自動生成運用の正常系と代表的な異常系が検証可能である",
+        "Matrix自動生成運用の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "scripts/maturity/generate-matrix.mjs"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "Matrix自動生成運用は運用上の不足が残っている"
+      ],
+      "owner": "devops-team",
+      "target_date": "2026-03-07",
+      "purpose_ja": "運用基盤の観点で「Matrix自動生成運用」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は scripts/maturity/generate-matrix.mjs。機能要件としてMatrix自動生成運用の実装・検証・可視化を含む。",
+      "done_definition_ja": "Matrix自動生成運用が required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "定義データから可視化成果物を自動生成し、日次確認を定常化する機能。"
+    },
+    {
+      "id": "devops.domain_split_governance",
+      "domain": "devops",
+      "title_ja": "ドメイン分割ガバナンス",
+      "required_level": "L2",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "ドメイン分割ガバナンスに関する仕様が実装と整合している",
+        "ドメイン分割ガバナンスの正常系と代表的な異常系が検証可能である",
+        "ドメイン分割ガバナンスの状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "docs/maturity/GOVERNANCE.md"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "ドメイン分割ガバナンスは運用上の不足が残っている"
+      ],
+      "owner": "devops-team",
+      "target_date": "2026-03-14",
+      "purpose_ja": "運用基盤の観点で「ドメイン分割ガバナンス」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は docs/maturity/GOVERNANCE.md。機能要件としてドメイン分割ガバナンスの実装・検証・可視化を含む。",
+      "done_definition_ja": "ドメイン分割ガバナンスが required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "ドメイン分割運用の責任境界を定義し、更新競合と属人化を防ぐ機能。"
+    },
+    {
+      "id": "devops.review_workflow_definition",
+      "domain": "devops",
+      "title_ja": "レビュー運用定義",
+      "required_level": "L2",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "レビュー運用定義に関する仕様が実装と整合している",
+        "レビュー運用定義の正常系と代表的な異常系が検証可能である",
+        "レビュー運用定義の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "docs/maturity/README.md"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "レビュー運用定義は運用上の不足が残っている"
+      ],
+      "owner": "devops-team",
+      "target_date": "2026-03-16",
+      "purpose_ja": "運用基盤の観点で「レビュー運用定義」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は docs/maturity/README.md。機能要件としてレビュー運用定義の実装・検証・可視化を含む。",
+      "done_definition_ja": "レビュー運用定義が required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "レビュー手順を標準化し、成熟度判定のぶれを抑える機能。"
+    },
+    {
+      "id": "devops.ci_future_hook",
+      "domain": "devops",
+      "title_ja": "CI連携拡張ポイント定義",
+      "required_level": "L2",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "CI連携拡張ポイント定義に関する仕様が実装と整合している",
+        "CI連携拡張ポイント定義の正常系と代表的な異常系が検証可能である",
+        "CI連携拡張ポイント定義の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "docs/maturity/README.md"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "CI連携拡張ポイント定義は運用上の不足が残っている"
+      ],
+      "owner": "devops-team",
+      "target_date": "2026-03-18",
+      "purpose_ja": "運用基盤の観点で「CI連携拡張ポイント定義」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は docs/maturity/README.md。機能要件としてCI連携拡張ポイント定義の実装・検証・可視化を含む。",
+      "done_definition_ja": "CI連携拡張ポイント定義が required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "将来CI統合しやすい接続点を整備し、運用自動化へ移行可能にする機能。"
+    },
+    {
+      "id": "devops.owner_assignment_policy",
+      "domain": "devops",
+      "title_ja": "Owner割当方針",
+      "required_level": "L2",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "Owner割当方針に関する仕様が実装と整合している",
+        "Owner割当方針の正常系と代表的な異常系が検証可能である",
+        "Owner割当方針の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "docs/maturity/GOVERNANCE.md"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "Owner割当方針は運用上の不足が残っている"
+      ],
+      "owner": "devops-team",
+      "target_date": "2026-03-19",
+      "purpose_ja": "運用基盤の観点で「Owner割当方針」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は docs/maturity/GOVERNANCE.md。機能要件としてOwner割当方針の実装・検証・可視化を含む。",
+      "done_definition_ja": "Owner割当方針が required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "Owner割当基準を明確化し、未対応項目の放置を防ぐ機能。"
+    },
+    {
+      "id": "devops.target_date_enforcement",
+      "domain": "devops",
+      "title_ja": "期限設定運用",
+      "required_level": "L2",
+      "current_level": "L1",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "期限設定運用に関する仕様が実装と整合している",
+        "期限設定運用の正常系と代表的な異常系が検証可能である",
+        "期限設定運用の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "scripts/maturity/validate-capabilities.mjs"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "期限設定運用は運用上の不足が残っている"
+      ],
+      "owner": "devops-team",
+      "target_date": "2026-03-10",
+      "purpose_ja": "運用基盤の観点で「期限設定運用」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は scripts/maturity/validate-capabilities.mjs。機能要件として期限設定運用の実装・検証・可視化を含む。",
+      "done_definition_ja": "期限設定運用が required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "期限未設定・期限超過を検出し、改善活動の停滞を可視化する機能。"
+    },
+    {
+      "id": "devops.daily_weekly_ops",
+      "domain": "devops",
+      "title_ja": "日次/週次運用サイクル",
+      "required_level": "L2",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "日次/週次運用サイクルに関する仕様が実装と整合している",
+        "日次/週次運用サイクルの正常系と代表的な異常系が検証可能である",
+        "日次/週次運用サイクルの状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "docs/maturity/GOVERNANCE.md"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "日次/週次運用サイクルは運用上の不足が残っている"
+      ],
+      "owner": "devops-team",
+      "target_date": "2026-03-20",
+      "purpose_ja": "運用基盤の観点で「日次/週次運用サイクル」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は docs/maturity/GOVERNANCE.md。機能要件として日次/週次運用サイクルの実装・検証・可視化を含む。",
+      "done_definition_ja": "日次/週次運用サイクルが required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "日次/週次の確認サイクルを定義し、改善を継続的に回す運用機能。"
+    }
+  ]
+}

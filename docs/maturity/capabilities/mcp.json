@@ -1,0 +1,297 @@
+{
+  "domain": "mcp",
+  "capabilities": [
+    {
+      "id": "mcp.tool_registration_coverage",
+      "domain": "mcp",
+      "title_ja": "MCPツール登録網羅性",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "MCPツール登録網羅性に関する仕様が実装と整合している",
+        "MCPツール登録網羅性の正常系と代表的な異常系が検証可能である",
+        "MCPツール登録網羅性の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/mcp-server/src/tools"
+        ],
+        "tests": [
+          "packages/mcp-server/src/__tests__/integration.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "MCPツール登録網羅性は運用上の不足が残っている"
+      ],
+      "owner": "mcp-team",
+      "target_date": "2026-03-12",
+      "purpose_ja": "MCP連携の観点で「MCPツール登録網羅性」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/mcp-server/src/tools。機能要件としてMCPツール登録網羅性の実装・検証・可視化を含む。",
+      "done_definition_ja": "MCPツール登録網羅性が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "MCPで公開する操作ツールを網羅し、AI側から必要操作が欠けない状態を維持する機能。"
+    },
+    {
+      "id": "mcp.entity_tool_quality",
+      "domain": "mcp",
+      "title_ja": "エンティティ操作ツール品質",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "エンティティ操作ツール品質に関する仕様が実装と整合している",
+        "エンティティ操作ツール品質の正常系と代表的な異常系が検証可能である",
+        "エンティティ操作ツール品質の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/mcp-server/src/tools/entity-tools.ts"
+        ],
+        "tests": [
+          "packages/mcp-server/src/__tests__/entity-tools.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "エンティティ操作ツール品質は運用上の不足が残っている"
+      ],
+      "owner": "mcp-team",
+      "target_date": "2026-03-15",
+      "purpose_ja": "MCP連携の観点で「エンティティ操作ツール品質」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/mcp-server/src/tools/entity-tools.ts。機能要件としてエンティティ操作ツール品質の実装・検証・可視化を含む。",
+      "done_definition_ja": "エンティティ操作ツール品質が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "エンティティ操作ツールの入出力契約を安定化し、安全な編集自動化を支える機能。"
+    },
+    {
+      "id": "mcp.storyboard_tool_quality",
+      "domain": "mcp",
+      "title_ja": "Storyboard操作ツール品質",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "Storyboard操作ツール品質に関する仕様が実装と整合している",
+        "Storyboard操作ツール品質の正常系と代表的な異常系が検証可能である",
+        "Storyboard操作ツール品質の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/mcp-server/src/tools/storyboard-tools.ts"
+        ],
+        "tests": [
+          "packages/mcp-server/src/__tests__/storyboard-tools.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "Storyboard操作ツール品質は運用上の不足が残っている"
+      ],
+      "owner": "mcp-team",
+      "target_date": "2026-03-15",
+      "purpose_ja": "MCP連携の観点で「Storyboard操作ツール品質」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/mcp-server/src/tools/storyboard-tools.ts。機能要件としてStoryboard操作ツール品質の実装・検証・可視化を含む。",
+      "done_definition_ja": "Storyboard操作ツール品質が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "Storyboard操作を構造破壊なく実行できるようにし、意図した編集結果を担保する機能。"
+    },
+    {
+      "id": "mcp.undo_redo_tool_quality",
+      "domain": "mcp",
+      "title_ja": "Undo/Redoツール品質",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "Undo/Redoツール品質に関する仕様が実装と整合している",
+        "Undo/Redoツール品質の正常系と代表的な異常系が検証可能である",
+        "Undo/Redoツール品質の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/mcp-server/src/tools/undo-redo-tools.ts"
+        ],
+        "tests": [
+          "packages/mcp-server/src/__tests__/undo-redo-tools.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "Undo/Redoツール品質は運用上の不足が残っている"
+      ],
+      "owner": "mcp-team",
+      "target_date": "2026-03-14",
+      "purpose_ja": "MCP連携の観点で「Undo/Redoツール品質」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/mcp-server/src/tools/undo-redo-tools.ts。機能要件としてUndo/Redoツール品質の実装・検証・可視化を含む。",
+      "done_definition_ja": "Undo/Redoツール品質が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "AI経由操作でもUndo/Redo整合を保ち、試行的編集の安全性を確保する機能。"
+    },
+    {
+      "id": "mcp.safe_apply_flow",
+      "domain": "mcp",
+      "title_ja": "提案→確認→適用フロー",
+      "required_level": "L3",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "提案→確認→適用フローに関する仕様が実装と整合している",
+        "提案→確認→適用フローの正常系と代表的な異常系が検証可能である",
+        "提案→確認→適用フローの状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/mcp-server/src/server"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "安全確認フローを追加する必要がある"
+      ],
+      "owner": "mcp-team",
+      "target_date": "2026-03-28",
+      "purpose_ja": "MCP連携の観点で「提案→確認→適用フロー」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/mcp-server/src/server。機能要件として提案→確認→適用フローの実装・検証・可視化を含む。",
+      "done_definition_ja": "提案→確認→適用フローが required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "提案→確認→適用の手順を挟み、誤適用による破壊的変更を防ぐガード機能。"
+    },
+    {
+      "id": "mcp.prompt_resource_quality",
+      "domain": "mcp",
+      "title_ja": "プロンプト/リソース品質",
+      "required_level": "L2",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "プロンプト/リソース品質に関する仕様が実装と整合している",
+        "プロンプト/リソース品質の正常系と代表的な異常系が検証可能である",
+        "プロンプト/リソース品質の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/mcp-server/src/prompts"
+        ],
+        "tests": [
+          "packages/mcp-server/src/__tests__/integration.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "プロンプト/リソース品質は運用上の不足が残っている"
+      ],
+      "owner": "mcp-team",
+      "target_date": "2026-03-18",
+      "purpose_ja": "MCP連携の観点で「プロンプト/リソース品質」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/mcp-server/src/prompts。機能要件としてプロンプト/リソース品質の実装・検証・可視化を含む。",
+      "done_definition_ja": "プロンプト/リソース品質が required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "プロンプト/リソース定義を品質管理し、AI応答の再現性を高める機能。"
+    },
+    {
+      "id": "mcp.tool_error_contract",
+      "domain": "mcp",
+      "title_ja": "ツールエラー契約統一",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "ツールエラー契約統一に関する仕様が実装と整合している",
+        "ツールエラー契約統一の正常系と代表的な異常系が検証可能である",
+        "ツールエラー契約統一の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/mcp-server/src/utils"
+        ],
+        "tests": [
+          "packages/mcp-server/src/__tests__/integration.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "ツールエラー契約統一は運用上の不足が残っている"
+      ],
+      "owner": "mcp-team",
+      "target_date": "2026-03-20",
+      "purpose_ja": "MCP連携の観点で「ツールエラー契約統一」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/mcp-server/src/utils。機能要件としてツールエラー契約統一の実装・検証・可視化を含む。",
+      "done_definition_ja": "ツールエラー契約統一が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "ツール失敗時のエラー形式を統一し、クライアント側の復旧処理を単純化する機能。"
+    },
+    {
+      "id": "mcp.user_guidance_surface",
+      "domain": "mcp",
+      "title_ja": "利用者向け導線",
+      "required_level": "L2",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "利用者向け導線に関する仕様が実装と整合している",
+        "利用者向け導線の正常系と代表的な異常系が検証可能である",
+        "利用者向け導線の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "packages/mcp-server/src/server"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "利用者向け導線は運用上の不足が残っている"
+      ],
+      "owner": "mcp-team",
+      "target_date": "2026-03-30",
+      "purpose_ja": "MCP連携の観点で「利用者向け導線」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は packages/mcp-server/src/server。機能要件として利用者向け導線の実装・検証・可視化を含む。",
+      "done_definition_ja": "利用者向け導線が required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "利用者にツールの前提と安全な使い方を提示し、誤用を減らす導線機能。"
+    }
+  ]
+}

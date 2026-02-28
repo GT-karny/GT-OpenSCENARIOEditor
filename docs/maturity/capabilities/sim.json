@@ -1,0 +1,293 @@
+{
+  "domain": "sim",
+  "capabilities": [
+    {
+      "id": "sim.service_switching",
+      "domain": "sim",
+      "title_ja": "Mock/GT_Simサービス切替",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "Mock/GT_Simサービス切替に関する仕様が実装と整合している",
+        "Mock/GT_Simサービス切替の正常系と代表的な異常系が検証可能である",
+        "Mock/GT_Simサービス切替の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/server/src/app.ts"
+        ],
+        "tests": [
+          "apps/server/src/__tests__/services/mock-esmini-service.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "Mock/GT_Simサービス切替は運用上の不足が残っている"
+      ],
+      "owner": "sim-team",
+      "target_date": "2026-03-09",
+      "purpose_ja": "シミュレーション連携の観点で「Mock/GT_Simサービス切替」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/server/src/app.ts。機能要件としてMock/GT_Simサービス切替の実装・検証・可視化を含む。",
+      "done_definition_ja": "Mock/GT_Simサービス切替が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "Mockと実GT_Simを切替可能にし、開発検証と実運用検証を両立させる機能。"
+    },
+    {
+      "id": "sim.gtsim_default_runtime",
+      "domain": "sim",
+      "title_ja": "GT_Sim標準実行経路",
+      "required_level": "L3",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "GT_Sim標準実行経路に関する仕様が実装と整合している",
+        "GT_Sim標準実行経路の正常系と代表的な異常系が検証可能である",
+        "GT_Sim標準実行経路の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/server/src/app.ts"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "既定経路がMock運用のまま"
+      ],
+      "owner": "sim-team",
+      "target_date": "2026-03-10",
+      "purpose_ja": "シミュレーション連携の観点で「GT_Sim標準実行経路」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/server/src/app.ts。機能要件としてGT_Sim標準実行経路の実装・検証・可視化を含む。",
+      "done_definition_ja": "GT_Sim標準実行経路が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "実GT_Simを標準実行経路として扱い、本番相当の検証を常時可能にする機能。"
+    },
+    {
+      "id": "sim.ws_frame_streaming",
+      "domain": "sim",
+      "title_ja": "WebSocketフレーム配信整備",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "WebSocketフレーム配信整備に関する仕様が実装と整合している",
+        "WebSocketフレーム配信整備の正常系と代表的な異常系が検証可能である",
+        "WebSocketフレーム配信整備の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/server/src/websocket/ws-handler.ts"
+        ],
+        "tests": [
+          "apps/server/src/__tests__/websocket/ws-handler.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "WebSocketフレーム配信整備は運用上の不足が残っている"
+      ],
+      "owner": "sim-team",
+      "target_date": "2026-03-14",
+      "purpose_ja": "シミュレーション連携の観点で「WebSocketフレーム配信整備」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/server/src/websocket/ws-handler.ts。機能要件としてWebSocketフレーム配信整備の実装・検証・可視化を含む。",
+      "done_definition_ja": "WebSocketフレーム配信整備が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "フレームデータを遅延・欠落を抑えて配信し、再生系との同期を保つ機能。"
+    },
+    {
+      "id": "sim.playback_store_integrity",
+      "domain": "sim",
+      "title_ja": "再生ストア整合性",
+      "required_level": "L3",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "再生ストア整合性に関する仕様が実装と整合している",
+        "再生ストア整合性の正常系と代表的な異常系が検証可能である",
+        "再生ストア整合性の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/web/src/stores/simulation-store.ts"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "再生ストア整合性は運用上の不足が残っている"
+      ],
+      "owner": "sim-team",
+      "target_date": "2026-03-18",
+      "purpose_ja": "シミュレーション連携の観点で「再生ストア整合性」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/web/src/stores/simulation-store.ts。機能要件として再生ストア整合性の実装・検証・可視化を含む。",
+      "done_definition_ja": "再生ストア整合性が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "再生状態管理を一貫化し、再生・停止・シーク時の不整合を防ぐ機能。"
+    },
+    {
+      "id": "sim.timeline_controls",
+      "domain": "sim",
+      "title_ja": "タイムライン制御UI整備",
+      "required_level": "L2",
+      "current_level": "L1",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "タイムライン制御UI整備に関する仕様が実装と整合している",
+        "タイムライン制御UI整備の正常系と代表的な異常系が検証可能である",
+        "タイムライン制御UI整備の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/web/src/components/panels/SimulationTimeline.tsx"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "タイムライン制御UI整備は運用上の不足が残っている"
+      ],
+      "owner": "sim-team",
+      "target_date": "2026-03-16",
+      "purpose_ja": "シミュレーション連携の観点で「タイムライン制御UI整備」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/web/src/components/panels/SimulationTimeline.tsx。機能要件としてタイムライン制御UI整備の実装・検証・可視化を含む。",
+      "done_definition_ja": "タイムライン制御UI整備が required_level=L2 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "再生速度・シーク・開始停止を直感的に操作できるUI制御機能。"
+    },
+    {
+      "id": "sim.error_surface_to_ui",
+      "domain": "sim",
+      "title_ja": "シミュレーションエラー可視化",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "シミュレーションエラー可視化に関する仕様が実装と整合している",
+        "シミュレーションエラー可視化の正常系と代表的な異常系が検証可能である",
+        "シミュレーションエラー可視化の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/web/src/hooks/use-websocket.ts"
+        ],
+        "tests": [
+          "apps/web/src/__tests__/hooks/use-validation.test.tsx"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "シミュレーションエラー可視化は運用上の不足が残っている"
+      ],
+      "owner": "sim-team",
+      "target_date": "2026-03-23",
+      "purpose_ja": "シミュレーション連携の観点で「シミュレーションエラー可視化」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/web/src/hooks/use-websocket.ts。機能要件としてシミュレーションエラー可視化の実装・検証・可視化を含む。",
+      "done_definition_ja": "シミュレーションエラー可視化が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "実行時エラーをUIへ正規化して通知し、原因把握と回復判断を支援する機能。"
+    },
+    {
+      "id": "sim.session_lifecycle",
+      "domain": "sim",
+      "title_ja": "セッションライフサイクル管理",
+      "required_level": "L3",
+      "current_level": "L2",
+      "status": "partial",
+      "acceptance_criteria_ja": [
+        "セッションライフサイクル管理に関する仕様が実装と整合している",
+        "セッションライフサイクル管理の正常系と代表的な異常系が検証可能である",
+        "セッションライフサイクル管理の状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "apps/server/src/services/simulation-service.ts"
+        ],
+        "tests": [
+          "apps/server/src/__tests__/routes/simulation-routes.test.ts"
+        ],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "セッションライフサイクル管理は運用上の不足が残っている"
+      ],
+      "owner": "sim-team",
+      "target_date": "2026-03-20",
+      "purpose_ja": "シミュレーション連携の観点で「セッションライフサイクル管理」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は apps/server/src/services/simulation-service.ts。機能要件としてセッションライフサイクル管理の実装・検証・可視化を含む。",
+      "done_definition_ja": "セッションライフサイクル管理が required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "シミュレーションセッションの開始から終了までを安全に管理するライフサイクル機能。"
+    },
+    {
+      "id": "sim.real_runtime_e2e",
+      "domain": "sim",
+      "title_ja": "実GT_Sim連携E2E",
+      "required_level": "L3",
+      "current_level": "L0",
+      "status": "gap",
+      "acceptance_criteria_ja": [
+        "実GT_Sim連携E2Eに関する仕様が実装と整合している",
+        "実GT_Sim連携E2Eの正常系と代表的な異常系が検証可能である",
+        "実GT_Sim連携E2Eの状態をMatrix上で追跡できる"
+      ],
+      "evidence": {
+        "impl": [
+          "docs/PHASE4_TRACK_M.md"
+        ],
+        "tests": [],
+        "e2e": [],
+        "ops": []
+      },
+      "gaps_ja": [
+        "実行系E2Eスイートが未実装"
+      ],
+      "owner": "sim-team",
+      "target_date": "2026-04-04",
+      "purpose_ja": "シミュレーション連携の観点で「実GT_Sim連携E2E」を実運用レベルまで明確化し、状態を継続監視できるようにする。",
+      "scope_ja": "主対象は docs/PHASE4_TRACK_M.md。機能要件として実GT_Sim連携E2Eの実装・検証・可視化を含む。",
+      "done_definition_ja": "実GT_Sim連携E2Eが required_level=L3 を満たし、証跡と受け入れ条件がMatrixで追跡可能な状態。",
+      "verification_steps_ja": [
+        "実装証跡（evidence.impl）の最新性を確認する。",
+        "テスト証跡（evidence.tests/e2e）で要件達成を確認する。",
+        "matrixビュー上で effective_level と status が期待値であることを確認する。"
+      ],
+      "meaning_ja": "実ランタイム経路をE2Eで継続検証し、統合回帰を早期検知する機能。"
+    }
+  ]
+}
