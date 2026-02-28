@@ -20,7 +20,7 @@ export function HierarchyEdge(props: EdgeProps) {
     <BaseEdge
       {...props}
       path={edgePath}
-      style={{ stroke: 'rgba(184, 171, 235, 0.3)', strokeWidth: 1.5 }}
+      style={{ stroke: 'rgba(184, 171, 235, 0.5)', strokeWidth: 2 }}
     />
   );
 }
