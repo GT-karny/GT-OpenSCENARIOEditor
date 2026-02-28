@@ -92,16 +92,18 @@ export function NodeEditorContextMenu({
       {position.nodeId ? (
         <>
           {onToggleCollapse && (
-            <MenuItem
-              icon={FoldVertical}
-              label={t('contextMenu.toggleCollapse', 'Toggle Collapse')}
-              onClick={() => {
-                onToggleCollapse(position.nodeId!);
-                onClose();
-              }}
-            />
+            <>
+              <MenuItem
+                icon={FoldVertical}
+                label={t('contextMenu.toggleCollapse', 'Toggle Collapse')}
+                onClick={() => {
+                  onToggleCollapse(position.nodeId!);
+                  onClose();
+                }}
+              />
+              <MenuSeparator />
+            </>
           )}
-          <MenuSeparator />
           <MenuItem
             icon={Plus}
             label={t('contextMenu.addEntity', 'Add Entity')}

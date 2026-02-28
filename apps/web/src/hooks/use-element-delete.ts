@@ -2,13 +2,7 @@ import { useCallback } from 'react';
 import { detectElementType } from '@osce/node-editor';
 import { useScenarioStoreApi } from '../stores/use-scenario-store';
 import { useEditorStore } from '../stores/editor-store';
-
-function isInputFocused(): boolean {
-  const el = document.activeElement;
-  if (!el) return false;
-  const tag = el.tagName.toLowerCase();
-  return tag === 'input' || tag === 'textarea' || tag === 'select' || (el as HTMLElement).isContentEditable;
-}
+import { isInputFocused } from '../lib/dom-utils';
 
 export function useElementDelete() {
   const storeApi = useScenarioStoreApi();
