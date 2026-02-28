@@ -313,6 +313,9 @@ importers:
       '@dagrejs/dagre':
         specifier: ^1.1.0
         version: 1.1.8
+      '@osce/i18n':
+        specifier: workspace:*
+        version: link:../i18n
       '@osce/scenario-engine':
         specifier: workspace:*
         version: link:../scenario-engine

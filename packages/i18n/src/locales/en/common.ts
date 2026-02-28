@@ -32,6 +32,10 @@ export const common = {
     templates: 'Templates',
     simulation: 'Simulation',
   },
+  timeline: {
+    entity: 'Entity',
+    noEntities: 'No entities in scenario',
+  },
   labels: {
     name: 'Name',
     description: 'Description',

@@ -3,6 +3,8 @@
  */
 
 import { TimelineEvent, type TimelineEventData } from './TimelineEvent.js';
+import type { TimeAxisConfig } from '../utils/compute-time-axis.js';
+import { ENTITY_LABEL_WIDTH } from '../utils/timeline-constants.js';
 
 export interface TimelineTrackProps {
   entityName: string;
@@ -10,24 +12,62 @@ export interface TimelineTrackProps {
   events: TimelineEventData[];
   onEventClick: (eventId: string) => void;
   pixelsPerSecond: number;
+  timeAxisConfig: TimeAxisConfig;
 }
 
-export function TimelineTrack({ entityName, entityType, events, onEventClick, pixelsPerSecond }: TimelineTrackProps) {
+export function TimelineTrack({
+  entityName,
+  entityType,
+  events,
+  onEventClick,
+  pixelsPerSecond,
+  timeAxisConfig,
+}: TimelineTrackProps) {
+  const gridSize = timeAxisConfig.tickInterval * pixelsPerSecond;
+
   return (
-    <div className="flex border-b border-gray-200">
-      <div className="w-32 shrink-0 px-2 py-2 bg-gray-50 border-r border-gray-200">
-        <div className="text-xs font-semibold truncate">{entityName}</div>
-        <div className="text-[10px] text-gray-400">{entityType}</div>
+    <div
+      className="flex"
+      style={{ borderBottom: '1px solid var(--color-glass-edge, rgba(180, 170, 230, 0.07))' }}
+    >
+      {/* Entity label */}
+      <div
+        className="shrink-0 px-2 py-2"
+        style={{
+          width: ENTITY_LABEL_WIDTH,
+          background: 'var(--color-glass-1, rgba(20, 14, 48, 0.48))',
+          borderRight: '1px solid var(--color-glass-edge, rgba(180, 170, 230, 0.07))',
+        }}
+      >
+        <div
+          className="truncate"
+          style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-text-secondary, rgba(255, 255, 255, 0.48))' }}
+        >
+          {entityName}
+        </div>
+        <div style={{ fontSize: 9, color: 'var(--color-text-tertiary, rgba(255, 255, 255, 0.20))' }}>
+          {entityType}
+        </div>
       </div>
-      <div className="relative flex-1 h-12 overflow-hidden">
-        {events.map((event) => (
-          <TimelineEvent
-            key={event.eventId}
-            event={event}
-            onClick={onEventClick}
-            pixelsPerSecond={pixelsPerSecond}
-          />
-        ))}
+
+      {/* Event area with vertical grid lines */}
+      <div
+        className="relative flex-1 h-12 overflow-hidden"
+        style={{
+          backgroundImage: `repeating-linear-gradient(90deg, var(--color-glass-edge, rgba(180, 170, 230, 0.07)) 0px, var(--color-glass-edge, rgba(180, 170, 230, 0.07)) 1px, transparent 1px, transparent ${gridSize}px)`,
+          backgroundSize: `${gridSize}px 100%`,
+        }}
+      >
+        <div className="relative h-full" style={{ width: timeAxisConfig.totalWidth }}>
+          {events.map((event) => (
+            <TimelineEvent
+              key={event.eventId}
+              event={event}
+              onClick={onEventClick}
+              pixelsPerSecond={pixelsPerSecond}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
