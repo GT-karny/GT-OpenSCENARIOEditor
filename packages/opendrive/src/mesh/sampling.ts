@@ -58,6 +58,13 @@ export function generateSamplePoints(
     }
   }
 
+  // Lane offset boundaries
+  for (const lo of road.laneOffset) {
+    if (lo.s > sStart && lo.s < sEnd) {
+      criticalS.add(lo.s);
+    }
+  }
+
   // Generate uniform samples
   const samples = new Set<number>(criticalS);
   let s = sStart + step;

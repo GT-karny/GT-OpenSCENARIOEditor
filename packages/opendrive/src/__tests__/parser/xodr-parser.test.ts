@@ -280,6 +280,48 @@ describe('XodrParser', () => {
     });
   });
 
+  describe('parse laneOffset', () => {
+    it('should parse laneOffset elements', () => {
+      const xml = `<OpenDRIVE>
+        <header revMajor="1" revMinor="6" name="" date=""/>
+        <road name="" length="500" id="1" junction="-1">
+          <planView>
+            <geometry s="0" x="0" y="0" hdg="0" length="500"><line/></geometry>
+          </planView>
+          <lanes>
+            <laneOffset s="0" a="0" b="0" c="0" d="0"/>
+            <laneOffset s="125" a="0" b="0" c="0.0042" d="-5.6e-05"/>
+            <laneOffset s="175" a="3.5" b="0" c="0" d="0"/>
+            <laneSection s="0">
+              <center><lane id="0" type="none"/></center>
+              <right>
+                <lane id="-1" type="driving">
+                  <width sOffset="0" a="3.5" b="0" c="0" d="0"/>
+                </lane>
+              </right>
+            </laneSection>
+          </lanes>
+        </road>
+      </OpenDRIVE>`;
+      const doc = parser.parse(xml);
+      const road = doc.roads[0];
+
+      expect(road.laneOffset).toHaveLength(3);
+      expect(road.laneOffset[0].s).toBe(0);
+      expect(road.laneOffset[0].a).toBe(0);
+      expect(road.laneOffset[1].s).toBe(125);
+      expect(road.laneOffset[1].c).toBeCloseTo(0.0042);
+      expect(road.laneOffset[1].d).toBeCloseTo(-5.6e-05);
+      expect(road.laneOffset[2].s).toBe(175);
+      expect(road.laneOffset[2].a).toBe(3.5);
+    });
+
+    it('should return empty array when no laneOffset', () => {
+      const doc = parser.parse(STRAIGHT_ROAD_XML);
+      expect(doc.roads[0].laneOffset).toHaveLength(0);
+    });
+  });
+
   describe('edge cases', () => {
     it('should handle minimal valid OpenDRIVE', () => {
       const xml = `<OpenDRIVE>
@@ -301,6 +343,7 @@ describe('XodrParser', () => {
       expect(doc.roads[0].signals).toHaveLength(0);
       expect(doc.roads[0].elevationProfile).toHaveLength(0);
       expect(doc.roads[0].lateralProfile).toHaveLength(0);
+      expect(doc.roads[0].laneOffset).toHaveLength(0);
       expect(doc.controllers).toHaveLength(0);
       expect(doc.junctions).toHaveLength(0);
     });

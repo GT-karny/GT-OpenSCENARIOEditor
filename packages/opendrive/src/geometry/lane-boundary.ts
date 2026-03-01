@@ -6,6 +6,7 @@ import type { OdrRoad, OdrLaneSection, OdrLane } from '@osce/shared';
 import type { Vec3, Pose2D } from './types.js';
 import { evaluateReferenceLineAtS } from './reference-line.js';
 import { evaluateElevation } from './elevation.js';
+import { evaluateLaneOffset } from './lane-offset.js';
 import { evalCubic, findRecordAtS } from '../utils/math.js';
 
 export interface LaneBoundaryPoint {
@@ -114,9 +115,10 @@ export function computeLaneBoundaries(
     const dsFromSectionStart = s - laneSection.s;
     const pose = evaluateReferenceLineAtS(road.planView, s);
     const z = evaluateElevation(road.elevationProfile, s);
+    const offset = evaluateLaneOffset(road.laneOffset, s);
 
-    const innerT = computeLaneInnerT(laneSection, lane, dsFromSectionStart);
-    const outerT = computeLaneOuterT(laneSection, lane, dsFromSectionStart);
+    const innerT = computeLaneInnerT(laneSection, lane, dsFromSectionStart) + offset;
+    const outerT = computeLaneOuterT(laneSection, lane, dsFromSectionStart) + offset;
 
     return {
       s,

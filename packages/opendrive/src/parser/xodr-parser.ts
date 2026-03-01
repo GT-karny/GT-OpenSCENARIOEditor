@@ -13,6 +13,7 @@ import type {
   OdrGeometry,
   OdrElevation,
   OdrSuperelevation,
+  OdrLaneOffset,
   OdrLaneSection,
   OdrLane,
   OdrLaneWidth,
@@ -88,6 +89,7 @@ function parseRoad(raw: Raw): OdrRoad {
     planView: parsePlanView(raw.planView),
     elevationProfile: parseElevations(raw.elevationProfile),
     lateralProfile: parseSuperelevations(raw.lateralProfile),
+    laneOffset: parseLaneOffsets(raw.lanes),
     lanes: parseLaneSections(raw.lanes),
     objects: parseObjects(raw.objects),
     signals: parseSignals(raw.signals),
@@ -221,6 +223,17 @@ function parseElevations(raw: Raw | undefined): OdrElevation[] {
 function parseSuperelevations(raw: Raw | undefined): OdrSuperelevation[] {
   if (!raw) return [];
   return ensureArray(raw.superelevation).map((e: Raw) => ({
+    s: toNum(e.s),
+    a: toNum(e.a),
+    b: toNum(e.b),
+    c: toNum(e.c),
+    d: toNum(e.d),
+  }));
+}
+
+function parseLaneOffsets(raw: Raw | undefined): OdrLaneOffset[] {
+  if (!raw) return [];
+  return ensureArray(raw.laneOffset).map((e: Raw) => ({
     s: toNum(e.s),
     a: toNum(e.a),
     b: toNum(e.b),

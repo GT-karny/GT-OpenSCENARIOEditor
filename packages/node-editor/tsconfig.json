@@ -8,6 +8,7 @@
   "include": ["src"],
   "references": [
     { "path": "../shared" },
-    { "path": "../scenario-engine" }
+    { "path": "../scenario-engine" },
+    { "path": "../i18n" }
   ]
 }

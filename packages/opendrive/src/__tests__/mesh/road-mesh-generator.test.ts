@@ -11,6 +11,7 @@ function makeStraightRoad(): OdrRoad {
     planView: [{ s: 0, x: 0, y: 0, hdg: 0, length: 100, type: 'line' }],
     elevationProfile: [{ s: 0, a: 0, b: 0, c: 0, d: 0 }],
     lateralProfile: [],
+    laneOffset: [],
     lanes: [
       {
         s: 0,
@@ -137,6 +138,7 @@ describe('generateRoadMesh', () => {
       planView: [{ s: 0, x: 0, y: 0, hdg: 0, length: 50, type: 'line' }],
       elevationProfile: [],
       lateralProfile: [],
+      laneOffset: [],
       lanes: [{
         s: 0,
         leftLanes: [],
