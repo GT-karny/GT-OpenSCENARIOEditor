@@ -17,6 +17,8 @@ export interface NodeEditorProviderProps {
   scenarioStore: StoreApi<ScenarioStore>;
   selectedElementIds?: string[];
   onSelectionChange?: (ids: string[]) => void;
+  focusNodeId?: string | null;
+  onFocusComplete?: () => void;
   children: React.ReactNode;
 }
 
@@ -25,11 +27,15 @@ function SyncBridge({
   editorStore,
   selectedElementIds,
   onSelectionChange,
+  focusNodeId,
+  onFocusComplete,
 }: {
   scenarioStore: StoreApi<ScenarioStore>;
   editorStore: EditorStoreApi;
   selectedElementIds?: string[];
   onSelectionChange?: (ids: string[]) => void;
+  focusNodeId?: string | null;
+  onFocusComplete?: () => void;
 }) {
   useScenarioSync(scenarioStore, editorStore);
 
@@ -40,14 +46,33 @@ function SyncBridge({
     }
   }, [selectedElementIds, editorStore]);
 
+  // focusNodeId round-trip flow:
+  // 1. Parent sets focusNodeId prop (e.g. from validation error click)
+  // 2. This effect syncs it into the node-editor store
+  // 3. NodeFocusBridge (inside ReactFlow) reads it, calls fitView(), then clears it
+  // 4. The subscription below detects the clear and fires onFocusComplete
+  // 5. Parent clears its own focusNodeId state
+  useEffect(() => {
+    if (focusNodeId) {
+      editorStore.getState().setFocusNodeId(focusNodeId);
+    }
+  }, [focusNodeId, editorStore]);
+
   // Report selection changes to parent
   const onSelectionChangeRef = useRef(onSelectionChange);
   onSelectionChangeRef.current = onSelectionChange;
+
+  // Report focus completion to parent
+  const onFocusCompleteRef = useRef(onFocusComplete);
+  onFocusCompleteRef.current = onFocusComplete;
 
   useEffect(() => {
     const unsub = editorStore.subscribe((state, prevState) => {
       if (state.selectedElementIds !== prevState.selectedElementIds) {
         onSelectionChangeRef.current?.(state.selectedElementIds);
+      }
+      if (prevState.focusNodeId && !state.focusNodeId) {
+        onFocusCompleteRef.current?.();
       }
     });
     return unsub;
@@ -60,6 +85,8 @@ export function NodeEditorProvider({
   scenarioStore,
   selectedElementIds,
   onSelectionChange,
+  focusNodeId,
+  onFocusComplete,
   children,
 }: NodeEditorProviderProps) {
   const editorStore = useMemo(() => createEditorStore(), []);
@@ -72,6 +99,8 @@ export function NodeEditorProvider({
           editorStore={editorStore}
           selectedElementIds={selectedElementIds}
           onSelectionChange={onSelectionChange}
+          focusNodeId={focusNodeId}
+          onFocusComplete={onFocusComplete}
         />
         {children}
       </EditorStoreContext.Provider>
