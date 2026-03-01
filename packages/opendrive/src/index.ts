@@ -30,8 +30,10 @@ export { generateRoadMesh } from './mesh/road-mesh-generator.js';
 export { buildLaneMesh } from './mesh/lane-mesh-builder.js';
 export { buildRoadMarkMesh } from './mesh/road-mark-mesh-builder.js';
 export { generateSamplePoints, generateUniformSamples } from './mesh/sampling.js';
+export { buildJunctionSurfaceMesh } from './mesh/junction-surface-builder.js';
 
 // Types
 export type { Vec3, Pose2D } from './geometry/types.js';
 export type { LaneBoundaryPoint } from './geometry/lane-boundary.js';
 export type { SamplingOptions } from './mesh/sampling.js';
+export type { JunctionSurfaceData } from './mesh/junction-surface-builder.js';

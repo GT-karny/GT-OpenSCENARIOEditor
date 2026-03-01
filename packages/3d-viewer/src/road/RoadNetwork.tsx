@@ -9,9 +9,11 @@
 
 import React, { useMemo } from 'react';
 import type { OpenDriveDocument } from '@osce/shared';
-import { generateRoadMesh } from '@osce/opendrive';
+import { generateRoadMesh, buildJunctionSurfaceMesh } from '@osce/opendrive';
+import type { JunctionSurfaceData } from '@osce/opendrive';
 import { RoadMesh } from './RoadMesh.js';
 import { RoadLabels } from './RoadLabels.js';
+import { JunctionMesh } from './JunctionMesh.js';
 
 interface RoadNetworkProps {
   odrDocument: OpenDriveDocument | null;
@@ -36,6 +38,17 @@ export const RoadNetwork: React.FC<RoadNetworkProps> = React.memo(
       }));
     }, [odrDocument]);
 
+    // Generate junction surface fill meshes
+    const junctionSurfaces = useMemo(() => {
+      if (!odrDocument) return [];
+      const surfaces: JunctionSurfaceData[] = [];
+      for (const junction of odrDocument.junctions) {
+        const surface = buildJunctionSurfaceMesh(junction, odrDocument.roads);
+        if (surface) surfaces.push(surface);
+      }
+      return surfaces;
+    }, [odrDocument]);
+
     if (!odrDocument || roadMeshes.length === 0) return null;
 
     return (
@@ -47,6 +60,10 @@ export const RoadNetwork: React.FC<RoadNetworkProps> = React.memo(
             roadMeshData={meshData}
             showRoadMarks={showRoadMarks}
           />
+        ))}
+        {/* Junction surface fills (rendered behind roads via polygonOffset) */}
+        {junctionSurfaces.map((surface) => (
+          <JunctionMesh key={`junc-${surface.junctionId}`} surface={surface} />
         ))}
         <RoadLabels
           roads={odrDocument.roads}
