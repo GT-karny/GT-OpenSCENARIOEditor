@@ -22,6 +22,10 @@ export interface EditorState {
   validationResult: ValidationResult | null;
   setValidationResult: (result: ValidationResult | null) => void;
 
+  // Node focus (navigation from validation errors)
+  focusNodeId: string | null;
+  setFocusNodeId: (id: string | null) => void;
+
   // Road Network (loaded .xodr)
   roadNetwork: OpenDriveDocument | null;
   setRoadNetwork: (doc: OpenDriveDocument | null) => void;
@@ -82,6 +86,10 @@ export const useEditorStore = create<EditorState>()(
       // Validation
       validationResult: null,
       setValidationResult: (result) => set({ validationResult: result }),
+
+      // Node focus
+      focusNodeId: null,
+      setFocusNodeId: (id) => set({ focusNodeId: id }),
 
       // Road Network
       roadNetwork: null,

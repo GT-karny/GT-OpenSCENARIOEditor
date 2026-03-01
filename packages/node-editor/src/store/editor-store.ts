@@ -15,12 +15,14 @@ export interface NodeEditorState {
   // UI state
   selectedElementIds: string[];
   hoveredElementId: string | null;
+  focusNodeId: string | null;
   collapsedNodes: Record<string, boolean>;
   viewport: { x: number; y: number; zoom: number };
 
   // Actions
   setSelectedElementIds: (ids: string[]) => void;
   setHoveredElementId: (id: string | null) => void;
+  setFocusNodeId: (id: string | null) => void;
   toggleNodeCollapsed: (nodeId: string) => void;
   setCollapsedNodes: (collapsed: Record<string, boolean>) => void;
   setViewport: (viewport: { x: number; y: number; zoom: number }) => void;
@@ -34,11 +36,13 @@ export function createEditorStore() {
     edges: [],
     selectedElementIds: [],
     hoveredElementId: null,
+    focusNodeId: null,
     collapsedNodes: {},
     viewport: { x: 0, y: 0, zoom: 1 },
 
     setSelectedElementIds: (ids: string[]) => set({ selectedElementIds: ids }),
     setHoveredElementId: (id: string | null) => set({ hoveredElementId: id }),
+    setFocusNodeId: (id: string | null) => set({ focusNodeId: id }),
     toggleNodeCollapsed: (nodeId: string) => {
       const current = get().collapsedNodes;
       set({
