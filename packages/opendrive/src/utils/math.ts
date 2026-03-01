@@ -14,7 +14,7 @@ export function clamp(value: number, min: number, max: number): number {
 
 /** Linear interpolation */
 export function lerp(a: number, b: number, t: number): number {
-  return a + (a - b) * t;
+  return a + (b - a) * t;
 }
 
 /** Normalize angle to [-PI, PI] */

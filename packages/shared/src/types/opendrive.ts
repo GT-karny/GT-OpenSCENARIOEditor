@@ -32,6 +32,7 @@ export interface OdrRoad {
   planView: OdrGeometry[];
   elevationProfile: OdrElevation[];
   lateralProfile: OdrSuperelevation[];
+  laneOffset: OdrLaneOffset[];
   lanes: OdrLaneSection[];
   objects: OdrRoadObject[];
   signals: OdrSignal[];
@@ -95,6 +96,14 @@ export interface OdrElevation {
 }
 
 export interface OdrSuperelevation {
+  s: number;
+  a: number;
+  b: number;
+  c: number;
+  d: number;
+}
+
+export interface OdrLaneOffset {
   s: number;
   a: number;
   b: number;
@@ -233,4 +242,6 @@ export interface RoadMarkMeshData {
   vertices: Float32Array;
   color: string;
   width: number;
+  /** Road mark type: 'solid', 'broken', 'solid solid', etc. */
+  markType: string;
 }

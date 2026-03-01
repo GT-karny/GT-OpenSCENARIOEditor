@@ -9,6 +9,7 @@ export { XodrParser } from './parser/xodr-parser.js';
 export { evaluateReferenceLineAtS, evaluateGeometry } from './geometry/reference-line.js';
 export { evaluateElevation } from './geometry/elevation.js';
 export { evaluateSuperelevation } from './geometry/superelevation.js';
+export { evaluateLaneOffset } from './geometry/lane-offset.js';
 export {
   computeLaneBoundaries,
   computeLaneWidth,

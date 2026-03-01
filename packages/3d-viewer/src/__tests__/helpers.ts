@@ -88,6 +88,7 @@ export function makeStraightRoad(): OdrRoad {
     ],
     elevationProfile: [{ s: 0, a: 0, b: 0, c: 0, d: 0 }],
     lateralProfile: [],
+    laneOffset: [],
     lanes: [laneSection],
     objects: [],
     signals: [],
