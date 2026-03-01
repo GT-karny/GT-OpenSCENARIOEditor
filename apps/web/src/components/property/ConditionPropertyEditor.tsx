@@ -1,7 +1,8 @@
-import type { Trigger, Condition } from '@osce/shared';
+import type { Trigger, Condition, Position } from '@osce/shared';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { EnumSelect } from './EnumSelect';
+import { PositionEditor } from './PositionEditor';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { CONDITION_EDGES, RULES } from '../../constants/osc-enum-values';
 
@@ -71,6 +72,21 @@ function ConditionItem({ condition }: ConditionItemProps) {
     }
   };
 
+  const handlePositionChange = (newPosition: Position) => {
+    const inner = condition.condition;
+    if (inner.kind === 'byEntity') {
+      const entityCondition = inner.entityCondition;
+      if ('position' in entityCondition) {
+        storeApi.getState().updateCondition(condition.id, {
+          condition: {
+            ...inner,
+            entityCondition: { ...entityCondition, position: newPosition },
+          },
+        } as Partial<Condition>);
+      }
+    }
+  };
+
   const hasRule = (() => {
     const inner = condition.condition;
     if (inner.kind === 'byEntity') {
@@ -92,6 +108,8 @@ function ConditionItem({ condition }: ConditionItemProps) {
     }
     return undefined;
   })();
+
+  const conditionPosition = getConditionPosition(condition);
 
   return (
     <div className="space-y-2 border-b pb-3">
@@ -121,6 +139,24 @@ function ConditionItem({ condition }: ConditionItemProps) {
           />
         </div>
       )}
+
+      {conditionPosition && (
+        <PositionEditor
+          position={conditionPosition}
+          onChange={handlePositionChange}
+        />
+      )}
     </div>
   );
+}
+
+function getConditionPosition(condition: Condition): Position | null {
+  const inner = condition.condition;
+  if (inner.kind !== 'byEntity') return null;
+
+  const ec = inner.entityCondition;
+  if ('position' in ec && ec.position && typeof ec.position === 'object' && 'type' in ec.position) {
+    return ec.position as Position;
+  }
+  return null;
 }
