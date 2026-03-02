@@ -1,5 +1,9 @@
 // Store
 export { createScenarioStore } from './store/scenario-store.js';
+
+// Action / Condition defaults (type switching)
+export { defaultActionByType } from './defaults/action-defaults.js';
+export { defaultEntityConditionByType, defaultValueConditionByType } from './defaults/condition-defaults.js';
 export type { ScenarioStore } from './store/scenario-store.js';
 export type { ScenarioState } from './store/store-types.js';
 

@@ -1,10 +1,22 @@
-import type { Trigger, Condition, Position } from '@osce/shared';
+import type {
+  Trigger,
+  Condition,
+  ByEntityCondition,
+  ByValueCondition,
+  EntityCondition,
+  ValueCondition,
+} from '@osce/shared';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { EnumSelect } from './EnumSelect';
-import { PositionEditor } from './PositionEditor';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
-import { CONDITION_EDGES, RULES } from '../../constants/osc-enum-values';
+import { defaultEntityConditionByType, defaultValueConditionByType } from '@osce/scenario-engine';
+import {
+  CONDITION_EDGES,
+  ENTITY_CONDITION_TYPES,
+  VALUE_CONDITION_TYPES,
+} from '../../constants/osc-enum-values';
+import { GenericConditionEditor } from './conditions/GenericConditionEditor';
 
 interface ConditionPropertyEditorProps {
   trigger: Trigger;
@@ -40,6 +52,18 @@ interface ConditionItemProps {
 
 function ConditionItem({ condition }: ConditionItemProps) {
   const storeApi = useScenarioStoreApi();
+  const inner = condition.condition;
+  const kind = inner.kind;
+
+  const conditionType =
+    kind === 'byEntity'
+      ? inner.entityCondition.type
+      : inner.valueCondition.type;
+
+  const typeOptions =
+    kind === 'byEntity'
+      ? ([...ENTITY_CONDITION_TYPES] as string[])
+      : ([...VALUE_CONDITION_TYPES] as string[]);
 
   const handleConditionEdgeChange = (value: string) => {
     storeApi.getState().updateCondition(condition.id, {
@@ -47,69 +71,42 @@ function ConditionItem({ condition }: ConditionItemProps) {
     });
   };
 
-  const handleRuleChange = (value: string) => {
-    const inner = condition.condition;
-    if (inner.kind === 'byEntity') {
-      const entityCondition = inner.entityCondition;
-      if ('rule' in entityCondition) {
-        storeApi.getState().updateCondition(condition.id, {
-          condition: {
-            ...inner,
-            entityCondition: { ...entityCondition, rule: value },
-          },
-        } as Partial<Condition>);
-      }
-    } else if (inner.kind === 'byValue') {
-      const valueCondition = inner.valueCondition;
-      if ('rule' in valueCondition) {
-        storeApi.getState().updateCondition(condition.id, {
-          condition: {
-            ...inner,
-            valueCondition: { ...valueCondition, rule: value },
-          },
-        } as Partial<Condition>);
-      }
+  const handleKindChange = (newKind: string) => {
+    let newConditionBody: ByEntityCondition | ByValueCondition;
+    if (newKind === 'byEntity') {
+      newConditionBody = {
+        kind: 'byEntity',
+        triggeringEntities: { triggeringEntitiesRule: 'any', entityRefs: [] },
+        entityCondition: defaultEntityConditionByType('speed'),
+      };
+    } else {
+      newConditionBody = {
+        kind: 'byValue',
+        valueCondition: defaultValueConditionByType('simulationTime'),
+      };
     }
+    storeApi.getState().updateCondition(condition.id, {
+      condition: newConditionBody,
+    } as Partial<Condition>);
   };
 
-  const handlePositionChange = (newPosition: Position) => {
-    const inner = condition.condition;
-    if (inner.kind === 'byEntity') {
-      const entityCondition = inner.entityCondition;
-      if ('position' in entityCondition) {
-        storeApi.getState().updateCondition(condition.id, {
-          condition: {
-            ...inner,
-            entityCondition: { ...entityCondition, position: newPosition },
-          },
-        } as Partial<Condition>);
-      }
+  const handleConditionTypeChange = (newType: string) => {
+    let newConditionBody: ByEntityCondition | ByValueCondition;
+    if (kind === 'byEntity') {
+      newConditionBody = {
+        ...inner,
+        entityCondition: defaultEntityConditionByType(newType as EntityCondition['type']),
+      } as ByEntityCondition;
+    } else {
+      newConditionBody = {
+        ...inner,
+        valueCondition: defaultValueConditionByType(newType as ValueCondition['type']),
+      } as ByValueCondition;
     }
+    storeApi.getState().updateCondition(condition.id, {
+      condition: newConditionBody,
+    } as Partial<Condition>);
   };
-
-  const hasRule = (() => {
-    const inner = condition.condition;
-    if (inner.kind === 'byEntity') {
-      return 'rule' in inner.entityCondition;
-    }
-    if (inner.kind === 'byValue') {
-      return 'rule' in inner.valueCondition;
-    }
-    return false;
-  })();
-
-  const currentRule = (() => {
-    const inner = condition.condition;
-    if (inner.kind === 'byEntity' && 'rule' in inner.entityCondition) {
-      return (inner.entityCondition as { rule: string }).rule;
-    }
-    if (inner.kind === 'byValue' && 'rule' in inner.valueCondition) {
-      return (inner.valueCondition as { rule: string }).rule;
-    }
-    return undefined;
-  })();
-
-  const conditionPosition = getConditionPosition(condition);
 
   return (
     <div className="space-y-2 border-b pb-3">
@@ -128,35 +125,29 @@ function ConditionItem({ condition }: ConditionItemProps) {
         />
       </div>
 
-      {hasRule && currentRule !== undefined && (
-        <div className="grid gap-1">
-          <Label className="text-xs">Rule</Label>
-          <EnumSelect
-            value={currentRule}
-            options={RULES}
-            onValueChange={handleRuleChange}
-            className="h-8 text-sm"
-          />
-        </div>
-      )}
-
-      {conditionPosition && (
-        <PositionEditor
-          position={conditionPosition}
-          onChange={handlePositionChange}
+      <div className="grid gap-1">
+        <Label className="text-xs">Kind</Label>
+        <EnumSelect
+          value={kind}
+          options={['byEntity', 'byValue']}
+          onValueChange={handleKindChange}
+          className="h-8 text-sm"
         />
-      )}
+      </div>
+
+      <div className="grid gap-1">
+        <Label className="text-xs">Type</Label>
+        <EnumSelect
+          value={conditionType}
+          options={typeOptions}
+          onValueChange={handleConditionTypeChange}
+          className="h-8 text-sm"
+        />
+      </div>
+
+      <div className="pt-1">
+        <GenericConditionEditor condition={condition} />
+      </div>
     </div>
   );
-}
-
-function getConditionPosition(condition: Condition): Position | null {
-  const inner = condition.condition;
-  if (inner.kind !== 'byEntity') return null;
-
-  const ec = inner.entityCondition;
-  if ('position' in ec && ec.position && typeof ec.position === 'object' && 'type' in ec.position) {
-    return ec.position as Position;
-  }
-  return null;
 }

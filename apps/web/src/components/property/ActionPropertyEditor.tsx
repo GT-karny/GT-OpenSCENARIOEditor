@@ -1,10 +1,32 @@
-import type { ScenarioAction, TransitionDynamics, Position } from '@osce/shared';
+import type { ScenarioAction } from '@osce/shared';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { EnumSelect } from './EnumSelect';
-import { PositionEditor } from './PositionEditor';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
-import { DYNAMICS_SHAPES } from '../../constants/osc-enum-values';
+import { defaultActionByType } from '@osce/scenario-engine';
+import {
+  PRIVATE_ACTION_TYPES,
+  GLOBAL_ACTION_TYPES,
+} from '../../constants/osc-enum-values';
+import { SpeedActionEditor } from './actions/SpeedActionEditor';
+import { LaneChangeActionEditor } from './actions/LaneChangeActionEditor';
+import { TeleportActionEditor } from './actions/TeleportActionEditor';
+import { GenericActionEditor } from './actions/GenericActionEditor';
+
+type ActionCategory = 'private' | 'global' | 'userDefined';
+
+function detectCategory(type: string): ActionCategory {
+  if ((PRIVATE_ACTION_TYPES as readonly string[]).includes(type)) return 'private';
+  if ((GLOBAL_ACTION_TYPES as readonly string[]).includes(type)) return 'global';
+  return 'userDefined';
+}
+
+const POSITION_BASED_TYPES = [
+  'teleportAction',
+  'acquirePositionAction',
+  'synchronizeAction',
+  'routingAction',
+] as const;
 
 interface ActionPropertyEditorProps {
   action: ScenarioAction;
@@ -12,25 +34,33 @@ interface ActionPropertyEditorProps {
 
 export function ActionPropertyEditor({ action }: ActionPropertyEditorProps) {
   const storeApi = useScenarioStoreApi();
-
-  const handleDynamicsShapeChange = (dynamics: TransitionDynamics, value: string) => {
-    const updatedAction = {
-      ...action.action,
-      dynamics: { ...dynamics, dynamicsShape: value },
-    };
-    storeApi.getState().updateAction(action.id, { action: updatedAction } as Partial<ScenarioAction>);
-  };
-
-  const handlePositionChange = (fieldName: string, newPosition: Position) => {
-    const updatedAction = { ...action.action, [fieldName]: newPosition };
-    storeApi.getState().updateAction(action.id, { action: updatedAction } as Partial<ScenarioAction>);
-  };
-
   const actionType = action.action.type;
-  const hasDynamics =
-    actionType === 'speedAction' || actionType === 'laneChangeAction';
+  const category = detectCategory(actionType);
 
-  const positionFields = getActionPositionFields(action.action);
+  const typeOptions =
+    category === 'private'
+      ? [...PRIVATE_ACTION_TYPES]
+      : category === 'global'
+        ? [...GLOBAL_ACTION_TYPES]
+        : ['userDefinedAction'];
+
+  const handleCategoryChange = (newCategory: string) => {
+    const firstType =
+      newCategory === 'private'
+        ? PRIVATE_ACTION_TYPES[0]
+        : newCategory === 'global'
+          ? GLOBAL_ACTION_TYPES[0]
+          : 'userDefinedAction';
+    storeApi.getState().updateAction(action.id, {
+      action: defaultActionByType(firstType),
+    } as Partial<ScenarioAction>);
+  };
+
+  const handleTypeChange = (newType: string) => {
+    storeApi.getState().updateAction(action.id, {
+      action: defaultActionByType(newType),
+    } as Partial<ScenarioAction>);
+  };
 
   return (
     <div className="space-y-4">
@@ -45,87 +75,36 @@ export function ActionPropertyEditor({ action }: ActionPropertyEditorProps) {
       </div>
 
       <div className="grid gap-2">
-        <Label className="text-xs">Type</Label>
-        <Input value={actionType} readOnly className="h-8 text-sm bg-muted" />
-      </div>
-
-      {hasDynamics && 'dynamics' in action.action && (
-        <DynamicsEditor
-          dynamics={(action.action as { dynamics: TransitionDynamics }).dynamics}
-          onDynamicsShapeChange={(value) =>
-            handleDynamicsShapeChange(
-              (action.action as { dynamics: TransitionDynamics }).dynamics,
-              value,
-            )
-          }
-        />
-      )}
-
-      {positionFields.map(({ fieldName, label, position }) => (
-        <div key={fieldName} className="space-y-1">
-          {label && <p className="text-xs font-medium text-muted-foreground">{label}</p>}
-          <PositionEditor
-            position={position}
-            onChange={(p) => handlePositionChange(fieldName, p)}
-          />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-interface ActionPositionField {
-  fieldName: string;
-  label: string | null;
-  position: Position;
-}
-
-function getActionPositionFields(innerAction: ScenarioAction['action']): ActionPositionField[] {
-  const fields: ActionPositionField[] = [];
-  const a = innerAction as Record<string, unknown>;
-
-  switch (innerAction.type) {
-    case 'teleportAction':
-    case 'acquirePositionAction':
-      if (a.position && typeof a.position === 'object' && 'type' in (a.position as object)) {
-        fields.push({ fieldName: 'position', label: null, position: a.position as Position });
-      }
-      break;
-    case 'synchronizeAction':
-      if (a.targetPositionMaster && typeof a.targetPositionMaster === 'object' && 'type' in (a.targetPositionMaster as object)) {
-        fields.push({ fieldName: 'targetPositionMaster', label: 'Master Position', position: a.targetPositionMaster as Position });
-      }
-      if (a.targetPosition && typeof a.targetPosition === 'object' && 'type' in (a.targetPosition as object)) {
-        fields.push({ fieldName: 'targetPosition', label: 'Target Position', position: a.targetPosition as Position });
-      }
-      break;
-    case 'routingAction':
-      if (a.position && typeof a.position === 'object' && 'type' in (a.position as object)) {
-        fields.push({ fieldName: 'position', label: null, position: a.position as Position });
-      }
-      break;
-  }
-
-  return fields;
-}
-
-interface DynamicsEditorProps {
-  dynamics: TransitionDynamics;
-  onDynamicsShapeChange: (value: string) => void;
-}
-
-function DynamicsEditor({ dynamics, onDynamicsShapeChange }: DynamicsEditorProps) {
-  return (
-    <div className="space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">Dynamics</p>
-      <div className="grid gap-1">
-        <Label className="text-xs">Shape</Label>
+        <Label className="text-xs">Category</Label>
         <EnumSelect
-          value={dynamics.dynamicsShape}
-          options={DYNAMICS_SHAPES}
-          onValueChange={onDynamicsShapeChange}
+          value={category}
+          options={['private', 'global', 'userDefined']}
+          onValueChange={handleCategoryChange}
           className="h-8 text-sm"
         />
+      </div>
+
+      <div className="grid gap-2">
+        <Label className="text-xs">Type</Label>
+        <EnumSelect
+          value={actionType}
+          options={typeOptions}
+          onValueChange={handleTypeChange}
+          className="h-8 text-sm"
+        />
+      </div>
+
+      <div className="pt-1 border-t">
+        {actionType === 'speedAction' && <SpeedActionEditor action={action} />}
+        {actionType === 'laneChangeAction' && <LaneChangeActionEditor action={action} />}
+        {(POSITION_BASED_TYPES as readonly string[]).includes(actionType) && (
+          <TeleportActionEditor action={action} />
+        )}
+        {actionType !== 'speedAction' &&
+          actionType !== 'laneChangeAction' &&
+          !(POSITION_BASED_TYPES as readonly string[]).includes(actionType) && (
+            <GenericActionEditor action={action} />
+          )}
       </div>
     </div>
   );

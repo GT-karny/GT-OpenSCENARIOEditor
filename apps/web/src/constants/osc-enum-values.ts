@@ -82,3 +82,62 @@ export const EVENT_PRIORITIES: readonly EventPriority[] = [
   'skip',
   'parallel',
 ] as const;
+
+export const PRIVATE_ACTION_TYPES = [
+  'speedAction',
+  'speedProfileAction',
+  'laneChangeAction',
+  'laneOffsetAction',
+  'lateralDistanceAction',
+  'longitudinalDistanceAction',
+  'teleportAction',
+  'synchronizeAction',
+  'followTrajectoryAction',
+  'acquirePositionAction',
+  'routingAction',
+  'assignControllerAction',
+  'activateControllerAction',
+  'overrideControllerAction',
+  'visibilityAction',
+  'appearanceAction',
+  'animationAction',
+  'lightStateAction',
+  'connectTrailerAction',
+  'disconnectTrailerAction',
+] as const;
+
+export const GLOBAL_ACTION_TYPES = [
+  'environmentAction',
+  'entityAction',
+  'parameterAction',
+  'variableAction',
+  'infrastructureAction',
+  'trafficAction',
+] as const;
+
+export const ENTITY_CONDITION_TYPES = [
+  'distance',
+  'relativeDistance',
+  'timeHeadway',
+  'timeToCollision',
+  'acceleration',
+  'speed',
+  'relativeSpeed',
+  'reachPosition',
+  'standStill',
+  'traveledDistance',
+  'endOfRoad',
+  'collision',
+  'offroad',
+  'relativeClearance',
+] as const;
+
+export const VALUE_CONDITION_TYPES = [
+  'simulationTime',
+  'storyboardElementState',
+  'parameter',
+  'variable',
+  'trafficSignal',
+  'trafficSignalController',
+  'userDefinedValue',
+] as const;
