@@ -60,8 +60,9 @@ export function EnvironmentActionEditor({ action }: EnvironmentActionEditorProps
           <Label className="text-xs">Date & Time</Label>
           <Input
             type="datetime-local"
-            value={env.timeOfDay.dateTime.slice(0, 16)}
-            onChange={(e) => updateEnv({ timeOfDay: { ...env.timeOfDay, dateTime: e.target.value + ':00' } })}
+            step={1}
+            value={env.timeOfDay.dateTime.slice(0, 19)}
+            onChange={(e) => updateEnv({ timeOfDay: { ...env.timeOfDay, dateTime: e.target.value } })}
             className="h-8 text-sm"
           />
         </div>

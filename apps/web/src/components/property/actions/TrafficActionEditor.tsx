@@ -15,8 +15,8 @@ export function TrafficActionEditor({ action }: TrafficActionEditorProps) {
   const storeApi = useScenarioStoreApi();
   const inner = action.action as TrafficAction;
 
-  const trafficName = typeof inner.trafficName === 'string' ? inner.trafficName : '';
-  const trafficSubType = typeof inner.trafficActionType === 'string' ? inner.trafficActionType : '';
+  const trafficName = inner.trafficName ?? '';
+  const trafficSubType = inner.trafficActionType ?? '';
 
   return (
     <div className="space-y-3">

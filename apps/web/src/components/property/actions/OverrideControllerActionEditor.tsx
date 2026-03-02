@@ -75,16 +75,15 @@ function OverrideValueGroup({ label, value, showMaxRate = true, showMaxTorque = 
               <Label className="text-xs text-muted-foreground">Max Torque</Label>
               <Input
                 type="number"
-                value={(value as OverrideValue & { maxTorque?: number }).maxTorque ?? ''}
+                value={value.maxTorque ?? ''}
                 placeholder="--"
                 onChange={(e) => {
                   const v = parseFloat(e.target.value);
-                  const extended = value as OverrideValue & { maxTorque?: number };
                   if (isNaN(v)) {
-                    const { maxTorque: _, ...rest } = extended;
-                    onChange(rest as OverrideValue);
+                    const { maxTorque: _, ...rest } = value;
+                    onChange(rest);
                   } else {
-                    onChange({ ...value, maxTorque: v } as OverrideValue);
+                    onChange({ ...value, maxTorque: v });
                   }
                 }}
                 className="h-7 text-xs"

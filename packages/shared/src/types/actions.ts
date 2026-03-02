@@ -287,6 +287,8 @@ export interface TrafficSignalAction {
 
 export interface TrafficAction {
   type: 'trafficAction';
+  trafficName?: string;
+  trafficActionType?: string;
   /** Traffic action details - source, sink, swarm, etc. */
   [key: string]: unknown;
 }
@@ -365,6 +367,7 @@ export interface OverrideValue {
   value: number;
   active: boolean;
   maxRate?: number;
+  maxTorque?: number;
 }
 
 export interface OverrideGearValue {

@@ -587,6 +587,7 @@ function parseOverrideValue(raw: any): OverrideValue {
     value: numAttr(raw, 'value'),
     active: boolAttr(raw, 'active'),
     maxRate: optNumAttr(raw, 'maxRate'),
+    maxTorque: optNumAttr(raw, 'maxTorque'),
   };
 }
 

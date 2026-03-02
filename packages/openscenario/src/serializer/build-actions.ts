@@ -574,6 +574,7 @@ function buildOverrideValue(ov: OverrideValue): Record<string, string> {
     value: ov.value,
     active: ov.active,
     maxRate: ov.maxRate,
+    maxTorque: ov.maxTorque,
   });
 }
 
