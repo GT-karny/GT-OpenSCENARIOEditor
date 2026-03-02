@@ -12,6 +12,7 @@
   },
   "include": ["src"],
   "references": [
+    { "path": "../../packages/theme-apex" },
     { "path": "../../packages/shared" },
     { "path": "../../packages/scenario-engine" },
     { "path": "../../packages/node-editor" },

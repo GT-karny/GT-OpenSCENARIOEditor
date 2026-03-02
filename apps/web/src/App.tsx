@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Toaster } from 'sonner';
 import { EditorLayout } from './components/layout/EditorLayout';
-import { CursorLight } from './components/apex/CursorLight';
+import { CursorLight } from '@osce/theme-apex';
 import { useKeyboardShortcuts } from './hooks/use-keyboard-shortcuts';
 import { useScenarioStoreApi } from './stores/use-scenario-store';
 import { useEditorStore } from './stores/editor-store';

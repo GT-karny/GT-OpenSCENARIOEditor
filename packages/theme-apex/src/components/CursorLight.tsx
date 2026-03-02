@@ -1,4 +1,4 @@
-import { useCursorLight } from '@/hooks/use-cursor-light';
+import { useCursorLight } from '../hooks/use-cursor-light.js';
 
 /**
  * APEX cursor light system — renders ambient overlays and

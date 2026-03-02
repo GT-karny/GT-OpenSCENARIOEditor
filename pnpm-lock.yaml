@@ -69,18 +69,6 @@ importers:
 
   apps/web:
     dependencies:
-      '@fontsource/exo-2':
-        specifier: ^5.2.8
-        version: 5.2.8
-      '@fontsource/jetbrains-mono':
-        specifier: ^5.2.8
-        version: 5.2.8
-      '@fontsource/m-plus-1p':
-        specifier: ^5.2.9
-        version: 5.2.9
-      '@fontsource/orbitron':
-        specifier: ^5.2.8
-        version: 5.2.8
       '@osce/3d-viewer':
         specifier: workspace:*
         version: link:../../packages/3d-viewer
@@ -105,6 +93,9 @@ importers:
       '@osce/templates':
         specifier: workspace:*
         version: link:../../packages/templates
+      '@osce/theme-apex':
+        specifier: workspace:*
+        version: link:../../packages/theme-apex
       '@radix-ui/react-accordion':
         specifier: ^1.2.0
         version: 1.2.12(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -395,6 +386,40 @@ importers:
       '@osce/shared':
         specifier: workspace:*
         version: link:../shared
+
+  packages/theme-apex:
+    dependencies:
+      '@fontsource/exo-2':
+        specifier: ^5.2.8
+        version: 5.2.8
+      '@fontsource/jetbrains-mono':
+        specifier: ^5.2.8
+        version: 5.2.8
+      '@fontsource/m-plus-1p':
+        specifier: ^5.2.9
+        version: 5.2.9
+      '@fontsource/orbitron':
+        specifier: ^5.2.8
+        version: 5.2.8
+      clsx:
+        specifier: ^2.1.0
+        version: 2.1.1
+      react:
+        specifier: ^19.0.0
+        version: 19.2.4
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.4(react@19.2.4)
+      tailwind-merge:
+        specifier: ^2.6.0
+        version: 2.6.1
+    devDependencies:
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.3(@types/react@19.2.14)
 
 packages:
 

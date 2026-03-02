@@ -6,7 +6,7 @@ import type { OsceNodeData, OsceNodeType } from '@osce/node-editor';
 import { ScenarioViewer } from '@osce/3d-viewer';
 import { HeaderToolbar } from './HeaderToolbar';
 import { StatusBar } from './StatusBar';
-import { GlassPanel } from '../apex/GlassPanel';
+import { GlassPanel } from '@osce/theme-apex';
 import { EntityListPanel } from '../panels/EntityListPanel';
 import { TemplatePalettePanel } from '../panels/TemplatePalettePanel';
 import { PropertyPanel } from '../panels/PropertyPanel';

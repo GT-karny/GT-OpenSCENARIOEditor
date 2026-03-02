@@ -13,10 +13,6 @@
     "test:e2e:gt-sim": "cross-env USE_GT_SIM=true playwright test"
   },
   "dependencies": {
-    "@fontsource/exo-2": "^5.2.8",
-    "@fontsource/jetbrains-mono": "^5.2.8",
-    "@fontsource/m-plus-1p": "^5.2.9",
-    "@fontsource/orbitron": "^5.2.8",
     "@osce/3d-viewer": "workspace:*",
     "@osce/i18n": "workspace:*",
     "@osce/node-editor": "workspace:*",
@@ -25,6 +21,7 @@
     "@osce/scenario-engine": "workspace:*",
     "@osce/shared": "workspace:*",
     "@osce/templates": "workspace:*",
+    "@osce/theme-apex": "workspace:*",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-dialog": "^1.1.0",
     "@radix-ui/react-dropdown-menu": "^2.1.0",
