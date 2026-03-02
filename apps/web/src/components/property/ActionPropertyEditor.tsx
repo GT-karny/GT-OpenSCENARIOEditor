@@ -18,6 +18,15 @@ import { ActivateControllerActionEditor } from './actions/ActivateControllerActi
 import { AssignControllerActionEditor } from './actions/AssignControllerActionEditor';
 import { FollowTrajectoryActionEditor } from './actions/FollowTrajectoryActionEditor';
 import { RoutingActionEditor } from './actions/RoutingActionEditor';
+import { VisibilityActionEditor } from './actions/VisibilityActionEditor';
+import { ConnectTrailerActionEditor } from './actions/ConnectTrailerActionEditor';
+import { DisconnectTrailerActionEditor } from './actions/DisconnectTrailerActionEditor';
+import { AnimationActionEditor } from './actions/AnimationActionEditor';
+import { LightStateActionEditor } from './actions/LightStateActionEditor';
+import { OverrideControllerActionEditor } from './actions/OverrideControllerActionEditor';
+import { EntityActionEditor } from './actions/EntityActionEditor';
+import { EnvironmentActionEditor } from './actions/EnvironmentActionEditor';
+import { TrafficActionEditor } from './actions/TrafficActionEditor';
 import { GenericActionEditor } from './actions/GenericActionEditor';
 
 type ActionCategory = 'private' | 'global' | 'userDefined';
@@ -31,6 +40,18 @@ function detectCategory(type: string): ActionCategory {
 const POSITION_BASED_TYPES = [
   'teleportAction',
   'synchronizeAction',
+] as const;
+
+const PHASE5_TYPES = [
+  'visibilityAction',
+  'connectTrailerAction',
+  'disconnectTrailerAction',
+  'animationAction',
+  'lightStateAction',
+  'overrideControllerAction',
+  'entityAction',
+  'environmentAction',
+  'trafficAction',
 ] as const;
 
 interface ActionPropertyEditorProps {
@@ -112,6 +133,15 @@ export function ActionPropertyEditor({ action }: ActionPropertyEditorProps) {
         {(POSITION_BASED_TYPES as readonly string[]).includes(actionType) && (
           <TeleportActionEditor action={action} />
         )}
+        {actionType === 'visibilityAction' && <VisibilityActionEditor action={action} />}
+        {actionType === 'connectTrailerAction' && <ConnectTrailerActionEditor action={action} />}
+        {actionType === 'disconnectTrailerAction' && <DisconnectTrailerActionEditor action={action} />}
+        {actionType === 'animationAction' && <AnimationActionEditor action={action} />}
+        {actionType === 'lightStateAction' && <LightStateActionEditor action={action} />}
+        {actionType === 'overrideControllerAction' && <OverrideControllerActionEditor action={action} />}
+        {actionType === 'entityAction' && <EntityActionEditor action={action} />}
+        {actionType === 'environmentAction' && <EnvironmentActionEditor action={action} />}
+        {actionType === 'trafficAction' && <TrafficActionEditor action={action} />}
         {actionType !== 'speedAction' &&
           actionType !== 'laneChangeAction' &&
           actionType !== 'longitudinalDistanceAction' &&
@@ -121,7 +151,8 @@ export function ActionPropertyEditor({ action }: ActionPropertyEditorProps) {
           actionType !== 'assignControllerAction' &&
           actionType !== 'followTrajectoryAction' &&
           actionType !== 'routingAction' &&
-          !(POSITION_BASED_TYPES as readonly string[]).includes(actionType) && (
+          !(POSITION_BASED_TYPES as readonly string[]).includes(actionType) &&
+          !(PHASE5_TYPES as readonly string[]).includes(actionType) && (
             <GenericActionEditor action={action} />
           )}
       </div>
