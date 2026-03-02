@@ -95,6 +95,14 @@ function omitKey<T>(obj: T, key: string): T {
   return result as T;
 }
 
+function applyOrientation<T extends { orientation?: Orientation }>(pos: T, o: Orientation | undefined): T {
+  if (o === undefined) {
+    const { orientation: _, ...rest } = pos as T & { orientation?: Orientation };
+    return rest as T;
+  }
+  return { ...pos, orientation: o };
+}
+
 // --- WorldPosition ---
 
 function WorldPositionFields({
@@ -178,12 +186,7 @@ function LanePositionFields({
       </div>
       <OrientationFields
         orientation={position.orientation}
-        onChange={(o) => {
-          const pos = { ...position };
-          if (o === undefined) delete pos.orientation;
-          else pos.orientation = o;
-          onChange(pos);
-        }}
+        onChange={(o) => onChange(applyOrientation(position, o))}
       />
     </div>
   );
@@ -229,12 +232,7 @@ function RelativeLanePositionFields({
       </div>
       <OrientationFields
         orientation={position.orientation}
-        onChange={(o) => {
-          const pos = { ...position };
-          if (o === undefined) delete pos.orientation;
-          else pos.orientation = o;
-          onChange(pos);
-        }}
+        onChange={(o) => onChange(applyOrientation(position, o))}
       />
     </div>
   );
@@ -361,12 +359,7 @@ function RelativeObjectPositionFields({
       </div>
       <OrientationFields
         orientation={position.orientation}
-        onChange={(o) => {
-          const pos = { ...position };
-          if (o === undefined) delete pos.orientation;
-          else pos.orientation = o;
-          onChange(pos);
-        }}
+        onChange={(o) => onChange(applyOrientation(position, o))}
       />
     </div>
   );
@@ -421,12 +414,7 @@ function RelativeWorldPositionFields({
       </div>
       <OrientationFields
         orientation={position.orientation}
-        onChange={(o) => {
-          const pos = { ...position };
-          if (o === undefined) delete pos.orientation;
-          else pos.orientation = o;
-          onChange(pos);
-        }}
+        onChange={(o) => onChange(applyOrientation(position, o))}
       />
     </div>
   );
@@ -531,6 +519,10 @@ function TextField({
 
 // --- OrientationFields ---
 
+function isOrientationEmpty(ori: Partial<Orientation>): boolean {
+  return ori.type === undefined && ori.h === undefined && ori.p === undefined && ori.r === undefined;
+}
+
 function OrientationFields({
   orientation,
   onChange,
@@ -542,23 +534,13 @@ function OrientationFields({
 
   const update = (updates: Partial<Orientation>) => {
     const next = { ...ori, ...updates };
-    const isEmpty =
-      next.type === undefined &&
-      next.h === undefined &&
-      next.p === undefined &&
-      next.r === undefined;
-    onChange(isEmpty ? undefined : next);
+    onChange(isOrientationEmpty(next) ? undefined : next);
   };
 
   const clearKey = (key: keyof Orientation) => {
     const next = { ...ori };
     delete next[key];
-    const isEmpty =
-      next.type === undefined &&
-      next.h === undefined &&
-      next.p === undefined &&
-      next.r === undefined;
-    onChange(isEmpty ? undefined : next);
+    onChange(isOrientationEmpty(next) ? undefined : next);
   };
 
   return (

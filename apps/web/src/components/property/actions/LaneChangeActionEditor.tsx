@@ -118,7 +118,7 @@ export function LaneChangeActionEditor({ action }: LaneChangeActionEditorProps) 
       <div className="space-y-2">
         <p className="text-xs font-medium text-muted-foreground">Options</p>
         <div className="grid gap-1">
-          <Label className="text-xs">Lane Offset (optional)</Label>
+          <Label className="text-xs">Target Lane Offset (optional)</Label>
           <Input
             type="number"
             value={inner.targetLaneOffset ?? ''}

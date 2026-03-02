@@ -21,27 +21,25 @@ export function SimulationTimeConditionEditor({ condition }: SimulationTimeCondi
   };
 
   return (
-    <div className="space-y-3">
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Simulation Time</p>
-        <div className="grid gap-1">
-          <Label className="text-xs">Value (s)</Label>
-          <Input
-            type="number"
-            value={cond.value}
-            onChange={(e) => update({ value: parseFloat(e.target.value) || 0 })}
-            className="h-8 text-sm"
-          />
-        </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Rule</Label>
-          <EnumSelect
-            value={cond.rule}
-            options={RULES}
-            onValueChange={(v) => update({ rule: v as SimulationTimeCondition['rule'] })}
-            className="h-8 text-sm"
-          />
-        </div>
+    <div className="space-y-2">
+      <p className="text-xs font-medium text-muted-foreground">Simulation Time</p>
+      <div className="grid gap-1">
+        <Label className="text-xs">Value (s)</Label>
+        <Input
+          type="number"
+          value={cond.value}
+          onChange={(e) => update({ value: parseFloat(e.target.value) || 0 })}
+          className="h-8 text-sm"
+        />
+      </div>
+      <div className="grid gap-1">
+        <Label className="text-xs">Rule</Label>
+        <EnumSelect
+          value={cond.rule}
+          options={RULES}
+          onValueChange={(v) => update({ rule: v as SimulationTimeCondition['rule'] })}
+          className="h-8 text-sm"
+        />
       </div>
     </div>
   );
