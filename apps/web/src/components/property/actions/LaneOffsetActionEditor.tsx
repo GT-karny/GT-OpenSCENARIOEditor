@@ -1,0 +1,146 @@
+import type {
+  ScenarioAction,
+  LaneOffsetAction,
+  LaneOffsetTarget,
+  LaneOffsetDynamics,
+  DynamicsShape,
+} from '@osce/shared';
+import { Label } from '../../ui/label';
+import { Input } from '../../ui/input';
+import { EnumSelect } from '../EnumSelect';
+import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
+
+interface LaneOffsetActionEditorProps {
+  action: ScenarioAction;
+}
+
+export function LaneOffsetActionEditor({ action }: LaneOffsetActionEditorProps) {
+  const storeApi = useScenarioStoreApi();
+  const inner = action.action as LaneOffsetAction;
+
+  const updateInner = (updates: Partial<LaneOffsetAction>) => {
+    storeApi.getState().updateAction(action.id, {
+      action: { ...inner, ...updates },
+    } as Partial<ScenarioAction>);
+  };
+
+  const dynamics = inner.dynamics;
+
+  const updateDynamicsShape = (v: string) => {
+    if (v === '') {
+      const { dynamicsShape: _ds, ...rest } = dynamics;
+      updateInner({ dynamics: rest as LaneOffsetDynamics });
+    } else {
+      updateInner({ dynamics: { ...dynamics, dynamicsShape: v as DynamicsShape } });
+    }
+  };
+
+  const updateDynamicsNum = (field: 'maxSpeed' | 'maxLateralAcc', value: string) => {
+    if (value === '') {
+      const { [field]: _removed, ...rest } = dynamics;
+      updateInner({ dynamics: rest as LaneOffsetDynamics });
+    } else {
+      const n = parseFloat(value);
+      if (!Number.isFinite(n)) return;
+      updateInner({ dynamics: { ...dynamics, [field]: n } });
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-muted-foreground">Options</p>
+        <div className="grid gap-1">
+          <Label className="text-xs">Continuous</Label>
+          <EnumSelect
+            value={String(inner.continuous)}
+            options={['false', 'true']}
+            onValueChange={(v) => updateInner({ continuous: v === 'true' })}
+            className="h-8 text-sm"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-muted-foreground">Dynamics</p>
+        <div className="grid gap-1">
+          <Label className="text-xs">Max Speed (optional)</Label>
+          <Input
+            type="number"
+            value={dynamics.maxSpeed ?? ''}
+            placeholder="—"
+            step="any"
+            onChange={(e) => updateDynamicsNum('maxSpeed', e.target.value)}
+            className="h-8 text-sm"
+          />
+        </div>
+        <div className="grid gap-1">
+          <Label className="text-xs">Max Lateral Acc (optional)</Label>
+          <Input
+            type="number"
+            value={dynamics.maxLateralAcc ?? ''}
+            placeholder="—"
+            step="any"
+            onChange={(e) => updateDynamicsNum('maxLateralAcc', e.target.value)}
+            className="h-8 text-sm"
+          />
+        </div>
+        <div className="grid gap-1">
+          <Label className="text-xs">Dynamics Shape (optional)</Label>
+          <EnumSelect
+            value={dynamics.dynamicsShape ?? ''}
+            options={['', 'cubic', 'linear', 'sinusoidal', 'step']}
+            onValueChange={updateDynamicsShape}
+            className="h-8 text-sm"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-muted-foreground">Target</p>
+        <div className="grid gap-1">
+          <Label className="text-xs">Kind</Label>
+          <EnumSelect
+            value={inner.target.kind}
+            options={['absolute', 'relative']}
+            onValueChange={(v) => {
+              if (v === 'absolute') {
+                updateInner({ target: { kind: 'absolute', value: 0 } });
+              } else {
+                updateInner({ target: { kind: 'relative', entityRef: '', value: 0 } });
+              }
+            }}
+            className="h-8 text-sm"
+          />
+        </div>
+        <div className="grid gap-1">
+          <Label className="text-xs">Value</Label>
+          <Input
+            type="number"
+            value={inner.target.value}
+            onChange={(e) =>
+              updateInner({
+                target: { ...inner.target, value: parseFloat(e.target.value) || 0 } as LaneOffsetTarget,
+              })
+            }
+            className="h-8 text-sm"
+          />
+        </div>
+        {inner.target.kind === 'relative' && (
+          <div className="grid gap-1">
+            <Label className="text-xs">Entity Ref</Label>
+            <Input
+              value={inner.target.entityRef}
+              onChange={(e) =>
+                updateInner({
+                  target: { ...inner.target, entityRef: e.target.value } as LaneOffsetTarget,
+                })
+              }
+              className="h-8 text-sm"
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

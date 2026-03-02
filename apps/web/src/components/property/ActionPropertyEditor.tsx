@@ -11,6 +11,9 @@ import {
 import { SpeedActionEditor } from './actions/SpeedActionEditor';
 import { LaneChangeActionEditor } from './actions/LaneChangeActionEditor';
 import { TeleportActionEditor } from './actions/TeleportActionEditor';
+import { LongitudinalDistanceActionEditor } from './actions/LongitudinalDistanceActionEditor';
+import { LaneOffsetActionEditor } from './actions/LaneOffsetActionEditor';
+import { AcquirePositionActionEditor } from './actions/AcquirePositionActionEditor';
 import { GenericActionEditor } from './actions/GenericActionEditor';
 
 type ActionCategory = 'private' | 'global' | 'userDefined';
@@ -23,7 +26,6 @@ function detectCategory(type: string): ActionCategory {
 
 const POSITION_BASED_TYPES = [
   'teleportAction',
-  'acquirePositionAction',
   'synchronizeAction',
   'routingAction',
 ] as const;
@@ -97,11 +99,17 @@ export function ActionPropertyEditor({ action }: ActionPropertyEditorProps) {
       <div className="pt-1 border-t">
         {actionType === 'speedAction' && <SpeedActionEditor action={action} />}
         {actionType === 'laneChangeAction' && <LaneChangeActionEditor action={action} />}
+        {actionType === 'longitudinalDistanceAction' && <LongitudinalDistanceActionEditor action={action} />}
+        {actionType === 'laneOffsetAction' && <LaneOffsetActionEditor action={action} />}
+        {actionType === 'acquirePositionAction' && <AcquirePositionActionEditor action={action} />}
         {(POSITION_BASED_TYPES as readonly string[]).includes(actionType) && (
           <TeleportActionEditor action={action} />
         )}
         {actionType !== 'speedAction' &&
           actionType !== 'laneChangeAction' &&
+          actionType !== 'longitudinalDistanceAction' &&
+          actionType !== 'laneOffsetAction' &&
+          actionType !== 'acquirePositionAction' &&
           !(POSITION_BASED_TYPES as readonly string[]).includes(actionType) && (
             <GenericActionEditor action={action} />
           )}
