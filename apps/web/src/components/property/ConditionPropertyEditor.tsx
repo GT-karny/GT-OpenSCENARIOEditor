@@ -13,6 +13,12 @@ import { DistanceConditionEditor } from './conditions/DistanceConditionEditor';
 import { ReachPositionConditionEditor } from './conditions/ReachPositionConditionEditor';
 import { StandStillConditionEditor } from './conditions/StandStillConditionEditor';
 import { TraveledDistanceConditionEditor } from './conditions/TraveledDistanceConditionEditor';
+import { AccelerationConditionEditor } from './conditions/AccelerationConditionEditor';
+import { RelativeSpeedConditionEditor } from './conditions/RelativeSpeedConditionEditor';
+import { ParameterConditionEditor } from './conditions/ParameterConditionEditor';
+import { VariableConditionEditor } from './conditions/VariableConditionEditor';
+import { StoryboardElementStateConditionEditor } from './conditions/StoryboardElementStateConditionEditor';
+import { TimeToCollisionConditionEditor } from './conditions/TimeToCollisionConditionEditor';
 
 // Condition types that have dedicated editors (and handle position internally)
 const DEDICATED_EDITOR_TYPES = new Set([
@@ -23,6 +29,12 @@ const DEDICATED_EDITOR_TYPES = new Set([
   'reachPosition',
   'standStill',
   'traveledDistance',
+  'acceleration',
+  'relativeSpeed',
+  'timeToCollision',
+  'storyboardElementState',
+  'parameter',
+  'variable',
 ]);
 
 interface ConditionPropertyEditorProps {
@@ -160,6 +172,24 @@ function ConditionItem({ condition }: ConditionItemProps) {
     }
     if (conditionType === 'traveledDistance') {
       return <TraveledDistanceConditionEditor condition={condition} />;
+    }
+    if (conditionType === 'acceleration') {
+      return <AccelerationConditionEditor condition={condition} />;
+    }
+    if (conditionType === 'relativeSpeed') {
+      return <RelativeSpeedConditionEditor condition={condition} />;
+    }
+    if (conditionType === 'timeToCollision') {
+      return <TimeToCollisionConditionEditor condition={condition} />;
+    }
+    if (conditionType === 'storyboardElementState') {
+      return <StoryboardElementStateConditionEditor condition={condition} />;
+    }
+    if (conditionType === 'parameter') {
+      return <ParameterConditionEditor condition={condition} />;
+    }
+    if (conditionType === 'variable') {
+      return <VariableConditionEditor condition={condition} />;
     }
     return <GenericConditionEditor condition={condition} />;
   };

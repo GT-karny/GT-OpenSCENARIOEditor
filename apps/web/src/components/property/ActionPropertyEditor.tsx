@@ -14,6 +14,10 @@ import { TeleportActionEditor } from './actions/TeleportActionEditor';
 import { LongitudinalDistanceActionEditor } from './actions/LongitudinalDistanceActionEditor';
 import { LaneOffsetActionEditor } from './actions/LaneOffsetActionEditor';
 import { AcquirePositionActionEditor } from './actions/AcquirePositionActionEditor';
+import { ActivateControllerActionEditor } from './actions/ActivateControllerActionEditor';
+import { AssignControllerActionEditor } from './actions/AssignControllerActionEditor';
+import { FollowTrajectoryActionEditor } from './actions/FollowTrajectoryActionEditor';
+import { RoutingActionEditor } from './actions/RoutingActionEditor';
 import { GenericActionEditor } from './actions/GenericActionEditor';
 
 type ActionCategory = 'private' | 'global' | 'userDefined';
@@ -27,7 +31,6 @@ function detectCategory(type: string): ActionCategory {
 const POSITION_BASED_TYPES = [
   'teleportAction',
   'synchronizeAction',
-  'routingAction',
 ] as const;
 
 interface ActionPropertyEditorProps {
@@ -102,6 +105,10 @@ export function ActionPropertyEditor({ action }: ActionPropertyEditorProps) {
         {actionType === 'longitudinalDistanceAction' && <LongitudinalDistanceActionEditor action={action} />}
         {actionType === 'laneOffsetAction' && <LaneOffsetActionEditor action={action} />}
         {actionType === 'acquirePositionAction' && <AcquirePositionActionEditor action={action} />}
+        {actionType === 'activateControllerAction' && <ActivateControllerActionEditor action={action} />}
+        {actionType === 'assignControllerAction' && <AssignControllerActionEditor action={action} />}
+        {actionType === 'followTrajectoryAction' && <FollowTrajectoryActionEditor action={action} />}
+        {actionType === 'routingAction' && <RoutingActionEditor action={action} />}
         {(POSITION_BASED_TYPES as readonly string[]).includes(actionType) && (
           <TeleportActionEditor action={action} />
         )}
@@ -110,6 +117,10 @@ export function ActionPropertyEditor({ action }: ActionPropertyEditorProps) {
           actionType !== 'longitudinalDistanceAction' &&
           actionType !== 'laneOffsetAction' &&
           actionType !== 'acquirePositionAction' &&
+          actionType !== 'activateControllerAction' &&
+          actionType !== 'assignControllerAction' &&
+          actionType !== 'followTrajectoryAction' &&
+          actionType !== 'routingAction' &&
           !(POSITION_BASED_TYPES as readonly string[]).includes(actionType) && (
             <GenericActionEditor action={action} />
           )}
