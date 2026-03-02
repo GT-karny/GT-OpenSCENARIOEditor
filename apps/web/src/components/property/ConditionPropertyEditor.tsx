@@ -17,6 +17,8 @@ import {
   VALUE_CONDITION_TYPES,
 } from '../../constants/osc-enum-values';
 import { GenericConditionEditor } from './conditions/GenericConditionEditor';
+import { SimulationTimeConditionEditor } from './conditions/SimulationTimeConditionEditor';
+import { TimeHeadwayConditionEditor } from './conditions/TimeHeadwayConditionEditor';
 
 interface ConditionPropertyEditorProps {
   trigger: Trigger;
@@ -126,6 +128,20 @@ function ConditionItem({ condition }: ConditionItemProps) {
       </div>
 
       <div className="grid gap-1">
+        <Label className="text-xs">Delay (s)</Label>
+        <Input
+          type="number"
+          value={condition.delay}
+          onChange={(e) =>
+            storeApi.getState().updateCondition(condition.id, {
+              delay: parseFloat(e.target.value) || 0,
+            })
+          }
+          className="h-8 text-sm"
+        />
+      </div>
+
+      <div className="grid gap-1">
         <Label className="text-xs">Kind</Label>
         <EnumSelect
           value={kind}
@@ -146,7 +162,15 @@ function ConditionItem({ condition }: ConditionItemProps) {
       </div>
 
       <div className="pt-1">
-        <GenericConditionEditor condition={condition} />
+        {conditionType === 'simulationTime' && (
+          <SimulationTimeConditionEditor condition={condition} />
+        )}
+        {conditionType === 'timeHeadway' && (
+          <TimeHeadwayConditionEditor condition={condition} />
+        )}
+        {conditionType !== 'simulationTime' && conditionType !== 'timeHeadway' && (
+          <GenericConditionEditor condition={condition} />
+        )}
       </div>
     </div>
   );

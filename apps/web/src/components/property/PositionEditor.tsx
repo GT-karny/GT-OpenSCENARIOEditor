@@ -8,6 +8,7 @@ import type {
   RelativeObjectPosition,
   RelativeWorldPosition,
   GeoPosition,
+  Orientation,
 } from '@osce/shared';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
@@ -141,37 +142,48 @@ function LanePositionFields({
   onChange: (p: Position) => void;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-2">
-      <TextField
-        label="Road ID"
-        value={position.roadId}
-        onChange={(v) => onChange({ ...position, roadId: v })}
-      />
-      <TextField
-        label="Lane ID"
-        value={position.laneId}
-        onChange={(v) => onChange({ ...position, laneId: v })}
-      />
-      <NumField
-        label="S"
-        value={position.s}
-        onChange={(v) => {
-          const n = parseNum(v);
-          if (n !== undefined) onChange({ ...position, s: n });
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-2">
+        <TextField
+          label="Road ID"
+          value={position.roadId}
+          onChange={(v) => onChange({ ...position, roadId: v })}
+        />
+        <TextField
+          label="Lane ID"
+          value={position.laneId}
+          onChange={(v) => onChange({ ...position, laneId: v })}
+        />
+        <NumField
+          label="S"
+          value={position.s}
+          onChange={(v) => {
+            const n = parseNum(v);
+            if (n !== undefined) onChange({ ...position, s: n });
+          }}
+        />
+        <NumField
+          label="Offset"
+          value={position.offset}
+          onChange={(v) => {
+            if (v === '') {
+              onChange(omitKey(position, 'offset') as LanePosition);
+              return;
+            }
+            const n = parseNum(v);
+            if (n !== undefined) onChange({ ...position, offset: n });
+          }}
+          optional
+        />
+      </div>
+      <OrientationFields
+        orientation={position.orientation}
+        onChange={(o) => {
+          const pos = { ...position };
+          if (o === undefined) delete pos.orientation;
+          else pos.orientation = o;
+          onChange(pos);
         }}
-      />
-      <NumField
-        label="Offset"
-        value={position.offset}
-        onChange={(v) => {
-          if (v === '') {
-            onChange(omitKey(position, 'offset') as LanePosition);
-            return;
-          }
-          const n = parseNum(v);
-          if (n !== undefined) onChange({ ...position, offset: n });
-        }}
-        optional
       />
     </div>
   );
@@ -196,23 +208,34 @@ function RelativeLanePositionFields({
   };
 
   return (
-    <div className="grid grid-cols-2 gap-2">
-      <TextField
-        label="Entity Ref"
-        value={position.entityRef}
-        onChange={(v) => onChange({ ...position, entityRef: v })}
-      />
-      <NumField
-        label="dLane"
-        value={position.dLane}
-        onChange={(v) => {
-          const n = parseNum(v);
-          if (n !== undefined) onChange({ ...position, dLane: n });
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-2">
+        <TextField
+          label="Entity Ref"
+          value={position.entityRef}
+          onChange={(v) => onChange({ ...position, entityRef: v })}
+        />
+        <NumField
+          label="dLane"
+          value={position.dLane}
+          onChange={(v) => {
+            const n = parseNum(v);
+            if (n !== undefined) onChange({ ...position, dLane: n });
+          }}
+        />
+        <NumField label="ds" value={position.ds} onChange={(v) => updateOptionalNum('ds', v)} optional />
+        <NumField label="dsLane" value={position.dsLane} onChange={(v) => updateOptionalNum('dsLane', v)} optional />
+        <NumField label="Offset" value={position.offset} onChange={(v) => updateOptionalNum('offset', v)} optional />
+      </div>
+      <OrientationFields
+        orientation={position.orientation}
+        onChange={(o) => {
+          const pos = { ...position };
+          if (o === undefined) delete pos.orientation;
+          else pos.orientation = o;
+          onChange(pos);
         }}
       />
-      <NumField label="ds" value={position.ds} onChange={(v) => updateOptionalNum('ds', v)} optional />
-      <NumField label="dsLane" value={position.dsLane} onChange={(v) => updateOptionalNum('dsLane', v)} optional />
-      <NumField label="Offset" value={position.offset} onChange={(v) => updateOptionalNum('offset', v)} optional />
     </div>
   );
 }
@@ -299,40 +322,51 @@ function RelativeObjectPositionFields({
   onChange: (p: Position) => void;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-2">
-      <TextField
-        label="Entity Ref"
-        value={position.entityRef}
-        onChange={(v) => onChange({ ...position, entityRef: v })}
-      />
-      <NumField
-        label="dx"
-        value={position.dx}
-        onChange={(v) => {
-          const n = parseNum(v);
-          if (n !== undefined) onChange({ ...position, dx: n });
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-2">
+        <TextField
+          label="Entity Ref"
+          value={position.entityRef}
+          onChange={(v) => onChange({ ...position, entityRef: v })}
+        />
+        <NumField
+          label="dx"
+          value={position.dx}
+          onChange={(v) => {
+            const n = parseNum(v);
+            if (n !== undefined) onChange({ ...position, dx: n });
+          }}
+        />
+        <NumField
+          label="dy"
+          value={position.dy}
+          onChange={(v) => {
+            const n = parseNum(v);
+            if (n !== undefined) onChange({ ...position, dy: n });
+          }}
+        />
+        <NumField
+          label="dz"
+          value={position.dz}
+          onChange={(v) => {
+            if (v === '') {
+              onChange(omitKey(position, 'dz') as RelativeObjectPosition);
+              return;
+            }
+            const n = parseNum(v);
+            if (n !== undefined) onChange({ ...position, dz: n });
+          }}
+          optional
+        />
+      </div>
+      <OrientationFields
+        orientation={position.orientation}
+        onChange={(o) => {
+          const pos = { ...position };
+          if (o === undefined) delete pos.orientation;
+          else pos.orientation = o;
+          onChange(pos);
         }}
-      />
-      <NumField
-        label="dy"
-        value={position.dy}
-        onChange={(v) => {
-          const n = parseNum(v);
-          if (n !== undefined) onChange({ ...position, dy: n });
-        }}
-      />
-      <NumField
-        label="dz"
-        value={position.dz}
-        onChange={(v) => {
-          if (v === '') {
-            onChange(omitKey(position, 'dz') as RelativeObjectPosition);
-            return;
-          }
-          const n = parseNum(v);
-          if (n !== undefined) onChange({ ...position, dz: n });
-        }}
-        optional
       />
     </div>
   );
@@ -348,40 +382,51 @@ function RelativeWorldPositionFields({
   onChange: (p: Position) => void;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-2">
-      <TextField
-        label="Entity Ref"
-        value={position.entityRef}
-        onChange={(v) => onChange({ ...position, entityRef: v })}
-      />
-      <NumField
-        label="dx"
-        value={position.dx}
-        onChange={(v) => {
-          const n = parseNum(v);
-          if (n !== undefined) onChange({ ...position, dx: n });
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-2">
+        <TextField
+          label="Entity Ref"
+          value={position.entityRef}
+          onChange={(v) => onChange({ ...position, entityRef: v })}
+        />
+        <NumField
+          label="dx"
+          value={position.dx}
+          onChange={(v) => {
+            const n = parseNum(v);
+            if (n !== undefined) onChange({ ...position, dx: n });
+          }}
+        />
+        <NumField
+          label="dy"
+          value={position.dy}
+          onChange={(v) => {
+            const n = parseNum(v);
+            if (n !== undefined) onChange({ ...position, dy: n });
+          }}
+        />
+        <NumField
+          label="dz"
+          value={position.dz}
+          onChange={(v) => {
+            if (v === '') {
+              onChange(omitKey(position, 'dz') as RelativeWorldPosition);
+              return;
+            }
+            const n = parseNum(v);
+            if (n !== undefined) onChange({ ...position, dz: n });
+          }}
+          optional
+        />
+      </div>
+      <OrientationFields
+        orientation={position.orientation}
+        onChange={(o) => {
+          const pos = { ...position };
+          if (o === undefined) delete pos.orientation;
+          else pos.orientation = o;
+          onChange(pos);
         }}
-      />
-      <NumField
-        label="dy"
-        value={position.dy}
-        onChange={(v) => {
-          const n = parseNum(v);
-          if (n !== undefined) onChange({ ...position, dy: n });
-        }}
-      />
-      <NumField
-        label="dz"
-        value={position.dz}
-        onChange={(v) => {
-          if (v === '') {
-            onChange(omitKey(position, 'dz') as RelativeWorldPosition);
-            return;
-          }
-          const n = parseNum(v);
-          if (n !== undefined) onChange({ ...position, dz: n });
-        }}
-        optional
       />
     </div>
   );
@@ -480,6 +525,113 @@ function TextField({
         onChange={(e) => onChange(e.target.value)}
         className="h-8 text-sm"
       />
+    </div>
+  );
+}
+
+// --- OrientationFields ---
+
+function OrientationFields({
+  orientation,
+  onChange,
+}: {
+  orientation: Orientation | undefined;
+  onChange: (o: Orientation | undefined) => void;
+}) {
+  const ori = orientation ?? {};
+
+  const update = (updates: Partial<Orientation>) => {
+    const next = { ...ori, ...updates };
+    const isEmpty =
+      next.type === undefined &&
+      next.h === undefined &&
+      next.p === undefined &&
+      next.r === undefined;
+    onChange(isEmpty ? undefined : next);
+  };
+
+  const clearKey = (key: keyof Orientation) => {
+    const next = { ...ori };
+    delete next[key];
+    const isEmpty =
+      next.type === undefined &&
+      next.h === undefined &&
+      next.p === undefined &&
+      next.r === undefined;
+    onChange(isEmpty ? undefined : next);
+  };
+
+  return (
+    <div className="space-y-1">
+      <p className="text-xs font-medium text-muted-foreground">Orientation</p>
+      <div className="grid gap-1">
+        <Label className="text-xs">
+          Type <span className="text-muted-foreground">?</span>
+        </Label>
+        <EnumSelect
+          value={ori.type ?? ''}
+          options={['', 'relative', 'absolute']}
+          onValueChange={(v) =>
+            v
+              ? update({ type: v as 'relative' | 'absolute' })
+              : clearKey('type')
+          }
+          className="h-8 text-sm"
+        />
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <div className="grid gap-1">
+          <Label className="text-xs">
+            H <span className="text-muted-foreground">?</span>
+          </Label>
+          <Input
+            type="number"
+            value={ori.h ?? ''}
+            placeholder="—"
+            step="any"
+            onChange={(e) =>
+              e.target.value !== ''
+                ? update({ h: parseFloat(e.target.value) })
+                : clearKey('h')
+            }
+            className="h-8 text-sm"
+          />
+        </div>
+        <div className="grid gap-1">
+          <Label className="text-xs">
+            P <span className="text-muted-foreground">?</span>
+          </Label>
+          <Input
+            type="number"
+            value={ori.p ?? ''}
+            placeholder="—"
+            step="any"
+            onChange={(e) =>
+              e.target.value !== ''
+                ? update({ p: parseFloat(e.target.value) })
+                : clearKey('p')
+            }
+            className="h-8 text-sm"
+          />
+        </div>
+        <div className="grid gap-1">
+          <Label className="text-xs">
+            R <span className="text-muted-foreground">?</span>
+          </Label>
+          <Input
+            type="number"
+            value={ori.r ?? ''}
+            placeholder="—"
+            step="any"
+            onChange={(e) =>
+              e.target.value !== ''
+                ? update({ r: parseFloat(e.target.value) })
+                : clearKey('r')
+            }
+            className="h-8 text-sm"
+          />
+        </div>
+      </div>
     </div>
   );
 }

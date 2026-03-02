@@ -1,4 +1,4 @@
-import type { ScenarioAction, SpeedAction, TransitionDynamics } from '@osce/shared';
+import type { ScenarioAction, SpeedAction, SpeedTarget, TransitionDynamics } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { EnumSelect } from '../EnumSelect';
@@ -88,31 +88,60 @@ export function SpeedActionEditor({ action }: SpeedActionEditorProps) {
             />
           </div>
         )}
-        {inner.target.kind === 'relative' && (
-          <>
-            <div className="grid gap-1">
-              <Label className="text-xs">Entity Ref</Label>
-              <Input
-                value={inner.target.entityRef}
-                onChange={(e) =>
-                  updateInner({ target: { ...inner.target, entityRef: e.target.value } as typeof inner.target })
-                }
-                className="h-8 text-sm"
-              />
-            </div>
-            <div className="grid gap-1">
-              <Label className="text-xs">Value</Label>
-              <Input
-                type="number"
-                value={inner.target.value}
-                onChange={(e) =>
-                  updateInner({ target: { ...inner.target, value: parseFloat(e.target.value) || 0 } as typeof inner.target })
-                }
-                className="h-8 text-sm"
-              />
-            </div>
-          </>
-        )}
+        {inner.target.kind === 'relative' && (() => {
+          const rel = inner.target as Extract<SpeedTarget, { kind: 'relative' }>;
+          return (
+            <>
+              <div className="grid gap-1">
+                <Label className="text-xs">Entity Ref</Label>
+                <Input
+                  value={rel.entityRef}
+                  onChange={(e) =>
+                    updateInner({ target: { ...rel, entityRef: e.target.value } })
+                  }
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="grid gap-1">
+                <Label className="text-xs">Value</Label>
+                <Input
+                  type="number"
+                  value={rel.value}
+                  onChange={(e) =>
+                    updateInner({ target: { ...rel, value: parseFloat(e.target.value) || 0 } })
+                  }
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="grid gap-1">
+                <Label className="text-xs">Value Type</Label>
+                <EnumSelect
+                  value={rel.speedTargetValueType}
+                  options={['delta', 'factor']}
+                  onValueChange={(v) =>
+                    updateInner({
+                      target: { ...rel, speedTargetValueType: v as 'delta' | 'factor' },
+                    })
+                  }
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="grid gap-1">
+                <Label className="text-xs">Continuous</Label>
+                <EnumSelect
+                  value={String(rel.continuous)}
+                  options={['false', 'true']}
+                  onValueChange={(v) =>
+                    updateInner({
+                      target: { ...rel, continuous: v === 'true' },
+                    })
+                  }
+                  className="h-8 text-sm"
+                />
+              </div>
+            </>
+          );
+        })()}
       </div>
     </div>
   );
