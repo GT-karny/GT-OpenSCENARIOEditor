@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import type { ScenarioAction, AssignControllerAction, Property } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
@@ -15,8 +14,7 @@ export function AssignControllerActionEditor({ action }: AssignControllerActionE
   const storeApi = useScenarioStoreApi();
   const inner = action.action as AssignControllerAction;
 
-  const currentMode: SourceMode = inner.controller ? 'inline' : inner.catalogReference ? 'catalog' : 'inline';
-  const [sourceMode, setSourceMode] = useState<SourceMode>(currentMode);
+  const sourceMode: SourceMode = inner.controller ? 'inline' : inner.catalogReference ? 'catalog' : 'inline';
 
   const updateInner = (updates: Partial<AssignControllerAction>) => {
     storeApi.getState().updateAction(action.id, {
@@ -26,7 +24,6 @@ export function AssignControllerActionEditor({ action }: AssignControllerActionE
 
   const handleSourceModeChange = (mode: string) => {
     const newMode = mode as SourceMode;
-    setSourceMode(newMode);
     if (newMode === 'inline') {
       const { catalogReference: _, ...rest } = inner;
       storeApi.getState().updateAction(action.id, {

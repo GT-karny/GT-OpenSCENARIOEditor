@@ -20,7 +20,7 @@ import { VariableConditionEditor } from './conditions/VariableConditionEditor';
 import { StoryboardElementStateConditionEditor } from './conditions/StoryboardElementStateConditionEditor';
 import { TimeToCollisionConditionEditor } from './conditions/TimeToCollisionConditionEditor';
 
-// Condition types that have dedicated editors (and handle position internally)
+// Condition types that have dedicated editors (suppress shared rule/position editors)
 const DEDICATED_EDITOR_TYPES = new Set([
   'simulationTime',
   'timeHeadway',
