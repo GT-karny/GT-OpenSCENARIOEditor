@@ -31,26 +31,19 @@ export function LongitudinalDistanceActionEditor({ action }: LongitudinalDistanc
 
   const updateDynamics = (field: keyof DynamicConstraints, value: string) => {
     if (value === '') {
-      const rest: DynamicConstraints = {
-        maxAcceleration: field !== 'maxAcceleration' ? dynamics.maxAcceleration : undefined,
-        maxDeceleration: field !== 'maxDeceleration' ? dynamics.maxDeceleration : undefined,
-        maxSpeed: field !== 'maxSpeed' ? dynamics.maxSpeed : undefined,
-      };
-      const allEmpty =
-        rest.maxAcceleration === undefined &&
-        rest.maxDeceleration === undefined &&
-        rest.maxSpeed === undefined;
-      if (allEmpty) {
+      const entries = (Object.entries(dynamics) as [keyof DynamicConstraints, number][]).filter(
+        ([k, v]) => k !== field && v !== undefined,
+      );
+      if (entries.length === 0) {
         const { dynamics: _d, ...outerRest } = inner;
         updateInner(outerRest as LongitudinalDistanceAction);
       } else {
-        updateInner({ dynamics: rest });
+        updateInner({ dynamics: Object.fromEntries(entries) as DynamicConstraints });
       }
     } else {
       const n = parseFloat(value);
       if (!Number.isFinite(n)) return;
-      const next: DynamicConstraints = { ...dynamics, [field]: n };
-      updateInner({ dynamics: next });
+      updateInner({ dynamics: { ...dynamics, [field]: n } });
     }
   };
 

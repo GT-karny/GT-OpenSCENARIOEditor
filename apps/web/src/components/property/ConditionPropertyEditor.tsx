@@ -1,10 +1,19 @@
-import type { Trigger, Condition, Position } from '@osce/shared';
+import type {
+  Trigger,
+  Condition,
+  Position,
+  ByEntityCondition,
+  ByValueCondition,
+  EntityCondition,
+  ValueCondition,
+} from '@osce/shared';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { EnumSelect } from './EnumSelect';
 import { PositionEditor } from './PositionEditor';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
-import { CONDITION_EDGES, RULES } from '../../constants/osc-enum-values';
+import { defaultEntityConditionByType, defaultValueConditionByType } from '@osce/scenario-engine';
+import { CONDITION_EDGES, RULES, ENTITY_CONDITION_TYPES, VALUE_CONDITION_TYPES } from '../../constants/osc-enum-values';
 import { GenericConditionEditor } from './conditions/GenericConditionEditor';
 import { SimulationTimeConditionEditor } from './conditions/SimulationTimeConditionEditor';
 import { TimeHeadwayConditionEditor } from './conditions/TimeHeadwayConditionEditor';
@@ -78,6 +87,44 @@ function ConditionItem({ condition }: ConditionItemProps) {
     });
   };
 
+  const handleKindChange = (newKind: string) => {
+    let newConditionBody: ByEntityCondition | ByValueCondition;
+    if (newKind === 'byEntity') {
+      newConditionBody = {
+        kind: 'byEntity',
+        triggeringEntities: { triggeringEntitiesRule: 'any', entityRefs: [] },
+        entityCondition: defaultEntityConditionByType('speed'),
+      };
+    } else {
+      newConditionBody = {
+        kind: 'byValue',
+        valueCondition: defaultValueConditionByType('simulationTime'),
+      };
+    }
+    storeApi.getState().updateCondition(condition.id, {
+      condition: newConditionBody,
+    } as Partial<Condition>);
+  };
+
+  const handleConditionTypeChange = (newType: string) => {
+    const inner = condition.condition;
+    let newConditionBody: ByEntityCondition | ByValueCondition;
+    if (inner.kind === 'byEntity') {
+      newConditionBody = {
+        ...inner,
+        entityCondition: defaultEntityConditionByType(newType as EntityCondition['type']),
+      } as ByEntityCondition;
+    } else {
+      newConditionBody = {
+        ...inner,
+        valueCondition: defaultValueConditionByType(newType as ValueCondition['type']),
+      } as ByValueCondition;
+    }
+    storeApi.getState().updateCondition(condition.id, {
+      condition: newConditionBody,
+    } as Partial<Condition>);
+  };
+
   const handleRuleChange = (value: string) => {
     const inner = condition.condition;
     if (inner.kind === 'byEntity') {
@@ -140,11 +187,18 @@ function ConditionItem({ condition }: ConditionItemProps) {
     return undefined;
   })();
 
+  const conditionKind = condition.condition.kind;
+
   const conditionType = (() => {
     const inner = condition.condition;
     if (inner.kind === 'byEntity') return inner.entityCondition.type;
     return inner.valueCondition.type;
   })();
+
+  const typeOptions =
+    conditionKind === 'byEntity'
+      ? ([...ENTITY_CONDITION_TYPES] as string[])
+      : ([...VALUE_CONDITION_TYPES] as string[]);
 
   // Only show generic position editor for conditions without a dedicated editor
   const conditionPosition = DEDICATED_EDITOR_TYPES.has(conditionType)
@@ -202,11 +256,45 @@ function ConditionItem({ condition }: ConditionItemProps) {
       </div>
 
       <div className="grid gap-1">
+        <Label className="text-xs">Delay (s)</Label>
+        <Input
+          type="number"
+          value={condition.delay}
+          onChange={(e) =>
+            storeApi.getState().updateCondition(condition.id, {
+              delay: parseFloat(e.target.value) || 0,
+            })
+          }
+          className="h-8 text-sm"
+        />
+      </div>
+
+      <div className="grid gap-1">
         <Label className="text-xs">Condition Edge</Label>
         <EnumSelect
           value={condition.conditionEdge}
           options={CONDITION_EDGES}
           onValueChange={handleConditionEdgeChange}
+          className="h-8 text-sm"
+        />
+      </div>
+
+      <div className="grid gap-1">
+        <Label className="text-xs">Kind</Label>
+        <EnumSelect
+          value={conditionKind}
+          options={['byEntity', 'byValue']}
+          onValueChange={handleKindChange}
+          className="h-8 text-sm"
+        />
+      </div>
+
+      <div className="grid gap-1">
+        <Label className="text-xs">Type</Label>
+        <EnumSelect
+          value={conditionType}
+          options={typeOptions}
+          onValueChange={handleConditionTypeChange}
           className="h-8 text-sm"
         />
       </div>
