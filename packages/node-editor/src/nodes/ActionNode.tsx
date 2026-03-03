@@ -4,13 +4,16 @@ import { NodeCard } from '../ui/node-card.js';
 import { Badge } from '../ui/badge.js';
 import { NodeHandle } from '../ui/node-handle.js';
 import { getActionTypeLabel } from '../utils/action-display.js';
+import { useEditorStore } from '../hooks/use-editor-store.js';
 
-export function ActionNode({ data, selected }: NodeProps<Node<ActionNodeData>>) {
+export function ActionNode({ id, data, selected }: NodeProps<Node<ActionNodeData>>) {
+  const isRunning = useEditorStore((s) => s.activeNodeIds.includes(id));
   return (
     <NodeCard
       nodeType="action"
       title={data.name}
       selected={selected}
+      running={isRunning}
       badges={<Badge>{getActionTypeLabel(data.actionType)}</Badge>}
     >
       <NodeHandle type="target" position={Position.Top} />

@@ -78,6 +78,16 @@ function ScenarioViewerScene({
     }
   }, [simulationFrames]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // During live streaming (playback idle but frames exist), show the latest frame;
+  // during replay (playing/paused), use the playback interpolated frame.
+  const latestFrame = simulationFrames && simulationFrames.length > 0
+    ? simulationFrames[simulationFrames.length - 1]
+    : null;
+  const displayFrame = playbackControls.status !== 'idle'
+    ? playbackControls.currentFrame
+    : latestFrame;
+  const isSimulating = displayFrame !== null;
+
   const [focusTarget, setFocusTarget] = useState<[number, number, number] | null>(null);
 
   const handleEntityFocus = useCallback(
@@ -95,8 +105,6 @@ function ScenarioViewerScene({
     },
     [entities, entityPositions, onEntityFocus],
   );
-
-  const isSimulating = playbackControls.status !== 'idle' && playbackControls.currentFrame !== null;
 
   return (
     <>
@@ -126,7 +134,7 @@ function ScenarioViewerScene({
       {isSimulating && (
         <SimulationOverlay
           entities={entities}
-          currentFrame={playbackControls.currentFrame}
+          currentFrame={displayFrame}
           selectedEntityId={selectedEntityId}
           onEntitySelect={onEntitySelect}
           showLabels={showEntityLabels}

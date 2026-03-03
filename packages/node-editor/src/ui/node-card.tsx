@@ -18,6 +18,7 @@ export interface NodeCardProps {
   title: string;
   subtitle?: string;
   selected?: boolean;
+  running?: boolean;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
   badges?: React.ReactNode;
@@ -29,6 +30,7 @@ export function NodeCard({
   title,
   subtitle,
   selected,
+  running,
   collapsed,
   onToggleCollapse,
   badges,
@@ -36,14 +38,21 @@ export function NodeCard({
 }: NodeCardProps) {
   const colors = getNodeColor(nodeType);
 
+  const runningGlow = running
+    ? `0 0 10px ${colors.dot}55, 0 0 20px ${colors.dot}33`
+    : undefined;
+
   const cardStyle = {
     color: 'var(--color-text-primary, rgba(255, 255, 255, 0.93))',
     boxShadow: selected
       ? colors.glow
-      : '0 0 1px rgba(190, 180, 240, 0.4)',
+      : running
+        ? runningGlow
+        : '0 0 1px rgba(190, 180, 240, 0.4)',
     '--color-glass-1': 'var(--color-glass-node, rgba(24, 18, 56, 0.85))',
     '--color-glass-hover': 'var(--color-glass-node-hover, rgba(30, 22, 66, 0.88))',
     '--color-glass-active': 'var(--color-glass-node-active, rgba(38, 28, 76, 0.92))',
+    ...(running ? { animation: 'node-running-pulse 1.5s ease-in-out infinite' } : {}),
   } as CSSProperties;
 
   const stripeStyle: CSSProperties = {
@@ -87,19 +96,44 @@ export function NodeCard({
   };
 
   return (
-    <div
-      className={`glass rounded-lg min-w-[168px] max-w-[280px] overflow-visible ${selected ? 'glass-active' : ''}`}
-      style={cardStyle}
-    >
-      {selected && <div style={accentBarStyle} />}
+    <>
+      {/* Inject running pulse keyframe once */}
+      {running && (
+        <style>{`
+          @keyframes node-running-pulse {
+            0%, 100% { box-shadow: 0 0 10px ${colors.dot}55, 0 0 20px ${colors.dot}33; }
+            50% { box-shadow: 0 0 16px ${colors.dot}88, 0 0 32px ${colors.dot}55; }
+          }
+        `}</style>
+      )}
       <div
-        className="flex items-center justify-between px-3 py-2"
-        style={headerStyle}
+        className={`glass rounded-lg min-w-[168px] max-w-[280px] overflow-visible ${selected ? 'glass-active' : ''}`}
+        style={cardStyle}
       >
-        <div className="flex items-center gap-2 flex-1 min-w-0" style={{ position: 'relative', zIndex: 2 }}>
-          <span style={stripeStyle} />
-          <div className="flex-1 min-w-0">
-            <div className="truncate" style={titleStyle}>{title}</div>
+        {selected && <div style={accentBarStyle} />}
+        <div
+          className="flex items-center justify-between px-3 py-2"
+          style={headerStyle}
+        >
+          <div className="flex items-center gap-2 flex-1 min-w-0" style={{ position: 'relative', zIndex: 2 }}>
+            <span style={stripeStyle} />
+            {running && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: -3,
+                  right: -3,
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  backgroundColor: colors.dot,
+                  animation: 'node-running-pulse 1.5s ease-in-out infinite',
+                  zIndex: 4,
+                }}
+              />
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="truncate" style={titleStyle}>{title}</div>
             {subtitle && (
               <div
                 className="truncate"
@@ -135,5 +169,6 @@ export function NodeCard({
         </div>
       )}
     </div>
+    </>
   );
 }

@@ -1,5 +1,11 @@
 import { create } from 'zustand';
-import type { SimulationFrame, SimulationResult, SimulationStatus } from '@osce/shared';
+import type {
+  SimulationFrame,
+  SimulationResult,
+  SimulationStatus,
+  StoryBoardEvent,
+  ConditionEvent,
+} from '@osce/shared';
 
 export interface SimulationState {
   // State
@@ -8,15 +14,22 @@ export interface SimulationState {
   currentFrameIndex: number;
   error?: string;
 
+  // StoryBoard introspection (WASM mode)
+  storyBoardEvents: StoryBoardEvent[];
+  conditionEvents: ConditionEvent[];
+  activeElements: string[]; // fullPath values currently in "running" state
+
   // Playback
   isPlaying: boolean;
   playbackSpeed: number;
 
-  // Actions (called by WebSocket handler)
+  // Actions (called by WebSocket handler or WASM service)
   addFrame: (frame: SimulationFrame) => void;
   setCompleted: (result: SimulationResult) => void;
   setError: (error: string) => void;
   setStatus: (status: SimulationStatus) => void;
+  addStoryBoardEvent: (event: StoryBoardEvent) => void;
+  addConditionEvent: (event: ConditionEvent) => void;
   reset: () => void;
 
   // Playback actions (called by UI)
@@ -95,11 +108,30 @@ function startPlaybackLoop() {
   rafId = requestAnimationFrame(tick);
 }
 
+function computeActiveElements(events: StoryBoardEvent[]): string[] {
+  // Track the latest state for each fullPath
+  const stateMap = new Map<string, StoryBoardEvent['state']>();
+  for (const event of events) {
+    stateMap.set(event.fullPath, event.state);
+  }
+  // Return fullPaths that are currently "running"
+  const active: string[] = [];
+  for (const [path, state] of stateMap) {
+    if (state === 'running') {
+      active.push(path);
+    }
+  }
+  return active;
+}
+
 export const useSimulationStore = create<SimulationState>()((set) => ({
   status: 'idle',
   frames: [],
   currentFrameIndex: 0,
   error: undefined,
+  storyBoardEvents: [],
+  conditionEvents: [],
+  activeElements: [],
   isPlaying: false,
   playbackSpeed: 1,
 
@@ -127,6 +159,20 @@ export const useSimulationStore = create<SimulationState>()((set) => ({
 
   setStatus: (status) => set({ status }),
 
+  addStoryBoardEvent: (event) =>
+    set((state) => {
+      const events = [...state.storyBoardEvents, event];
+      return {
+        storyBoardEvents: events,
+        activeElements: computeActiveElements(events),
+      };
+    }),
+
+  addConditionEvent: (event) =>
+    set((state) => ({
+      conditionEvents: [...state.conditionEvents, event],
+    })),
+
   reset: () => {
     stopPlaybackLoop();
     set({
@@ -134,6 +180,9 @@ export const useSimulationStore = create<SimulationState>()((set) => ({
       frames: [],
       currentFrameIndex: 0,
       error: undefined,
+      storyBoardEvents: [],
+      conditionEvents: [],
+      activeElements: [],
       isPlaying: false,
       playbackSpeed: 1,
     });

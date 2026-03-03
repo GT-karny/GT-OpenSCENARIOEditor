@@ -12,6 +12,10 @@ export interface EsminiConfig {
 export interface SimulationRequest {
   scenarioXml: string;
   roadNetworkPath?: string;
+  /** Raw .xodr XML content for WASM mode (written to virtual FS) */
+  xodrXml?: string;
+  /** Catalog XML files keyed by catalog name for WASM mode */
+  catalogXmls?: Record<string, string>;
   duration?: number;
   config?: Partial<EsminiConfig>;
 }
@@ -47,4 +51,30 @@ export interface SimulationResult {
   frames: SimulationFrame[];
   duration: number;
   error?: string;
+}
+
+// --- StoryBoard introspection types (WASM esminiJS) ---
+
+export type StoryBoardElementType =
+  | 'storyboard'
+  | 'story'
+  | 'act'
+  | 'maneuverGroup'
+  | 'maneuver'
+  | 'event'
+  | 'action';
+
+export type StoryBoardElementState = 'init' | 'standby' | 'running' | 'complete';
+
+export interface StoryBoardEvent {
+  name: string;
+  elementType: StoryBoardElementType;
+  state: StoryBoardElementState;
+  fullPath: string;
+  timestamp: number;
+}
+
+export interface ConditionEvent {
+  name: string;
+  timestamp: number;
 }

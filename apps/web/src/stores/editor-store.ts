@@ -28,7 +28,8 @@ export interface EditorState {
 
   // Road Network (loaded .xodr)
   roadNetwork: OpenDriveDocument | null;
-  setRoadNetwork: (doc: OpenDriveDocument | null) => void;
+  roadNetworkXml: string | null;
+  setRoadNetwork: (doc: OpenDriveDocument | null, rawXml?: string | null) => void;
 
   // Panel visibility
   panelVisibility: Record<EditorPanel, boolean>;
@@ -93,7 +94,8 @@ export const useEditorStore = create<EditorState>()(
 
       // Road Network
       roadNetwork: null,
-      setRoadNetwork: (doc) => set({ roadNetwork: doc }),
+      roadNetworkXml: null,
+      setRoadNetwork: (doc, rawXml) => set({ roadNetwork: doc, roadNetworkXml: rawXml ?? null }),
 
       // Panel visibility
       panelVisibility: defaultPanelVisibility,

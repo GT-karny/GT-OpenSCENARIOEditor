@@ -19,6 +19,7 @@ export interface NodeEditorProviderProps {
   onSelectionChange?: (ids: string[]) => void;
   focusNodeId?: string | null;
   onFocusComplete?: () => void;
+  activeNodeIds?: string[];
   children: React.ReactNode;
 }
 
@@ -29,6 +30,7 @@ function SyncBridge({
   onSelectionChange,
   focusNodeId,
   onFocusComplete,
+  activeNodeIds,
 }: {
   scenarioStore: StoreApi<ScenarioStore>;
   editorStore: EditorStoreApi;
@@ -36,6 +38,7 @@ function SyncBridge({
   onSelectionChange?: (ids: string[]) => void;
   focusNodeId?: string | null;
   onFocusComplete?: () => void;
+  activeNodeIds?: string[];
 }) {
   useScenarioSync(scenarioStore, editorStore);
 
@@ -45,6 +48,11 @@ function SyncBridge({
       editorStore.getState().setSelectedElementIds(selectedElementIds);
     }
   }, [selectedElementIds, editorStore]);
+
+  // Sync active node IDs for simulation highlighting
+  useEffect(() => {
+    editorStore.getState().setActiveNodeIds(activeNodeIds ?? []);
+  }, [activeNodeIds, editorStore]);
 
   // focusNodeId round-trip flow:
   // 1. Parent sets focusNodeId prop (e.g. from validation error click)
@@ -87,6 +95,7 @@ export function NodeEditorProvider({
   onSelectionChange,
   focusNodeId,
   onFocusComplete,
+  activeNodeIds,
   children,
 }: NodeEditorProviderProps) {
   const editorStore = useMemo(() => createEditorStore(), []);
@@ -101,6 +110,7 @@ export function NodeEditorProvider({
           onSelectionChange={onSelectionChange}
           focusNodeId={focusNodeId}
           onFocusComplete={onFocusComplete}
+          activeNodeIds={activeNodeIds}
         />
         {children}
       </EditorStoreContext.Provider>

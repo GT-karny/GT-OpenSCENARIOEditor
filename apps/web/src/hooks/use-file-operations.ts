@@ -102,7 +102,7 @@ export function useFileOperations() {
     setCurrentFileName(null);
     setDirty(false);
     setValidationResult(null);
-    setRoadNetwork(null);
+    setRoadNetwork(null, null);
   }, [storeApi, setCurrentFileName, setDirty, setValidationResult, setRoadNetwork]);
 
   const openXosc = useCallback(async () => {
@@ -157,7 +157,7 @@ export function useFileOperations() {
       const { text } = await readFileFromDisk('OpenDRIVE', ['.xodr']);
       const parser = new XodrParser();
       const doc = parser.parse(text);
-      setRoadNetwork(doc);
+      setRoadNetwork(doc, text);
     } catch {
       // User cancelled the file picker
     }

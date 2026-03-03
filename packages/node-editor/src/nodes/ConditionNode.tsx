@@ -3,13 +3,16 @@ import type { ConditionNodeData } from '../types/node-types.js';
 import { NodeCard } from '../ui/node-card.js';
 import { Badge } from '../ui/badge.js';
 import { NodeHandle } from '../ui/node-handle.js';
+import { useEditorStore } from '../hooks/use-editor-store.js';
 
-export function ConditionNode({ data, selected }: NodeProps<Node<ConditionNodeData>>) {
+export function ConditionNode({ id, data, selected }: NodeProps<Node<ConditionNodeData>>) {
+  const isRunning = useEditorStore((s) => s.activeNodeIds.includes(id));
   return (
     <NodeCard
       nodeType="condition"
       title={data.name}
       selected={selected}
+      running={isRunning}
       badges={<Badge>{data.conditionType}</Badge>}
     >
       <NodeHandle type="target" position={Position.Top} />

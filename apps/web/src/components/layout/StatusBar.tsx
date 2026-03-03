@@ -2,20 +2,11 @@ import { useTranslation } from '@osce/i18n';
 import { useScenarioStore } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
 import { useSimulationStore } from '../../stores/simulation-store';
-import { useServerConnectionContext } from '../../providers/ServerConnectionProvider';
-import type { ConnectionStatus } from '../../types/ws-messages';
 import type { SimulationStatus } from '@osce/shared';
 
 function getStatusDot(
-  connStatus: ConnectionStatus,
   simStatus: SimulationStatus,
 ): { color: string; shadow: string } {
-  if (connStatus !== 'connected') {
-    return {
-      color: 'var(--color-text-tertiary)',
-      shadow: '0 0 3px rgba(128, 128, 128, 0.3)',
-    };
-  }
   switch (simStatus) {
     case 'running':
       return {
@@ -40,14 +31,8 @@ function getStatusDot(
   }
 }
 
-function useStatusLabel(
-  connStatus: ConnectionStatus,
-  simStatus: SimulationStatus,
-): string {
+function useStatusLabel(simStatus: SimulationStatus): string {
   const { t } = useTranslation('common');
-  if (connStatus !== 'connected') {
-    return t('labels.disconnected');
-  }
   switch (simStatus) {
     case 'running':
       return t('labels.simulating');
@@ -67,11 +52,10 @@ export function StatusBar() {
   const validationResult = useEditorStore((s) => s.validationResult);
   const currentFileName = useEditorStore((s) => s.currentFileName);
   const isDirty = useEditorStore((s) => s.isDirty);
-  const { status: connStatus } = useServerConnectionContext();
   const simStatus = useSimulationStore((s) => s.status);
 
-  const dot = getStatusDot(connStatus, simStatus);
-  const statusLabel = useStatusLabel(connStatus, simStatus);
+  const dot = getStatusDot(simStatus);
+  const statusLabel = useStatusLabel(simStatus);
 
   return (
     <div role="contentinfo" data-testid="status-bar" className="relative flex items-center justify-between h-[26px] px-6 border-t border-[var(--color-glass-edge-mid)] bg-[var(--color-glass-1)] backdrop-blur-[28px] saturate-[1.3] text-[10px] text-[var(--color-text-tertiary)] tracking-[0.03em] statusbar-glow enter" style={{ animationDelay: '0.4s' }}>

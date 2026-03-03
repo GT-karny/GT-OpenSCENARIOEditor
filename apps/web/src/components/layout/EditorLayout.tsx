@@ -1,4 +1,5 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect, memo } from 'react';
+import type { SimulationStatus } from '@osce/shared';
 import { SceneComposerView } from '../scene-composer/SceneComposerView';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import type { ImperativePanelHandle } from 'react-resizable-panels';
@@ -14,6 +15,7 @@ import { TemplatePalettePanel } from '../panels/TemplatePalettePanel';
 import { ParameterListPanel } from '../panels/ParameterListPanel';
 import { PropertyPanel } from '../panels/PropertyPanel';
 import { ValidationPanel } from '../panels/ValidationPanel';
+import { SimulationTimeline } from '../panels/SimulationTimeline';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { NodeEditorContextMenu } from '../node-editor/NodeEditorContextMenu';
 import type { ContextMenuPosition } from '../node-editor/NodeEditorContextMenu';
@@ -26,11 +28,13 @@ import { useTranslation } from '@osce/i18n';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
 import { useProjectStore } from '../../stores/project-store';
+import { useSimulationStore } from '../../stores/simulation-store';
 import { useTemplateDrop } from '../../hooks/use-template-drop';
 import { useElementDelete } from '../../hooks/use-element-delete';
 import { useElementAdd } from '../../hooks/use-element-add';
 import { getDirectChildCount } from '../../lib/count-descendants';
 import { useProjectFileOperations } from '../../hooks/use-project-file-operations';
+import { buildFullPathToIdMap } from '../../lib/fullpath-mapping';
 
 function ResizeHandle() {
   return (
@@ -43,6 +47,34 @@ function ResizeHandleH() {
     <PanelResizeHandle className="h-[1px] divider-glow hover:h-[3px] transition-all data-[resize-handle-active]:h-[3px]" />
   );
 }
+
+/**
+ * Thin wrapper that subscribes to simulation frames separately,
+ * so only the 3D viewer re-renders on each frame (not the entire EditorLayout).
+ */
+const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
+  scenarioStore: ReturnType<typeof import('../../stores/use-scenario-store').useScenarioStoreApi>;
+  openDriveDocument: import('@osce/shared').OpenDriveDocument | null;
+  selectedEntityId: string | null;
+  onEntitySelect: (entityId: string) => void;
+  onEntityFocus: (entityId: string) => void;
+  simStatus: SimulationStatus;
+  preferences: { showGrid3D: boolean; showLaneIds: boolean; showRoadIds: boolean };
+}) {
+  const simFrames = useSimulationStore((s) => s.frames);
+  return (
+    <ScenarioViewer
+      scenarioStore={props.scenarioStore}
+      openDriveDocument={props.openDriveDocument}
+      selectedEntityId={props.selectedEntityId}
+      onEntitySelect={props.onEntitySelect}
+      onEntityFocus={props.onEntityFocus}
+      simulationFrames={props.simStatus !== 'idle' ? simFrames : undefined}
+      preferences={props.preferences}
+      className="h-full w-full"
+    />
+  );
+});
 
 interface DeleteRequest {
   id: string;
@@ -85,6 +117,22 @@ export function EditorLayout() {
   const handleEntitySelect = useCallback((entityId: string) => {
     useEditorStore.getState().setSelection({ selectedElementIds: [entityId] });
   }, []);
+
+  // --- Simulation state ---
+  const simStatus = useSimulationStore((s) => s.status);
+  // NOTE: Do NOT subscribe to s.frames here — it changes 30x/sec and would
+  // re-render the entire EditorLayout. Frames are subscribed in
+  // SimulationViewerBridge below, which only re-renders the 3D viewer.
+  const activeElements = useSimulationStore((s) => s.activeElements);
+
+  const activeNodeIds = useMemo(() => {
+    if (activeElements.length === 0) return [];
+    const doc = scenarioStoreApi.getState().document;
+    const map = buildFullPathToIdMap(doc);
+    return activeElements
+      .map((path) => map.get(path))
+      .filter((id): id is string => id !== undefined);
+  }, [activeElements, scenarioStoreApi]);
 
   // --- Drag & Drop ---
   const {
@@ -243,6 +291,7 @@ export function EditorLayout() {
                 onSelectionChange={handleSelectionChange}
                 focusNodeId={focusNodeId}
                 onFocusComplete={handleFocusComplete}
+                activeNodeIds={activeNodeIds}
               >
                 <div className="flex flex-col h-full enter d2">
                   {/* Tab bar */}
@@ -326,23 +375,30 @@ export function EditorLayout() {
         <Panel defaultSize={30} minSize={10}>
           <div data-testid="viewer-3d-panel" className="h-full bg-[var(--color-bg-deep)] enter d5">
             <ErrorBoundary fallbackTitle="3D Viewer Error">
-              <ScenarioViewer
+              <SimulationViewerBridge
                 scenarioStore={scenarioStoreApi}
                 openDriveDocument={roadNetwork}
                 selectedEntityId={selectedEntityId}
                 onEntitySelect={handleEntitySelect}
                 onEntityFocus={handleEntitySelect}
+                simStatus={simStatus}
                 preferences={{
                   showGrid3D: preferences.showGrid3D,
                   showLaneIds: preferences.showLaneIds,
                   showRoadIds: preferences.showRoadIds,
                 }}
-                className="h-full w-full"
               />
             </ErrorBoundary>
           </div>
         </Panel>
       </PanelGroup>
+
+      {/* Simulation timeline (visible during/after simulation) */}
+      {simStatus !== 'idle' && (
+        <div className="h-10 shrink-0 border-t border-[var(--color-glass-edge-mid)] bg-[var(--color-bg-deep)]">
+          <SimulationTimeline />
+        </div>
+      )}
 
       <StatusBar />
 

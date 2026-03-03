@@ -3,10 +3,12 @@ import type { StoryboardNodeData } from '../types/node-types.js';
 import { NodeCard } from '../ui/node-card.js';
 import { Badge } from '../ui/badge.js';
 import { NodeHandle } from '../ui/node-handle.js';
+import { useEditorStore } from '../hooks/use-editor-store.js';
 
-export function StoryboardNode({ data, selected }: NodeProps<Node<StoryboardNodeData>>) {
+export function StoryboardNode({ id, data, selected }: NodeProps<Node<StoryboardNodeData>>) {
+  const isRunning = useEditorStore((s) => s.activeNodeIds.includes(id));
   return (
-    <NodeCard nodeType="storyboard" title="Storyboard" selected={selected}>
+    <NodeCard nodeType="storyboard" title="Storyboard" selected={selected} running={isRunning}>
       <div className="flex items-center gap-2">
         <Badge>{data.storyCount} stories</Badge>
         {data.hasStopTrigger && <Badge variant="outline">stop trigger</Badge>}

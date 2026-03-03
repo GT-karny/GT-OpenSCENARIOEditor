@@ -47,7 +47,7 @@ export function useProjectFileOperations() {
         const content = await api.readProjectFile(project.meta.id, relativePath);
         const parser = new XodrParser();
         const doc = parser.parse(content);
-        useEditorStore.getState().setRoadNetwork(doc);
+        useEditorStore.getState().setRoadNetwork(doc, content);
         useProjectStore.setState({ currentXodrPath: relativePath });
       } catch {
         toast.warning(t('warnings.xodrLoadFailed', { path: relativePath }));
@@ -63,7 +63,7 @@ export function useProjectFileOperations() {
 
       // Skip empty references
       if (!xodrRef.trim()) {
-        useEditorStore.getState().setRoadNetwork(null);
+        useEditorStore.getState().setRoadNetwork(null, null);
         useProjectStore.setState({ currentXodrPath: null });
         return;
       }
@@ -102,7 +102,7 @@ export function useProjectFileOperations() {
             const content = await api.readProjectFile(project.meta.id, candidate);
             const parser = new XodrParser();
             const doc = parser.parse(content);
-            useEditorStore.getState().setRoadNetwork(doc);
+            useEditorStore.getState().setRoadNetwork(doc, content);
             useProjectStore.setState({ currentXodrPath: candidate });
             return;
           } catch {
@@ -114,7 +114,7 @@ export function useProjectFileOperations() {
 
       // Not found
       toast.warning(t('warnings.xodrNotFound', { path: xodrRef }));
-      useEditorStore.getState().setRoadNetwork(null);
+      useEditorStore.getState().setRoadNetwork(null, null);
       useProjectStore.setState({ currentXodrPath: null });
     },
     [t],
@@ -147,7 +147,7 @@ export function useProjectFileOperations() {
         if (xodrPath) {
           await autoLoadXodr(xodrPath, relativePath);
         } else {
-          useEditorStore.getState().setRoadNetwork(null);
+          useEditorStore.getState().setRoadNetwork(null, null);
           useProjectStore.setState({ currentXodrPath: null });
         }
       } catch (err) {

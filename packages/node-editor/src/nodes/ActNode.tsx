@@ -3,13 +3,16 @@ import type { ActNodeData } from '../types/node-types.js';
 import { NodeCard } from '../ui/node-card.js';
 import { Badge } from '../ui/badge.js';
 import { NodeHandle } from '../ui/node-handle.js';
+import { useEditorStore } from '../hooks/use-editor-store.js';
 
-export function ActNode({ data, selected }: NodeProps<Node<ActNodeData>>) {
+export function ActNode({ id, data, selected }: NodeProps<Node<ActNodeData>>) {
+  const isRunning = useEditorStore((s) => s.activeNodeIds.includes(id));
   return (
     <NodeCard
       nodeType="act"
       title={data.name}
       selected={selected}
+      running={isRunning}
       collapsed={data.collapsed}
       badges={<Badge>{data.maneuverGroupCount} groups</Badge>}
     >

@@ -11,6 +11,9 @@ dist/
 build/
 *.tsbuildinfo
 
+# WASM binaries (built from Thirdparty/GT_Sim with emsdk)
+apps/web/public/wasm/
+
 # Environment
 .env
 .env.local
