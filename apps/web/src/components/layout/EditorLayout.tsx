@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { SceneComposerView } from '../scene-composer/SceneComposerView';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import type { Node } from '@xyflow/react';
 import { NodeEditorProvider, NodeEditor, TimelineView, detectElementType } from '@osce/node-editor';
@@ -48,6 +49,7 @@ interface DeleteRequest {
 export function EditorLayout() {
   const { t } = useTranslation('common');
   const scenarioStoreApi = useScenarioStoreApi();
+  const [centerTab, setCenterTab] = useState<'composer' | 'graph'>('composer');
 
   // --- Selection sync ---
   const selectedElementIds = useEditorStore((s) => s.selection.selectedElementIds);
@@ -187,25 +189,55 @@ export function EditorLayout() {
                 onFocusComplete={handleFocusComplete}
               >
                 <PanelGroup direction="vertical" className="enter d2">
-                  {/* Node editor */}
+                  {/* Composer / Graph tabs */}
                   <Panel defaultSize={65} minSize={20}>
-                    <ErrorBoundary fallbackTitle="Node Editor Error">
-                      <div
-                        data-testid="node-editor-panel"
-                        className={`h-full node-editor-grid ${isDragOver ? 'ring-2 ring-[var(--color-accent-1)] ring-inset' : ''}`}
-                        onDragLeave={handleDragLeave}
-                      >
-                        <NodeEditor
-                          className="h-full"
-                          onDrop={handleDrop}
-                          onDragOver={handleDragOver}
-                          onPaneContextMenu={handlePaneContextMenu}
-                          onNodeContextMenu={handleNodeContextMenu}
-                          deleteKeyCode={null}
-                          disableBuiltinShortcuts
-                        />
+                    <div className="flex flex-col h-full">
+                      {/* Tab bar */}
+                      <div className="flex shrink-0 border-b border-[var(--color-border-glass)] bg-[var(--color-glass-1)] backdrop-blur-[28px]">
+                        {(['composer', 'graph'] as const).map((tab) => (
+                          <button
+                            key={tab}
+                            onClick={() => setCenterTab(tab)}
+                            className={[
+                              'relative px-4 py-1.5 text-xs font-medium capitalize transition-colors',
+                              centerTab === tab
+                                ? 'text-[var(--color-accent-1)]'
+                                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]',
+                            ].join(' ')}
+                          >
+                            {tab}
+                            {centerTab === tab && (
+                              <span className="absolute bottom-0 left-0 right-0 h-px bg-[var(--color-accent-1)]" />
+                            )}
+                          </button>
+                        ))}
                       </div>
-                    </ErrorBoundary>
+                      {/* Content — both views stay mounted to preserve React Flow state */}
+                      <div className="flex-1 overflow-hidden relative">
+                        <div className={`absolute inset-0 ${centerTab !== 'composer' ? 'hidden' : ''}`}>
+                          <SceneComposerView />
+                        </div>
+                        <div className={`absolute inset-0 ${centerTab !== 'graph' ? 'hidden' : ''}`}>
+                          <ErrorBoundary fallbackTitle="Node Editor Error">
+                            <div
+                              data-testid="node-editor-panel"
+                              className={`h-full node-editor-grid ${isDragOver ? 'ring-2 ring-[var(--color-accent-1)] ring-inset' : ''}`}
+                              onDragLeave={handleDragLeave}
+                            >
+                              <NodeEditor
+                                className="h-full"
+                                onDrop={handleDrop}
+                                onDragOver={handleDragOver}
+                                onPaneContextMenu={handlePaneContextMenu}
+                                onNodeContextMenu={handleNodeContextMenu}
+                                deleteKeyCode={null}
+                                disableBuiltinShortcuts
+                              />
+                            </div>
+                          </ErrorBoundary>
+                        </div>
+                      </div>
+                    </div>
                   </Panel>
                   <ResizeHandleH />
                   {/* Timeline + Simulation playback */}

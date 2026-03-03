@@ -3,6 +3,7 @@ import { EntityPropertyEditor } from './EntityPropertyEditor';
 import { ActionPropertyEditor } from './ActionPropertyEditor';
 import { EventPropertyEditor } from './EventPropertyEditor';
 import { ConditionPropertyEditor } from './ConditionPropertyEditor';
+import { ActPropertyEditor } from './ActPropertyEditor';
 
 interface PropertyEditorProps {
   element: unknown;
@@ -33,14 +34,7 @@ export function PropertyEditor({ element }: PropertyEditorProps) {
       );
 
     case 'act':
-      return (
-        <div className="space-y-2">
-          <p className="text-sm font-medium">Act: {detected.element.name}</p>
-          <p className="text-xs text-muted-foreground">
-            Maneuver Groups: {detected.element.maneuverGroups.length}
-          </p>
-        </div>
-      );
+      return <ActPropertyEditor act={detected.element} />;
 
     case 'trigger':
       return <ConditionPropertyEditor trigger={detected.element} />;
