@@ -1,3 +1,6 @@
 [submodule "Thirdparty/open-simulation-interface"]
 	path = Thirdparty/open-simulation-interface
 	url = https://github.com/OpenSimulationInterface/open-simulation-interface.git
+[submodule "Thirdparty/GT_Sim"]
+	path = Thirdparty/GT_Sim
+	url = https://github.com/GT-karny/esmini.git
