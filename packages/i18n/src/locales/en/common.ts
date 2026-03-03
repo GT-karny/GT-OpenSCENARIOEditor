@@ -150,5 +150,12 @@ export const common = {
     newFile: 'New File',
     rename: 'Rename',
     delete: 'Delete',
+    collapse: 'Collapse file explorer',
+    expand: 'Show file explorer',
+  },
+  warnings: {
+    xodrNotFound: 'Road network file not found: {{path}}',
+    xodrLoadFailed: 'Failed to load road network: {{path}}',
+    catalogLoadFailed: 'Failed to load catalog: {{path}}',
   },
 } as const;

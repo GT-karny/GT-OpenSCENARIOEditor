@@ -26,6 +26,9 @@ build/
 .DS_Store
 Thumbs.db
 
+# Runtime project data
+data/
+
 # Test
 coverage/
 test-results/

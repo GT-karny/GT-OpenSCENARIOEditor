@@ -46,9 +46,11 @@ export async function deleteProject(id: string): Promise<void> {
 }
 
 export async function readProjectFile(projectId: string, relativePath: string): Promise<string> {
-  const res = await fetch(`${API_BASE}/projects/${projectId}/files/${encodeURIComponent(relativePath)}`);
+  const encodedPath = relativePath.split('/').map(encodeURIComponent).join('/');
+  const res = await fetch(`${API_BASE}/projects/${projectId}/files/${encodedPath}`);
   if (!res.ok) throw new Error(`Failed to read file: ${res.statusText}`);
-  return res.text();
+  const json = await res.json();
+  return json.content;
 }
 
 export async function writeProjectFile(
@@ -56,7 +58,8 @@ export async function writeProjectFile(
   relativePath: string,
   content: string,
 ): Promise<void> {
-  const res = await fetch(`${API_BASE}/projects/${projectId}/files/${encodeURIComponent(relativePath)}`, {
+  const encodedPath = relativePath.split('/').map(encodeURIComponent).join('/');
+  const res = await fetch(`${API_BASE}/projects/${projectId}/files/${encodedPath}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'text/plain' },
     body: content,
@@ -65,7 +68,8 @@ export async function writeProjectFile(
 }
 
 export async function deleteProjectFile(projectId: string, relativePath: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/projects/${projectId}/files/${encodeURIComponent(relativePath)}`, {
+  const encodedPath = relativePath.split('/').map(encodeURIComponent).join('/');
+  const res = await fetch(`${API_BASE}/projects/${projectId}/files/${encodedPath}`, {
     method: 'DELETE',
   });
   if (!res.ok) throw new Error(`Failed to delete file: ${res.statusText}`);

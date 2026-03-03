@@ -40,10 +40,12 @@ export function ProjectCard({ project, isRecent, onOpen, onExport, onDelete }: P
 
   return (
     <>
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => onOpen(project.id)}
-        className="group relative text-left w-full p-5 bg-[var(--color-glass-2)] backdrop-blur-[28px] saturate-[1.3] border border-[var(--color-glass-edge-mid)] hover:border-[var(--color-accent-1)] transition-all duration-200 hover:shadow-[0_0_20px_rgba(var(--color-accent-glow-rgb),0.15)]"
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(project.id); } }}
+        className="group relative text-left w-full p-5 bg-[var(--color-glass-2)] backdrop-blur-[28px] saturate-[1.3] border border-[var(--color-glass-edge-mid)] hover:border-[var(--color-accent-1)] transition-all duration-200 hover:shadow-[0_0_20px_rgba(var(--color-accent-glow-rgb),0.15)] cursor-pointer"
       >
         {/* Recent badge */}
         {isRecent && (
@@ -101,7 +103,7 @@ export function ProjectCard({ project, isRecent, onOpen, onExport, onDelete }: P
           </span>
           <span>{updatedDate}</span>
         </div>
-      </button>
+      </div>
 
       {/* Delete confirmation dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

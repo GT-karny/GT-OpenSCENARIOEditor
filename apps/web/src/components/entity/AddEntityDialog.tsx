@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from '@osce/i18n';
-import type { EntityType } from '@osce/shared';
+import type { EntityType, CatalogReference } from '@osce/shared';
 import {
   Dialog,
   DialogContent,
@@ -13,7 +13,11 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { CatalogPicker } from '../catalog/CatalogPicker';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
+import { useCatalogStore } from '../../stores/catalog-store';
+
+type DefinitionSource = 'inline' | 'catalog';
 
 interface AddEntityDialogProps {
   open: boolean;
@@ -25,21 +29,56 @@ export function AddEntityDialog({ open, onOpenChange }: AddEntityDialogProps) {
   const storeApi = useScenarioStoreApi();
   const [name, setName] = useState('');
   const [entityType, setEntityType] = useState<EntityType>('vehicle');
+  const [definitionSource, setDefinitionSource] = useState<DefinitionSource>('inline');
+  const [catalogName, setCatalogName] = useState('');
+  const [entryName, setEntryName] = useState('');
+
+  const resetForm = () => {
+    setName('');
+    setEntityType('vehicle');
+    setDefinitionSource('inline');
+    setCatalogName('');
+    setEntryName('');
+  };
 
   const handleAdd = () => {
     if (!name.trim()) return;
 
-    const definition = createDefaultDefinition(entityType, name.trim());
-    storeApi.getState().addEntity({
-      name: name.trim(),
-      type: entityType,
-      definition,
-    });
+    if (definitionSource === 'catalog') {
+      if (!catalogName || !entryName) return;
 
-    setName('');
-    setEntityType('vehicle');
+      const ref: CatalogReference = {
+        kind: 'catalogReference',
+        catalogName,
+        entryName,
+        parameterAssignments: [],
+      };
+
+      // Resolve catalog entry to determine entity type
+      const resolved = useCatalogStore.getState().resolveReference(ref);
+      const type: EntityType = (resolved?.catalogType as EntityType) ?? 'vehicle';
+
+      storeApi.getState().addEntity({
+        name: name.trim(),
+        type,
+        definition: ref,
+      });
+    } else {
+      const definition = createDefaultDefinition(entityType, name.trim());
+      storeApi.getState().addEntity({
+        name: name.trim(),
+        type: entityType,
+        definition,
+      });
+    }
+
+    resetForm();
     onOpenChange(false);
   };
+
+  const isAddDisabled =
+    !name.trim() ||
+    (definitionSource === 'catalog' && (!catalogName || !entryName));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -63,26 +102,68 @@ export function AddEntityDialog({ open, onOpenChange }: AddEntityDialogProps) {
               }}
             />
           </div>
+
+          {/* Definition source toggle */}
           <div className="grid gap-2">
-            <Label htmlFor="entity-type">{t('labels.type')}</Label>
-            <Select value={entityType} onValueChange={(v) => setEntityType(v as EntityType)}>
-              <SelectTrigger id="entity-type">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="vehicle">Vehicle</SelectItem>
-                <SelectItem value="pedestrian">Pedestrian</SelectItem>
-                <SelectItem value="miscObject">Misc Object</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label>{t('catalog.sourceMode')}</Label>
+            <div className="flex rounded-md border border-[var(--color-glass-edge-mid)] overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setDefinitionSource('inline')}
+                className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors ${
+                  definitionSource === 'inline'
+                    ? 'bg-[var(--color-accent-1)]/15 text-[var(--color-accent-1)]'
+                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-glass-1)]'
+                }`}
+              >
+                {t('catalog.inline')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setDefinitionSource('catalog')}
+                className={`flex-1 px-3 py-1.5 text-xs font-medium transition-colors border-l border-[var(--color-glass-edge-mid)] ${
+                  definitionSource === 'catalog'
+                    ? 'bg-[var(--color-accent-1)]/15 text-[var(--color-accent-1)]'
+                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-glass-1)]'
+                }`}
+              >
+                {t('catalog.fromCatalog')}
+              </button>
+            </div>
           </div>
+
+          {definitionSource === 'inline' ? (
+            <div className="grid gap-2">
+              <Label htmlFor="entity-type">{t('labels.type')}</Label>
+              <Select value={entityType} onValueChange={(v) => setEntityType(v as EntityType)}>
+                <SelectTrigger id="entity-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="vehicle">Vehicle</SelectItem>
+                  <SelectItem value="pedestrian">Pedestrian</SelectItem>
+                  <SelectItem value="miscObject">Misc Object</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <CatalogPicker
+              catalogName={catalogName}
+              entryName={entryName}
+              onCatalogNameChange={(name) => {
+                setCatalogName(name);
+                setEntryName('');
+              }}
+              onEntryNameChange={setEntryName}
+            />
+          )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t('buttons.cancel')}
           </Button>
-          <Button onClick={handleAdd} disabled={!name.trim()}>
+          <Button onClick={handleAdd} disabled={isAddDisabled}>
             {t('buttons.add')}
           </Button>
         </DialogFooter>

@@ -45,11 +45,122 @@ function generateProjectId(name: string): string {
   return `${date}-${slug}`;
 }
 
+/** esmini sample scenarios to seed into the sample project */
+const SAMPLE_SCENARIOS = [
+  'cut-in.xosc',
+  'cut-in_simple.xosc',
+  'lane_change.xosc',
+  'highway_merge.xosc',
+  'pedestrian.xosc',
+];
+
+/** .xodr road files referenced by the sample scenarios */
+const SAMPLE_ROADS = [
+  'e6mini.xodr',
+  'jolengatan.xodr',
+  'soderleden.xodr',
+  'fabriksgatan.xodr',
+  'straight_500m.xodr',
+];
+
+/** Catalog files to include in the sample project */
+const SAMPLE_CATALOGS: ReadonlyArray<{ dir: string; file: string }> = [
+  { dir: 'Vehicles', file: 'VehicleCatalog.xosc' },
+  { dir: 'Pedestrians', file: 'PedestrianCatalog.xosc' },
+  { dir: 'Controllers', file: 'ControllerCatalog.xosc' },
+  { dir: 'Routes', file: 'RoutesAtFabriksgatan.xosc' },
+  { dir: 'Maneuvers', file: 'HWManeuvers.xosc' },
+];
+
+const SAMPLE_PROJECT_ID = 'esmini-samples';
+
 export class ProjectService {
   private readonly basePath: string;
 
   constructor(basePath?: string) {
     this.basePath = basePath ?? path.resolve(process.cwd(), 'data/projects');
+  }
+
+  // ── Sample project seeding ──────────────────────────────────
+
+  /**
+   * Seed a sample project from esmini resources if:
+   *   1. The esmini resources directory exists
+   *   2. The sample project doesn't already exist
+   *
+   * Called once at server startup. Failures are silently ignored.
+   */
+  async seedSampleProject(): Promise<void> {
+    await this.ensureBaseDir();
+
+    // Already seeded?
+    const projectDir = path.resolve(this.basePath, SAMPLE_PROJECT_ID);
+    try {
+      await fs.stat(path.join(projectDir, 'project.json'));
+      return; // Already exists
+    } catch {
+      // Not yet seeded — continue
+    }
+
+    // Fixed path: repo-root/Thirdparty/esmini-demo_Windows/esmini-demo/resources
+    // cwd is apps/server/ when run via pnpm filter, so go up two levels
+    const esminiBase = path.resolve(process.cwd(), '../../Thirdparty/esmini-demo_Windows/esmini-demo/resources');
+
+    try {
+      await fs.stat(path.join(esminiBase, 'xosc'));
+    } catch {
+      return; // esmini resources not available — skip
+    }
+
+    const xoscDir = path.join(esminiBase, 'xosc');
+    const xodrDir = path.join(esminiBase, 'xodr');
+
+    // Create project structure
+    await fs.mkdir(path.join(projectDir, 'xosc'), { recursive: true });
+    await fs.mkdir(path.join(projectDir, 'xodr'), { recursive: true });
+    await fs.mkdir(path.join(projectDir, 'docs', 'img'), { recursive: true });
+    for (const cat of CATALOG_DIRS) {
+      await fs.mkdir(path.join(projectDir, 'catalogs', cat), { recursive: true });
+    }
+
+    // Copy scenario files
+    for (const file of SAMPLE_SCENARIOS) {
+      await this.tryCopyFile(path.join(xoscDir, file), path.join(projectDir, 'xosc', file));
+    }
+
+    // Copy road files
+    for (const file of SAMPLE_ROADS) {
+      await this.tryCopyFile(path.join(xodrDir, file), path.join(projectDir, 'xodr', file));
+    }
+
+    // Copy catalog files
+    for (const { dir, file } of SAMPLE_CATALOGS) {
+      await this.tryCopyFile(
+        path.join(xoscDir, 'Catalogs', dir, file),
+        path.join(projectDir, 'catalogs', dir, file),
+      );
+    }
+
+    // Write project.json
+    const now = new Date().toISOString();
+    const meta: ProjectMeta = {
+      id: SAMPLE_PROJECT_ID,
+      name: 'esmini Samples',
+      description: 'Sample scenarios from esmini — cut-in, lane change, highway merge, pedestrian',
+      createdAt: now,
+      updatedAt: now,
+      defaultScenario: 'xosc/cut-in.xosc',
+    };
+
+    await fs.writeFile(path.join(projectDir, 'project.json'), JSON.stringify(meta, null, 2), 'utf-8');
+  }
+
+  private async tryCopyFile(src: string, dest: string): Promise<void> {
+    try {
+      await fs.copyFile(src, dest);
+    } catch {
+      // Source file missing — skip silently
+    }
   }
 
   // ── Path security ────────────────────────────────────────────

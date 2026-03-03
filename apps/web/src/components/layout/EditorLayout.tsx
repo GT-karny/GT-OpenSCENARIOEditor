@@ -1,6 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { SceneComposerView } from '../scene-composer/SceneComposerView';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import type { ImperativePanelHandle } from 'react-resizable-panels';
+import { FolderTree } from 'lucide-react';
 import type { Node } from '@xyflow/react';
 import { NodeEditorProvider, NodeEditor, detectElementType } from '@osce/node-editor';
 import type { OsceNodeData, OsceNodeType } from '@osce/node-editor';
@@ -53,6 +55,8 @@ export function EditorLayout() {
   const scenarioStoreApi = useScenarioStoreApi();
   const currentProject = useProjectStore((s) => s.currentProject);
   const [centerTab, setCenterTab] = useState<'composer' | 'graph'>('composer');
+  const fileTreePanelRef = useRef<ImperativePanelHandle>(null);
+  const [fileTreeCollapsed, setFileTreeCollapsed] = useState(false);
 
   // --- Selection sync ---
   const selectedElementIds = useEditorStore((s) => s.selection.selectedElementIds);
@@ -161,11 +165,35 @@ export function EditorLayout() {
             {/* File Tree sidebar (project mode only) */}
             {currentProject && (
               <>
-                <Panel defaultSize={15} minSize={10} maxSize={25}>
-                  <FileTreeSidebar />
+                <Panel
+                  ref={fileTreePanelRef}
+                  defaultSize={15}
+                  minSize={10}
+                  maxSize={25}
+                  collapsible
+                  collapsedSize={0}
+                  onCollapse={() => setFileTreeCollapsed(true)}
+                  onExpand={() => setFileTreeCollapsed(false)}
+                >
+                  <FileTreeSidebar
+                    onCollapse={() => fileTreePanelRef.current?.collapse()}
+                  />
                 </Panel>
-                <ResizeHandle />
+                {!fileTreeCollapsed && <ResizeHandle />}
               </>
+            )}
+            {/* Collapsed icon bar for file tree */}
+            {currentProject && fileTreeCollapsed && (
+              <div className="flex flex-col items-center w-10 bg-[var(--color-bg-deep)] border-r border-[var(--color-glass-edge-mid)] py-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => fileTreePanelRef.current?.expand()}
+                  className="p-2 rounded hover:bg-[var(--color-glass-2)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+                  title={t('fileTree.expand')}
+                >
+                  <FolderTree size={16} />
+                </button>
+              </div>
             )}
 
             {/* Left sidebar */}
@@ -199,7 +227,7 @@ export function EditorLayout() {
             <ResizeHandle />
 
             {/* Center area */}
-            <Panel defaultSize={55} minSize={30}>
+            <Panel defaultSize={40} minSize={30}>
               <NodeEditorProvider
                 scenarioStore={scenarioStoreApi}
                 selectedElementIds={selectedElementIds}
@@ -260,7 +288,7 @@ export function EditorLayout() {
             <ResizeHandle />
 
             {/* Right sidebar */}
-            <Panel defaultSize={25} minSize={15} maxSize={40}>
+            <Panel defaultSize={25} minSize={12} maxSize={35}>
               <div className="h-full bg-[var(--color-bg-deep)] enter-r">
                 <Tabs defaultValue="properties" className="flex flex-col h-full">
                   <TabsList className="bg-[var(--color-glass-1)] backdrop-blur-[28px] rounded-none p-0">

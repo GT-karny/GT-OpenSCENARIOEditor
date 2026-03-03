@@ -11,6 +11,7 @@ export interface ProjectState {
   // Project state
   currentProject: ProjectDetail | null;
   currentFilePath: string | null;
+  currentXodrPath: string | null;
 
   // Recent projects (persisted)
   recentProjectIds: string[];
@@ -37,6 +38,7 @@ export const useProjectStore = create<ProjectState>()(
       currentView: 'home' as AppView,
       currentProject: null,
       currentFilePath: null,
+      currentXodrPath: null,
       recentProjectIds: [],
 
       setView: (view) => set({ currentView: view }),
@@ -47,6 +49,7 @@ export const useProjectStore = create<ProjectState>()(
           currentProject: project,
           currentView: 'editor' as AppView,
           currentFilePath: null,
+          currentXodrPath: null,
           recentProjectIds: addToRecent(state.recentProjectIds, id),
         }));
       },
@@ -55,6 +58,7 @@ export const useProjectStore = create<ProjectState>()(
         set({
           currentProject: null,
           currentFilePath: null,
+          currentXodrPath: null,
           currentView: 'home' as AppView,
         }),
 
@@ -64,6 +68,7 @@ export const useProjectStore = create<ProjectState>()(
           currentProject: project,
           currentView: 'editor' as AppView,
           currentFilePath: null,
+          currentXodrPath: null,
           recentProjectIds: addToRecent(state.recentProjectIds, project.meta.id),
         }));
       },

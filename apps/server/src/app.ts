@@ -57,6 +57,9 @@ export async function buildApp() {
     }
   });
 
+  // Seed sample project from esmini resources (if available)
+  await projectService.seedSampleProject();
+
   // Error handler
   registerErrorHandler(app);
 

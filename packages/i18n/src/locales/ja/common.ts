@@ -150,5 +150,12 @@ export const common = {
     newFile: '新規ファイル',
     rename: '名前変更',
     delete: '削除',
+    collapse: 'ファイルエクスプローラーを折りたたむ',
+    expand: 'ファイルエクスプローラーを表示',
+  },
+  warnings: {
+    xodrNotFound: 'ロードネットワークファイルが見つかりません: {{path}}',
+    xodrLoadFailed: 'ロードネットワークの読み込みに失敗しました: {{path}}',
+    catalogLoadFailed: 'カタログの読み込みに失敗しました: {{path}}',
   },
 } as const;
