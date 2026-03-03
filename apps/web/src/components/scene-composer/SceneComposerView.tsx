@@ -2,6 +2,7 @@ import { Car, Plus } from 'lucide-react';
 import { useScenarioStore, useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
 import { EntityBehaviorCard } from './EntityBehaviorCard';
+import { InitEntityCard } from './InitEntityCard';
 import type { ManeuverGroup } from '@osce/shared';
 
 /**
@@ -15,6 +16,7 @@ import type { ManeuverGroup } from '@osce/shared';
 export function SceneComposerView() {
   const storeApi = useScenarioStoreApi();
   const stories = useScenarioStore((s) => s.document.storyboard.stories);
+  const entityActions = useScenarioStore((s) => s.document.storyboard.init.entityActions);
   const selectedIds = useEditorStore((s) => s.selection.selectedElementIds);
 
   // Collect all ManeuverGroups across all stories/acts (flattened view)
@@ -52,8 +54,12 @@ export function SceneComposerView() {
     useEditorStore.getState().setSelection({ selectedElementIds: [group.id] });
   };
 
+  const handleSelectEntityInit = (entityInitId: string) => {
+    useEditorStore.getState().setSelection({ selectedElementIds: [entityInitId] });
+  };
+
   // Empty state
-  if (allGroups.length === 0) {
+  if (allGroups.length === 0 && entityActions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
         <Car className="h-10 w-10 text-[var(--color-text-muted)] opacity-20" />
@@ -74,25 +80,54 @@ export function SceneComposerView() {
 
   return (
     <div className="h-full overflow-auto">
-      <div className="flex flex-wrap items-start gap-4 p-4">
-        {allGroups.map((group) => (
-          <EntityBehaviorCard
-            key={group.id}
-            group={group}
-            selected={selectedIds.includes(group.id)}
-            onSelect={() => handleSelectGroup(group.id)}
-          />
-        ))}
+      <div className="flex flex-col gap-4 p-4">
+        {/* Init section */}
+        {entityActions.length > 0 && (
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--color-text-muted)] mb-2 px-1">
+              Initial State
+            </p>
+            <div className="flex flex-wrap items-start gap-4">
+              {entityActions.map((ea) => (
+                <InitEntityCard
+                  key={ea.id}
+                  entityInit={ea}
+                  selected={selectedIds.includes(ea.id)}
+                  onSelect={() => handleSelectEntityInit(ea.id)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
-        {/* Add behavior button */}
-        <button
-          onClick={handleAddBehavior}
-          className="flex flex-col items-center justify-center w-72 min-h-[100px] rounded-xl border border-dashed border-[var(--color-border-glass)] text-[var(--color-text-muted)] hover:border-[var(--color-accent-1)]/60 hover:text-[var(--color-accent-1)] transition-all gap-2"
-          title="Add entity behavior group"
-        >
-          <Plus className="h-5 w-5" />
-          <span className="text-xs">Add Entity Behavior</span>
-        </button>
+        {/* Behaviors section */}
+        <div>
+          {(entityActions.length > 0 || allGroups.length > 0) && (
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--color-text-muted)] mb-2 px-1">
+              Entity Behaviors
+            </p>
+          )}
+          <div className="flex flex-wrap items-start gap-4">
+            {allGroups.map((group) => (
+              <EntityBehaviorCard
+                key={group.id}
+                group={group}
+                selected={selectedIds.includes(group.id)}
+                onSelect={() => handleSelectGroup(group.id)}
+              />
+            ))}
+
+            {/* Add behavior button */}
+            <button
+              onClick={handleAddBehavior}
+              className="flex flex-col items-center justify-center w-72 min-h-[100px] rounded-xl border border-dashed border-[var(--color-border-glass)] text-[var(--color-text-muted)] hover:border-[var(--color-accent-1)]/60 hover:text-[var(--color-accent-1)] transition-all gap-2"
+              title="Add entity behavior group"
+            >
+              <Plus className="h-5 w-5" />
+              <span className="text-xs">Add Entity Behavior</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

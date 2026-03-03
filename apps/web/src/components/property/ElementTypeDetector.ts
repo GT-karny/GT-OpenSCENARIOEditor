@@ -1,4 +1,4 @@
-import type { ScenarioEntity, ScenarioEvent, ScenarioAction, Story, Act, Trigger } from '@osce/shared';
+import type { ScenarioEntity, ScenarioEvent, ScenarioAction, Story, Act, Trigger, EntityInitActions } from '@osce/shared';
 
 export type DetectedElementType =
   | { kind: 'entity'; element: ScenarioEntity }
@@ -7,6 +7,7 @@ export type DetectedElementType =
   | { kind: 'story'; element: Story }
   | { kind: 'act'; element: Act }
   | { kind: 'trigger'; element: Trigger }
+  | { kind: 'entityInit'; element: EntityInitActions }
   | { kind: 'unknown'; element: unknown };
 
 export function detectElementType(element: unknown): DetectedElementType {
@@ -22,6 +23,11 @@ export function detectElementType(element: unknown): DetectedElementType {
     if (t === 'vehicle' || t === 'pedestrian' || t === 'miscObject') {
       return { kind: 'entity', element: element as ScenarioEntity };
     }
+  }
+
+  // EntityInitActions: has entityRef and privateActions
+  if ('entityRef' in obj && 'privateActions' in obj && Array.isArray(obj.privateActions)) {
+    return { kind: 'entityInit', element: element as EntityInitActions };
   }
 
   // ScenarioEvent: has priority, actions array, and startTrigger

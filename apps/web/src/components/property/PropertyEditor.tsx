@@ -4,6 +4,7 @@ import { ActionPropertyEditor } from './ActionPropertyEditor';
 import { EventPropertyEditor } from './EventPropertyEditor';
 import { ConditionPropertyEditor } from './ConditionPropertyEditor';
 import { ActPropertyEditor } from './ActPropertyEditor';
+import { InitPropertyEditor } from './InitPropertyEditor';
 
 interface PropertyEditorProps {
   element: unknown;
@@ -38,6 +39,9 @@ export function PropertyEditor({ element }: PropertyEditorProps) {
 
     case 'trigger':
       return <ConditionPropertyEditor trigger={detected.element} />;
+
+    case 'entityInit':
+      return <InitPropertyEditor entityInit={detected.element} />;
 
     default:
       return (

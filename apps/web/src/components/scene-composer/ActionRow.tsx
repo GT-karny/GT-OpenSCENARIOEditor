@@ -30,7 +30,7 @@ export function ActionRow({ event, selected, onSelect, onRemove }: ActionRowProp
           ? 'bg-[var(--color-accent-1)]/10 border-[var(--color-accent-1)]/30'
           : 'hover:bg-[var(--color-glass-2)]',
       )}
-      onClick={onSelect}
+      onClick={(e) => { e.stopPropagation(); onSelect(); }}
     >
       {/* Drag handle placeholder */}
       <GripVertical className="h-3 w-3 shrink-0 text-[var(--color-text-muted)] opacity-0 group-hover/row:opacity-40" />
