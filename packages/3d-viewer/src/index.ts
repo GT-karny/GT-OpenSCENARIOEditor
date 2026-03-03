@@ -17,10 +17,6 @@ export type { WorldCoords } from './utils/position-resolver.js';
 export { getEntityGeometry, getEntityColor } from './utils/entity-geometry.js';
 export type { EntityGeometryParams } from './utils/entity-geometry.js';
 
-// Simulation playback
-export { useSimulationPlayback } from './scenario/useSimulationPlayback.js';
-export type { SimulationPlaybackControls } from './scenario/useSimulationPlayback.js';
-
 // Scenario data bridge hooks
 export { useScenarioEntities } from './scenario/useScenarioEntities.js';
 export { useEntityPositions, extractEntityPositions } from './scenario/useEntityPositions.js';

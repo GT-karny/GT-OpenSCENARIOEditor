@@ -58,14 +58,53 @@ function post(msg: WorkerResponse) {
   self.postMessage(msg);
 }
 
-function vectorToArray<T>(vec: EsminiVector<T>): T[] {
+function vectorToArray<T>(vec: EsminiVector<T>, clone?: (item: T) => T): T[] {
   const arr: T[] = [];
   const len = vec.size();
   for (let i = 0; i < len; i++) {
-    arr.push(vec.get(i));
+    const item = vec.get(i);
+    arr.push(clone ? clone(item) : item);
   }
   vec.delete();
   return arr;
+}
+
+/**
+ * Deep-copy a WasmScenarioObjectState from an embind proxy into a plain JS object.
+ * Embind objects may share underlying WASM memory — reading properties after the
+ * next step() call returns stale data. Explicit copy ensures each frame is independent.
+ */
+function cloneObjectState(obj: WasmScenarioObjectState): WasmScenarioObjectState {
+  return {
+    name: obj.name,
+    id: obj.id,
+    model_id: obj.model_id,
+    ctrl_type: obj.ctrl_type,
+    timestamp: obj.timestamp,
+    x: obj.x,
+    y: obj.y,
+    z: obj.z,
+    h: obj.h,
+    p: obj.p,
+    r: obj.r,
+    road_id: obj.road_id,
+    junction_id: obj.junction_id,
+    t: obj.t,
+    lane_id: obj.lane_id,
+    lane_offset: obj.lane_offset,
+    s: obj.s,
+    speed: obj.speed,
+    center_offset_x: obj.center_offset_x,
+    center_offset_y: obj.center_offset_y,
+    center_offset_z: obj.center_offset_z,
+    width: obj.width,
+    length: obj.length,
+    height: obj.height,
+    object_type: obj.object_type,
+    object_category: obj.object_category,
+    wheel_angle: obj.wheel_angle,
+    wheel_rot: obj.wheel_rot,
+  };
 }
 
 async function loadModule(): Promise<EsminiModule> {
@@ -103,7 +142,7 @@ function executeStep(dt: number) {
   const isComplete = scenario.isComplete();
 
   const stateVec = scenario.getCurrentState();
-  const objects = vectorToArray(stateVec);
+  const objects = vectorToArray(stateVec, cloneObjectState);
 
   const sbVec = scenario.popStoryBoardEvents();
   const storyBoardEvents = vectorToArray(sbVec);
@@ -150,6 +189,13 @@ async function handleLoad(
 
     let finalXosc = xoscXml;
 
+    // Diagnostic: log what data was provided
+    console.warn('[Worker] handleLoad: xodrData provided =', !!xodrData, ', xodrData length =', xodrData?.length ?? 0);
+    console.warn('[Worker] handleLoad: catalogs provided =', catalogs ? Object.keys(catalogs) : 'none');
+    // Log the RoadNetwork section from the XOSC
+    const rnMatch = finalXosc.match(/<RoadNetwork>[\s\S]*?<\/RoadNetwork>/);
+    console.warn('[Worker] RoadNetwork in XOSC:', rnMatch ? rnMatch[0] : 'NOT FOUND');
+
     // Write xodr and rewrite LogicFile path
     if (xodrData) {
       mod.FS.writeFile('/scenarios/road.xodr', xodrData);
@@ -170,6 +216,21 @@ async function handleLoad(
         /(<(?:Vehicle|Controller|Pedestrian|MiscObject|Environment|Maneuver|Trajectory|Route)Catalog>\s*<Directory\s+path\s*=\s*")([^"]*?)(")/g,
         '$1/catalogs/$3',
       );
+    }
+
+    // Diagnostic: log the Init section of the final XOSC XML
+    const initMatch = finalXosc.match(/<Init>[\s\S]*?<\/Init>/);
+    if (initMatch) {
+      console.warn('[Worker] Init section in XOSC XML:\n', initMatch[0]);
+    } else {
+      console.warn('[Worker] WARNING: No <Init> section found in XOSC XML!');
+    }
+    // Also log ParameterDeclarations
+    const paramMatch = finalXosc.match(/<ParameterDeclarations>[\s\S]*?<\/ParameterDeclarations>/);
+    if (paramMatch) {
+      console.warn('[Worker] ParameterDeclarations:\n', paramMatch[0]);
+    } else {
+      console.warn('[Worker] WARNING: No <ParameterDeclarations> found!');
     }
 
     mod.FS.writeFile('/scenarios/scenario.xosc', finalXosc);
@@ -204,11 +265,55 @@ function handlePlay(speed: number, fps: number) {
   stopPlayLoop();
 
   const dt = (1 / fps) * speed;
-  const intervalMs = 1000 / fps;
+  const maxSteps = 100000;
+  const MAX_SIM_TIME = 120; // seconds — prevent runaway simulations
 
-  playIntervalId = setInterval(() => {
-    executeStep(dt);
-  }, intervalMs);
+  // Batch mode: accumulate all frames in memory, send once at end
+  const frames: Array<{
+    simulationTime: number;
+    objects: WasmScenarioObjectState[];
+  }> = [];
+  const allStoryBoardEvents: WasmStoryBoardEvent[] = [];
+  const allConditionEvents: WasmConditionEvent[] = [];
+
+  for (let i = 0; i < maxSteps; i++) {
+    const result = scenario.step(dt);
+    const simulationTime = scenario.getSimulationTime();
+    const isComplete = scenario.isComplete();
+
+    const objects = vectorToArray(scenario.getCurrentState(), cloneObjectState);
+    const storyBoardEvents = vectorToArray(scenario.popStoryBoardEvents());
+    const conditionEvents = vectorToArray(scenario.popConditionEvents());
+
+    frames.push({ simulationTime, objects });
+    allStoryBoardEvents.push(...storyBoardEvents);
+    allConditionEvents.push(...conditionEvents);
+
+    // Diagnostic: log first 5 frames and every 500th to verify positions change
+    if (i < 5 || i % 500 === 0) {
+      const posStr = objects
+        .map((o) => `${o.name}(x=${o.x.toFixed(2)},y=${o.y.toFixed(2)},spd=${o.speed.toFixed(2)},s=${o.s.toFixed(2)})`)
+        .join(' | ');
+      console.warn(`[Worker] step ${i}, t=${simulationTime.toFixed(2)}: ${posStr}`);
+    }
+
+    if (isComplete || result !== 0 || simulationTime >= MAX_SIM_TIME) {
+      break;
+    }
+  }
+
+  const duration = frames.length > 0
+    ? frames[frames.length - 1].simulationTime
+    : 0;
+
+  // Send ALL data in a single message
+  post({
+    type: 'batch-completed',
+    frames,
+    storyBoardEvents: allStoryBoardEvents,
+    conditionEvents: allConditionEvents,
+    duration,
+  });
 }
 
 function handleDispose() {

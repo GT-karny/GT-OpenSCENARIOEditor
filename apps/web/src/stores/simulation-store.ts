@@ -30,6 +30,8 @@ export interface SimulationState {
   setStatus: (status: SimulationStatus) => void;
   addStoryBoardEvent: (event: StoryBoardEvent) => void;
   addConditionEvent: (event: ConditionEvent) => void;
+  setStoryBoardEvents: (events: StoryBoardEvent[]) => void;
+  setConditionEvents: (events: ConditionEvent[]) => void;
   reset: () => void;
 
   // Playback actions (called by UI)
@@ -42,6 +44,7 @@ export interface SimulationState {
 // Module-level rAF management (not serializable, kept outside store)
 let rafId: number | null = null;
 let lastTimestamp: number | null = null;
+let playbackTime = 0; // Accumulated playback time (seconds)
 
 function stopPlaybackLoop() {
   if (rafId !== null) {
@@ -54,6 +57,10 @@ function stopPlaybackLoop() {
 function startPlaybackLoop() {
   stopPlaybackLoop();
   lastTimestamp = null;
+
+  // Initialize playback time from current frame
+  const initState = useSimulationStore.getState();
+  playbackTime = initState.frames[initState.currentFrameIndex]?.time ?? 0;
 
   const tick = (timestamp: number) => {
     const state = useSimulationStore.getState();
@@ -78,13 +85,13 @@ function startPlaybackLoop() {
       return;
     }
 
-    const currentTime = frames[currentFrameIndex]?.time ?? 0;
-    const targetTime = currentTime + deltaSeconds * playbackSpeed;
+    // Accumulate playback time independently of frame times
+    playbackTime += deltaSeconds * playbackSpeed;
 
-    // Find the frame closest to targetTime
+    // Find the frame closest to playbackTime
     let newIndex = currentFrameIndex;
     for (let i = currentFrameIndex + 1; i < frames.length; i++) {
-      if (frames[i].time <= targetTime) {
+      if (frames[i].time <= playbackTime) {
         newIndex = i;
       } else {
         break;
@@ -143,6 +150,19 @@ export const useSimulationStore = create<SimulationState>()((set) => ({
 
   setCompleted: (result) => {
     stopPlaybackLoop();
+
+    console.warn(
+      `[SimulationStore] setCompleted: ${result.frames.length} frames, ` +
+        `duration: ${result.duration.toFixed(2)}s`,
+    );
+
+    if (result.frames.length > 0 && result.frames.length < 10) {
+      console.warn(
+        `[SimulationStore] Warning: very few frames (${result.frames.length}). ` +
+          `Playback may appear to not work.`,
+      );
+    }
+
     set({
       status: 'completed',
       frames: result.frames,
@@ -173,6 +193,17 @@ export const useSimulationStore = create<SimulationState>()((set) => ({
       conditionEvents: [...state.conditionEvents, event],
     })),
 
+  setStoryBoardEvents: (events) =>
+    set({
+      storyBoardEvents: events,
+      activeElements: computeActiveElements(events),
+    }),
+
+  setConditionEvents: (events) =>
+    set({
+      conditionEvents: events,
+    }),
+
   reset: () => {
     stopPlaybackLoop();
     set({
@@ -193,6 +224,7 @@ export const useSimulationStore = create<SimulationState>()((set) => ({
     if (state.frames.length === 0) return;
     // If at end, restart from beginning
     if (state.currentFrameIndex >= state.frames.length - 1) {
+      playbackTime = state.frames[0]?.time ?? 0;
       set({ currentFrameIndex: 0 });
     }
     set({ isPlaying: true });
@@ -207,6 +239,8 @@ export const useSimulationStore = create<SimulationState>()((set) => ({
   seekTo: (frameIndex) => {
     const { frames } = useSimulationStore.getState();
     const clamped = Math.max(0, Math.min(frameIndex, frames.length - 1));
+    // Sync accumulated playback time to the seeked frame
+    playbackTime = frames[clamped]?.time ?? 0;
     set({ currentFrameIndex: clamped });
   },
 

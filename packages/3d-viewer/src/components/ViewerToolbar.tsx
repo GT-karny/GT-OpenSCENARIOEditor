@@ -5,7 +5,6 @@
 
 import React from 'react';
 import type { CameraMode } from '../store/viewer-types.js';
-import type { SimulationPlaybackControls } from '../scenario/useSimulationPlayback.js';
 
 interface ViewerToolbarProps {
   cameraMode: CameraMode;
@@ -18,7 +17,6 @@ interface ViewerToolbarProps {
   onToggleRoadIds: () => void;
   showLaneIds: boolean;
   onToggleLaneIds: () => void;
-  playbackControls?: SimulationPlaybackControls;
 }
 
 const toolbarStyle: React.CSSProperties = {
@@ -50,21 +48,6 @@ const activeButtonStyle: React.CSSProperties = {
   borderColor: 'rgba(100, 130, 220, 0.8)',
 };
 
-const playbackStyle: React.CSSProperties = {
-  position: 'absolute',
-  bottom: 8,
-  left: '50%',
-  transform: 'translateX(-50%)',
-  display: 'flex',
-  gap: '4px',
-  alignItems: 'center',
-  zIndex: 10,
-  pointerEvents: 'auto',
-  backgroundColor: 'rgba(40, 40, 60, 0.85)',
-  padding: '4px 8px',
-  borderRadius: '4px',
-  border: '1px solid rgba(100, 100, 140, 0.5)',
-};
 
 export const ViewerToolbar: React.FC<ViewerToolbarProps> = React.memo(
   ({
@@ -78,7 +61,6 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = React.memo(
     onToggleRoadIds,
     showLaneIds,
     onToggleLaneIds,
-    playbackControls,
   }) => {
     return (
       <>
@@ -127,26 +109,6 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = React.memo(
           </button>
         </div>
 
-        {playbackControls && playbackControls.duration > 0 && (
-          <div style={playbackStyle}>
-            <button
-              style={buttonStyle}
-              onClick={
-                playbackControls.status === 'playing'
-                  ? playbackControls.pause
-                  : playbackControls.play
-              }
-            >
-              {playbackControls.status === 'playing' ? '||' : '|>'}
-            </button>
-            <button style={buttonStyle} onClick={playbackControls.stop}>
-              Stop
-            </button>
-            <span style={{ color: '#aaa', fontSize: '11px', fontFamily: 'monospace' }}>
-              {playbackControls.currentTime.toFixed(1)}s / {playbackControls.duration.toFixed(1)}s
-            </span>
-          </div>
-        )}
       </>
     );
   },

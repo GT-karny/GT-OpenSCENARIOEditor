@@ -17,7 +17,7 @@ import type {
 import { parseParameterDeclarations } from './parse-parameters.js';
 import { ensureArray } from '../utils/ensure-array.js';
 import { generateId } from '../utils/uuid.js';
-import { numAttr, strAttr, optNumAttr, optStrAttr } from '../utils/xml-helpers.js';
+import { numAttr, strAttr, optNumAttr, optStrAttr, pushBindingFieldPrefix, popBindingFieldPrefix } from '../utils/xml-helpers.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseEntities(raw: any): ScenarioEntity[] {
@@ -74,6 +74,18 @@ function parseEntityDefinition(raw: any): { type: EntityType; definition: Scenar
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseVehicleDefinition(raw: any): VehicleDefinition {
+  pushBindingFieldPrefix('performance');
+  const performance = parsePerformance(raw.Performance);
+  popBindingFieldPrefix();
+
+  pushBindingFieldPrefix('boundingBox');
+  const boundingBox = parseBoundingBox(raw.BoundingBox);
+  popBindingFieldPrefix();
+
+  pushBindingFieldPrefix('axles');
+  const axles = parseAxles(raw.Axles);
+  popBindingFieldPrefix();
+
   return {
     kind: 'vehicle',
     name: strAttr(raw, 'name'),
@@ -81,9 +93,9 @@ export function parseVehicleDefinition(raw: any): VehicleDefinition {
     mass: optNumAttr(raw, 'mass'),
     role: optStrAttr(raw, 'role') as VehicleDefinition['role'],
     parameterDeclarations: parseParameterDeclarations(raw.ParameterDeclarations),
-    performance: parsePerformance(raw.Performance),
-    boundingBox: parseBoundingBox(raw.BoundingBox),
-    axles: parseAxles(raw.Axles),
+    performance,
+    boundingBox,
+    axles,
     properties: parseProperties(raw.Properties),
     model3d: optStrAttr(raw, 'model3d'),
   };
@@ -169,18 +181,24 @@ function parseBoundingBox(raw: any): BoundingBox {
       dimensions: { width: 0, length: 0, height: 0 },
     };
   }
-  return {
-    center: {
-      x: numAttr(raw.Center, 'x'),
-      y: numAttr(raw.Center, 'y'),
-      z: numAttr(raw.Center, 'z'),
-    },
-    dimensions: {
-      width: numAttr(raw.Dimensions, 'width'),
-      length: numAttr(raw.Dimensions, 'length'),
-      height: numAttr(raw.Dimensions, 'height'),
-    },
+
+  pushBindingFieldPrefix('center');
+  const center = {
+    x: numAttr(raw.Center, 'x'),
+    y: numAttr(raw.Center, 'y'),
+    z: numAttr(raw.Center, 'z'),
   };
+  popBindingFieldPrefix();
+
+  pushBindingFieldPrefix('dimensions');
+  const dimensions = {
+    width: numAttr(raw.Dimensions, 'width'),
+    length: numAttr(raw.Dimensions, 'length'),
+    height: numAttr(raw.Dimensions, 'height'),
+  };
+  popBindingFieldPrefix();
+
+  return { center, dimensions };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -189,9 +207,18 @@ function parseAxles(raw: any): Axles {
     const defaultAxle: Axle = { maxSteering: 0, wheelDiameter: 0, trackWidth: 0, positionX: 0, positionZ: 0 };
     return { frontAxle: { ...defaultAxle }, rearAxle: { ...defaultAxle }, additionalAxles: [] };
   }
+
+  pushBindingFieldPrefix('frontAxle');
+  const frontAxle = parseAxle(raw.FrontAxle);
+  popBindingFieldPrefix();
+
+  pushBindingFieldPrefix('rearAxle');
+  const rearAxle = parseAxle(raw.RearAxle);
+  popBindingFieldPrefix();
+
   return {
-    frontAxle: parseAxle(raw.FrontAxle),
-    rearAxle: parseAxle(raw.RearAxle),
+    frontAxle,
+    rearAxle,
     additionalAxles: ensureArray(raw.AdditionalAxle).map(parseAxle),
   };
 }

@@ -13,7 +13,7 @@ import type {
   Property,
 } from '@osce/shared';
 import { buildParameterDeclarations } from './build-parameters.js';
-import { buildAttrs } from '../utils/xml-helpers.js';
+import { buildAttrs, getSubBindings } from '../utils/xml-helpers.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function buildEntities(entities: ScenarioEntity[]): any {
@@ -52,7 +52,7 @@ function buildScenarioObject(entity: ScenarioEntity): any {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildVehicle(v: VehicleDefinition): any {
+export function buildVehicle(v: VehicleDefinition, bindings?: Record<string, string>): any {
   return {
     ...buildAttrs({
       name: v.name,
@@ -62,9 +62,9 @@ export function buildVehicle(v: VehicleDefinition): any {
       model3d: v.model3d,
     }),
     ParameterDeclarations: buildParameterDeclarations(v.parameterDeclarations),
-    BoundingBox: buildBoundingBox(v.boundingBox),
-    Performance: buildPerformance(v.performance),
-    Axles: buildAxles(v.axles),
+    BoundingBox: buildBoundingBox(v.boundingBox, bindings ? getSubBindings(bindings, 'boundingBox') : undefined),
+    Performance: buildPerformance(v.performance, bindings ? getSubBindings(bindings, 'performance') : undefined),
+    Axles: buildAxles(v.axles, bindings ? getSubBindings(bindings, 'axles') : undefined),
     Properties: buildProperties(v.properties),
   };
 }
@@ -118,47 +118,49 @@ function buildCatalogReference(cr: CatalogReference): any {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildBoundingBox(bb: BoundingBox): any {
+function buildBoundingBox(bb: BoundingBox, bindings?: Record<string, string>): any {
   return {
-    Center: buildAttrs({ x: bb.center.x, y: bb.center.y, z: bb.center.z }),
-    Dimensions: buildAttrs({
-      width: bb.dimensions.width,
-      length: bb.dimensions.length,
-      height: bb.dimensions.height,
-    }),
+    Center: buildAttrs(
+      { x: bb.center.x, y: bb.center.y, z: bb.center.z },
+      bindings ? getSubBindings(bindings, 'center') : undefined,
+    ),
+    Dimensions: buildAttrs(
+      { width: bb.dimensions.width, length: bb.dimensions.length, height: bb.dimensions.height },
+      bindings ? getSubBindings(bindings, 'dimensions') : undefined,
+    ),
   };
 }
 
-function buildPerformance(p: Performance): Record<string, string> {
+function buildPerformance(p: Performance, bindings?: Record<string, string>): Record<string, string> {
   return buildAttrs({
     maxSpeed: p.maxSpeed,
     maxAcceleration: p.maxAcceleration,
     maxDeceleration: p.maxDeceleration,
     mass: p.mass,
-  });
+  }, bindings);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildAxles(a: Axles): any {
+function buildAxles(a: Axles, bindings?: Record<string, string>): any {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result: any = {
-    FrontAxle: buildAxle(a.frontAxle),
-    RearAxle: buildAxle(a.rearAxle),
+    FrontAxle: buildAxle(a.frontAxle, bindings ? getSubBindings(bindings, 'frontAxle') : undefined),
+    RearAxle: buildAxle(a.rearAxle, bindings ? getSubBindings(bindings, 'rearAxle') : undefined),
   };
   if (a.additionalAxles.length > 0) {
-    result.AdditionalAxle = a.additionalAxles.map(buildAxle);
+    result.AdditionalAxle = a.additionalAxles.map((ax) => buildAxle(ax));
   }
   return result;
 }
 
-function buildAxle(a: Axle): Record<string, string> {
+function buildAxle(a: Axle, bindings?: Record<string, string>): Record<string, string> {
   return buildAttrs({
     maxSteering: a.maxSteering,
     wheelDiameter: a.wheelDiameter,
     trackWidth: a.trackWidth,
     positionX: a.positionX,
     positionZ: a.positionZ,
-  });
+  }, bindings);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

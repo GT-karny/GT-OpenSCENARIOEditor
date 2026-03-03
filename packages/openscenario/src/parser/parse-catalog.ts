@@ -7,7 +7,7 @@ import {
   parseMiscObjectDefinition,
 } from './parse-entities.js';
 import { generateId } from '../utils/uuid.js';
-import { strAttr } from '../utils/xml-helpers.js';
+import { strAttr, startBindingCollection, setBindingElementId, finishBindingCollection } from '../utils/xml-helpers.js';
 
 /**
  * Elements that can appear multiple times inside a <Catalog>.
@@ -72,7 +72,11 @@ export function parseCatalogXml(xml: string): CatalogDocument {
 
   const catalog = root.Catalog;
   const catalogName = strAttr(catalog, 'name');
+
+  startBindingCollection();
   const entries = parseCatalogEntries(catalog);
+  const parameterBindings = finishBindingCollection();
+
   const catalogType = inferCatalogType(entries, catalog);
 
   return {
@@ -81,6 +85,7 @@ export function parseCatalogXml(xml: string): CatalogDocument {
     catalogName,
     catalogType,
     entries,
+    _parameterBindings: Object.keys(parameterBindings).length > 0 ? parameterBindings : undefined,
   };
 }
 
@@ -89,12 +94,15 @@ function parseCatalogEntries(catalog: any): CatalogEntry[] {
   const entries: CatalogEntry[] = [];
 
   for (const raw of ensureArray(catalog.Vehicle)) {
+    setBindingElementId(strAttr(raw, 'name'));
     entries.push({ catalogType: 'vehicle', definition: parseVehicleDefinition(raw) });
   }
   for (const raw of ensureArray(catalog.Pedestrian)) {
+    setBindingElementId(strAttr(raw, 'name'));
     entries.push({ catalogType: 'pedestrian', definition: parsePedestrianDefinition(raw) });
   }
   for (const raw of ensureArray(catalog.MiscObject)) {
+    setBindingElementId(strAttr(raw, 'name'));
     entries.push({ catalogType: 'miscObject', definition: parseMiscObjectDefinition(raw) });
   }
 

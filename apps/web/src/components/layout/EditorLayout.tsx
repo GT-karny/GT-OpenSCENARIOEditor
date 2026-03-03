@@ -1,5 +1,4 @@
 import { useState, useCallback, useMemo, useRef, useEffect, memo } from 'react';
-import type { SimulationStatus } from '@osce/shared';
 import { SceneComposerView } from '../scene-composer/SceneComposerView';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import type { ImperativePanelHandle } from 'react-resizable-panels';
@@ -49,8 +48,8 @@ function ResizeHandleH() {
 }
 
 /**
- * Thin wrapper that subscribes to simulation frames separately,
- * so only the 3D viewer re-renders on each frame (not the entire EditorLayout).
+ * Thin wrapper that computes the current display frame from the simulation store,
+ * so only the 3D viewer re-renders on frame changes (not the entire EditorLayout).
  */
 const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   scenarioStore: ReturnType<typeof import('../../stores/use-scenario-store').useScenarioStoreApi>;
@@ -58,10 +57,34 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   selectedEntityId: string | null;
   onEntitySelect: (entityId: string) => void;
   onEntityFocus: (entityId: string) => void;
-  simStatus: SimulationStatus;
   preferences: { showGrid3D: boolean; showLaneIds: boolean; showRoadIds: boolean };
 }) {
+  const simStatus = useSimulationStore((s) => s.status);
   const simFrames = useSimulationStore((s) => s.frames);
+  const currentFrameIndex = useSimulationStore((s) => s.currentFrameIndex);
+
+  // Compute display frame based on simulation state:
+  // - running: show the latest frame (live streaming)
+  // - completed/error: show frame at currentFrameIndex (replay scrubbing)
+  // - idle: no frame
+  let currentFrame = null;
+  if (simStatus === 'running' && simFrames.length > 0) {
+    currentFrame = simFrames[simFrames.length - 1];
+  } else if ((simStatus === 'completed' || simStatus === 'error') && simFrames.length > 0) {
+    currentFrame = simFrames[currentFrameIndex] ?? simFrames[simFrames.length - 1];
+  }
+
+  // Diagnostic: log bridge renders
+  const renderCountRef = useRef(0);
+  renderCountRef.current++;
+  if (renderCountRef.current <= 5 || renderCountRef.current % 60 === 0) {
+    console.warn(
+      `[ViewerBridge] render #${renderCountRef.current}: status=${simStatus}, ` +
+        `frameIndex=${currentFrameIndex}/${simFrames.length}, ` +
+        `currentFrame=${currentFrame ? `t=${currentFrame.time.toFixed(3)}` : 'null'}`,
+    );
+  }
+
   return (
     <ScenarioViewer
       scenarioStore={props.scenarioStore}
@@ -69,7 +92,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       selectedEntityId={props.selectedEntityId}
       onEntitySelect={props.onEntitySelect}
       onEntityFocus={props.onEntityFocus}
-      simulationFrames={props.simStatus !== 'idle' ? simFrames : undefined}
+      currentFrame={currentFrame}
       preferences={props.preferences}
       className="h-full w-full"
     />
@@ -381,7 +404,6 @@ export function EditorLayout() {
                 selectedEntityId={selectedEntityId}
                 onEntitySelect={handleEntitySelect}
                 onEntityFocus={handleEntitySelect}
-                simStatus={simStatus}
                 preferences={{
                   showGrid3D: preferences.showGrid3D,
                   showLaneIds: preferences.showLaneIds,

@@ -35,6 +35,8 @@ export interface CatalogDocument {
   entries: CatalogEntry[];
   /** Source file path (for display and re-saving) */
   _sourcePath?: string;
+  /** Parameter bindings captured during parsing (keyed by entry name → field path → $ref) */
+  _parameterBindings?: Record<string, Record<string, string>>;
 }
 
 /**

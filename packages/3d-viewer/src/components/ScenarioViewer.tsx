@@ -15,7 +15,6 @@ import { EntityGroup } from '../entities/EntityGroup.js';
 import { ViewerToolbar } from './ViewerToolbar.js';
 import { useScenarioEntities } from '../scenario/useScenarioEntities.js';
 import { useEntityPositions } from '../scenario/useEntityPositions.js';
-import { useSimulationPlayback } from '../scenario/useSimulationPlayback.js';
 import { SimulationOverlay } from '../scenario/SimulationOverlay.js';
 
 export interface ScenarioViewerProps {
@@ -29,8 +28,8 @@ export interface ScenarioViewerProps {
   onEntitySelect?: (entityId: string) => void;
   /** Callback when user double-clicks an entity (request focus) */
   onEntityFocus?: (entityId: string) => void;
-  /** Simulation frames for playback */
-  simulationFrames?: SimulationFrame[];
+  /** Current simulation frame to display (null = show init positions) */
+  currentFrame?: SimulationFrame | null;
   /** Editor preferences for display toggles */
   preferences?: Partial<EditorPreferences>;
   /** CSS class for the container */
@@ -41,7 +40,6 @@ export interface ScenarioViewerProps {
 
 /**
  * Inner component that lives inside the R3F Canvas.
- * Hooks like useSimulationPlayback require the Canvas context.
  */
 function ScenarioViewerScene({
   scenarioStore,
@@ -49,7 +47,7 @@ function ScenarioViewerScene({
   selectedEntityId,
   onEntitySelect,
   onEntityFocus,
-  simulationFrames,
+  currentFrame,
   viewerStore,
 }: {
   scenarioStore: ScenarioViewerProps['scenarioStore'];
@@ -57,7 +55,7 @@ function ScenarioViewerScene({
   selectedEntityId: string | null;
   onEntitySelect: (entityId: string) => void;
   onEntityFocus: (entityId: string) => void;
-  simulationFrames?: SimulationFrame[];
+  currentFrame?: SimulationFrame | null;
   viewerStore: ReturnType<typeof createViewerStore>;
 }) {
   const cameraMode = useViewerStore(viewerStore, (s) => s.cameraMode);
@@ -69,24 +67,7 @@ function ScenarioViewerScene({
   const entities = useScenarioEntities(scenarioStore);
   const entityPositions = useEntityPositions(scenarioStore, openDriveDocument);
 
-  const playbackControls = useSimulationPlayback();
-
-  // Load simulation frames when provided
-  React.useEffect(() => {
-    if (simulationFrames && simulationFrames.length > 0) {
-      playbackControls.setFrames(simulationFrames);
-    }
-  }, [simulationFrames]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // During live streaming (playback idle but frames exist), show the latest frame;
-  // during replay (playing/paused), use the playback interpolated frame.
-  const latestFrame = simulationFrames && simulationFrames.length > 0
-    ? simulationFrames[simulationFrames.length - 1]
-    : null;
-  const displayFrame = playbackControls.status !== 'idle'
-    ? playbackControls.currentFrame
-    : latestFrame;
-  const isSimulating = displayFrame !== null;
+  const isSimulating = currentFrame != null;
 
   const [focusTarget, setFocusTarget] = useState<[number, number, number] | null>(null);
 
@@ -134,7 +115,7 @@ function ScenarioViewerScene({
       {isSimulating && (
         <SimulationOverlay
           entities={entities}
-          currentFrame={displayFrame}
+          currentFrame={currentFrame!}
           selectedEntityId={selectedEntityId}
           onEntitySelect={onEntitySelect}
           showLabels={showEntityLabels}
@@ -154,7 +135,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   selectedEntityId = null,
   onEntitySelect,
   onEntityFocus,
-  simulationFrames,
+  currentFrame: currentFrameProp,
   preferences,
   className,
   style,
@@ -202,7 +183,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           selectedEntityId={selectedEntityId ?? null}
           onEntitySelect={handleEntitySelect}
           onEntityFocus={handleEntityFocus}
-          simulationFrames={simulationFrames}
+          currentFrame={currentFrameProp}
           viewerStore={viewerStore}
         />
       </ViewerCanvas>

@@ -18,7 +18,10 @@ export function serializeCatalog(doc: CatalogDocument, formatted = true): string
   const miscObjects = doc.entries.filter((e) => e.catalogType === 'miscObject');
 
   if (vehicles.length > 0) {
-    catalogContent.Vehicle = vehicles.map((e) => buildVehicle(e.definition));
+    const pb = doc._parameterBindings;
+    catalogContent.Vehicle = vehicles.map((e) =>
+      buildVehicle(e.definition, pb?.[e.definition.name]),
+    );
   }
   if (pedestrians.length > 0) {
     catalogContent.Pedestrian = pedestrians.map((e) => buildPedestrian(e.definition));

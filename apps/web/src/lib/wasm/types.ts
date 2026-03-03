@@ -85,6 +85,13 @@ export type WorkerResponse =
       simulationTime: number;
     }
   | {
+      type: 'batch-completed';
+      frames: Array<{ simulationTime: number; objects: WasmScenarioObjectState[] }>;
+      storyBoardEvents: WasmStoryBoardEvent[];
+      conditionEvents: WasmConditionEvent[];
+      duration: number;
+    }
+  | {
       type: 'error';
       message: string;
     };

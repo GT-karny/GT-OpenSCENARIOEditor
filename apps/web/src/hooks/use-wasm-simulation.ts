@@ -19,26 +19,34 @@ export function useWasmSimulation() {
     return serviceRef.current;
   }, []);
 
-  // Register store callbacks on mount
+  // Register store callbacks on mount.
+  // Batch mode: frames and events are collected in the service/worker
+  // and delivered all at once via onComplete / onBatch* callbacks.
   useEffect(() => {
     const service = getService();
     const store = useSimulationStore.getState;
 
-    const unsubFrame = service.onFrame((frame) => {
-      store().addFrame(frame);
-    });
     const unsubComplete = service.onComplete((result) => {
+      console.warn(
+        `[useWasmSimulation] onComplete: ${result.frames.length} frames, ` +
+          `duration: ${result.duration.toFixed(2)}s`,
+      );
       store().setCompleted(result);
+      // Auto-play after batch completion
+      store().play();
     });
-    const unsubSB = service.onStoryBoardEvent((event) => {
-      store().addStoryBoardEvent(event);
+
+    // Use batch callbacks instead of per-event callbacks
+    const unsubSB = service.onBatchStoryBoardEvents((events) => {
+      console.warn(`[useWasmSimulation] Batch storyboard events: ${events.length}`);
+      store().setStoryBoardEvents(events);
     });
-    const unsubCond = service.onConditionEvent((event) => {
-      store().addConditionEvent(event);
+    const unsubCond = service.onBatchConditionEvents((events) => {
+      console.warn(`[useWasmSimulation] Batch condition events: ${events.length}`);
+      store().setConditionEvents(events);
     });
 
     return () => {
-      unsubFrame();
       unsubComplete();
       unsubSB();
       unsubCond();

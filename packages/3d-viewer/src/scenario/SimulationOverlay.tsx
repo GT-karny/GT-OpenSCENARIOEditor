@@ -3,7 +3,7 @@
  * Overrides the init positions when simulation data is available.
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import type { ScenarioEntity, SimulationFrame } from '@osce/shared';
 import type { WorldCoords } from '../utils/position-resolver.js';
 import { VehicleEntity } from '../entities/VehicleEntity.js';
@@ -34,6 +34,45 @@ export const SimulationOverlay: React.FC<SimulationOverlayProps> = React.memo(
       }
       return map;
     }, [currentFrame]);
+
+    // Diagnostic: log name mismatches on first frame, then position changes periodically
+    const renderCountRef = useRef(0);
+    const hasLoggedRef = useRef(false);
+    renderCountRef.current++;
+
+    useEffect(() => {
+      if (!currentFrame) return;
+
+      if (!hasLoggedRef.current) {
+        hasLoggedRef.current = true;
+        const simNames = currentFrame.objects.map((o) => o.name);
+        const entityNames = entities.map((e) => e.name);
+        const unmatched = entityNames.filter((name) => !simNames.includes(name));
+        const unmatchedSim = simNames.filter((name) => !entityNames.includes(name));
+
+        if (unmatched.length > 0 || unmatchedSim.length > 0) {
+          console.warn(
+            `[SimulationOverlay] Entity name mismatch!\n` +
+              `  Entities not in sim: [${unmatched.map((n) => JSON.stringify(n)).join(', ')}]\n` +
+              `  Sim objects not in entities: [${unmatchedSim.map((n) => JSON.stringify(n)).join(', ')}]`,
+          );
+        } else {
+          console.warn(
+            `[SimulationOverlay] All ${entityNames.length} entities matched simulation objects.`,
+          );
+        }
+      }
+
+      // Log positions every 30 renders to verify they change
+      if (renderCountRef.current <= 3 || renderCountRef.current % 30 === 0) {
+        const posStr = currentFrame.objects
+          .map((o) => `${o.name}(x=${o.x.toFixed(2)},y=${o.y.toFixed(2)},z=${o.z.toFixed(2)},h=${o.h.toFixed(2)})`)
+          .join(' | ');
+        console.warn(
+          `[SimulationOverlay] render #${renderCountRef.current}, t=${currentFrame.time.toFixed(2)}: ${posStr}`,
+        );
+      }
+    }, [currentFrame, entities]);
 
     if (!currentFrame || simPositions.size === 0) return null;
 

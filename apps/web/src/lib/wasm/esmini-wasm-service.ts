@@ -89,6 +89,8 @@ export class EsminiWasmService implements IEsminiService {
   private completeCallbacks: Array<(result: SimulationResult) => void> = [];
   private storyBoardCallbacks: Array<(event: StoryBoardEvent) => void> = [];
   private conditionCallbacks: Array<(event: ConditionEvent) => void> = [];
+  private batchStoryBoardCallbacks: Array<(events: StoryBoardEvent[]) => void> = [];
+  private batchConditionCallbacks: Array<(events: ConditionEvent[]) => void> = [];
 
   private ensureWorker(): Worker {
     if (!this.worker) {
@@ -152,6 +154,45 @@ export class EsminiWasmService implements IEsminiService {
       case 'completed':
         this.completeSimulation(msg.simulationTime);
         break;
+
+      case 'batch-completed': {
+        // Convert all frames at once
+        const convertedFrames: SimulationFrame[] = msg.frames.map((f) => ({
+          time: f.simulationTime,
+          objects: f.objects.map(convertObjectState),
+        }));
+        this.frames = convertedFrames;
+
+        console.warn(
+          `[EsminiWasmService] Batch completed: ${convertedFrames.length} frames, ` +
+            `time range: 0 – ${msg.duration.toFixed(2)}s, ` +
+            `${msg.storyBoardEvents.length} storyboard events, ` +
+            `${msg.conditionEvents.length} condition events`,
+        );
+
+        if (convertedFrames.length > 0) {
+          const firstFrame = convertedFrames[0];
+          console.warn(
+            `[EsminiWasmService] Entity names in first frame: [${firstFrame.objects.map((o) => JSON.stringify(o.name)).join(', ')}]`,
+          );
+        }
+
+        // Emit batch storyboard events
+        const sbEvents = msg.storyBoardEvents.map(convertStoryBoardEvent);
+        for (const cb of this.batchStoryBoardCallbacks) {
+          cb(sbEvents);
+        }
+
+        // Emit batch condition events
+        const condEvents = msg.conditionEvents.map(convertConditionEvent);
+        for (const cb of this.batchConditionCallbacks) {
+          cb(condEvents);
+        }
+
+        // Complete
+        this.completeSimulation(msg.duration);
+        break;
+      }
 
       case 'error':
         this.status = 'error';
@@ -263,6 +304,22 @@ export class EsminiWasmService implements IEsminiService {
     };
   }
 
+  onBatchStoryBoardEvents(callback: (events: StoryBoardEvent[]) => void): () => void {
+    this.batchStoryBoardCallbacks.push(callback);
+    return () => {
+      const idx = this.batchStoryBoardCallbacks.indexOf(callback);
+      if (idx !== -1) this.batchStoryBoardCallbacks.splice(idx, 1);
+    };
+  }
+
+  onBatchConditionEvents(callback: (events: ConditionEvent[]) => void): () => void {
+    this.batchConditionCallbacks.push(callback);
+    return () => {
+      const idx = this.batchConditionCallbacks.indexOf(callback);
+      if (idx !== -1) this.batchConditionCallbacks.splice(idx, 1);
+    };
+  }
+
   dispose() {
     this.send({ type: 'dispose' });
     this.worker?.terminate();
@@ -271,5 +328,7 @@ export class EsminiWasmService implements IEsminiService {
     this.completeCallbacks = [];
     this.storyBoardCallbacks = [];
     this.conditionCallbacks = [];
+    this.batchStoryBoardCallbacks = [];
+    this.batchConditionCallbacks = [];
   }
 }
