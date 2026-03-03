@@ -10,6 +10,7 @@ import { StatusBar } from './StatusBar';
 import { GlassPanel } from '@osce/theme-apex';
 import { EntityListPanel } from '../panels/EntityListPanel';
 import { TemplatePalettePanel } from '../panels/TemplatePalettePanel';
+import { ParameterListPanel } from '../panels/ParameterListPanel';
 import { PropertyPanel } from '../panels/PropertyPanel';
 import { ValidationPanel } from '../panels/ValidationPanel';
 import { ErrorBoundary } from '../ErrorBoundary';
@@ -166,12 +167,18 @@ export function EditorLayout() {
                     <TabsTrigger value="templates" className="apex-tab flex-1">
                       {t('panels.templates')}
                     </TabsTrigger>
+                    <TabsTrigger value="parameters" className="apex-tab flex-1">
+                      {t('panels.parameters')}
+                    </TabsTrigger>
                   </TabsList>
                   <TabsContent value="entities" className="flex-1 overflow-hidden mt-0">
                     <EntityListPanel />
                   </TabsContent>
                   <TabsContent value="templates" className="flex-1 overflow-hidden mt-0">
                     <TemplatePalettePanel />
+                  </TabsContent>
+                  <TabsContent value="parameters" className="flex-1 overflow-hidden mt-0">
+                    <ParameterListPanel />
                   </TabsContent>
                 </Tabs>
               </div>

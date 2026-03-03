@@ -1,6 +1,7 @@
 import type { ScenarioAction, SpeedAction, SpeedTarget, TransitionDynamics } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
 import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 import { DYNAMICS_SHAPES } from '../../../constants/osc-enum-values';
@@ -96,10 +97,10 @@ export function SpeedActionEditor({ action }: SpeedActionEditorProps) {
           <>
             <div className="grid gap-1">
               <Label className="text-xs">Entity Ref</Label>
-              <Input
+              <ParameterAwareInput
                 value={relTarget.entityRef}
-                onChange={(e) =>
-                  updateInner({ target: { ...relTarget, entityRef: e.target.value } })
+                onValueChange={(v) =>
+                  updateInner({ target: { ...relTarget, entityRef: v } })
                 }
                 className="h-8 text-sm"
               />

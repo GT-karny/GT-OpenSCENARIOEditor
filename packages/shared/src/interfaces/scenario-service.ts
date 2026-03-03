@@ -5,6 +5,7 @@
 
 import type { ScenarioDocument } from '../types/scenario.js';
 import type { ScenarioEntity } from '../types/entities.js';
+import type { ParameterDeclaration } from '../types/parameters.js';
 import type {
   Story, Act, ManeuverGroup, Maneuver, ScenarioEvent,
 } from '../types/storyboard.js';
@@ -16,6 +17,11 @@ export interface IScenarioService {
   // --- Document operations ---
   createScenario(template?: string): ScenarioDocument;
   getScenario(): ScenarioDocument;
+
+  // --- Parameter operations ---
+  addParameter(partial: Partial<ParameterDeclaration>): ParameterDeclaration;
+  removeParameter(paramId: string): void;
+  updateParameter(paramId: string, updates: Partial<ParameterDeclaration>): void;
 
   // --- Entity operations ---
   addEntity(entity: Partial<ScenarioEntity>): ScenarioEntity;

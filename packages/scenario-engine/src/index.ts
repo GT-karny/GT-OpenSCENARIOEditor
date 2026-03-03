@@ -13,6 +13,7 @@ export {
   createDefaultStoryboard,
   createDefaultTrigger,
   createDefaultConditionGroup,
+  createParameterFromPartial,
   createEntityFromPartial,
   createStoryFromPartial,
   createActFromPartial,

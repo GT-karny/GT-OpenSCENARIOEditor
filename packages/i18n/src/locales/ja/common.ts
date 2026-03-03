@@ -31,6 +31,7 @@ export const common = {
     validation: 'バリデーション',
     templates: 'テンプレート',
     simulation: 'シミュレーション',
+    parameters: 'パラメータ',
   },
   timeline: {
     entity: 'エンティティ',
@@ -66,6 +67,10 @@ export const common = {
     frames: '{{count}} フレーム',
     fileSaved: 'ファイルを保存しました',
     serializeFailed: 'シナリオのシリアライズに失敗しました',
+    addParameter: 'パラメータを追加',
+    parameterType: 'パラメータ型',
+    defaultValue: 'デフォルト値',
+    noParameters: 'パラメータが定義されていません',
   },
   units: {
     mps: 'm/s',

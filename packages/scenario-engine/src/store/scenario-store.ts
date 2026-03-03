@@ -7,6 +7,7 @@ import { createStore } from 'zustand/vanilla';
 import type {
   ScenarioDocument,
   ScenarioEntity,
+  ParameterDeclaration,
   Story,
   Act,
   ManeuverGroup,
@@ -24,6 +25,7 @@ import type { ScenarioState } from './store-types.js';
 import { createDefaultDocument } from './defaults.js';
 import { CommandHistory } from '../commands/command-history.js';
 import { AddEntityCommand, RemoveEntityCommand, UpdateEntityCommand } from '../commands/entity-commands.js';
+import { AddParameterCommand, RemoveParameterCommand, UpdateParameterCommand } from '../commands/parameter-commands.js';
 import { AddStoryCommand, RemoveStoryCommand } from '../commands/story-commands.js';
 import { AddActCommand, RemoveActCommand } from '../commands/act-commands.js';
 import { AddManeuverGroupCommand, RemoveManeuverGroupCommand } from '../commands/maneuver-group-commands.js';
@@ -105,6 +107,26 @@ export function createScenarioStore() {
       },
 
       getScenario: (): ScenarioDocument => get().document,
+
+      // --- Parameter operations ---
+      addParameter: (partial: Partial<ParameterDeclaration>): ParameterDeclaration => {
+        const cmd = new AddParameterCommand(partial, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+        return cmd.getCreatedParameter();
+      },
+
+      removeParameter: (paramId: string): void => {
+        const cmd = new RemoveParameterCommand(paramId, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
+      updateParameter: (paramId: string, updates: Partial<ParameterDeclaration>): void => {
+        const cmd = new UpdateParameterCommand(paramId, updates, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
 
       // --- Entity operations ---
       addEntity: (partial: Partial<ScenarioEntity>): ScenarioEntity => {

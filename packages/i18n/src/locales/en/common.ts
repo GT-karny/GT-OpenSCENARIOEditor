@@ -31,6 +31,7 @@ export const common = {
     validation: 'Validation',
     templates: 'Templates',
     simulation: 'Simulation',
+    parameters: 'Parameters',
   },
   timeline: {
     entity: 'Entity',
@@ -66,6 +67,10 @@ export const common = {
     frames: '{{count}} frames',
     fileSaved: 'File saved',
     serializeFailed: 'Failed to serialize scenario',
+    addParameter: 'Add Parameter',
+    parameterType: 'Parameter Type',
+    defaultValue: 'Default Value',
+    noParameters: 'No parameters defined',
   },
   units: {
     mps: 'm/s',

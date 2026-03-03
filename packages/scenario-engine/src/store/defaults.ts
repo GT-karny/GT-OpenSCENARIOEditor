@@ -9,6 +9,7 @@ import type {
   FileHeader,
   EditorMetadata,
   ScenarioEntity,
+  ParameterDeclaration,
   Storyboard,
   Init,
   Story,
@@ -157,6 +158,16 @@ export function createConditionFromPartial(partial: Partial<Condition>): Conditi
       kind: 'byValue',
       valueCondition: { type: 'simulationTime', value: 0, rule: 'greaterThan' },
     },
+  };
+}
+
+export function createParameterFromPartial(partial: Partial<ParameterDeclaration>): ParameterDeclaration {
+  return {
+    id: partial.id ?? uuidv4(),
+    name: partial.name ?? 'NewParameter',
+    parameterType: partial.parameterType ?? 'double',
+    value: partial.value ?? '0',
+    constraintGroups: partial.constraintGroups,
   };
 }
 
