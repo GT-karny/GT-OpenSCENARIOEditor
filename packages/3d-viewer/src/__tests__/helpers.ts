@@ -178,6 +178,7 @@ export function makeScenarioWithEntities(): ScenarioDocument {
       appliedTemplates: [],
       nodePositions: {},
       nodeCollapsed: {},
+      parameterBindings: {},
     },
   };
 }

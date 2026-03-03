@@ -1,6 +1,5 @@
 import type { ScenarioAction, SpeedAction, SpeedTarget, TransitionDynamics } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
 import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
@@ -52,12 +51,14 @@ export function SpeedActionEditor({ action }: SpeedActionEditorProps) {
         </div>
         <div className="grid gap-1">
           <Label className="text-xs">Value</Label>
-          <Input
-            type="number"
+          <ParameterAwareInput
+            elementId={action.id}
+            fieldName="action.dynamics.value"
             value={inner.dynamics.value}
-            onChange={(e) =>
-              updateInner({ dynamics: { ...inner.dynamics, value: parseFloat(e.target.value) || 0 } })
+            onValueChange={(v) =>
+              updateInner({ dynamics: { ...inner.dynamics, value: parseFloat(v) || 0 } })
             }
+            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
             className="h-8 text-sm"
           />
         </div>
@@ -83,12 +84,14 @@ export function SpeedActionEditor({ action }: SpeedActionEditorProps) {
         {inner.target.kind === 'absolute' && (
           <div className="grid gap-1">
             <Label className="text-xs">Speed (m/s)</Label>
-            <Input
-              type="number"
+            <ParameterAwareInput
+              elementId={action.id}
+              fieldName="action.target.value"
               value={inner.target.value}
-              onChange={(e) =>
-                updateInner({ target: { kind: 'absolute', value: parseFloat(e.target.value) || 0 } })
+              onValueChange={(v) =>
+                updateInner({ target: { kind: 'absolute', value: parseFloat(v) || 0 } })
               }
+              acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
               className="h-8 text-sm"
             />
           </div>
@@ -102,17 +105,20 @@ export function SpeedActionEditor({ action }: SpeedActionEditorProps) {
                 onValueChange={(v) =>
                   updateInner({ target: { ...relTarget, entityRef: v } })
                 }
+                acceptedTypes={['string']}
                 className="h-8 text-sm"
               />
             </div>
             <div className="grid gap-1">
               <Label className="text-xs">Value</Label>
-              <Input
-                type="number"
+              <ParameterAwareInput
+                elementId={action.id}
+                fieldName="action.target.value"
                 value={relTarget.value}
-                onChange={(e) =>
-                  updateInner({ target: { ...relTarget, value: parseFloat(e.target.value) || 0 } })
+                onValueChange={(v) =>
+                  updateInner({ target: { ...relTarget, value: parseFloat(v) || 0 } })
                 }
+                acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
                 className="h-8 text-sm"
               />
             </div>

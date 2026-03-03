@@ -1,8 +1,9 @@
 import type { Position, Orientation, RoutePosition } from '@osce/shared';
-import { buildAttrs } from '../utils/xml-helpers.js';
+import { buildAttrs, getSubBindings } from '../utils/xml-helpers.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildPosition(pos: Position): Record<string, any> {
+export function buildPosition(pos: Position, bindings: Record<string, string> = {}): Record<string, any> {
+  const orientationBindings = getSubBindings(bindings, 'orientation');
   switch (pos.type) {
     case 'worldPosition':
       return {
@@ -13,7 +14,7 @@ export function buildPosition(pos: Position): Record<string, any> {
           h: pos.h,
           p: pos.p,
           r: pos.r,
-        }),
+        }, bindings),
       };
     case 'lanePosition': {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -22,8 +23,8 @@ export function buildPosition(pos: Position): Record<string, any> {
         laneId: pos.laneId,
         s: pos.s,
         offset: pos.offset,
-      });
-      if (pos.orientation) lp.Orientation = buildOrientation(pos.orientation);
+      }, bindings);
+      if (pos.orientation) lp.Orientation = buildOrientation(pos.orientation, orientationBindings);
       return { LanePosition: lp };
     }
     case 'relativeLanePosition': {
@@ -34,8 +35,8 @@ export function buildPosition(pos: Position): Record<string, any> {
         ds: pos.ds,
         dsLane: pos.dsLane,
         offset: pos.offset,
-      });
-      if (pos.orientation) rlp.Orientation = buildOrientation(pos.orientation);
+      }, bindings);
+      if (pos.orientation) rlp.Orientation = buildOrientation(pos.orientation, orientationBindings);
       return { RelativeLanePosition: rlp };
     }
     case 'roadPosition': {
@@ -44,8 +45,8 @@ export function buildPosition(pos: Position): Record<string, any> {
         roadId: pos.roadId,
         s: pos.s,
         t: pos.t,
-      });
-      if (pos.orientation) rp.Orientation = buildOrientation(pos.orientation);
+      }, bindings);
+      if (pos.orientation) rp.Orientation = buildOrientation(pos.orientation, orientationBindings);
       return { RoadPosition: rp };
     }
     case 'relativeRoadPosition': {
@@ -54,8 +55,8 @@ export function buildPosition(pos: Position): Record<string, any> {
         entityRef: pos.entityRef,
         ds: pos.ds,
         dt: pos.dt,
-      });
-      if (pos.orientation) rrp.Orientation = buildOrientation(pos.orientation);
+      }, bindings);
+      if (pos.orientation) rrp.Orientation = buildOrientation(pos.orientation, orientationBindings);
       return { RelativeRoadPosition: rrp };
     }
     case 'relativeObjectPosition': {
@@ -65,8 +66,8 @@ export function buildPosition(pos: Position): Record<string, any> {
         dx: pos.dx,
         dy: pos.dy,
         dz: pos.dz,
-      });
-      if (pos.orientation) rop.Orientation = buildOrientation(pos.orientation);
+      }, bindings);
+      if (pos.orientation) rop.Orientation = buildOrientation(pos.orientation, orientationBindings);
       return { RelativeObjectPosition: rop };
     }
     case 'relativeWorldPosition': {
@@ -76,8 +77,8 @@ export function buildPosition(pos: Position): Record<string, any> {
         dx: pos.dx,
         dy: pos.dy,
         dz: pos.dz,
-      });
-      if (pos.orientation) rwp.Orientation = buildOrientation(pos.orientation);
+      }, bindings);
+      if (pos.orientation) rwp.Orientation = buildOrientation(pos.orientation, orientationBindings);
       return { RelativeWorldPosition: rwp };
     }
     case 'routePosition':
@@ -88,19 +89,19 @@ export function buildPosition(pos: Position): Record<string, any> {
         latitude: pos.latitude,
         longitude: pos.longitude,
         altitude: pos.altitude,
-      });
-      if (pos.orientation) gp.Orientation = buildOrientation(pos.orientation);
+      }, bindings);
+      if (pos.orientation) gp.Orientation = buildOrientation(pos.orientation, orientationBindings);
       return { GeoPosition: gp };
     }
   }
 }
 
-export function buildPositionWrapped(pos: Position): Record<string, unknown> {
-  return { Position: buildPosition(pos) };
+export function buildPositionWrapped(pos: Position, bindings: Record<string, string> = {}): Record<string, unknown> {
+  return { Position: buildPosition(pos, bindings) };
 }
 
-export function buildOrientation(o: Orientation): Record<string, string> {
-  return buildAttrs({ type: o.type, h: o.h, p: o.p, r: o.r });
+export function buildOrientation(o: Orientation, bindings: Record<string, string> = {}): Record<string, string> {
+  return buildAttrs({ type: o.type, h: o.h, p: o.p, r: o.r }, bindings);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

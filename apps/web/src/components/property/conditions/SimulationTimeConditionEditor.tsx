@@ -1,6 +1,6 @@
 import type { Condition, ByValueCondition, SimulationTimeCondition } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
 import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 import { RULES } from '../../../constants/osc-enum-values';
@@ -25,10 +25,12 @@ export function SimulationTimeConditionEditor({ condition }: SimulationTimeCondi
       <p className="text-xs font-medium text-muted-foreground">Simulation Time</p>
       <div className="grid gap-1">
         <Label className="text-xs">Value (s)</Label>
-        <Input
-          type="number"
+        <ParameterAwareInput
+          elementId={condition.id}
+          fieldName="value"
           value={cond.value}
-          onChange={(e) => update({ value: parseFloat(e.target.value) || 0 })}
+          onValueChange={(v) => update({ value: parseFloat(v) || 0 })}
+          acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
           className="h-8 text-sm"
         />
       </div>

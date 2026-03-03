@@ -8,6 +8,7 @@ import { parseEntities } from './parse-entities.js';
 import { parseStoryboard } from './parse-storyboard.js';
 import { generateId } from '../utils/uuid.js';
 import { createDefaultEditorMetadata } from '../utils/defaults.js';
+import { startBindingCollection, finishBindingCollection } from '../utils/xml-helpers.js';
 import type { XMLParser } from 'fast-xml-parser';
 
 export class XoscParser implements IXoscParser {
@@ -25,7 +26,9 @@ export class XoscParser implements IXoscParser {
       throw new Error('Invalid OpenSCENARIO XML: missing <OpenSCENARIO> root element');
     }
 
-    return {
+    startBindingCollection();
+
+    const doc: ScenarioDocument = {
       id: generateId(),
       fileHeader: parseFileHeader(root.FileHeader),
       parameterDeclarations: parseParameterDeclarations(root.ParameterDeclarations),
@@ -36,5 +39,9 @@ export class XoscParser implements IXoscParser {
       storyboard: parseStoryboard(root.Storyboard),
       _editor: createDefaultEditorMetadata(),
     };
+
+    doc._editor.parameterBindings = finishBindingCollection();
+
+    return doc;
   }
 }

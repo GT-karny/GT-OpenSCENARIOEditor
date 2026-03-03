@@ -43,6 +43,7 @@ export {
 
 // Operations
 export { getElementById, getParentOf } from './operations/tree-traversal.js';
+export { deepReplaceParamRef, replaceInBindings, escapeRegex } from './operations/parameter-rename-utils.js';
 
 // Component Engine
 export { applyUseCaseComponent, reconcileComponent } from './components/component-engine.js';

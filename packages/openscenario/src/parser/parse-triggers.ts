@@ -7,7 +7,7 @@ import type {
 import { parseConditionBody } from './parse-conditions.js';
 import { ensureArray } from '../utils/ensure-array.js';
 import { generateId } from '../utils/uuid.js';
-import { numAttr, strAttr } from '../utils/xml-helpers.js';
+import { numAttr, strAttr, setBindingElementId } from '../utils/xml-helpers.js';
 
 /**
  * Parse a <StartTrigger> or <StopTrigger> XML element into the internal
@@ -43,8 +43,10 @@ function parseConditionGroup(raw: any): ConditionGroup {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseCondition(raw: any): Condition {
+  const id = generateId();
+  setBindingElementId(id);
   return {
-    id: generateId(),
+    id,
     name: strAttr(raw, 'name'),
     delay: numAttr(raw, 'delay'),
     conditionEdge: strAttr(raw, 'conditionEdge', 'rising') as ConditionEdge,

@@ -36,7 +36,7 @@ import type {
 } from '@osce/shared';
 import { parsePosition } from './parse-positions.js';
 import { ensureArray } from '../utils/ensure-array.js';
-import { numAttr, strAttr, optNumAttr, optStrAttr, boolAttr, optBoolAttr } from '../utils/xml-helpers.js';
+import { numAttr, strAttr, optNumAttr, optStrAttr, boolAttr, optBoolAttr, pushBindingFieldPrefix, popBindingFieldPrefix } from '../utils/xml-helpers.js';
 
 /**
  * Parse a condition body element (ByEntityCondition or ByValueCondition)
@@ -101,6 +101,10 @@ function parseEntityCondition(raw: any): EntityCondition {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseDistanceCondition(raw: any): DistanceCondition {
+  pushBindingFieldPrefix('position');
+  const position = parsePosition(raw.Position);
+  popBindingFieldPrefix();
+
   return {
     type: 'distance',
     value: numAttr(raw, 'value'),
@@ -108,7 +112,7 @@ function parseDistanceCondition(raw: any): DistanceCondition {
     coordinateSystem: optStrAttr(raw, 'coordinateSystem') as CoordinateSystemCond | undefined,
     relativeDistanceType: optStrAttr(raw, 'relativeDistanceType') as RelativeDistanceType | undefined,
     rule: strAttr(raw, 'rule') as Rule,
-    position: parsePosition(raw.Position),
+    position,
   };
 }
 
@@ -202,10 +206,14 @@ function parseRelativeSpeedCondition(raw: any): RelativeSpeedCondition {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseReachPositionCondition(raw: any): ReachPositionCondition {
+  pushBindingFieldPrefix('position');
+  const position = parsePosition(raw.Position);
+  popBindingFieldPrefix();
+
   return {
     type: 'reachPosition',
     tolerance: numAttr(raw, 'tolerance'),
-    position: parsePosition(raw.Position),
+    position,
   };
 }
 

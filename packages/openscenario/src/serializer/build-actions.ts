@@ -19,19 +19,19 @@ import type {
   Position,
 } from '@osce/shared';
 import { buildPosition, buildPositionWrapped } from './build-positions.js';
-import { buildAttrs } from '../utils/xml-helpers.js';
+import { buildAttrs, getSubBindings } from '../utils/xml-helpers.js';
 
 // ─── Private Action ──────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildPrivateAction(action: PrivateAction): Record<string, any> {
+export function buildPrivateAction(action: PrivateAction, elementBindings: Record<string, string> = {}): Record<string, any> {
   switch (action.type) {
     case 'speedAction':
       return {
         LongitudinalAction: {
           SpeedAction: {
-            SpeedActionDynamics: buildTransitionDynamics(action.dynamics),
-            SpeedActionTarget: buildSpeedTarget(action.target),
+            SpeedActionDynamics: buildTransitionDynamics(action.dynamics, getSubBindings(elementBindings, 'dynamics')),
+            SpeedActionTarget: buildSpeedTarget(action.target, getSubBindings(elementBindings, 'target')),
           },
         },
       };
@@ -41,7 +41,7 @@ export function buildPrivateAction(action: PrivateAction): Record<string, any> {
       const spa: any = buildAttrs({
         entityRef: action.entityRef,
         followingMode: action.followingMode,
-      });
+      }, elementBindings);
       if (action.dynamicsDimension !== undefined) {
         spa.DynamicsDimension = buildAttrs({ dynamicsDimension: action.dynamicsDimension });
       }
@@ -53,17 +53,17 @@ export function buildPrivateAction(action: PrivateAction): Record<string, any> {
 
     case 'laneChangeAction': {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const lca: any = buildAttrs({ targetLaneOffset: action.targetLaneOffset });
-      lca.LaneChangeActionDynamics = buildTransitionDynamics(action.dynamics);
-      lca.LaneChangeTarget = buildLaneChangeTarget(action.target);
+      const lca: any = buildAttrs({ targetLaneOffset: action.targetLaneOffset }, elementBindings);
+      lca.LaneChangeActionDynamics = buildTransitionDynamics(action.dynamics, getSubBindings(elementBindings, 'dynamics'));
+      lca.LaneChangeTarget = buildLaneChangeTarget(action.target, getSubBindings(elementBindings, 'target'));
       return { LateralAction: { LaneChangeAction: lca } };
     }
 
     case 'laneOffsetAction': {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const loa: any = buildAttrs({ continuous: action.continuous });
-      loa.LaneOffsetActionDynamics = buildLaneOffsetDynamics(action.dynamics);
-      loa.LaneOffsetTarget = buildLaneOffsetTarget(action.target);
+      const loa: any = buildAttrs({ continuous: action.continuous }, elementBindings);
+      loa.LaneOffsetActionDynamics = buildLaneOffsetDynamics(action.dynamics, getSubBindings(elementBindings, 'dynamics'));
+      loa.LaneOffsetTarget = buildLaneOffsetTarget(action.target, getSubBindings(elementBindings, 'target'));
       return { LateralAction: { LaneOffsetAction: loa } };
     }
 
@@ -76,9 +76,9 @@ export function buildPrivateAction(action: PrivateAction): Record<string, any> {
         continuous: action.continuous,
         coordinateSystem: action.coordinateSystem,
         displacement: action.displacement,
-      });
+      }, elementBindings);
       if (action.dynamics) {
-        lda.DynamicConstraints = buildDynamicConstraints(action.dynamics);
+        lda.DynamicConstraints = buildDynamicConstraints(action.dynamics, getSubBindings(elementBindings, 'dynamics'));
       }
       return { LateralAction: { LateralDistanceAction: lda } };
     }
@@ -93,16 +93,16 @@ export function buildPrivateAction(action: PrivateAction): Record<string, any> {
         continuous: action.continuous,
         coordinateSystem: action.coordinateSystem,
         displacement: action.displacement,
-      });
+      }, elementBindings);
       if (action.dynamics) {
-        lda.DynamicConstraints = buildDynamicConstraints(action.dynamics);
+        lda.DynamicConstraints = buildDynamicConstraints(action.dynamics, getSubBindings(elementBindings, 'dynamics'));
       }
       return { LongitudinalAction: { LongitudinalDistanceAction: lda } };
     }
 
     case 'teleportAction':
       return {
-        TeleportAction: buildPositionWrapped(action.position),
+        TeleportAction: buildPositionWrapped(action.position, getSubBindings(elementBindings, 'position')),
       };
 
     case 'synchronizeAction': {
@@ -111,7 +111,7 @@ export function buildPrivateAction(action: PrivateAction): Record<string, any> {
         masterEntityRef: action.masterEntityRef,
         toleranceMaster: action.toleranceMaster,
         tolerance: action.tolerance,
-      });
+      }, elementBindings);
       // Position content goes DIRECTLY inside TargetPositionMaster/TargetPosition (not wrapped in <Position>)
       sa.TargetPositionMaster = buildPosition(action.targetPositionMaster);
       sa.TargetPosition = buildPosition(action.targetPosition);
@@ -126,7 +126,7 @@ export function buildPrivateAction(action: PrivateAction): Record<string, any> {
       const fta: any = buildAttrs({
         followingMode: action.followingMode,
         initialDistanceOffset: action.initialDistanceOffset,
-      });
+      }, elementBindings);
       fta.Trajectory = buildTrajectory(action.trajectory);
       fta.TimeReference = buildTimeReference(action.timeReference);
       return { RoutingAction: { FollowTrajectoryAction: fta } };
@@ -305,7 +305,7 @@ export function buildPrivateAction(action: PrivateAction): Record<string, any> {
 // ─── Global Action ───────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildGlobalAction(action: GlobalAction): Record<string, any> {
+export function buildGlobalAction(action: GlobalAction, elementBindings: Record<string, string> = {}): Record<string, any> {
   switch (action.type) {
     case 'environmentAction':
       return {
@@ -316,7 +316,7 @@ export function buildGlobalAction(action: GlobalAction): Record<string, any> {
 
     case 'entityAction': {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ea: any = buildAttrs({ entityRef: action.entityRef });
+      const ea: any = buildAttrs({ entityRef: action.entityRef }, elementBindings);
       if (action.actionType === 'addEntity') {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const addEntity: any = {};
@@ -416,18 +416,18 @@ export function buildUserDefinedAction(action: UserDefinedAction): Record<string
 
 // ─── Helper builders ────────────────────────────────────────────────────────
 
-function buildTransitionDynamics(d: TransitionDynamics): Record<string, string> {
+function buildTransitionDynamics(d: TransitionDynamics, bindings: Record<string, string> = {}): Record<string, string> {
   return buildAttrs({
     dynamicsShape: d.dynamicsShape,
     value: d.value,
     dynamicsDimension: d.dynamicsDimension,
-  });
+  }, bindings);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildSpeedTarget(target: SpeedTarget): Record<string, any> {
+function buildSpeedTarget(target: SpeedTarget, bindings: Record<string, string> = {}): Record<string, any> {
   if (target.kind === 'absolute') {
-    return { AbsoluteTargetSpeed: buildAttrs({ value: target.value }) };
+    return { AbsoluteTargetSpeed: buildAttrs({ value: target.value }, bindings) };
   }
   return {
     RelativeTargetSpeed: buildAttrs({
@@ -435,50 +435,50 @@ function buildSpeedTarget(target: SpeedTarget): Record<string, any> {
       value: target.value,
       speedTargetValueType: target.speedTargetValueType,
       continuous: target.continuous,
-    }),
+    }, bindings),
   };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildLaneChangeTarget(target: LaneChangeTarget): Record<string, any> {
+function buildLaneChangeTarget(target: LaneChangeTarget, bindings: Record<string, string> = {}): Record<string, any> {
   if (target.kind === 'absolute') {
-    return { AbsoluteTargetLane: buildAttrs({ value: target.value }) };
+    return { AbsoluteTargetLane: buildAttrs({ value: target.value }, bindings) };
   }
   return {
     RelativeTargetLane: buildAttrs({
       entityRef: target.entityRef,
       value: target.value,
-    }),
+    }, bindings),
   };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildLaneOffsetTarget(target: LaneOffsetTarget): Record<string, any> {
+function buildLaneOffsetTarget(target: LaneOffsetTarget, bindings: Record<string, string> = {}): Record<string, any> {
   if (target.kind === 'absolute') {
-    return { AbsoluteTargetLaneOffset: buildAttrs({ value: target.value }) };
+    return { AbsoluteTargetLaneOffset: buildAttrs({ value: target.value }, bindings) };
   }
   return {
     RelativeTargetLaneOffset: buildAttrs({
       entityRef: target.entityRef,
       value: target.value,
-    }),
+    }, bindings),
   };
 }
 
-function buildLaneOffsetDynamics(d: LaneOffsetDynamics): Record<string, string> {
+function buildLaneOffsetDynamics(d: LaneOffsetDynamics, bindings: Record<string, string> = {}): Record<string, string> {
   return buildAttrs({
     maxSpeed: d.maxSpeed,
     maxLateralAcc: d.maxLateralAcc,
     dynamicsShape: d.dynamicsShape,
-  });
+  }, bindings);
 }
 
-function buildDynamicConstraints(d: DynamicConstraints): Record<string, string> {
+function buildDynamicConstraints(d: DynamicConstraints, bindings: Record<string, string> = {}): Record<string, string> {
   return buildAttrs({
     maxAcceleration: d.maxAcceleration,
     maxDeceleration: d.maxDeceleration,
     maxSpeed: d.maxSpeed,
-  });
+  }, bindings);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

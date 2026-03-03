@@ -64,6 +64,8 @@ import {
   optStrAttr,
   boolAttr,
   optBoolAttr,
+  pushBindingFieldPrefix,
+  popBindingFieldPrefix,
 } from '../utils/xml-helpers.js';
 
 // ---------------------------------------------------------------------------
@@ -239,11 +241,15 @@ function parseLongitudinalAction(raw: any): PrivateAction {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseSpeedAction(raw: any): SpeedAction {
-  return {
-    type: 'speedAction',
-    dynamics: parseTransitionDynamics(raw.SpeedActionDynamics),
-    target: parseSpeedTarget(raw.SpeedActionTarget),
-  };
+  pushBindingFieldPrefix('dynamics');
+  const dynamics = parseTransitionDynamics(raw.SpeedActionDynamics);
+  popBindingFieldPrefix();
+
+  pushBindingFieldPrefix('target');
+  const target = parseSpeedTarget(raw.SpeedActionTarget);
+  popBindingFieldPrefix();
+
+  return { type: 'speedAction', dynamics, target };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -305,6 +311,13 @@ function parseSpeedProfileEntry(raw: any): SpeedProfileEntry {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseLongitudinalDistanceAction(raw: any): LongitudinalDistanceAction {
+  let dynamics: DynamicConstraints | undefined;
+  if (raw.DynamicConstraints) {
+    pushBindingFieldPrefix('dynamics');
+    dynamics = parseDynamicConstraints(raw.DynamicConstraints);
+    popBindingFieldPrefix();
+  }
+
   return {
     type: 'longitudinalDistanceAction',
     entityRef: strAttr(raw, 'entityRef'),
@@ -314,9 +327,7 @@ function parseLongitudinalDistanceAction(raw: any): LongitudinalDistanceAction {
     continuous: boolAttr(raw, 'continuous'),
     coordinateSystem: optStrAttr(raw, 'coordinateSystem') as CoordinateSystem | undefined,
     displacement: optStrAttr(raw, 'displacement') as LongitudinalDisplacement | undefined,
-    dynamics: raw.DynamicConstraints
-      ? parseDynamicConstraints(raw.DynamicConstraints)
-      : undefined,
+    dynamics,
   };
 }
 
@@ -343,10 +354,18 @@ function parseLateralAction(raw: any): PrivateAction {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseLaneChangeAction(raw: any): LaneChangeAction {
+  pushBindingFieldPrefix('dynamics');
+  const dynamics = parseTransitionDynamics(raw.LaneChangeActionDynamics);
+  popBindingFieldPrefix();
+
+  pushBindingFieldPrefix('target');
+  const target = parseLaneChangeTarget(raw.LaneChangeTarget);
+  popBindingFieldPrefix();
+
   return {
     type: 'laneChangeAction',
-    dynamics: parseTransitionDynamics(raw.LaneChangeActionDynamics),
-    target: parseLaneChangeTarget(raw.LaneChangeTarget),
+    dynamics,
+    target,
     targetLaneOffset: optNumAttr(raw, 'targetLaneOffset'),
   };
 }
@@ -376,12 +395,15 @@ function parseLaneChangeTarget(raw: any): LaneChangeTarget {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseLaneOffsetAction(raw: any): LaneOffsetAction {
-  return {
-    type: 'laneOffsetAction',
-    continuous: boolAttr(raw, 'continuous'),
-    dynamics: parseLaneOffsetDynamics(raw.LaneOffsetActionDynamics),
-    target: parseLaneOffsetTarget(raw.LaneOffsetTarget),
-  };
+  pushBindingFieldPrefix('dynamics');
+  const dynamics = parseLaneOffsetDynamics(raw.LaneOffsetActionDynamics);
+  popBindingFieldPrefix();
+
+  pushBindingFieldPrefix('target');
+  const target = parseLaneOffsetTarget(raw.LaneOffsetTarget);
+  popBindingFieldPrefix();
+
+  return { type: 'laneOffsetAction', continuous: boolAttr(raw, 'continuous'), dynamics, target };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -419,6 +441,13 @@ function parseLaneOffsetTarget(raw: any): LaneOffsetTarget {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseLateralDistanceAction(raw: any): LateralDistanceAction {
+  let dynamics: DynamicConstraints | undefined;
+  if (raw.DynamicConstraints) {
+    pushBindingFieldPrefix('dynamics');
+    dynamics = parseDynamicConstraints(raw.DynamicConstraints);
+    popBindingFieldPrefix();
+  }
+
   return {
     type: 'lateralDistanceAction',
     entityRef: strAttr(raw, 'entityRef'),
@@ -427,9 +456,7 @@ function parseLateralDistanceAction(raw: any): LateralDistanceAction {
     continuous: boolAttr(raw, 'continuous'),
     coordinateSystem: optStrAttr(raw, 'coordinateSystem') as CoordinateSystem | undefined,
     displacement: optStrAttr(raw, 'displacement') as LateralDisplacement | undefined,
-    dynamics: raw.DynamicConstraints
-      ? parseDynamicConstraints(raw.DynamicConstraints)
-      : undefined,
+    dynamics,
   };
 }
 
@@ -448,10 +475,10 @@ function parseDynamicConstraints(raw: any): DynamicConstraints {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseTeleportAction(raw: any): TeleportAction {
-  return {
-    type: 'teleportAction',
-    position: parsePosition(raw.Position),
-  };
+  pushBindingFieldPrefix('position');
+  const position = parsePosition(raw.Position);
+  popBindingFieldPrefix();
+  return { type: 'teleportAction', position };
 }
 
 // ---------------------------------------------------------------------------

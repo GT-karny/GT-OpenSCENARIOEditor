@@ -22,6 +22,11 @@ export interface IScenarioService {
   addParameter(partial: Partial<ParameterDeclaration>): ParameterDeclaration;
   removeParameter(paramId: string): void;
   updateParameter(paramId: string, updates: Partial<ParameterDeclaration>): void;
+  renameParameter(paramId: string, newName: string): void;
+
+  // --- Parameter binding operations ---
+  setParameterBinding(elementId: string, fieldName: string, paramRef: string): void;
+  removeParameterBinding(elementId: string, fieldName: string): void;
 
   // --- Entity operations ---
   addEntity(entity: Partial<ScenarioEntity>): ScenarioEntity;

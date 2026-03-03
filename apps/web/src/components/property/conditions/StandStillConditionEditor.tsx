@@ -1,6 +1,6 @@
 import type { Condition, ByEntityCondition, StandStillCondition } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 interface StandStillConditionEditorProps {
@@ -24,10 +24,12 @@ export function StandStillConditionEditor({ condition }: StandStillConditionEdit
         <p className="text-xs font-medium text-muted-foreground">Stand Still</p>
         <div className="grid gap-1">
           <Label className="text-xs">Duration (s)</Label>
-          <Input
-            type="number"
+          <ParameterAwareInput
+            elementId={condition.id}
+            fieldName="value"
             value={cond.duration}
-            onChange={(e) => update({ duration: parseFloat(e.target.value) || 0 })}
+            onValueChange={(v) => update({ duration: parseFloat(v) || 0 })}
+            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
             className="h-8 text-sm"
           />
         </div>

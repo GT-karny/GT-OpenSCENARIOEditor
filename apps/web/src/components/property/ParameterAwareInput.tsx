@@ -1,33 +1,63 @@
 import { useState, useRef, useCallback, forwardRef } from 'react';
 import { Input } from '../ui/input';
-import { useScenarioStore } from '../../stores/use-scenario-store';
+import { useScenarioStore, useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { cn } from '@/lib/utils';
 
-interface ParameterAwareInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
+interface ParameterAwareInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value'> {
   onValueChange: (value: string) => void;
-  value: string;
+  value: string | number;
+  /** Filter suggestions to parameters matching these types (e.g., ['double','int']) */
+  acceptedTypes?: string[];
+  /** Element ID for parameter binding support (required for numeric fields) */
+  elementId?: string;
+  /** Field path for parameter binding lookup (required for numeric fields) */
+  fieldName?: string;
 }
 
 /**
  * Drop-in replacement for Input that shows parameter name suggestions
- * when the user types `$`. Use for text fields that may accept parameter references.
+ * when the user types `$`. Supports both text and numeric fields.
+ *
+ * For text fields: value can contain `$ParamName` directly.
+ * For numeric fields: provide `elementId` + `fieldName` to use the parameter bindings map.
  */
 export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareInputProps>(
-  function ParameterAwareInput({ onValueChange, value, className, ...props }, _ref) {
+  function ParameterAwareInput({
+    onValueChange, value, className, acceptedTypes, elementId, fieldName, ...props
+  }, _ref) {
     const parameters = useScenarioStore((s) => s.document.parameterDeclarations);
+    const binding = useScenarioStore((s) =>
+      elementId && fieldName
+        ? s.document._editor.parameterBindings[elementId]?.[fieldName] ?? null
+        : null,
+    );
+    const storeApi = useScenarioStoreApi();
+
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [filter, setFilter] = useState('');
     const [dollarIndex, setDollarIndex] = useState(-1);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const filtered = parameters.filter((p) =>
-      p.name.toLowerCase().startsWith(filter.toLowerCase()),
-    );
+    // Filter by name prefix and optionally by accepted parameter types
+    const filtered = parameters.filter((p) => {
+      if (acceptedTypes && !acceptedTypes.includes(p.parameterType)) return false;
+      return p.name.toLowerCase().startsWith(filter.toLowerCase());
+    });
+
+    // Determine display value: binding overrides the actual value for numeric fields
+    const displayValue = binding ?? String(value);
+    const isBound = binding !== null;
 
     const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
       const val = e.target.value;
       const pos = e.target.selectionStart ?? val.length;
+
+      // If this field had a binding and user is typing a non-$ value, clear binding
+      if (isBound && elementId && fieldName && !val.startsWith('$')) {
+        storeApi.getState().removeParameterBinding(elementId, fieldName);
+      }
+
       onValueChange(val);
 
       // Find the $ token being typed at the cursor position
@@ -38,7 +68,7 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
         const charBefore = dIdx > 0 ? beforeCursor[dIdx - 1] : ' ';
         if (charBefore === ' ' || charBefore === '{' || dIdx === 0) {
           const fragment = beforeCursor.substring(dIdx + 1);
-          // Only show if fragment doesn't contain spaces (i.e., still typing the param name)
+          // Only show if fragment doesn't contain spaces
           if (!fragment.includes(' ')) {
             setFilter(fragment);
             setDollarIndex(dIdx);
@@ -49,20 +79,27 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
         }
       }
       setShowSuggestions(false);
-    }, [onValueChange]);
+    }, [onValueChange, isBound, elementId, fieldName, storeApi]);
 
     const handleSelect = useCallback((paramName: string) => {
       const replacement = `$${paramName}`;
-      const currentVal = String(value);
-      // Replace from dollarIndex to the end of the current token
-      const afterDollar = currentVal.substring(dollarIndex + 1);
-      const nextSpace = afterDollar.search(/[\s}]/);
-      const endPos = dollarIndex + 1 + (nextSpace === -1 ? afterDollar.length : nextSpace);
-      const newVal = currentVal.substring(0, dollarIndex) + replacement + currentVal.substring(endPos);
-      onValueChange(newVal);
+
+      if (elementId && fieldName) {
+        // Numeric field: set binding instead of changing the value
+        storeApi.getState().setParameterBinding(elementId, fieldName, replacement);
+      } else {
+        // Text field: insert $ParamName into the text value
+        const currentVal = String(value);
+        const afterDollar = currentVal.substring(dollarIndex + 1);
+        const nextSpace = afterDollar.search(/[\s}]/);
+        const endPos = dollarIndex + 1 + (nextSpace === -1 ? afterDollar.length : nextSpace);
+        const newVal = currentVal.substring(0, dollarIndex) + replacement + currentVal.substring(endPos);
+        onValueChange(newVal);
+      }
+
       setShowSuggestions(false);
       inputRef.current?.focus();
-    }, [value, dollarIndex, onValueChange]);
+    }, [value, dollarIndex, onValueChange, elementId, fieldName, storeApi]);
 
     const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
       if (!showSuggestions || filtered.length === 0) {
@@ -96,11 +133,14 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
       <div className="relative">
         <Input
           ref={inputRef}
-          value={value}
+          value={displayValue}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
-          className={className}
+          className={cn(
+            className,
+            isBound && 'text-[var(--color-accent-1)] font-medium',
+          )}
           {...props}
         />
         {showSuggestions && filtered.length > 0 && (

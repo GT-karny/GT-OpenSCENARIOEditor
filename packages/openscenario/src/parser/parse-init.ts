@@ -7,7 +7,7 @@ import type {
 import { parsePrivateAction, parseGlobalAction } from './parse-actions.js';
 import { ensureArray } from '../utils/ensure-array.js';
 import { generateId } from '../utils/uuid.js';
-import { strAttr } from '../utils/xml-helpers.js';
+import { strAttr, setBindingElementId } from '../utils/xml-helpers.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseInit(raw: any): Init {
@@ -35,10 +35,11 @@ export function parseInit(raw: any): Init {
       entityRef: strAttr(priv, 'entityRef'),
       privateActions: ensureArray(priv.PrivateAction).map(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (pa: any): InitPrivateAction => ({
-          id: generateId(),
-          action: parsePrivateAction(pa),
-        }),
+        (pa: any): InitPrivateAction => {
+          const paId = generateId();
+          setBindingElementId(paId);
+          return { id: paId, action: parsePrivateAction(pa) };
+        },
       ),
     }),
   );

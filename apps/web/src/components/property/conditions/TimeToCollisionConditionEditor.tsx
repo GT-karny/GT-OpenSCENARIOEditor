@@ -8,7 +8,7 @@ import type {
   Position,
 } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
 import { PositionEditor } from '../PositionEditor';
 import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
@@ -62,10 +62,12 @@ export function TimeToCollisionConditionEditor({ condition }: TimeToCollisionCon
         <p className="text-xs font-medium text-muted-foreground">Time To Collision</p>
         <div className="grid gap-1">
           <Label className="text-xs">Value (s)</Label>
-          <Input
-            type="number"
+          <ParameterAwareInput
+            elementId={condition.id}
+            fieldName="value"
             value={cond.value}
-            onChange={(e) => update({ value: parseFloat(e.target.value) || 0 })}
+            onValueChange={(v) => update({ value: parseFloat(v) || 0 })}
+            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
             className="h-8 text-sm"
           />
         </div>
@@ -99,9 +101,12 @@ export function TimeToCollisionConditionEditor({ condition }: TimeToCollisionCon
         {cond.target.kind === 'entity' && (
           <div className="grid gap-1">
             <Label className="text-xs">Target Entity Ref</Label>
-            <Input
+            <ParameterAwareInput
+              elementId={condition.id}
+              fieldName="targetEntityRef"
               value={(cond.target as Extract<TimeToCollisionTarget, { kind: 'entity' }>).entityRef}
-              onChange={(e) => handleEntityRefChange(e.target.value)}
+              onValueChange={(v) => handleEntityRefChange(v)}
+              acceptedTypes={['string']}
               className="h-8 text-sm"
             />
           </div>

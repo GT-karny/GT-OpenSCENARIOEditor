@@ -25,7 +25,7 @@ export function ParameterListItem({ parameter, onDelete }: ParameterListItemProp
   const commitName = () => {
     const trimmed = tempName.trim();
     if (trimmed && trimmed !== parameter.name) {
-      storeApi.getState().updateParameter(parameter.id, { name: trimmed });
+      storeApi.getState().renameParameter(parameter.id, trimmed);
     }
     setEditingName(false);
   };

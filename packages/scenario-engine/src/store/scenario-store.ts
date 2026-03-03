@@ -25,7 +25,10 @@ import type { ScenarioState } from './store-types.js';
 import { createDefaultDocument } from './defaults.js';
 import { CommandHistory } from '../commands/command-history.js';
 import { AddEntityCommand, RemoveEntityCommand, UpdateEntityCommand } from '../commands/entity-commands.js';
-import { AddParameterCommand, RemoveParameterCommand, UpdateParameterCommand } from '../commands/parameter-commands.js';
+import {
+  AddParameterCommand, RemoveParameterCommand, UpdateParameterCommand,
+  RenameParameterCommand, SetParameterBindingCommand, RemoveParameterBindingCommand,
+} from '../commands/parameter-commands.js';
 import { AddStoryCommand, RemoveStoryCommand } from '../commands/story-commands.js';
 import { AddActCommand, RemoveActCommand } from '../commands/act-commands.js';
 import { AddManeuverGroupCommand, RemoveManeuverGroupCommand } from '../commands/maneuver-group-commands.js';
@@ -124,6 +127,25 @@ export function createScenarioStore() {
 
       updateParameter: (paramId: string, updates: Partial<ParameterDeclaration>): void => {
         const cmd = new UpdateParameterCommand(paramId, updates, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
+      renameParameter: (paramId: string, newName: string): void => {
+        const cmd = new RenameParameterCommand(paramId, newName, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
+      // --- Parameter binding operations ---
+      setParameterBinding: (elementId: string, fieldName: string, paramRef: string): void => {
+        const cmd = new SetParameterBindingCommand(elementId, fieldName, paramRef, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
+      removeParameterBinding: (elementId: string, fieldName: string): void => {
+        const cmd = new RemoveParameterBindingCommand(elementId, fieldName, getDoc, setDoc);
         commandHistory.execute(cmd);
         syncUndoRedo();
       },

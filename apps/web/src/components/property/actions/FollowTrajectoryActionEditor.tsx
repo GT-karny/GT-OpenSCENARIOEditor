@@ -8,6 +8,7 @@ import type {
 import type { FollowingMode } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
 import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
@@ -91,21 +92,22 @@ export function FollowTrajectoryActionEditor({ action }: FollowTrajectoryActionE
       {/* Initial Distance Offset */}
       <div className="grid gap-1">
         <Label className="text-xs">Initial Distance Offset (optional)</Label>
-        <Input
-          type="number"
+        <ParameterAwareInput
+          elementId={action.id}
+          fieldName="action.initialDistanceOffset"
           value={inner.initialDistanceOffset ?? ''}
           placeholder="--"
-          step="any"
-          onChange={(e) => {
-            if (e.target.value === '') {
+          onValueChange={(v) => {
+            if (v === '') {
               const { initialDistanceOffset: _, ...rest } = inner;
               storeApi.getState().updateAction(action.id, {
                 action: { ...rest },
               } as Partial<ScenarioAction>);
             } else {
-              updateInner({ initialDistanceOffset: parseFloat(e.target.value) || 0 });
+              updateInner({ initialDistanceOffset: parseFloat(v) || 0 });
             }
           }}
+          acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
           className="h-8 text-sm"
         />
       </div>

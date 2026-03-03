@@ -1,6 +1,5 @@
 import type { ScenarioAction, LaneChangeAction, TransitionDynamics } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
 import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
@@ -48,12 +47,14 @@ export function LaneChangeActionEditor({ action }: LaneChangeActionEditorProps) 
         </div>
         <div className="grid gap-1">
           <Label className="text-xs">Value</Label>
-          <Input
-            type="number"
+          <ParameterAwareInput
+            elementId={action.id}
+            fieldName="action.dynamics.value"
             value={inner.dynamics.value}
-            onChange={(e) =>
-              updateInner({ dynamics: { ...inner.dynamics, value: parseFloat(e.target.value) || 0 } })
+            onValueChange={(v) =>
+              updateInner({ dynamics: { ...inner.dynamics, value: parseFloat(v) || 0 } })
             }
+            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
             className="h-8 text-sm"
           />
         </div>
@@ -79,12 +80,14 @@ export function LaneChangeActionEditor({ action }: LaneChangeActionEditorProps) 
         {inner.target.kind === 'absolute' && (
           <div className="grid gap-1">
             <Label className="text-xs">Lane (relative to current)</Label>
-            <Input
-              type="number"
+            <ParameterAwareInput
+              elementId={action.id}
+              fieldName="action.target.value"
               value={inner.target.value}
-              onChange={(e) =>
-                updateInner({ target: { kind: 'absolute', value: parseInt(e.target.value) || 0 } })
+              onValueChange={(v) =>
+                updateInner({ target: { kind: 'absolute', value: parseInt(v) || 0 } })
               }
+              acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
               className="h-8 text-sm"
             />
           </div>
@@ -98,17 +101,20 @@ export function LaneChangeActionEditor({ action }: LaneChangeActionEditorProps) 
                 onValueChange={(v) =>
                   updateInner({ target: { ...inner.target, entityRef: v } as typeof inner.target })
                 }
+                acceptedTypes={['string']}
                 className="h-8 text-sm"
               />
             </div>
             <div className="grid gap-1">
               <Label className="text-xs">Lane Offset</Label>
-              <Input
-                type="number"
+              <ParameterAwareInput
+                elementId={action.id}
+                fieldName="action.target.value"
                 value={inner.target.value}
-                onChange={(e) =>
-                  updateInner({ target: { ...inner.target, value: parseInt(e.target.value) || 0 } as typeof inner.target })
+                onValueChange={(v) =>
+                  updateInner({ target: { ...inner.target, value: parseInt(v) || 0 } as typeof inner.target })
                 }
+                acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
                 className="h-8 text-sm"
               />
             </div>
@@ -120,16 +126,17 @@ export function LaneChangeActionEditor({ action }: LaneChangeActionEditorProps) 
         <p className="text-xs font-medium text-muted-foreground">Options</p>
         <div className="grid gap-1">
           <Label className="text-xs">Target Lane Offset (optional)</Label>
-          <Input
-            type="number"
+          <ParameterAwareInput
+            elementId={action.id}
+            fieldName="action.targetLaneOffset"
             value={inner.targetLaneOffset ?? ''}
             placeholder="—"
-            step="any"
-            onChange={(e) =>
+            onValueChange={(v) =>
               updateInner({
-                targetLaneOffset: e.target.value !== '' ? parseFloat(e.target.value) : undefined,
+                targetLaneOffset: v !== '' ? parseFloat(v) : undefined,
               })
             }
+            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
             className="h-8 text-sm"
           />
         </div>

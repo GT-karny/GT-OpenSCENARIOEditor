@@ -19,7 +19,7 @@ import type {
 } from '@osce/shared';
 import { ensureArray } from '../utils/ensure-array.js';
 import { generateId } from '../utils/uuid.js';
-import { numAttr, strAttr, optNumAttr, optStrAttr, boolAttr } from '../utils/xml-helpers.js';
+import { numAttr, strAttr, optNumAttr, optStrAttr, boolAttr, pushBindingFieldPrefix, popBindingFieldPrefix } from '../utils/xml-helpers.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parsePosition(raw: any): Position {
@@ -61,7 +61,7 @@ function parseLanePosition(raw: any): LanePosition {
     laneId: strAttr(raw, 'laneId'),
     s: numAttr(raw, 's'),
     offset: optNumAttr(raw, 'offset'),
-    orientation: raw.Orientation ? parseOrientation(raw.Orientation) : undefined,
+    orientation: parseOrientationWithPrefix(raw.Orientation),
   };
 }
 
@@ -74,7 +74,7 @@ function parseRelativeLanePosition(raw: any): RelativeLanePosition {
     ds: optNumAttr(raw, 'ds'),
     dsLane: optNumAttr(raw, 'dsLane'),
     offset: optNumAttr(raw, 'offset'),
-    orientation: raw.Orientation ? parseOrientation(raw.Orientation) : undefined,
+    orientation: parseOrientationWithPrefix(raw.Orientation),
   };
 }
 
@@ -85,7 +85,7 @@ function parseRoadPosition(raw: any): RoadPosition {
     roadId: strAttr(raw, 'roadId'),
     s: numAttr(raw, 's'),
     t: numAttr(raw, 't'),
-    orientation: raw.Orientation ? parseOrientation(raw.Orientation) : undefined,
+    orientation: parseOrientationWithPrefix(raw.Orientation),
   };
 }
 
@@ -96,7 +96,7 @@ function parseRelativeRoadPosition(raw: any): RelativeRoadPosition {
     entityRef: strAttr(raw, 'entityRef'),
     ds: numAttr(raw, 'ds'),
     dt: numAttr(raw, 'dt'),
-    orientation: raw.Orientation ? parseOrientation(raw.Orientation) : undefined,
+    orientation: parseOrientationWithPrefix(raw.Orientation),
   };
 }
 
@@ -108,7 +108,7 @@ function parseRelativeObjectPosition(raw: any): RelativeObjectPosition {
     dx: numAttr(raw, 'dx'),
     dy: numAttr(raw, 'dy'),
     dz: optNumAttr(raw, 'dz'),
-    orientation: raw.Orientation ? parseOrientation(raw.Orientation) : undefined,
+    orientation: parseOrientationWithPrefix(raw.Orientation),
   };
 }
 
@@ -120,7 +120,7 @@ function parseRelativeWorldPosition(raw: any): RelativeWorldPosition {
     dx: numAttr(raw, 'dx'),
     dy: numAttr(raw, 'dy'),
     dz: optNumAttr(raw, 'dz'),
-    orientation: raw.Orientation ? parseOrientation(raw.Orientation) : undefined,
+    orientation: parseOrientationWithPrefix(raw.Orientation),
   };
 }
 
@@ -130,7 +130,7 @@ function parseRoutePosition(raw: any): RoutePosition {
     type: 'routePosition',
     routeRef: parseRouteRef(raw.RouteRef),
     inRoutePosition: parseInRoutePosition(raw.InRoutePosition),
-    orientation: raw.Orientation ? parseOrientation(raw.Orientation) : undefined,
+    orientation: parseOrientationWithPrefix(raw.Orientation),
   };
 }
 
@@ -141,7 +141,7 @@ function parseGeoPosition(raw: any): GeoPosition {
     latitude: numAttr(raw, 'latitude'),
     longitude: numAttr(raw, 'longitude'),
     altitude: optNumAttr(raw, 'altitude'),
-    orientation: raw.Orientation ? parseOrientation(raw.Orientation) : undefined,
+    orientation: parseOrientationWithPrefix(raw.Orientation),
   };
 }
 
@@ -153,6 +153,15 @@ export function parseOrientation(raw: any): Orientation {
     p: optNumAttr(raw, 'p'),
     r: optNumAttr(raw, 'r'),
   };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseOrientationWithPrefix(raw: any): Orientation | undefined {
+  if (!raw) return undefined;
+  pushBindingFieldPrefix('orientation');
+  const o = parseOrientation(raw);
+  popBindingFieldPrefix();
+  return o;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

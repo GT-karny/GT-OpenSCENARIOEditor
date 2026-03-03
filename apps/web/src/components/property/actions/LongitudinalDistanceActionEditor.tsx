@@ -6,7 +6,7 @@ import type {
   LongitudinalDisplacement,
 } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
 import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
@@ -53,9 +53,10 @@ export function LongitudinalDistanceActionEditor({ action }: LongitudinalDistanc
         <p className="text-xs font-medium text-muted-foreground">Reference</p>
         <div className="grid gap-1">
           <Label className="text-xs">Entity Ref</Label>
-          <Input
+          <ParameterAwareInput
             value={inner.entityRef}
-            onChange={(e) => updateInner({ entityRef: e.target.value })}
+            onValueChange={(v) => updateInner({ entityRef: v })}
+            acceptedTypes={['string']}
             className="h-8 text-sm"
           />
         </div>
@@ -65,37 +66,39 @@ export function LongitudinalDistanceActionEditor({ action }: LongitudinalDistanc
         <p className="text-xs font-medium text-muted-foreground">Distance</p>
         <div className="grid gap-1">
           <Label className="text-xs">Distance (m) (optional)</Label>
-          <Input
-            type="number"
+          <ParameterAwareInput
+            elementId={action.id}
+            fieldName="action.distance"
             value={inner.distance ?? ''}
             placeholder="—"
-            step="any"
-            onChange={(e) => {
-              if (e.target.value === '') {
+            onValueChange={(v) => {
+              if (v === '') {
                 const { distance: _d, ...rest } = inner;
                 updateInner(rest as LongitudinalDistanceAction);
               } else {
-                updateInner({ distance: parseFloat(e.target.value) || 0 });
+                updateInner({ distance: parseFloat(v) || 0 });
               }
             }}
+            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
             className="h-8 text-sm"
           />
         </div>
         <div className="grid gap-1">
           <Label className="text-xs">Time Gap (s) (optional)</Label>
-          <Input
-            type="number"
+          <ParameterAwareInput
+            elementId={action.id}
+            fieldName="action.timeGap"
             value={inner.timeGap ?? ''}
             placeholder="—"
-            step="any"
-            onChange={(e) => {
-              if (e.target.value === '') {
+            onValueChange={(v) => {
+              if (v === '') {
                 const { timeGap: _t, ...rest } = inner;
                 updateInner(rest as LongitudinalDistanceAction);
               } else {
-                updateInner({ timeGap: parseFloat(e.target.value) || 0 });
+                updateInner({ timeGap: parseFloat(v) || 0 });
               }
             }}
+            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
             className="h-8 text-sm"
           />
         </div>
@@ -159,34 +162,37 @@ export function LongitudinalDistanceActionEditor({ action }: LongitudinalDistanc
         <p className="text-xs font-medium text-muted-foreground">Dynamic Constraints</p>
         <div className="grid gap-1">
           <Label className="text-xs">Max Acceleration (optional)</Label>
-          <Input
-            type="number"
+          <ParameterAwareInput
+            elementId={action.id}
+            fieldName="action.dynamics.maxAcceleration"
             value={dynamics.maxAcceleration ?? ''}
             placeholder="—"
-            step="any"
-            onChange={(e) => updateDynamics('maxAcceleration', e.target.value)}
+            onValueChange={(v) => updateDynamics('maxAcceleration', v)}
+            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
             className="h-8 text-sm"
           />
         </div>
         <div className="grid gap-1">
           <Label className="text-xs">Max Deceleration (optional)</Label>
-          <Input
-            type="number"
+          <ParameterAwareInput
+            elementId={action.id}
+            fieldName="action.dynamics.maxDeceleration"
             value={dynamics.maxDeceleration ?? ''}
             placeholder="—"
-            step="any"
-            onChange={(e) => updateDynamics('maxDeceleration', e.target.value)}
+            onValueChange={(v) => updateDynamics('maxDeceleration', v)}
+            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
             className="h-8 text-sm"
           />
         </div>
         <div className="grid gap-1">
           <Label className="text-xs">Max Speed (optional)</Label>
-          <Input
-            type="number"
+          <ParameterAwareInput
+            elementId={action.id}
+            fieldName="action.dynamics.maxSpeed"
             value={dynamics.maxSpeed ?? ''}
             placeholder="—"
-            step="any"
-            onChange={(e) => updateDynamics('maxSpeed', e.target.value)}
+            onValueChange={(v) => updateDynamics('maxSpeed', v)}
+            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
             className="h-8 text-sm"
           />
         </div>

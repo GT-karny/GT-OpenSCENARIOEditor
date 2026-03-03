@@ -9,6 +9,7 @@ import type {
 } from '@osce/shared';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
+import { ParameterAwareInput } from './ParameterAwareInput';
 import { EnumSelect } from './EnumSelect';
 import { PositionEditor } from './PositionEditor';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
@@ -257,14 +258,16 @@ function ConditionItem({ condition }: ConditionItemProps) {
 
       <div className="grid gap-1">
         <Label className="text-xs">Delay (s)</Label>
-        <Input
-          type="number"
+        <ParameterAwareInput
+          elementId={condition.id}
+          fieldName="delay"
           value={condition.delay}
-          onChange={(e) =>
+          onValueChange={(v) =>
             storeApi.getState().updateCondition(condition.id, {
-              delay: parseFloat(e.target.value) || 0,
+              delay: parseFloat(v) || 0,
             })
           }
+          acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
           className="h-8 text-sm"
         />
       </div>

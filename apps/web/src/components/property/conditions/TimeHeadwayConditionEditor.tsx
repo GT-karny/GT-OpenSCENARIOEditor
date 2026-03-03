@@ -1,6 +1,5 @@
 import type { Condition, ByEntityCondition, TimeHeadwayCondition, CoordinateSystemCond } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
 import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
@@ -35,17 +34,22 @@ export function TimeHeadwayConditionEditor({ condition }: TimeHeadwayConditionEd
       <div className="grid gap-1">
         <Label className="text-xs">Entity Ref</Label>
         <ParameterAwareInput
+          elementId={condition.id}
+          fieldName="entityRef"
           value={cond.entityRef}
           onValueChange={(v) => update({ entityRef: v })}
+          acceptedTypes={['string']}
           className="h-8 text-sm"
         />
       </div>
       <div className="grid gap-1">
         <Label className="text-xs">Value (s)</Label>
-        <Input
-          type="number"
+        <ParameterAwareInput
+          elementId={condition.id}
+          fieldName="value"
           value={cond.value}
-          onChange={(e) => update({ value: parseFloat(e.target.value) || 0 })}
+          onValueChange={(v) => update({ value: parseFloat(v) || 0 })}
+          acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
           className="h-8 text-sm"
         />
       </div>

@@ -7,5 +7,6 @@ export function createDefaultEditorMetadata(): EditorMetadata {
     appliedTemplates: [],
     nodePositions: {},
     nodeCollapsed: {},
+    parameterBindings: {},
   };
 }

@@ -100,6 +100,12 @@ export interface EditorMetadata {
   nodePositions: Record<string, { x: number; y: number }>;
   /** Collapsed/expanded state of nodes */
   nodeCollapsed: Record<string, boolean>;
+  /**
+   * Parameter bindings for numeric fields.
+   * Maps elementId → fieldPath → "$ParamName".
+   * Allows number-typed fields to reference parameters without changing their type.
+   */
+  parameterBindings: Record<string, Record<string, string>>;
 }
 
 export interface AppliedTemplate {

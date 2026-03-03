@@ -15,7 +15,7 @@ import { parseParameterDeclarations } from './parse-parameters.js';
 import { parseInit } from './parse-init.js';
 import { ensureArray } from '../utils/ensure-array.js';
 import { generateId } from '../utils/uuid.js';
-import { numAttr, strAttr, boolAttr, optNumAttr } from '../utils/xml-helpers.js';
+import { numAttr, strAttr, boolAttr, optNumAttr, setBindingElementId } from '../utils/xml-helpers.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseStoryboard(raw: any): Storyboard {
@@ -105,27 +105,17 @@ function parseEvent(raw: any): ScenarioEvent {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseScenarioAction(raw: any): ScenarioAction {
   const name = strAttr(raw, 'name');
+  const id = generateId();
+  setBindingElementId(id);
 
   if (raw.PrivateAction) {
-    return {
-      id: generateId(),
-      name,
-      action: parsePrivateAction(raw.PrivateAction),
-    };
+    return { id, name, action: parsePrivateAction(raw.PrivateAction) };
   }
   if (raw.GlobalAction) {
-    return {
-      id: generateId(),
-      name,
-      action: parseGlobalAction(raw.GlobalAction),
-    };
+    return { id, name, action: parseGlobalAction(raw.GlobalAction) };
   }
   if (raw.UserDefinedAction) {
-    return {
-      id: generateId(),
-      name,
-      action: parseUserDefinedAction(raw.UserDefinedAction),
-    };
+    return { id, name, action: parseUserDefinedAction(raw.UserDefinedAction) };
   }
 
   throw new Error(`Unknown Action type in Event: ${Object.keys(raw).join(', ')}`);

@@ -1,6 +1,6 @@
 import type { Condition, ByEntityCondition, RelativeSpeedCondition, DirectionalDimension } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
 import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 import { RULES } from '../../../constants/osc-enum-values';
@@ -28,18 +28,23 @@ export function RelativeSpeedConditionEditor({ condition }: RelativeSpeedConditi
         <p className="text-xs font-medium text-muted-foreground">Relative Speed</p>
         <div className="grid gap-1">
           <Label className="text-xs">Entity Ref</Label>
-          <Input
+          <ParameterAwareInput
+            elementId={condition.id}
+            fieldName="entityRef"
             value={cond.entityRef}
-            onChange={(e) => update({ entityRef: e.target.value })}
+            onValueChange={(v) => update({ entityRef: v })}
+            acceptedTypes={['string']}
             className="h-8 text-sm"
           />
         </div>
         <div className="grid gap-1">
           <Label className="text-xs">Value (m/s)</Label>
-          <Input
-            type="number"
+          <ParameterAwareInput
+            elementId={condition.id}
+            fieldName="value"
             value={cond.value}
-            onChange={(e) => update({ value: parseFloat(e.target.value) || 0 })}
+            onValueChange={(v) => update({ value: parseFloat(v) || 0 })}
+            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
             className="h-8 text-sm"
           />
         </div>

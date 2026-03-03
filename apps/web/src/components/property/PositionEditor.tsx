@@ -11,7 +11,7 @@ import type {
   Orientation,
 } from '@osce/shared';
 import { Label } from '../ui/label';
-import { Input } from '../ui/input';
+import { ParameterAwareInput } from './ParameterAwareInput';
 import { EnumSelect } from './EnumSelect';
 import {
   POSITION_TYPE_OPTIONS,
@@ -22,9 +22,13 @@ import {
 interface PositionEditorProps {
   position: Position;
   onChange: (position: Position) => void;
+  /** Element ID for parameter binding support */
+  elementId?: string;
+  /** Field path prefix for parameter binding (e.g., "action.position") */
+  fieldPathPrefix?: string;
 }
 
-export function PositionEditor({ position, onChange }: PositionEditorProps) {
+export function PositionEditor({ position, onChange, elementId, fieldPathPrefix }: PositionEditorProps) {
   const handleTypeChange = (newType: string) => {
     if (newType === position.type) return;
     onChange(createDefaultPosition(newType as Position['type']));
@@ -47,7 +51,7 @@ export function PositionEditor({ position, onChange }: PositionEditorProps) {
         </p>
       </div>
 
-      <PositionFields position={position} onChange={onChange} />
+      <PositionFields position={position} onChange={onChange} elementId={elementId} prefix={fieldPathPrefix} />
     </div>
   );
 }
@@ -55,26 +59,28 @@ export function PositionEditor({ position, onChange }: PositionEditorProps) {
 interface PositionFieldsProps {
   position: Position;
   onChange: (position: Position) => void;
+  elementId?: string;
+  prefix?: string;
 }
 
-function PositionFields({ position, onChange }: PositionFieldsProps) {
+function PositionFields({ position, onChange, elementId, prefix }: PositionFieldsProps) {
   switch (position.type) {
     case 'worldPosition':
-      return <WorldPositionFields position={position} onChange={onChange} />;
+      return <WorldPositionFields position={position} onChange={onChange} elementId={elementId} prefix={prefix} />;
     case 'lanePosition':
-      return <LanePositionFields position={position} onChange={onChange} />;
+      return <LanePositionFields position={position} onChange={onChange} elementId={elementId} prefix={prefix} />;
     case 'relativeLanePosition':
-      return <RelativeLanePositionFields position={position} onChange={onChange} />;
+      return <RelativeLanePositionFields position={position} onChange={onChange} elementId={elementId} prefix={prefix} />;
     case 'roadPosition':
-      return <RoadPositionFields position={position} onChange={onChange} />;
+      return <RoadPositionFields position={position} onChange={onChange} elementId={elementId} prefix={prefix} />;
     case 'relativeRoadPosition':
-      return <RelativeRoadPositionFields position={position} onChange={onChange} />;
+      return <RelativeRoadPositionFields position={position} onChange={onChange} elementId={elementId} prefix={prefix} />;
     case 'relativeObjectPosition':
-      return <RelativeObjectPositionFields position={position} onChange={onChange} />;
+      return <RelativeObjectPositionFields position={position} onChange={onChange} elementId={elementId} prefix={prefix} />;
     case 'relativeWorldPosition':
-      return <RelativeWorldPositionFields position={position} onChange={onChange} />;
+      return <RelativeWorldPositionFields position={position} onChange={onChange} elementId={elementId} prefix={prefix} />;
     case 'geoPosition':
-      return <GeoPositionFields position={position} onChange={onChange} />;
+      return <GeoPositionFields position={position} onChange={onChange} elementId={elementId} prefix={prefix} />;
     case 'routePosition':
       return (
         <p className="text-xs text-muted-foreground italic">
@@ -108,9 +114,13 @@ function applyOrientation<T extends { orientation?: Orientation }>(pos: T, o: Or
 function WorldPositionFields({
   position,
   onChange,
+  elementId,
+  prefix,
 }: {
   position: WorldPosition;
   onChange: (p: Position) => void;
+  elementId?: string;
+  prefix?: string;
 }) {
   const update = (field: keyof Omit<WorldPosition, 'type'>, value: string) => {
     const n = parseNum(value);
@@ -130,12 +140,12 @@ function WorldPositionFields({
 
   return (
     <div className="grid grid-cols-2 gap-2">
-      <NumField label="X" value={position.x} onChange={(v) => update('x', v)} />
-      <NumField label="Y" value={position.y} onChange={(v) => update('y', v)} />
-      <NumField label="Z" value={position.z} onChange={(v) => updateOptional('z', v)} optional />
-      <NumField label="H (heading)" value={position.h} onChange={(v) => updateOptional('h', v)} optional />
-      <NumField label="P (pitch)" value={position.p} onChange={(v) => updateOptional('p', v)} optional />
-      <NumField label="R (roll)" value={position.r} onChange={(v) => updateOptional('r', v)} optional />
+      <NumField label="X" value={position.x} onChange={(v) => update('x', v)} elementId={elementId} fieldName={prefix ? `${prefix}.x` : undefined} />
+      <NumField label="Y" value={position.y} onChange={(v) => update('y', v)} elementId={elementId} fieldName={prefix ? `${prefix}.y` : undefined} />
+      <NumField label="Z" value={position.z} onChange={(v) => updateOptional('z', v)} optional elementId={elementId} fieldName={prefix ? `${prefix}.z` : undefined} />
+      <NumField label="H (heading)" value={position.h} onChange={(v) => updateOptional('h', v)} optional elementId={elementId} fieldName={prefix ? `${prefix}.h` : undefined} />
+      <NumField label="P (pitch)" value={position.p} onChange={(v) => updateOptional('p', v)} optional elementId={elementId} fieldName={prefix ? `${prefix}.p` : undefined} />
+      <NumField label="R (roll)" value={position.r} onChange={(v) => updateOptional('r', v)} optional elementId={elementId} fieldName={prefix ? `${prefix}.r` : undefined} />
     </div>
   );
 }
@@ -145,9 +155,13 @@ function WorldPositionFields({
 function LanePositionFields({
   position,
   onChange,
+  elementId,
+  prefix,
 }: {
   position: LanePosition;
   onChange: (p: Position) => void;
+  elementId?: string;
+  prefix?: string;
 }) {
   return (
     <div className="space-y-2">
@@ -156,11 +170,15 @@ function LanePositionFields({
           label="Road ID"
           value={position.roadId}
           onChange={(v) => onChange({ ...position, roadId: v })}
+          elementId={elementId}
+          fieldName={prefix ? `${prefix}.roadId` : undefined}
         />
         <TextField
           label="Lane ID"
           value={position.laneId}
           onChange={(v) => onChange({ ...position, laneId: v })}
+          elementId={elementId}
+          fieldName={prefix ? `${prefix}.laneId` : undefined}
         />
         <NumField
           label="S"
@@ -169,6 +187,8 @@ function LanePositionFields({
             const n = parseNum(v);
             if (n !== undefined) onChange({ ...position, s: n });
           }}
+          elementId={elementId}
+          fieldName={prefix ? `${prefix}.s` : undefined}
         />
         <NumField
           label="Offset"
@@ -182,11 +202,15 @@ function LanePositionFields({
             if (n !== undefined) onChange({ ...position, offset: n });
           }}
           optional
+          elementId={elementId}
+          fieldName={prefix ? `${prefix}.offset` : undefined}
         />
       </div>
       <OrientationFields
         orientation={position.orientation}
         onChange={(o) => onChange(applyOrientation(position, o))}
+        elementId={elementId}
+        prefix={prefix ? `${prefix}.orientation` : undefined}
       />
     </div>
   );
@@ -197,9 +221,13 @@ function LanePositionFields({
 function RelativeLanePositionFields({
   position,
   onChange,
+  elementId,
+  prefix,
 }: {
   position: RelativeLanePosition;
   onChange: (p: Position) => void;
+  elementId?: string;
+  prefix?: string;
 }) {
   const updateOptionalNum = (field: 'ds' | 'dsLane' | 'offset', value: string) => {
     if (value === '') {
@@ -217,6 +245,8 @@ function RelativeLanePositionFields({
           label="Entity Ref"
           value={position.entityRef}
           onChange={(v) => onChange({ ...position, entityRef: v })}
+          elementId={elementId}
+          fieldName={prefix ? `${prefix}.entityRef` : undefined}
         />
         <NumField
           label="dLane"
@@ -225,14 +255,18 @@ function RelativeLanePositionFields({
             const n = parseNum(v);
             if (n !== undefined) onChange({ ...position, dLane: n });
           }}
+          elementId={elementId}
+          fieldName={prefix ? `${prefix}.dLane` : undefined}
         />
-        <NumField label="ds" value={position.ds} onChange={(v) => updateOptionalNum('ds', v)} optional />
-        <NumField label="dsLane" value={position.dsLane} onChange={(v) => updateOptionalNum('dsLane', v)} optional />
-        <NumField label="Offset" value={position.offset} onChange={(v) => updateOptionalNum('offset', v)} optional />
+        <NumField label="ds" value={position.ds} onChange={(v) => updateOptionalNum('ds', v)} optional elementId={elementId} fieldName={prefix ? `${prefix}.ds` : undefined} />
+        <NumField label="dsLane" value={position.dsLane} onChange={(v) => updateOptionalNum('dsLane', v)} optional elementId={elementId} fieldName={prefix ? `${prefix}.dsLane` : undefined} />
+        <NumField label="Offset" value={position.offset} onChange={(v) => updateOptionalNum('offset', v)} optional elementId={elementId} fieldName={prefix ? `${prefix}.offset` : undefined} />
       </div>
       <OrientationFields
         orientation={position.orientation}
         onChange={(o) => onChange(applyOrientation(position, o))}
+        elementId={elementId}
+        prefix={prefix ? `${prefix}.orientation` : undefined}
       />
     </div>
   );
@@ -243,9 +277,13 @@ function RelativeLanePositionFields({
 function RoadPositionFields({
   position,
   onChange,
+  elementId,
+  prefix,
 }: {
   position: RoadPosition;
   onChange: (p: Position) => void;
+  elementId?: string;
+  prefix?: string;
 }) {
   return (
     <div className="grid grid-cols-2 gap-2">
@@ -253,6 +291,8 @@ function RoadPositionFields({
         label="Road ID"
         value={position.roadId}
         onChange={(v) => onChange({ ...position, roadId: v })}
+        elementId={elementId}
+        fieldName={prefix ? `${prefix}.roadId` : undefined}
       />
       <NumField
         label="S"
@@ -261,6 +301,8 @@ function RoadPositionFields({
           const n = parseNum(v);
           if (n !== undefined) onChange({ ...position, s: n });
         }}
+        elementId={elementId}
+        fieldName={prefix ? `${prefix}.s` : undefined}
       />
       <NumField
         label="T"
@@ -269,6 +311,8 @@ function RoadPositionFields({
           const n = parseNum(v);
           if (n !== undefined) onChange({ ...position, t: n });
         }}
+        elementId={elementId}
+        fieldName={prefix ? `${prefix}.t` : undefined}
       />
     </div>
   );
@@ -279,9 +323,13 @@ function RoadPositionFields({
 function RelativeRoadPositionFields({
   position,
   onChange,
+  elementId,
+  prefix,
 }: {
   position: RelativeRoadPosition;
   onChange: (p: Position) => void;
+  elementId?: string;
+  prefix?: string;
 }) {
   return (
     <div className="grid grid-cols-2 gap-2">
@@ -289,6 +337,8 @@ function RelativeRoadPositionFields({
         label="Entity Ref"
         value={position.entityRef}
         onChange={(v) => onChange({ ...position, entityRef: v })}
+        elementId={elementId}
+        fieldName={prefix ? `${prefix}.entityRef` : undefined}
       />
       <NumField
         label="ds"
@@ -297,6 +347,8 @@ function RelativeRoadPositionFields({
           const n = parseNum(v);
           if (n !== undefined) onChange({ ...position, ds: n });
         }}
+        elementId={elementId}
+        fieldName={prefix ? `${prefix}.ds` : undefined}
       />
       <NumField
         label="dt"
@@ -305,6 +357,8 @@ function RelativeRoadPositionFields({
           const n = parseNum(v);
           if (n !== undefined) onChange({ ...position, dt: n });
         }}
+        elementId={elementId}
+        fieldName={prefix ? `${prefix}.dt` : undefined}
       />
     </div>
   );
@@ -315,9 +369,13 @@ function RelativeRoadPositionFields({
 function RelativeObjectPositionFields({
   position,
   onChange,
+  elementId,
+  prefix,
 }: {
   position: RelativeObjectPosition;
   onChange: (p: Position) => void;
+  elementId?: string;
+  prefix?: string;
 }) {
   return (
     <div className="space-y-2">
@@ -326,6 +384,8 @@ function RelativeObjectPositionFields({
           label="Entity Ref"
           value={position.entityRef}
           onChange={(v) => onChange({ ...position, entityRef: v })}
+          elementId={elementId}
+          fieldName={prefix ? `${prefix}.entityRef` : undefined}
         />
         <NumField
           label="dx"
@@ -334,6 +394,8 @@ function RelativeObjectPositionFields({
             const n = parseNum(v);
             if (n !== undefined) onChange({ ...position, dx: n });
           }}
+          elementId={elementId}
+          fieldName={prefix ? `${prefix}.dx` : undefined}
         />
         <NumField
           label="dy"
@@ -342,6 +404,8 @@ function RelativeObjectPositionFields({
             const n = parseNum(v);
             if (n !== undefined) onChange({ ...position, dy: n });
           }}
+          elementId={elementId}
+          fieldName={prefix ? `${prefix}.dy` : undefined}
         />
         <NumField
           label="dz"
@@ -355,11 +419,15 @@ function RelativeObjectPositionFields({
             if (n !== undefined) onChange({ ...position, dz: n });
           }}
           optional
+          elementId={elementId}
+          fieldName={prefix ? `${prefix}.dz` : undefined}
         />
       </div>
       <OrientationFields
         orientation={position.orientation}
         onChange={(o) => onChange(applyOrientation(position, o))}
+        elementId={elementId}
+        prefix={prefix ? `${prefix}.orientation` : undefined}
       />
     </div>
   );
@@ -370,9 +438,13 @@ function RelativeObjectPositionFields({
 function RelativeWorldPositionFields({
   position,
   onChange,
+  elementId,
+  prefix,
 }: {
   position: RelativeWorldPosition;
   onChange: (p: Position) => void;
+  elementId?: string;
+  prefix?: string;
 }) {
   return (
     <div className="space-y-2">
@@ -381,6 +453,8 @@ function RelativeWorldPositionFields({
           label="Entity Ref"
           value={position.entityRef}
           onChange={(v) => onChange({ ...position, entityRef: v })}
+          elementId={elementId}
+          fieldName={prefix ? `${prefix}.entityRef` : undefined}
         />
         <NumField
           label="dx"
@@ -389,6 +463,8 @@ function RelativeWorldPositionFields({
             const n = parseNum(v);
             if (n !== undefined) onChange({ ...position, dx: n });
           }}
+          elementId={elementId}
+          fieldName={prefix ? `${prefix}.dx` : undefined}
         />
         <NumField
           label="dy"
@@ -397,6 +473,8 @@ function RelativeWorldPositionFields({
             const n = parseNum(v);
             if (n !== undefined) onChange({ ...position, dy: n });
           }}
+          elementId={elementId}
+          fieldName={prefix ? `${prefix}.dy` : undefined}
         />
         <NumField
           label="dz"
@@ -410,11 +488,15 @@ function RelativeWorldPositionFields({
             if (n !== undefined) onChange({ ...position, dz: n });
           }}
           optional
+          elementId={elementId}
+          fieldName={prefix ? `${prefix}.dz` : undefined}
         />
       </div>
       <OrientationFields
         orientation={position.orientation}
         onChange={(o) => onChange(applyOrientation(position, o))}
+        elementId={elementId}
+        prefix={prefix ? `${prefix}.orientation` : undefined}
       />
     </div>
   );
@@ -425,9 +507,13 @@ function RelativeWorldPositionFields({
 function GeoPositionFields({
   position,
   onChange,
+  elementId,
+  prefix,
 }: {
   position: GeoPosition;
   onChange: (p: Position) => void;
+  elementId?: string;
+  prefix?: string;
 }) {
   return (
     <div className="grid grid-cols-2 gap-2">
@@ -438,6 +524,8 @@ function GeoPositionFields({
           const n = parseNum(v);
           if (n !== undefined) onChange({ ...position, latitude: n });
         }}
+        elementId={elementId}
+        fieldName={prefix ? `${prefix}.latitude` : undefined}
       />
       <NumField
         label="Longitude"
@@ -446,6 +534,8 @@ function GeoPositionFields({
           const n = parseNum(v);
           if (n !== undefined) onChange({ ...position, longitude: n });
         }}
+        elementId={elementId}
+        fieldName={prefix ? `${prefix}.longitude` : undefined}
       />
       <NumField
         label="Altitude"
@@ -459,6 +549,8 @@ function GeoPositionFields({
           if (n !== undefined) onChange({ ...position, altitude: n });
         }}
         optional
+        elementId={elementId}
+        fieldName={prefix ? `${prefix}.altitude` : undefined}
       />
     </div>
   );
@@ -471,11 +563,15 @@ function NumField({
   value,
   onChange,
   optional,
+  elementId,
+  fieldName,
 }: {
   label: string;
   value: number | undefined;
   onChange: (value: string) => void;
   optional?: boolean;
+  elementId?: string;
+  fieldName?: string;
 }) {
   return (
     <div className="grid gap-1">
@@ -483,10 +579,12 @@ function NumField({
         {label}
         {optional && <span className="text-muted-foreground ml-1">?</span>}
       </Label>
-      <Input
-        type="number"
+      <ParameterAwareInput
+        elementId={elementId}
+        fieldName={fieldName}
         value={value ?? ''}
-        onChange={(e) => onChange(e.target.value)}
+        onValueChange={onChange}
+        acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
         placeholder={optional ? '—' : '0'}
         className="h-8 text-sm"
         step="any"
@@ -499,18 +597,24 @@ function TextField({
   label,
   value,
   onChange,
+  elementId,
+  fieldName,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  elementId?: string;
+  fieldName?: string;
 }) {
   return (
     <div className="grid gap-1">
       <Label className="text-xs">{label}</Label>
-      <Input
-        type="text"
+      <ParameterAwareInput
+        elementId={elementId}
+        fieldName={fieldName}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onValueChange={onChange}
+        acceptedTypes={['string']}
         className="h-8 text-sm"
       />
     </div>
@@ -526,9 +630,13 @@ function isOrientationEmpty(ori: Partial<Orientation>): boolean {
 function OrientationFields({
   orientation,
   onChange,
+  elementId,
+  prefix,
 }: {
   orientation: Orientation | undefined;
   onChange: (o: Orientation | undefined) => void;
+  elementId?: string;
+  prefix?: string;
 }) {
   const ori = orientation ?? {};
 
@@ -541,6 +649,15 @@ function OrientationFields({
     const next = { ...ori };
     delete next[key];
     onChange(isOrientationEmpty(next) ? undefined : next);
+  };
+
+  const handleOriValue = (key: 'h' | 'p' | 'r', value: string) => {
+    if (value === '') {
+      clearKey(key);
+    } else {
+      const n = parseFloat(value);
+      if (Number.isFinite(n)) update({ [key]: n });
+    }
   };
 
   return (
@@ -566,16 +683,14 @@ function OrientationFields({
           <Label className="text-xs">
             H <span className="text-muted-foreground">?</span>
           </Label>
-          <Input
-            type="number"
+          <ParameterAwareInput
+            elementId={elementId}
+            fieldName={prefix ? `${prefix}.h` : undefined}
             value={ori.h ?? ''}
+            onValueChange={(v) => handleOriValue('h', v)}
+            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
             placeholder="—"
             step="any"
-            onChange={(e) =>
-              e.target.value !== ''
-                ? update({ h: parseFloat(e.target.value) })
-                : clearKey('h')
-            }
             className="h-8 text-sm"
           />
         </div>
@@ -583,16 +698,14 @@ function OrientationFields({
           <Label className="text-xs">
             P <span className="text-muted-foreground">?</span>
           </Label>
-          <Input
-            type="number"
+          <ParameterAwareInput
+            elementId={elementId}
+            fieldName={prefix ? `${prefix}.p` : undefined}
             value={ori.p ?? ''}
+            onValueChange={(v) => handleOriValue('p', v)}
+            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
             placeholder="—"
             step="any"
-            onChange={(e) =>
-              e.target.value !== ''
-                ? update({ p: parseFloat(e.target.value) })
-                : clearKey('p')
-            }
             className="h-8 text-sm"
           />
         </div>
@@ -600,16 +713,14 @@ function OrientationFields({
           <Label className="text-xs">
             R <span className="text-muted-foreground">?</span>
           </Label>
-          <Input
-            type="number"
+          <ParameterAwareInput
+            elementId={elementId}
+            fieldName={prefix ? `${prefix}.r` : undefined}
             value={ori.r ?? ''}
+            onValueChange={(v) => handleOriValue('r', v)}
+            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
             placeholder="—"
             step="any"
-            onChange={(e) =>
-              e.target.value !== ''
-                ? update({ r: parseFloat(e.target.value) })
-                : clearKey('r')
-            }
             className="h-8 text-sm"
           />
         </div>

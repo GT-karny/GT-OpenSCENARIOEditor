@@ -1,6 +1,6 @@
 import type { Condition, ByEntityCondition, SpeedCondition, DirectionalDimension } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
 import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 import { RULES } from '../../../constants/osc-enum-values';
@@ -28,10 +28,12 @@ export function SpeedConditionEditor({ condition }: SpeedConditionEditorProps) {
         <p className="text-xs font-medium text-muted-foreground">Speed</p>
         <div className="grid gap-1">
           <Label className="text-xs">Value (m/s)</Label>
-          <Input
-            type="number"
+          <ParameterAwareInput
+            elementId={condition.id}
+            fieldName="value"
             value={cond.value}
-            onChange={(e) => update({ value: parseFloat(e.target.value) || 0 })}
+            onValueChange={(v) => update({ value: parseFloat(v) || 0 })}
+            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
             className="h-8 text-sm"
           />
         </div>
