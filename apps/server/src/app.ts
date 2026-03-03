@@ -1,14 +1,17 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import websocket from '@fastify/websocket';
+import multipart from '@fastify/multipart';
 import { FileService } from './services/file-service.js';
 import { ScenarioService } from './services/scenario-service.js';
 import { SimulationService } from './services/simulation-service.js';
+import { ProjectService } from './services/project-service.js';
 import { GtSimService } from '@osce/esmini';
 import { MockEsminiService } from './services/mock-esmini-service.js';
 import { fileRoutes } from './routes/file-routes.js';
 import { scenarioRoutes } from './routes/scenario-routes.js';
 import { simulationRoutes } from './routes/simulation-routes.js';
+import { projectRoutes } from './routes/project-routes.js';
 import { wsHandler } from './websocket/ws-handler.js';
 import { registerErrorHandler } from './utils/errors.js';
 
@@ -17,6 +20,7 @@ declare module 'fastify' {
     fileService: FileService;
     scenarioService: ScenarioService;
     simulationService: SimulationService;
+    projectService: ProjectService;
   }
 }
 
@@ -26,10 +30,12 @@ export async function buildApp() {
   // Plugins
   await app.register(cors, { origin: true });
   await app.register(websocket);
+  await app.register(multipart, { limits: { fileSize: 100 * 1024 * 1024 } }); // 100MB
 
   // Services
   const fileService = new FileService();
   const scenarioService = new ScenarioService();
+  const projectService = new ProjectService();
   const esminiService = process.env.GT_SIM_URL
     ? new GtSimService({
         restBaseUrl: process.env.GT_SIM_URL,
@@ -42,6 +48,7 @@ export async function buildApp() {
   app.decorate('fileService', fileService);
   app.decorate('scenarioService', scenarioService);
   app.decorate('simulationService', simulationService);
+  app.decorate('projectService', projectService);
 
   // Cleanup GtSimService gRPC channel on shutdown
   app.addHook('onClose', async () => {
@@ -57,6 +64,7 @@ export async function buildApp() {
   await app.register(fileRoutes);
   await app.register(scenarioRoutes);
   await app.register(simulationRoutes);
+  await app.register(projectRoutes);
   await app.register(wsHandler);
 
   return app;

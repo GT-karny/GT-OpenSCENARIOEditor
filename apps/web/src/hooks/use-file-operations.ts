@@ -3,6 +3,7 @@ import { XoscParser, XoscSerializer } from '@osce/openscenario';
 import { XodrParser } from '@osce/opendrive';
 import { useScenarioStoreApi } from '../stores/use-scenario-store';
 import { useEditorStore } from '../stores/editor-store';
+import { useProjectStore } from '../stores/project-store';
 
 // File picker type definitions for File System Access API
 interface FilePickerOptions {
@@ -122,6 +123,23 @@ export function useFileOperations() {
   }, [storeApi, setCurrentFileName, setDirty, setValidationResult]);
 
   const saveXosc = useCallback(async () => {
+    const currentProject = useProjectStore.getState().currentProject;
+
+    // Project mode: save via API
+    if (currentProject) {
+      try {
+        const doc = storeApi.getState().document;
+        const serializer = new XoscSerializer();
+        const xml = serializer.serializeFormatted(doc);
+        await useProjectStore.getState().saveCurrentFile(xml);
+        setDirty(false);
+      } catch {
+        // Save failed
+      }
+      return;
+    }
+
+    // Standalone mode: save to disk
     try {
       const doc = storeApi.getState().document;
       const serializer = new XoscSerializer();

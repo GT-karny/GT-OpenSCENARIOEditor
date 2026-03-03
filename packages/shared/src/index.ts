@@ -12,6 +12,7 @@ export type * from './types/component-library.js';
 export type * from './types/editor.js';
 export type * from './types/esmini.js';
 export type * from './types/mcp.js';
+export type * from './types/project.js';
 
 // Enums
 export type * from './enums/osc-enums.js';

@@ -129,4 +129,26 @@ export const common = {
     confirm: '削除',
     cancel: 'キャンセル',
   },
+  home: {
+    title: 'OpenSCENARIOエディタ',
+    newProject: '新規プロジェクト',
+    importZip: 'ZIPインポート',
+    noProjects: 'プロジェクトが見つかりません',
+    createFirst: '最初のプロジェクトを作成',
+  },
+  project: {
+    name: '名前',
+    description: '説明',
+    template: 'テンプレート',
+    create: '作成',
+    delete: 'プロジェクトを削除',
+    export: 'エクスポート',
+    scenarios: 'シナリオ',
+  },
+  fileTree: {
+    title: 'ファイル',
+    newFile: '新規ファイル',
+    rename: '名前変更',
+    delete: '削除',
+  },
 } as const;

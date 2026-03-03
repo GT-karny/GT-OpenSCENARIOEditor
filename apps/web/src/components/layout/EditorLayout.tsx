@@ -18,10 +18,12 @@ import type { ContextMenuPosition } from '../node-editor/NodeEditorContextMenu';
 import { DeleteConfirmationDialog } from '../node-editor/DeleteConfirmationDialog';
 import { ParameterDialog } from '../template/ParameterDialog';
 import { CatalogEditorModal } from '../catalog/CatalogEditorModal';
+import { FileTreeSidebar } from '../editor/FileTreeSidebar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { useTranslation } from '@osce/i18n';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
+import { useProjectStore } from '../../stores/project-store';
 import { useTemplateDrop } from '../../hooks/use-template-drop';
 import { useElementDelete } from '../../hooks/use-element-delete';
 import { useElementAdd } from '../../hooks/use-element-add';
@@ -49,6 +51,7 @@ interface DeleteRequest {
 export function EditorLayout() {
   const { t } = useTranslation('common');
   const scenarioStoreApi = useScenarioStoreApi();
+  const currentProject = useProjectStore((s) => s.currentProject);
   const [centerTab, setCenterTab] = useState<'composer' | 'graph'>('composer');
 
   // --- Selection sync ---
@@ -155,6 +158,16 @@ export function EditorLayout() {
         {/* Main area */}
         <Panel defaultSize={70} minSize={30}>
           <PanelGroup direction="horizontal">
+            {/* File Tree sidebar (project mode only) */}
+            {currentProject && (
+              <>
+                <Panel defaultSize={15} minSize={10} maxSize={25}>
+                  <FileTreeSidebar />
+                </Panel>
+                <ResizeHandle />
+              </>
+            )}
+
             {/* Left sidebar */}
             <Panel defaultSize={20} minSize={12} maxSize={35}>
               <div className="h-full bg-[var(--color-bg-deep)] enter-l">

@@ -129,4 +129,26 @@ export const common = {
     confirm: 'Delete',
     cancel: 'Cancel',
   },
+  home: {
+    title: 'OpenSCENARIO Editor',
+    newProject: 'New Project',
+    importZip: 'Import ZIP',
+    noProjects: 'No projects found',
+    createFirst: 'Create your first project',
+  },
+  project: {
+    name: 'Name',
+    description: 'Description',
+    template: 'Template',
+    create: 'Create',
+    delete: 'Delete Project',
+    export: 'Export',
+    scenarios: 'scenarios',
+  },
+  fileTree: {
+    title: 'Files',
+    newFile: 'New File',
+    rename: 'Rename',
+    delete: 'Delete',
+  },
 } as const;

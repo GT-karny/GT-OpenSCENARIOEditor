@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "pnpm --filter @osce/web dev",
     "dev:server": "pnpm --filter @osce/server dev",
+    "dev:full": "pnpm --filter @osce/server --filter @osce/web --parallel dev",
     "build": "pnpm -r build",
     "build:shared": "pnpm --filter @osce/shared build",
     "maturity:validate": "node scripts/maturity/validate-capabilities.mjs",

@@ -1,6 +1,7 @@
 import { useTranslation } from '@osce/i18n';
-import { Navigation } from 'lucide-react';
+import { Navigation, Home } from 'lucide-react';
 import { Separator } from '../ui/separator';
+import { Button } from '../ui/button';
 import { FileMenu } from '../toolbar/FileMenu';
 import { UndoRedoButtons } from '../toolbar/UndoRedoButtons';
 import { ValidateButton } from '../toolbar/ValidateButton';
@@ -8,12 +9,35 @@ import { LanguageToggle } from '../toolbar/LanguageToggle';
 import { RoadNetworkButton } from '../toolbar/RoadNetworkButton';
 import { SimulationButtons } from '../toolbar/SimulationButtons';
 import { CatalogButton } from '../toolbar/CatalogButton';
+import { useProjectStore } from '../../stores/project-store';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 export function HeaderToolbar() {
   const { t } = useTranslation('common');
+  const currentProject = useProjectStore((s) => s.currentProject);
+  const closeProject = useProjectStore((s) => s.closeProject);
 
   return (
     <div role="banner" className="relative flex items-center h-[50px] px-6 gap-6 bg-[var(--color-glass-1)] backdrop-blur-[40px] saturate-[1.5] border-b border-[var(--color-glass-edge-mid)] header-glow z-10 enter">
+      {/* Home button */}
+      <TooltipProvider delayDuration={300}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+              onClick={closeProject}
+            >
+              <Home size={16} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p className="text-xs">Home</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
       {/* Logo: Navigation icon + gradient text */}
       <div className="flex items-center gap-2">
         <Navigation
@@ -47,6 +71,17 @@ export function HeaderToolbar() {
           {t('app.title')}
         </span>
       </div>
+
+      {/* Project name */}
+      {currentProject && (
+        <>
+          <Separator orientation="vertical" className="h-5 bg-[var(--color-glass-edge-bright)]" />
+          <span className="text-xs text-[var(--color-text-secondary)] font-medium truncate max-w-[200px]">
+            {currentProject.meta.name}
+          </span>
+        </>
+      )}
+
       <Separator orientation="vertical" className="h-5 bg-[var(--color-glass-edge-bright)]" />
       <FileMenu />
       <Separator orientation="vertical" className="h-5 bg-[var(--color-glass-edge-bright)]" />
