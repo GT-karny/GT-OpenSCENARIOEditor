@@ -4,17 +4,25 @@ import type {
   VehicleDefinition,
   PedestrianDefinition,
   MiscObjectDefinition,
+  CatalogReference,
+  ParameterAssignment,
 } from '@osce/shared';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { EntityIcon } from '../entity/EntityIcon';
 import { EnumSelect } from './EnumSelect';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
+import { useCatalogStore } from '../../stores/catalog-store';
+import { CatalogPicker } from '../catalog/CatalogPicker';
+import { ParameterAssignmentEditor } from '../catalog/ParameterAssignmentEditor';
+import { ResolvedEntryPreview } from '../catalog/ResolvedEntryPreview';
 import {
   VEHICLE_CATEGORIES,
   PEDESTRIAN_CATEGORIES,
   MISC_OBJECT_CATEGORIES,
 } from '../../constants/osc-enum-values';
+
+type SourceMode = 'inline' | 'catalog';
 
 interface EntityPropertyEditorProps {
   entity: ScenarioEntity;
@@ -24,16 +32,62 @@ export function EntityPropertyEditor({ entity }: EntityPropertyEditorProps) {
   const { t } = useTranslation('common');
   const storeApi = useScenarioStoreApi();
 
+  const def = entity.definition;
+  const sourceMode: SourceMode = def.kind === 'catalogReference' ? 'catalog' : 'inline';
+
   const handleNameChange = (name: string) => {
     storeApi.getState().updateEntity(entity.id, { name });
   };
 
   const handleDefinitionChange = (field: string, value: string) => {
-    if (!entity.definition || !('kind' in entity.definition)) return;
+    if (!def || def.kind === 'catalogReference') return;
     storeApi.getState().updateEntity(entity.id, {
-      definition: { ...entity.definition, [field]: value },
+      definition: { ...def, [field]: value },
     });
   };
+
+  const handleSourceModeChange = (mode: string) => {
+    const newMode = mode as SourceMode;
+    if (newMode === 'catalog') {
+      storeApi.getState().updateEntity(entity.id, {
+        definition: {
+          kind: 'catalogReference',
+          catalogName: '',
+          entryName: '',
+          parameterAssignments: [],
+        } satisfies CatalogReference,
+      });
+    } else {
+      // Switch to inline: create a default definition based on entity type
+      const defaultDef = createDefaultDefinition(entity.type);
+      storeApi.getState().updateEntity(entity.id, { definition: defaultDef });
+    }
+  };
+
+  const handleCatalogNameChange = (catalogName: string) => {
+    if (def.kind !== 'catalogReference') return;
+    storeApi.getState().updateEntity(entity.id, {
+      definition: { ...def, catalogName, entryName: '', parameterAssignments: [] },
+    });
+  };
+
+  const handleEntryNameChange = (entryName: string) => {
+    if (def.kind !== 'catalogReference') return;
+    storeApi.getState().updateEntity(entity.id, {
+      definition: { ...def, entryName, parameterAssignments: [] },
+    });
+  };
+
+  const handleParameterAssignmentsChange = (assignments: ParameterAssignment[]) => {
+    if (def.kind !== 'catalogReference') return;
+    storeApi.getState().updateEntity(entity.id, {
+      definition: { ...def, parameterAssignments: assignments },
+    });
+  };
+
+  // Get parameter declarations for the referenced entry
+  const resolveReference = useCatalogStore((s) => s.resolveReference);
+  const resolved = def.kind === 'catalogReference' ? resolveReference(def) : null;
 
   return (
     <div className="space-y-4">
@@ -59,17 +113,93 @@ export function EntityPropertyEditor({ entity }: EntityPropertyEditorProps) {
         <Input value={entity.type} readOnly className="h-8 text-sm bg-muted" />
       </div>
 
-      {entity.definition && 'kind' in entity.definition &&
-        (entity.definition.kind === 'vehicle' ||
-          entity.definition.kind === 'pedestrian' ||
-          entity.definition.kind === 'miscObject') && (
+      {/* Source mode toggle */}
+      <div className="grid gap-1">
+        <Label className="text-xs">{t('catalog.sourceMode')}</Label>
+        <EnumSelect
+          value={sourceMode}
+          options={['inline', 'catalog']}
+          onValueChange={handleSourceModeChange}
+          className="h-8 text-sm"
+        />
+      </div>
+
+      {/* Inline definition */}
+      {sourceMode === 'inline' && def.kind !== 'catalogReference' && (
         <DefinitionDetails
-          definition={entity.definition as VehicleDefinition | PedestrianDefinition | MiscObjectDefinition}
+          definition={def as VehicleDefinition | PedestrianDefinition | MiscObjectDefinition}
           onDefinitionChange={handleDefinitionChange}
         />
       )}
+
+      {/* Catalog reference */}
+      {sourceMode === 'catalog' && def.kind === 'catalogReference' && (
+        <div className="space-y-4">
+          <CatalogPicker
+            catalogName={def.catalogName}
+            entryName={def.entryName}
+            onCatalogNameChange={handleCatalogNameChange}
+            onEntryNameChange={handleEntryNameChange}
+          />
+
+          {/* Parameter overrides */}
+          {resolved && (
+            <ParameterAssignmentEditor
+              declarations={resolved.parameterDeclarations}
+              assignments={def.parameterAssignments}
+              onAssignmentsChange={handleParameterAssignmentsChange}
+            />
+          )}
+
+          {/* Resolved preview */}
+          {def.catalogName && def.entryName && (
+            <ResolvedEntryPreview catalogRef={def} />
+          )}
+        </div>
+      )}
     </div>
   );
+}
+
+function createDefaultDefinition(type: string): VehicleDefinition | PedestrianDefinition | MiscObjectDefinition {
+  switch (type) {
+    case 'pedestrian':
+      return {
+        kind: 'pedestrian',
+        name: '',
+        pedestrianCategory: 'pedestrian',
+        mass: 80,
+        model: '',
+        parameterDeclarations: [],
+        boundingBox: { center: { x: 0, y: 0, z: 0.9 }, dimensions: { width: 0.5, length: 0.6, height: 1.8 } },
+        properties: [],
+      };
+    case 'miscObject':
+      return {
+        kind: 'miscObject',
+        name: '',
+        miscObjectCategory: 'none',
+        mass: 0,
+        parameterDeclarations: [],
+        boundingBox: { center: { x: 0, y: 0, z: 0.5 }, dimensions: { width: 1, length: 1, height: 1 } },
+        properties: [],
+      };
+    default:
+      return {
+        kind: 'vehicle',
+        name: '',
+        vehicleCategory: 'car',
+        parameterDeclarations: [],
+        performance: { maxSpeed: 69, maxAcceleration: 5, maxDeceleration: 10 },
+        boundingBox: { center: { x: 1.4, y: 0, z: 0.75 }, dimensions: { width: 2.0, length: 5.0, height: 1.5 } },
+        axles: {
+          frontAxle: { maxSteering: 0.52, wheelDiameter: 0.8, trackWidth: 1.68, positionX: 2.98, positionZ: 0.4 },
+          rearAxle: { maxSteering: 0, wheelDiameter: 0.8, trackWidth: 1.68, positionX: 0, positionZ: 0.4 },
+          additionalAxles: [],
+        },
+        properties: [],
+      };
+  }
 }
 
 interface DefinitionDetailsProps {

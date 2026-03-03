@@ -73,7 +73,7 @@ function parseEntityDefinition(raw: any): { type: EntityType; definition: Scenar
 // ─── Vehicle ─────────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseVehicleDefinition(raw: any): VehicleDefinition {
+export function parseVehicleDefinition(raw: any): VehicleDefinition {
   return {
     kind: 'vehicle',
     name: strAttr(raw, 'name'),
@@ -92,7 +92,7 @@ function parseVehicleDefinition(raw: any): VehicleDefinition {
 // ─── Pedestrian ──────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parsePedestrianDefinition(raw: any): PedestrianDefinition {
+export function parsePedestrianDefinition(raw: any): PedestrianDefinition {
   return {
     kind: 'pedestrian',
     name: strAttr(raw, 'name'),
@@ -109,7 +109,7 @@ function parsePedestrianDefinition(raw: any): PedestrianDefinition {
 // ─── MiscObject ──────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseMiscObjectDefinition(raw: any): MiscObjectDefinition {
+export function parseMiscObjectDefinition(raw: any): MiscObjectDefinition {
   return {
     kind: 'miscObject',
     name: strAttr(raw, 'name'),

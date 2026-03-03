@@ -52,7 +52,7 @@ function buildScenarioObject(entity: ScenarioEntity): any {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildVehicle(v: VehicleDefinition): any {
+export function buildVehicle(v: VehicleDefinition): any {
   return {
     ...buildAttrs({
       name: v.name,
@@ -70,7 +70,7 @@ function buildVehicle(v: VehicleDefinition): any {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildPedestrian(p: PedestrianDefinition): any {
+export function buildPedestrian(p: PedestrianDefinition): any {
   return {
     ...buildAttrs({
       name: p.name,
@@ -86,7 +86,7 @@ function buildPedestrian(p: PedestrianDefinition): any {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildMiscObject(m: MiscObjectDefinition): any {
+export function buildMiscObject(m: MiscObjectDefinition): any {
   return {
     ...buildAttrs({
       name: m.name,

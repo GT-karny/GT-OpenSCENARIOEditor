@@ -19,6 +19,7 @@ import type { ContextMenuPosition } from '../node-editor/NodeEditorContextMenu';
 import { DeleteConfirmationDialog } from '../node-editor/DeleteConfirmationDialog';
 import { SimulationTimeline } from '../panels/SimulationTimeline';
 import { ParameterDialog } from '../template/ParameterDialog';
+import { CatalogEditorModal } from '../catalog/CatalogEditorModal';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { useTranslation } from '@osce/i18n';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
@@ -311,6 +312,9 @@ export function EditorLayout() {
       </PanelGroup>
 
       <StatusBar />
+
+      {/* Catalog Editor Modal */}
+      <CatalogEditorModal />
 
       {/* D&D Parameter Dialog */}
       <ParameterDialog

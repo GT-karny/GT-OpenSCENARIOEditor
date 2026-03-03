@@ -7,6 +7,7 @@ export type * from './types/actions.js';
 export type * from './types/triggers.js';
 export type * from './types/positions.js';
 export type * from './types/opendrive.js';
+export type * from './types/catalog.js';
 export type * from './types/component-library.js';
 export type * from './types/editor.js';
 export type * from './types/esmini.js';
