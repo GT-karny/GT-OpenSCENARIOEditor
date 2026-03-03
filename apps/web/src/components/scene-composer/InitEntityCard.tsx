@@ -61,8 +61,8 @@ export function InitEntityCard({ entityInit, selected, onSelect }: InitEntityCar
   return (
     <div
       className={cn(
-        'glass-item flex flex-col w-72 shrink-0 border-l-2 border-l-[var(--color-accent-vivid)]/60',
-        selected && 'selected',
+        'glass-item flex flex-col w-72 shrink-0',
+        selected && 'selected border-l-2 border-l-[var(--color-accent-vivid)]',
       )}
       onClick={onSelect}
     >

@@ -85,7 +85,7 @@ export function EntityBehaviorCard({ group, selected, onSelect }: EntityBehavior
     <div
       className={cn(
         'glass-item flex flex-col w-72 shrink-0 group/card',
-        selected && 'selected',
+        selected && 'selected border-l-2 border-l-[var(--color-accent-1)]',
       )}
       onClick={onSelect}
     >

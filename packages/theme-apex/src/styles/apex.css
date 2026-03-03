@@ -253,12 +253,13 @@
      that should reflect the cursor light without full panel glass. */
   .glass-item {
     position: relative;
-    border: 1px solid transparent;
+    background: var(--color-glass-2);
+    border: 1px solid var(--color-glass-edge);
     transition: border-color 0.25s, background 0.25s, box-shadow 0.25s;
   }
 
   .glass-item:hover {
-    border-color: var(--color-glass-edge);
+    border-color: var(--color-glass-edge-mid);
     background: var(--color-accent-dim);
   }
 

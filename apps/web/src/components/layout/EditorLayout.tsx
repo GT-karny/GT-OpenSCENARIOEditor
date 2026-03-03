@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { SceneComposerView } from '../scene-composer/SceneComposerView';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import type { ImperativePanelHandle } from 'react-resizable-panels';
@@ -30,6 +30,7 @@ import { useTemplateDrop } from '../../hooks/use-template-drop';
 import { useElementDelete } from '../../hooks/use-element-delete';
 import { useElementAdd } from '../../hooks/use-element-add';
 import { getDirectChildCount } from '../../lib/count-descendants';
+import { useProjectFileOperations } from '../../hooks/use-project-file-operations';
 
 function ResizeHandle() {
   return (
@@ -57,6 +58,14 @@ export function EditorLayout() {
   const [centerTab, setCenterTab] = useState<'composer' | 'graph'>('composer');
   const fileTreePanelRef = useRef<ImperativePanelHandle>(null);
   const [fileTreeCollapsed, setFileTreeCollapsed] = useState(false);
+
+  // --- Auto-load project catalogs ---
+  const { autoLoadProjectCatalogs } = useProjectFileOperations();
+  useEffect(() => {
+    if (currentProject) {
+      autoLoadProjectCatalogs();
+    }
+  }, [currentProject, autoLoadProjectCatalogs]);
 
   // --- Selection sync ---
   const selectedElementIds = useEditorStore((s) => s.selection.selectedElementIds);
@@ -168,36 +177,36 @@ export function EditorLayout() {
                 <Panel
                   ref={fileTreePanelRef}
                   defaultSize={15}
-                  minSize={10}
+                  minSize={3}
                   maxSize={25}
                   collapsible
-                  collapsedSize={0}
+                  collapsedSize={3}
                   onCollapse={() => setFileTreeCollapsed(true)}
                   onExpand={() => setFileTreeCollapsed(false)}
                 >
-                  <FileTreeSidebar
-                    onCollapse={() => fileTreePanelRef.current?.collapse()}
-                  />
+                  {fileTreeCollapsed ? (
+                    <div className="flex flex-col items-center h-full bg-[var(--color-bg-deep)] border-r border-[var(--color-glass-edge-mid)] py-2">
+                      <button
+                        type="button"
+                        onClick={() => fileTreePanelRef.current?.expand()}
+                        className="p-2 rounded hover:bg-[var(--color-glass-2)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+                        title={t('fileTree.expand')}
+                      >
+                        <FolderTree size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <FileTreeSidebar
+                      onCollapse={() => fileTreePanelRef.current?.collapse()}
+                    />
+                  )}
                 </Panel>
-                {!fileTreeCollapsed && <ResizeHandle />}
+                <ResizeHandle />
               </>
-            )}
-            {/* Collapsed icon bar for file tree */}
-            {currentProject && fileTreeCollapsed && (
-              <div className="flex flex-col items-center w-10 bg-[var(--color-bg-deep)] border-r border-[var(--color-glass-edge-mid)] py-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => fileTreePanelRef.current?.expand()}
-                  className="p-2 rounded hover:bg-[var(--color-glass-2)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
-                  title={t('fileTree.expand')}
-                >
-                  <FolderTree size={16} />
-                </button>
-              </div>
             )}
 
             {/* Left sidebar */}
-            <Panel defaultSize={20} minSize={12} maxSize={35}>
+            <Panel defaultSize={20} minSize={8} maxSize={35}>
               <div className="h-full bg-[var(--color-bg-deep)] enter-l">
                 <Tabs defaultValue="entities" className="flex flex-col h-full">
                   <TabsList className="bg-[var(--color-glass-1)] backdrop-blur-[28px] rounded-none p-0">

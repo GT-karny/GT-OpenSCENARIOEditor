@@ -25,6 +25,12 @@ function normalizePath(path: string): string {
   return resolved.join('/');
 }
 
+/** Check if a file path is inside a catalogs directory */
+function isCatalogPath(path: string): boolean {
+  const lower = path.toLowerCase();
+  return lower.startsWith('catalogs/') || lower.includes('/catalogs/');
+}
+
 /**
  * Project-mode file operations hook.
  * Handles opening xosc, xodr, and catalog files from the project file browser.
@@ -167,9 +173,36 @@ export function useProjectFileOperations() {
     [t],
   );
 
+  const autoLoadProjectCatalogs = useCallback(
+    async () => {
+      const project = useProjectStore.getState().currentProject;
+      if (!project) return;
+
+      const catalogFiles = project.files.filter(
+        (f) => f.type === 'xosc' && isCatalogPath(f.relativePath),
+      );
+      if (catalogFiles.length === 0) return;
+
+      const results = await Promise.allSettled(
+        catalogFiles.map(async (f) => {
+          const content = await api.readProjectFile(project.meta.id, f.relativePath);
+          useCatalogStore.getState().loadCatalog(content, f.relativePath);
+        }),
+      );
+
+      for (let i = 0; i < results.length; i++) {
+        if (results[i].status === 'rejected') {
+          toast.warning(t('warnings.catalogLoadFailed', { path: catalogFiles[i].relativePath }));
+        }
+      }
+    },
+    [t],
+  );
+
   return {
     openXoscFromProject,
     openXodrFromProject,
     openCatalogFromProject,
+    autoLoadProjectCatalogs,
   };
 }
