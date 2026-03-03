@@ -14,6 +14,35 @@ import type {
   PedestrianDefinition,
   MiscObjectDefinition,
 } from '@osce/shared';
+import { EntityDiagramPanel, useDiagramHighlight } from './diagrams';
+import type { HighlightKey } from './diagrams';
+
+interface HighlightProps {
+  highlighted: HighlightKey;
+  onHighlight: (key: HighlightKey) => void;
+}
+
+/** Wrapper that adds hover highlight to an input container */
+function HL({
+  hk,
+  highlighted,
+  onHighlight,
+  children,
+}: {
+  hk: HighlightKey;
+  children: React.ReactNode;
+} & HighlightProps) {
+  const isActive = hk != null && highlighted === hk;
+  return (
+    <div
+      onMouseEnter={() => onHighlight(hk)}
+      onMouseLeave={() => onHighlight(null)}
+      className={isActive ? 'ring-1 ring-[#9B84E8] rounded-sm' : ''}
+    >
+      {children}
+    </div>
+  );
+}
 
 export function CatalogEntryEditor() {
   const { t } = useTranslation('common');
@@ -21,6 +50,7 @@ export function CatalogEntryEditor() {
   const selectedEntryIndex = useCatalogStore((s) => s.selectedEntryIndex);
   const catalogs = useCatalogStore((s) => s.catalogs);
   const updateEntry = useCatalogStore((s) => s.updateEntry);
+  const { highlighted, setHighlighted } = useDiagramHighlight();
 
   const doc = selectedCatalogName ? catalogs.get(selectedCatalogName) : null;
   const entry = doc && selectedEntryIndex !== null ? doc.entries[selectedEntryIndex] : null;
@@ -42,69 +72,83 @@ export function CatalogEntryEditor() {
   };
 
   const def = entry.definition;
+  const hlProps: HighlightProps = { highlighted, onHighlight: setHighlighted };
 
   return (
-    <div className="h-full overflow-auto p-4 space-y-4">
-      {/* Name */}
-      <div className="grid gap-1">
-        <Label className="text-xs">{t('labels.name')}</Label>
-        <Input
-          value={def.name}
-          onChange={(e) =>
-            handleUpdate({ ...entry, definition: { ...def, name: e.target.value } } as CatalogEntry)
-          }
-          className="h-8 text-sm"
-        />
+    <div className="h-full flex overflow-hidden">
+      {/* Left: Form */}
+      <div className="w-[280px] shrink-0 overflow-auto p-3 space-y-3 border-r border-[var(--color-border-glass)]">
+        {/* Name */}
+        <div className="grid gap-1">
+          <Label className="text-xs">{t('labels.name')}</Label>
+          <Input
+            value={def.name}
+            onChange={(e) =>
+              handleUpdate({ ...entry, definition: { ...def, name: e.target.value } } as CatalogEntry)
+            }
+            className="h-7 text-xs"
+          />
+        </div>
+
+        {def.kind === 'vehicle' && (
+          <VehicleFields
+            entry={entry as { catalogType: 'vehicle'; definition: VehicleDefinition }}
+            onUpdate={handleUpdate}
+            {...hlProps}
+          />
+        )}
+        {def.kind === 'pedestrian' && (
+          <PedestrianFields
+            entry={entry as { catalogType: 'pedestrian'; definition: PedestrianDefinition }}
+            onUpdate={handleUpdate}
+          />
+        )}
+        {def.kind === 'miscObject' && (
+          <MiscObjectFields
+            entry={entry as { catalogType: 'miscObject'; definition: MiscObjectDefinition }}
+            onUpdate={handleUpdate}
+          />
+        )}
+
+        {/* BoundingBox */}
+        <BoundingBoxEditor entry={entry} onUpdate={handleUpdate} {...hlProps} />
+
+        {/* Parameter Declarations */}
+        {def.parameterDeclarations.length > 0 && (
+          <div className="space-y-1">
+            <p className="text-[10px] font-medium text-muted-foreground">{t('labels.parameters')}</p>
+            {def.parameterDeclarations.map((pd, i) => (
+              <div key={i} className="grid grid-cols-3 gap-1 text-[10px]">
+                <span className="text-muted-foreground truncate">{pd.name}</span>
+                <span className="text-muted-foreground">{pd.parameterType}</span>
+                <span>{pd.value}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Properties */}
+        {def.properties.length > 0 && (
+          <div className="space-y-1">
+            <p className="text-[10px] font-medium text-muted-foreground">Properties</p>
+            {def.properties.map((p, i) => (
+              <div key={i} className="grid grid-cols-2 gap-1 text-[10px]">
+                <span className="text-muted-foreground truncate">{p.name}</span>
+                <span>{p.value}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {def.kind === 'vehicle' && (
-        <VehicleFields
-          entry={entry as { catalogType: 'vehicle'; definition: VehicleDefinition }}
-          onUpdate={handleUpdate}
+      {/* Right: Diagram */}
+      <div className="flex-1 min-w-0 p-2 bg-[var(--color-bg-void,#050311)]">
+        <EntityDiagramPanel
+          definition={def as VehicleDefinition | PedestrianDefinition | MiscObjectDefinition}
+          highlighted={highlighted}
+          onHighlight={setHighlighted}
         />
-      )}
-      {def.kind === 'pedestrian' && (
-        <PedestrianFields
-          entry={entry as { catalogType: 'pedestrian'; definition: PedestrianDefinition }}
-          onUpdate={handleUpdate}
-        />
-      )}
-      {def.kind === 'miscObject' && (
-        <MiscObjectFields
-          entry={entry as { catalogType: 'miscObject'; definition: MiscObjectDefinition }}
-          onUpdate={handleUpdate}
-        />
-      )}
-
-      {/* BoundingBox */}
-      <BoundingBoxEditor entry={entry} onUpdate={handleUpdate} />
-
-      {/* Parameter Declarations */}
-      {def.parameterDeclarations.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground">{t('labels.parameters')}</p>
-          {def.parameterDeclarations.map((pd, i) => (
-            <div key={i} className="grid grid-cols-3 gap-1 text-xs">
-              <span className="text-muted-foreground truncate">{pd.name}</span>
-              <span className="text-muted-foreground">{pd.parameterType}</span>
-              <span>{pd.value}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Properties */}
-      {def.properties.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground">Properties</p>
-          {def.properties.map((p, i) => (
-            <div key={i} className="grid grid-cols-2 gap-1 text-xs">
-              <span className="text-muted-foreground truncate">{p.name}</span>
-              <span>{p.value}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -114,10 +158,12 @@ export function CatalogEntryEditor() {
 function VehicleFields({
   entry,
   onUpdate,
+  highlighted,
+  onHighlight,
 }: {
   entry: { catalogType: 'vehicle'; definition: VehicleDefinition };
   onUpdate: (e: CatalogEntry) => void;
-}) {
+} & HighlightProps) {
   const { t } = useTranslation('common');
   const def = entry.definition;
 
@@ -133,62 +179,68 @@ function VehicleFields({
           value={def.vehicleCategory}
           options={VEHICLE_CATEGORIES}
           onValueChange={(v) => update({ vehicleCategory: v as VehicleDefinition['vehicleCategory'] })}
-          className="h-8 text-sm"
+          className="h-7 text-xs"
         />
       </div>
 
       {/* Performance */}
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Performance</p>
-        <div className="grid grid-cols-3 gap-2">
-          <div className="grid gap-1">
-            <Label className="text-[10px]">Max {t('labels.speed')} (m/s)</Label>
+      <div className="space-y-1">
+        <p className="text-[10px] font-medium text-muted-foreground">Performance</p>
+        <div className="grid grid-cols-3 gap-1">
+          <div className="grid gap-0.5">
+            <Label className="text-[10px]">Max {t('labels.speed')}</Label>
             <Input
               type="number"
               value={def.performance.maxSpeed}
               onChange={(e) =>
                 update({ performance: { ...def.performance, maxSpeed: Number(e.target.value) } })
               }
-              className="h-7 text-xs"
+              className="h-6 text-[10px]"
             />
           </div>
-          <div className="grid gap-1">
-            <Label className="text-[10px]">Max Accel (m/s²)</Label>
+          <div className="grid gap-0.5">
+            <Label className="text-[10px]">Max Accel</Label>
             <Input
               type="number"
               value={def.performance.maxAcceleration}
               onChange={(e) =>
                 update({ performance: { ...def.performance, maxAcceleration: Number(e.target.value) } })
               }
-              className="h-7 text-xs"
+              className="h-6 text-[10px]"
             />
           </div>
-          <div className="grid gap-1">
-            <Label className="text-[10px]">Max Decel (m/s²)</Label>
+          <div className="grid gap-0.5">
+            <Label className="text-[10px]">Max Decel</Label>
             <Input
               type="number"
               value={def.performance.maxDeceleration}
               onChange={(e) =>
                 update({ performance: { ...def.performance, maxDeceleration: Number(e.target.value) } })
               }
-              className="h-7 text-xs"
+              className="h-6 text-[10px]"
             />
           </div>
         </div>
       </div>
 
       {/* Axles */}
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Axles</p>
+      <div className="space-y-1">
+        <p className="text-[10px] font-medium text-muted-foreground">Axles</p>
         <AxleRow
           label="Front"
+          prefix="front-axle"
           axle={def.axles.frontAxle}
           onChange={(a) => update({ axles: { ...def.axles, frontAxle: a } })}
+          highlighted={highlighted}
+          onHighlight={onHighlight}
         />
         <AxleRow
           label="Rear"
+          prefix="rear-axle"
           axle={def.axles.rearAxle}
           onChange={(a) => update({ axles: { ...def.axles, rearAxle: a } })}
+          highlighted={highlighted}
+          onHighlight={onHighlight}
         />
       </div>
     </>
@@ -197,18 +249,22 @@ function VehicleFields({
 
 function AxleRow({
   label,
+  prefix,
   axle,
   onChange,
+  highlighted,
+  onHighlight,
 }: {
   label: string;
+  prefix: 'front-axle' | 'rear-axle';
   axle: VehicleDefinition['axles']['frontAxle'];
   onChange: (a: VehicleDefinition['axles']['frontAxle']) => void;
-}) {
+} & HighlightProps) {
   return (
-    <div className="space-y-1">
+    <div className="space-y-0.5">
       <p className="text-[10px] text-muted-foreground">{label} Axle</p>
       <div className="grid grid-cols-3 gap-1">
-        <div>
+        <HL hk={`${prefix}-posX` as HighlightKey} highlighted={highlighted} onHighlight={onHighlight}>
           <Label className="text-[10px]">posX</Label>
           <Input
             type="number"
@@ -216,8 +272,8 @@ function AxleRow({
             onChange={(e) => onChange({ ...axle, positionX: Number(e.target.value) })}
             className="h-6 text-[10px]"
           />
-        </div>
-        <div>
+        </HL>
+        <HL hk={`${prefix}-wheelDia` as HighlightKey} highlighted={highlighted} onHighlight={onHighlight}>
           <Label className="text-[10px]">wheelDia</Label>
           <Input
             type="number"
@@ -225,8 +281,8 @@ function AxleRow({
             onChange={(e) => onChange({ ...axle, wheelDiameter: Number(e.target.value) })}
             className="h-6 text-[10px]"
           />
-        </div>
-        <div>
+        </HL>
+        <HL hk={`${prefix}-trackW` as HighlightKey} highlighted={highlighted} onHighlight={onHighlight}>
           <Label className="text-[10px]">trackW</Label>
           <Input
             type="number"
@@ -234,7 +290,7 @@ function AxleRow({
             onChange={(e) => onChange({ ...axle, trackWidth: Number(e.target.value) })}
             className="h-6 text-[10px]"
           />
-        </div>
+        </HL>
       </div>
     </div>
   );
@@ -263,25 +319,25 @@ function PedestrianFields({
           value={def.pedestrianCategory}
           options={PEDESTRIAN_CATEGORIES}
           onValueChange={(v) => update({ pedestrianCategory: v as PedestrianDefinition['pedestrianCategory'] })}
-          className="h-8 text-sm"
+          className="h-7 text-xs"
         />
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div className="grid gap-1">
-          <Label className="text-xs">Mass (kg)</Label>
+      <div className="grid grid-cols-2 gap-1">
+        <div className="grid gap-0.5">
+          <Label className="text-[10px]">Mass (kg)</Label>
           <Input
             type="number"
             value={def.mass}
             onChange={(e) => update({ mass: Number(e.target.value) })}
-            className="h-8 text-sm"
+            className="h-6 text-[10px]"
           />
         </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Model</Label>
+        <div className="grid gap-0.5">
+          <Label className="text-[10px]">Model</Label>
           <Input
             value={def.model}
             onChange={(e) => update({ model: e.target.value })}
-            className="h-8 text-sm"
+            className="h-6 text-[10px]"
           />
         </div>
       </div>
@@ -312,16 +368,16 @@ function MiscObjectFields({
           value={def.miscObjectCategory}
           options={MISC_OBJECT_CATEGORIES}
           onValueChange={(v) => update({ miscObjectCategory: v as MiscObjectDefinition['miscObjectCategory'] })}
-          className="h-8 text-sm"
+          className="h-7 text-xs"
         />
       </div>
-      <div className="grid gap-1">
-        <Label className="text-xs">Mass (kg)</Label>
+      <div className="grid gap-0.5">
+        <Label className="text-[10px]">Mass (kg)</Label>
         <Input
           type="number"
           value={def.mass}
           onChange={(e) => update({ mass: Number(e.target.value) })}
-          className="h-8 text-sm"
+          className="h-6 text-[10px]"
         />
       </div>
     </>
@@ -333,10 +389,12 @@ function MiscObjectFields({
 function BoundingBoxEditor({
   entry,
   onUpdate,
+  highlighted,
+  onHighlight,
 }: {
   entry: CatalogEntry;
   onUpdate: (e: CatalogEntry) => void;
-}) {
+} & HighlightProps) {
   const bb = entry.definition.boundingBox;
 
   const updateBB = (partial: Partial<typeof bb>) => {
@@ -347,10 +405,10 @@ function BoundingBoxEditor({
   };
 
   return (
-    <div className="space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">BoundingBox</p>
+    <div className="space-y-1">
+      <p className="text-[10px] font-medium text-muted-foreground">BoundingBox</p>
       <div className="grid grid-cols-3 gap-1">
-        <div>
+        <HL hk="bb-center-x" highlighted={highlighted} onHighlight={onHighlight}>
           <Label className="text-[10px]">Center X</Label>
           <Input
             type="number"
@@ -358,8 +416,8 @@ function BoundingBoxEditor({
             onChange={(e) => updateBB({ center: { ...bb.center, x: Number(e.target.value) } })}
             className="h-6 text-[10px]"
           />
-        </div>
-        <div>
+        </HL>
+        <HL hk="bb-center-y" highlighted={highlighted} onHighlight={onHighlight}>
           <Label className="text-[10px]">Center Y</Label>
           <Input
             type="number"
@@ -367,8 +425,8 @@ function BoundingBoxEditor({
             onChange={(e) => updateBB({ center: { ...bb.center, y: Number(e.target.value) } })}
             className="h-6 text-[10px]"
           />
-        </div>
-        <div>
+        </HL>
+        <HL hk="bb-center-z" highlighted={highlighted} onHighlight={onHighlight}>
           <Label className="text-[10px]">Center Z</Label>
           <Input
             type="number"
@@ -376,10 +434,10 @@ function BoundingBoxEditor({
             onChange={(e) => updateBB({ center: { ...bb.center, z: Number(e.target.value) } })}
             className="h-6 text-[10px]"
           />
-        </div>
+        </HL>
       </div>
       <div className="grid grid-cols-3 gap-1">
-        <div>
+        <HL hk="bb-width" highlighted={highlighted} onHighlight={onHighlight}>
           <Label className="text-[10px]">Width</Label>
           <Input
             type="number"
@@ -387,8 +445,8 @@ function BoundingBoxEditor({
             onChange={(e) => updateBB({ dimensions: { ...bb.dimensions, width: Number(e.target.value) } })}
             className="h-6 text-[10px]"
           />
-        </div>
-        <div>
+        </HL>
+        <HL hk="bb-length" highlighted={highlighted} onHighlight={onHighlight}>
           <Label className="text-[10px]">Length</Label>
           <Input
             type="number"
@@ -396,8 +454,8 @@ function BoundingBoxEditor({
             onChange={(e) => updateBB({ dimensions: { ...bb.dimensions, length: Number(e.target.value) } })}
             className="h-6 text-[10px]"
           />
-        </div>
-        <div>
+        </HL>
+        <HL hk="bb-height" highlighted={highlighted} onHighlight={onHighlight}>
           <Label className="text-[10px]">Height</Label>
           <Input
             type="number"
@@ -405,7 +463,7 @@ function BoundingBoxEditor({
             onChange={(e) => updateBB({ dimensions: { ...bb.dimensions, height: Number(e.target.value) } })}
             className="h-6 text-[10px]"
           />
-        </div>
+        </HL>
       </div>
     </div>
   );

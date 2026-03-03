@@ -116,9 +116,23 @@
     to { opacity: 1; transform: translateX(0); }
   }
 
-  /* Custom scrollbar — 3px thin */
-  .panel-scroll::-webkit-scrollbar { width: 3px; }
-  .panel-scroll::-webkit-scrollbar-thumb { background: var(--color-glass-edge-mid); }
+  /* Custom scrollbar — thin, themed for all scrollable areas */
+  *::-webkit-scrollbar { width: 5px; height: 5px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb {
+    background: var(--color-glass-edge-mid, rgba(184, 171, 235, 0.15));
+    border-radius: 4px;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--color-glass-edge, rgba(184, 171, 235, 0.25));
+  }
+  *::-webkit-scrollbar-corner { background: transparent; }
+
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-glass-edge-mid, rgba(184, 171, 235, 0.15)) transparent;
+  }
 
   /* Grain overlay (subtle noise texture) */
   body::before {

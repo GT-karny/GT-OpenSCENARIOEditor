@@ -51,8 +51,8 @@ export function CatalogEditorModal() {
         {/* 3-panel layout */}
         <div className="flex-1 flex overflow-hidden">
           {/* Left: Catalog List */}
-          <div className="w-[180px] shrink-0 border-r border-[var(--color-border-glass)] bg-[var(--color-bg-deep)]">
-            <div className="px-3 py-2 border-b border-[var(--color-border-glass)]">
+          <div className="w-[180px] shrink-0 border-r border-[var(--color-border-glass)] bg-[var(--color-bg-deep)] flex flex-col overflow-hidden">
+            <div className="px-3 py-2 border-b border-[var(--color-border-glass)] shrink-0">
               <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
                 {t('catalog.catalogs')}
               </p>
@@ -61,8 +61,8 @@ export function CatalogEditorModal() {
           </div>
 
           {/* Center: Entry List */}
-          <div className="w-[240px] shrink-0 border-r border-[var(--color-border-glass)] bg-[var(--color-bg-deep)]">
-            <div className="px-3 py-2 border-b border-[var(--color-border-glass)]">
+          <div className="w-[240px] shrink-0 border-r border-[var(--color-border-glass)] bg-[var(--color-bg-deep)] flex flex-col overflow-hidden">
+            <div className="px-3 py-2 border-b border-[var(--color-border-glass)] shrink-0">
               <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
                 {t('catalog.entries')}
               </p>

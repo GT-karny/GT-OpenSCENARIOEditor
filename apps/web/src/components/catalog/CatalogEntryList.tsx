@@ -93,7 +93,7 @@ export function CatalogEntryList() {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Toolbar */}
       <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-border-glass)]">
         <button
@@ -127,7 +127,7 @@ export function CatalogEntryList() {
       </div>
 
       {/* Entry list */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto pb-2">
         {doc.entries.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center p-4">
             {t('catalog.noEntries')}
