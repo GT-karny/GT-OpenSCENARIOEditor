@@ -41,6 +41,13 @@ export {
   UpdateConditionCommand,
 } from './commands/update-commands.js';
 
+// Scenario-level Commands
+export {
+  UpdateFileHeaderCommand,
+  UpdateRoadNetworkCommand,
+  UpdateCatalogLocationsCommand,
+} from './commands/scenario-commands.js';
+
 // Operations
 export { getElementById, getParentOf } from './operations/tree-traversal.js';
 export { deepReplaceParamRef, replaceInBindings, escapeRegex } from './operations/parameter-rename-utils.js';

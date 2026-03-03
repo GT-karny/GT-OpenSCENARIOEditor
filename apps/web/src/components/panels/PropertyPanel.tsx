@@ -1,6 +1,7 @@
 import { useTranslation } from '@osce/i18n';
 import { ScrollArea } from '../ui/scroll-area';
 import { PropertyEditor } from '../property/PropertyEditor';
+import { ScenarioPropertyEditor } from '../property/ScenarioPropertyEditor';
 import { useScenarioStore } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
 
@@ -24,9 +25,7 @@ export function PropertyPanel() {
           {element ? (
             <PropertyEditor element={element} elementId={selectedId!} />
           ) : (
-            <p className="text-xs text-muted-foreground text-center py-8">
-              Select an element to view properties
-            </p>
+            <ScenarioPropertyEditor />
           )}
         </div>
       </ScrollArea>

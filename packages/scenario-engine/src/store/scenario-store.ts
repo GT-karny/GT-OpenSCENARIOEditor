@@ -8,6 +8,9 @@ import type {
   ScenarioDocument,
   ScenarioEntity,
   ParameterDeclaration,
+  FileHeader,
+  RoadNetwork,
+  CatalogLocations,
   Story,
   Act,
   ManeuverGroup,
@@ -58,6 +61,11 @@ import {
   UpdateActionCommand,
   UpdateConditionCommand,
 } from '../commands/update-commands.js';
+import {
+  UpdateFileHeaderCommand,
+  UpdateRoadNetworkCommand,
+  UpdateCatalogLocationsCommand,
+} from '../commands/scenario-commands.js';
 import { getElementById as _getElementById, getParentOf as _getParentOf } from '../operations/tree-traversal.js';
 
 export interface ScenarioStore extends ScenarioState, IScenarioService {
@@ -71,6 +79,11 @@ export interface ScenarioStore extends ScenarioState, IScenarioService {
   updateEvent(eventId: string, updates: Partial<ScenarioEvent>): void;
   updateAction(actionId: string, updates: Partial<ScenarioAction>): void;
   updateCondition(conditionId: string, updates: Partial<Condition>): void;
+
+  // Scenario-level property updates
+  updateFileHeader(updates: Partial<FileHeader>): void;
+  updateRoadNetwork(updates: Partial<RoadNetwork>): void;
+  updateCatalogLocations(updates: Partial<CatalogLocations>): void;
 }
 
 export function createScenarioStore() {
@@ -335,6 +348,25 @@ export function createScenarioStore() {
 
       updateCondition: (conditionId: string, updates: Partial<Condition>): void => {
         const cmd = new UpdateConditionCommand(conditionId, updates, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
+      // --- Scenario-level property operations ---
+      updateFileHeader: (updates: Partial<FileHeader>): void => {
+        const cmd = new UpdateFileHeaderCommand(updates, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
+      updateRoadNetwork: (updates: Partial<RoadNetwork>): void => {
+        const cmd = new UpdateRoadNetworkCommand(updates, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
+      updateCatalogLocations: (updates: Partial<CatalogLocations>): void => {
+        const cmd = new UpdateCatalogLocationsCommand(updates, getDoc, setDoc);
         commandHistory.execute(cmd);
         syncUndoRedo();
       },
