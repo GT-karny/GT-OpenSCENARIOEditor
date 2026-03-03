@@ -2,12 +2,11 @@ import { useState, useCallback } from 'react';
 import { SceneComposerView } from '../scene-composer/SceneComposerView';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import type { Node } from '@xyflow/react';
-import { NodeEditorProvider, NodeEditor, TimelineView, detectElementType } from '@osce/node-editor';
+import { NodeEditorProvider, NodeEditor, detectElementType } from '@osce/node-editor';
 import type { OsceNodeData, OsceNodeType } from '@osce/node-editor';
 import { ScenarioViewer } from '@osce/3d-viewer';
 import { HeaderToolbar } from './HeaderToolbar';
 import { StatusBar } from './StatusBar';
-import { GlassPanel } from '@osce/theme-apex';
 import { EntityListPanel } from '../panels/EntityListPanel';
 import { TemplatePalettePanel } from '../panels/TemplatePalettePanel';
 import { ParameterListPanel } from '../panels/ParameterListPanel';
@@ -17,7 +16,6 @@ import { ErrorBoundary } from '../ErrorBoundary';
 import { NodeEditorContextMenu } from '../node-editor/NodeEditorContextMenu';
 import type { ContextMenuPosition } from '../node-editor/NodeEditorContextMenu';
 import { DeleteConfirmationDialog } from '../node-editor/DeleteConfirmationDialog';
-import { SimulationTimeline } from '../panels/SimulationTimeline';
 import { ParameterDialog } from '../template/ParameterDialog';
 import { CatalogEditorModal } from '../catalog/CatalogEditorModal';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
@@ -196,68 +194,53 @@ export function EditorLayout() {
                 focusNodeId={focusNodeId}
                 onFocusComplete={handleFocusComplete}
               >
-                <PanelGroup direction="vertical" className="enter d2">
-                  {/* Composer / Graph tabs */}
-                  <Panel defaultSize={65} minSize={20}>
-                    <div className="flex flex-col h-full">
-                      {/* Tab bar */}
-                      <div className="flex shrink-0 border-b border-[var(--color-border-glass)] bg-[var(--color-glass-1)] backdrop-blur-[28px]">
-                        {(['composer', 'graph'] as const).map((tab) => (
-                          <button
-                            key={tab}
-                            onClick={() => setCenterTab(tab)}
-                            className={[
-                              'relative px-4 py-1.5 text-xs font-medium capitalize transition-colors',
-                              centerTab === tab
-                                ? 'text-[var(--color-accent-1)]'
-                                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]',
-                            ].join(' ')}
-                          >
-                            {tab}
-                            {centerTab === tab && (
-                              <span className="absolute bottom-0 left-0 right-0 h-px bg-[var(--color-accent-1)]" />
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                      {/* Content — both views stay mounted to preserve React Flow state */}
-                      <div className="flex-1 overflow-hidden relative">
-                        <div className={`absolute inset-0 ${centerTab !== 'composer' ? 'hidden' : ''}`}>
-                          <SceneComposerView />
-                        </div>
-                        <div className={`absolute inset-0 ${centerTab !== 'graph' ? 'hidden' : ''}`}>
-                          <ErrorBoundary fallbackTitle="Node Editor Error">
-                            <div
-                              data-testid="node-editor-panel"
-                              className={`h-full node-editor-grid ${isDragOver ? 'ring-2 ring-[var(--color-accent-1)] ring-inset' : ''}`}
-                              onDragLeave={handleDragLeave}
-                            >
-                              <NodeEditor
-                                className="h-full"
-                                onDrop={handleDrop}
-                                onDragOver={handleDragOver}
-                                onPaneContextMenu={handlePaneContextMenu}
-                                onNodeContextMenu={handleNodeContextMenu}
-                                deleteKeyCode={null}
-                                disableBuiltinShortcuts
-                              />
-                            </div>
-                          </ErrorBoundary>
-                        </div>
-                      </div>
+                <div className="flex flex-col h-full enter d2">
+                  {/* Tab bar */}
+                  <div className="flex shrink-0 border-b border-[var(--color-border-glass)] bg-[var(--color-glass-1)] backdrop-blur-[28px]">
+                    {(['composer', 'graph'] as const).map((tab) => (
+                      <button
+                        key={tab}
+                        onClick={() => setCenterTab(tab)}
+                        className={[
+                          'relative px-4 py-1.5 text-xs font-medium capitalize transition-colors',
+                          centerTab === tab
+                            ? 'text-[var(--color-accent-1)]'
+                            : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]',
+                        ].join(' ')}
+                      >
+                        {tab}
+                        {centerTab === tab && (
+                          <span className="absolute bottom-0 left-0 right-0 h-px bg-[var(--color-accent-1)]" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Content — both views stay mounted to preserve React Flow state */}
+                  <div className="flex-1 overflow-hidden relative">
+                    <div className={`absolute inset-0 ${centerTab !== 'composer' ? 'hidden' : ''}`}>
+                      <SceneComposerView />
                     </div>
-                  </Panel>
-                  <ResizeHandleH />
-                  {/* Timeline + Simulation playback */}
-                  <Panel defaultSize={35} minSize={15}>
-                    <GlassPanel className="h-full flex flex-col">
-                      <ErrorBoundary fallbackTitle="Timeline Error">
-                        <TimelineView className="flex-1" />
+                    <div className={`absolute inset-0 ${centerTab !== 'graph' ? 'hidden' : ''}`}>
+                      <ErrorBoundary fallbackTitle="Node Editor Error">
+                        <div
+                          data-testid="node-editor-panel"
+                          className={`h-full node-editor-grid ${isDragOver ? 'ring-2 ring-[var(--color-accent-1)] ring-inset' : ''}`}
+                          onDragLeave={handleDragLeave}
+                        >
+                          <NodeEditor
+                            className="h-full"
+                            onDrop={handleDrop}
+                            onDragOver={handleDragOver}
+                            onPaneContextMenu={handlePaneContextMenu}
+                            onNodeContextMenu={handleNodeContextMenu}
+                            deleteKeyCode={null}
+                            disableBuiltinShortcuts
+                          />
+                        </div>
                       </ErrorBoundary>
-                      <SimulationTimeline />
-                    </GlassPanel>
-                  </Panel>
-                </PanelGroup>
+                    </div>
+                  </div>
+                </div>
               </NodeEditorProvider>
             </Panel>
 
