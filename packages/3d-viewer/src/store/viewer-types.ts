@@ -5,6 +5,8 @@
 import type { SimulationFrame } from '@osce/shared';
 
 export type CameraMode = 'orbit' | 'topDown';
+export type GizmoMode = 'translate' | 'rotate' | 'off';
+export type FollowMode = 'thirdPerson' | 'topDown';
 
 export interface PlaybackState {
   status: 'idle' | 'playing' | 'paused';
@@ -20,6 +22,16 @@ export interface ViewerState {
   showRoadIds: boolean;
   showEntityLabels: boolean;
   playback: PlaybackState;
+
+  /** Gizmo mode for entity manipulation */
+  gizmoMode: GizmoMode;
+  /** Reverse driving direction when snapping to lane */
+  reverseDirection: boolean;
+
+  /** Entity name to follow with camera (null = no follow) */
+  followTargetEntity: string | null;
+  /** Camera follow mode */
+  followMode: FollowMode;
 }
 
 export interface ViewerActions {
@@ -32,6 +44,12 @@ export interface ViewerActions {
   setPlaybackStatus: (status: PlaybackState['status']) => void;
   setPlaybackTime: (time: number) => void;
   resetPlayback: () => void;
+
+  setGizmoMode: (mode: GizmoMode) => void;
+  toggleReverseDirection: () => void;
+
+  setFollowTarget: (entityName: string | null) => void;
+  setFollowMode: (mode: FollowMode) => void;
 }
 
 export type ViewerStore = ViewerState & ViewerActions;

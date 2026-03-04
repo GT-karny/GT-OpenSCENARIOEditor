@@ -7,6 +7,7 @@ import type { Node } from '@xyflow/react';
 import { NodeEditorProvider, NodeEditor, detectElementType } from '@osce/node-editor';
 import type { OsceNodeData, OsceNodeType } from '@osce/node-editor';
 import { ScenarioViewer } from '@osce/3d-viewer';
+import { worldToLane } from '@osce/opendrive';
 import { HeaderToolbar } from './HeaderToolbar';
 import { StatusBar } from './StatusBar';
 import { EntityListPanel } from '../panels/EntityListPanel';
@@ -57,6 +58,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   selectedEntityId: string | null;
   onEntitySelect: (entityId: string) => void;
   onEntityFocus: (entityId: string) => void;
+  onEntityPositionChange?: (entityName: string, x: number, y: number, z: number, h: number) => void;
   preferences: { showGrid3D: boolean; showLaneIds: boolean; showRoadIds: boolean };
 }) {
   const simStatus = useSimulationStore((s) => s.status);
@@ -92,6 +94,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       selectedEntityId={props.selectedEntityId}
       onEntitySelect={props.onEntitySelect}
       onEntityFocus={props.onEntityFocus}
+      onEntityPositionChange={props.onEntityPositionChange}
       currentFrame={currentFrame}
       preferences={props.preferences}
       className="h-full w-full"
@@ -140,6 +143,37 @@ export function EditorLayout() {
   const handleEntitySelect = useCallback((entityId: string) => {
     useEditorStore.getState().setSelection({ selectedElementIds: [entityId] });
   }, []);
+
+  const handleEntityPositionChange = useCallback(
+    (entityName: string, x: number, y: number, z: number, h: number) => {
+      // Try lane snapping if OpenDRIVE data is available
+      if (roadNetwork) {
+        const laneResult = worldToLane(roadNetwork, x, y, 10); // 10m threshold
+        if (laneResult && laneResult.distance < 5) {
+          scenarioStoreApi.getState().setInitPosition(entityName, {
+            type: 'lanePosition',
+            roadId: laneResult.roadId,
+            laneId: String(laneResult.laneId),
+            s: Math.round(laneResult.s * 100) / 100,
+            offset: Math.abs(laneResult.offset) > 0.01
+              ? Math.round(laneResult.offset * 100) / 100
+              : undefined,
+            orientation: { h: laneResult.heading },
+          });
+          return;
+        }
+      }
+
+      scenarioStoreApi.getState().setInitPosition(entityName, {
+        type: 'worldPosition',
+        x,
+        y,
+        h,
+        z: z !== 0 ? z : undefined,
+      });
+    },
+    [scenarioStoreApi, roadNetwork],
+  );
 
   // --- Simulation state ---
   const simStatus = useSimulationStore((s) => s.status);
@@ -404,6 +438,7 @@ export function EditorLayout() {
                 selectedEntityId={selectedEntityId}
                 onEntitySelect={handleEntitySelect}
                 onEntityFocus={handleEntitySelect}
+                onEntityPositionChange={handleEntityPositionChange}
                 preferences={{
                   showGrid3D: preferences.showGrid3D,
                   showLaneIds: preferences.showLaneIds,

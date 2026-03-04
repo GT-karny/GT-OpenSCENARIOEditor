@@ -22,11 +22,15 @@ export interface OdrHeader {
   geoReference?: string;
 }
 
+export type OdrRoadRule = 'RHT' | 'LHT';
+
 export interface OdrRoad {
   id: string;
   name: string;
   length: number;
   junction: string;
+  /** Driving rule: RHT (right-hand traffic) or LHT (left-hand traffic) */
+  rule?: OdrRoadRule;
   link?: OdrRoadLink;
   type?: OdrRoadTypeEntry[];
   planView: OdrGeometry[];

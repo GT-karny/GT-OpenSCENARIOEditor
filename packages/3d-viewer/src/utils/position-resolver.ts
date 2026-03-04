@@ -10,6 +10,7 @@ import {
   computeLaneInnerT,
   computeLaneOuterT,
   stToXyz,
+  computeDrivingHeading,
 } from '@osce/opendrive';
 
 /**
@@ -68,7 +69,13 @@ export function resolvePositionToWorld(
 }
 
 function resolveLanePosition(
-  pos: { roadId: string; laneId: string; s: number; offset?: number },
+  pos: {
+    roadId: string;
+    laneId: string;
+    s: number;
+    offset?: number;
+    orientation?: { type?: string; h?: number; p?: number; r?: number };
+  },
   odrDoc: OpenDriveDocument | null,
 ): WorldCoords | null {
   if (!odrDoc) return null;
@@ -95,11 +102,22 @@ function resolveLanePosition(
   const z = evaluateElevation(road.elevationProfile, pos.s);
   const worldPos = stToXyz(pose, t, z);
 
+  // Compute heading based on driving direction (accounts for lane side + road rule)
+  let h: number;
+  if (pos.orientation?.type === 'absolute' && pos.orientation.h != null) {
+    // Absolute orientation: use as-is
+    h = pos.orientation.h;
+  } else {
+    // Default or relative orientation: use driving direction
+    const drivingH = computeDrivingHeading(road, laneId, pos.s);
+    h = drivingH + (pos.orientation?.h ?? 0);
+  }
+
   return {
     x: worldPos.x,
     y: worldPos.y,
     z: worldPos.z,
-    h: pose.hdg,
+    h,
   };
 }
 

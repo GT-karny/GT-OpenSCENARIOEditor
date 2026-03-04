@@ -5,7 +5,7 @@
 import { createStore } from 'zustand/vanilla';
 import { useStore } from 'zustand';
 import type { EditorPreferences, SimulationFrame } from '@osce/shared';
-import type { CameraMode, PlaybackState, ViewerStore } from './viewer-types.js';
+import type { CameraMode, GizmoMode, FollowMode, PlaybackState, ViewerStore } from './viewer-types.js';
 
 const DEFAULT_PLAYBACK: PlaybackState = {
   status: 'idle',
@@ -26,6 +26,11 @@ export function createViewerStore(preferences?: Partial<EditorPreferences>) {
     showRoadIds: preferences?.showRoadIds ?? false,
     showEntityLabels: true,
     playback: { ...DEFAULT_PLAYBACK },
+
+    gizmoMode: 'off' as GizmoMode,
+    reverseDirection: false,
+    followTargetEntity: null,
+    followMode: 'thirdPerson' as FollowMode,
 
     // Actions
     setCameraMode: (mode: CameraMode) => set({ cameraMode: mode }),
@@ -52,6 +57,12 @@ export function createViewerStore(preferences?: Partial<EditorPreferences>) {
       set((s) => ({ playback: { ...s.playback, currentTime: time } })),
 
     resetPlayback: () => set({ playback: { ...DEFAULT_PLAYBACK } }),
+
+    setGizmoMode: (mode: GizmoMode) => set({ gizmoMode: mode }),
+    toggleReverseDirection: () => set((s) => ({ reverseDirection: !s.reverseDirection })),
+
+    setFollowTarget: (entityName: string | null) => set({ followTargetEntity: entityName }),
+    setFollowMode: (mode: FollowMode) => set({ followMode: mode }),
   }));
 }
 

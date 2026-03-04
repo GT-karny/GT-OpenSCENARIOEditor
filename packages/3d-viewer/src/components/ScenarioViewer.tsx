@@ -10,12 +10,14 @@ import { createViewerStore, useViewerStore } from '../store/viewer-store.js';
 import { ViewerCanvas } from '../scene/ViewerCanvas.js';
 import { SceneEnvironment } from '../scene/SceneEnvironment.js';
 import { CameraController } from '../scene/CameraController.js';
+import type { CameraControllerHandle } from '../scene/CameraController.js';
 import { RoadNetwork } from '../road/RoadNetwork.js';
 import { EntityGroup } from '../entities/EntityGroup.js';
 import { ViewerToolbar } from './ViewerToolbar.js';
 import { useScenarioEntities } from '../scenario/useScenarioEntities.js';
 import { useEntityPositions } from '../scenario/useEntityPositions.js';
 import { SimulationOverlay } from '../scenario/SimulationOverlay.js';
+import { useCameraFollow } from '../scene/useCameraFollow.js';
 
 export interface ScenarioViewerProps {
   /** The scenario engine Zustand store (vanilla) */
@@ -28,6 +30,8 @@ export interface ScenarioViewerProps {
   onEntitySelect?: (entityId: string) => void;
   /** Callback when user double-clicks an entity (request focus) */
   onEntityFocus?: (entityId: string) => void;
+  /** Callback when entity position is changed via gizmo drag */
+  onEntityPositionChange?: (entityName: string, x: number, y: number, z: number, h: number) => void;
   /** Current simulation frame to display (null = show init positions) */
   currentFrame?: SimulationFrame | null;
   /** Editor preferences for display toggles */
@@ -47,6 +51,7 @@ function ScenarioViewerScene({
   selectedEntityId,
   onEntitySelect,
   onEntityFocus,
+  onEntityPositionChange,
   currentFrame,
   viewerStore,
 }: {
@@ -55,6 +60,7 @@ function ScenarioViewerScene({
   selectedEntityId: string | null;
   onEntitySelect: (entityId: string) => void;
   onEntityFocus: (entityId: string) => void;
+  onEntityPositionChange?: (entityName: string, x: number, y: number, z: number, h: number) => void;
   currentFrame?: SimulationFrame | null;
   viewerStore: ReturnType<typeof createViewerStore>;
 }) {
@@ -63,6 +69,9 @@ function ScenarioViewerScene({
   const showLaneIds = useViewerStore(viewerStore, (s) => s.showLaneIds);
   const showRoadIds = useViewerStore(viewerStore, (s) => s.showRoadIds);
   const showEntityLabels = useViewerStore(viewerStore, (s) => s.showEntityLabels);
+  const gizmoMode = useViewerStore(viewerStore, (s) => s.gizmoMode);
+  const followTargetEntity = useViewerStore(viewerStore, (s) => s.followTargetEntity);
+  const followMode = useViewerStore(viewerStore, (s) => s.followMode);
 
   const entities = useScenarioEntities(scenarioStore);
   const entityPositions = useEntityPositions(scenarioStore, openDriveDocument);
@@ -70,6 +79,16 @@ function ScenarioViewerScene({
   const isSimulating = currentFrame != null;
 
   const [focusTarget, setFocusTarget] = useState<[number, number, number] | null>(null);
+  const cameraRef = useRef<CameraControllerHandle>(null);
+
+  // Camera follow
+  useCameraFollow({
+    targetEntity: followTargetEntity,
+    followMode,
+    orbitControlsRef: cameraRef.current?.orbitControls ?? { current: null },
+    entityPositions,
+    currentFrame,
+  });
 
   const handleEntityFocus = useCallback(
     (entityId: string) => {
@@ -90,7 +109,7 @@ function ScenarioViewerScene({
   return (
     <>
       <SceneEnvironment showGrid={showGrid} />
-      <CameraController mode={cameraMode} focusTarget={focusTarget} />
+      <CameraController ref={cameraRef} mode={cameraMode} focusTarget={focusTarget} />
 
       <RoadNetwork
         odrDocument={openDriveDocument}
@@ -108,6 +127,9 @@ function ScenarioViewerScene({
           onEntitySelect={onEntitySelect}
           onEntityFocus={handleEntityFocus}
           showLabels={showEntityLabels}
+          gizmoMode={gizmoMode}
+          orbitControlsRef={cameraRef.current?.orbitControls}
+          onEntityPositionChange={onEntityPositionChange}
         />
       )}
 
@@ -135,6 +157,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   selectedEntityId = null,
   onEntitySelect,
   onEntityFocus,
+  onEntityPositionChange,
   currentFrame: currentFrameProp,
   preferences,
   className,
@@ -156,6 +179,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
     [onEntityFocus],
   );
 
+  const entities = useScenarioEntities(scenarioStore);
   const vs = viewerStore.getState();
 
   return (
@@ -174,6 +198,15 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
         onToggleRoadIds={() => viewerStore.getState().toggleRoadIds()}
         showLaneIds={vs.showLaneIds}
         onToggleLaneIds={() => viewerStore.getState().toggleLaneIds()}
+        gizmoMode={vs.gizmoMode}
+        onGizmoModeChange={(m) => viewerStore.getState().setGizmoMode(m)}
+        reverseDirection={vs.reverseDirection}
+        onToggleReverseDirection={() => viewerStore.getState().toggleReverseDirection()}
+        followTargetEntity={vs.followTargetEntity}
+        onFollowTargetChange={(name) => viewerStore.getState().setFollowTarget(name)}
+        followMode={vs.followMode}
+        onFollowModeChange={(m) => viewerStore.getState().setFollowMode(m)}
+        entities={entities}
       />
 
       <ViewerCanvas>
@@ -183,6 +216,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           selectedEntityId={selectedEntityId ?? null}
           onEntitySelect={handleEntitySelect}
           onEntityFocus={handleEntityFocus}
+          onEntityPositionChange={onEntityPositionChange}
           currentFrame={currentFrameProp}
           viewerStore={viewerStore}
         />

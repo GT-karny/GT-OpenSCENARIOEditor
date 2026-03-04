@@ -79,11 +79,13 @@ function extractGeoReference(val: unknown): string | undefined {
 }
 
 function parseRoad(raw: Raw): OdrRoad {
+  const ruleStr = toOptStr(raw.rule);
   return {
     id: toStr(raw.id),
     name: toStr(raw.name),
     length: toNum(raw.length),
     junction: toStr(raw.junction),
+    rule: ruleStr === 'RHT' || ruleStr === 'LHT' ? ruleStr : undefined,
     link: parseRoadLink(raw.link),
     type: parseRoadTypes(raw.type),
     planView: parsePlanView(raw.planView),

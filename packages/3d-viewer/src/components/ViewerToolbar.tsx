@@ -1,10 +1,11 @@
 /**
  * Toolbar overlay for the 3D viewer.
- * Provides camera mode toggle, display toggles, and playback controls.
+ * Provides camera mode toggle, display toggles, gizmo mode, follow target, and reverse direction.
  */
 
-import React from 'react';
-import type { CameraMode } from '../store/viewer-types.js';
+import React, { useState, useCallback } from 'react';
+import type { ScenarioEntity } from '@osce/shared';
+import type { CameraMode, GizmoMode, FollowMode } from '../store/viewer-types.js';
 
 interface ViewerToolbarProps {
   cameraMode: CameraMode;
@@ -17,6 +18,15 @@ interface ViewerToolbarProps {
   onToggleRoadIds: () => void;
   showLaneIds: boolean;
   onToggleLaneIds: () => void;
+  gizmoMode: GizmoMode;
+  onGizmoModeChange: (mode: GizmoMode) => void;
+  reverseDirection: boolean;
+  onToggleReverseDirection: () => void;
+  followTargetEntity: string | null;
+  onFollowTargetChange: (entityName: string | null) => void;
+  followMode: FollowMode;
+  onFollowModeChange: (mode: FollowMode) => void;
+  entities: ScenarioEntity[];
 }
 
 const toolbarStyle: React.CSSProperties = {
@@ -28,6 +38,7 @@ const toolbarStyle: React.CSSProperties = {
   flexWrap: 'wrap',
   zIndex: 10,
   pointerEvents: 'auto',
+  alignItems: 'flex-start',
 };
 
 const buttonStyle: React.CSSProperties = {
@@ -48,6 +59,47 @@ const activeButtonStyle: React.CSSProperties = {
   borderColor: 'rgba(100, 130, 220, 0.8)',
 };
 
+const separatorStyle: React.CSSProperties = {
+  width: '1px',
+  height: '24px',
+  backgroundColor: 'rgba(100, 100, 140, 0.4)',
+  alignSelf: 'center',
+  margin: '0 2px',
+};
+
+const dropdownContainerStyle: React.CSSProperties = {
+  position: 'relative',
+};
+
+const dropdownMenuStyle: React.CSSProperties = {
+  position: 'absolute',
+  top: '100%',
+  left: 0,
+  marginTop: '4px',
+  backgroundColor: 'rgba(30, 30, 50, 0.95)',
+  border: '1px solid rgba(100, 100, 140, 0.5)',
+  borderRadius: '4px',
+  padding: '2px',
+  minWidth: '120px',
+  zIndex: 20,
+};
+
+const dropdownItemStyle: React.CSSProperties = {
+  ...buttonStyle,
+  display: 'block',
+  width: '100%',
+  textAlign: 'left',
+  border: 'none',
+  borderRadius: '2px',
+  backgroundColor: 'transparent',
+};
+
+const dropdownItemActiveStyle: React.CSSProperties = {
+  ...dropdownItemStyle,
+  backgroundColor: 'rgba(60, 80, 160, 0.6)',
+  color: '#fff',
+};
+
 
 export const ViewerToolbar: React.FC<ViewerToolbarProps> = React.memo(
   ({
@@ -61,55 +113,147 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = React.memo(
     onToggleRoadIds,
     showLaneIds,
     onToggleLaneIds,
+    gizmoMode,
+    onGizmoModeChange,
+    reverseDirection,
+    onToggleReverseDirection,
+    followTargetEntity,
+    onFollowTargetChange,
+    followMode,
+    onFollowModeChange,
+    entities,
   }) => {
+    const [followDropdownOpen, setFollowDropdownOpen] = useState(false);
+
+    const handleFollowSelect = useCallback(
+      (entityName: string | null) => {
+        onFollowTargetChange(entityName);
+        setFollowDropdownOpen(false);
+      },
+      [onFollowTargetChange],
+    );
+
     return (
-      <>
-        <div style={toolbarStyle}>
+      <div style={toolbarStyle}>
+        {/* Camera mode */}
+        <button
+          style={cameraMode === 'orbit' ? activeButtonStyle : buttonStyle}
+          onClick={() => onCameraModeChange('orbit')}
+          title="Orbit camera mode"
+        >
+          3D
+        </button>
+        <button
+          style={cameraMode === 'topDown' ? activeButtonStyle : buttonStyle}
+          onClick={() => onCameraModeChange('topDown')}
+          title="Top-down camera mode"
+        >
+          Top
+        </button>
+
+        <div style={separatorStyle} />
+
+        {/* Gizmo mode */}
+        <button
+          style={gizmoMode === 'translate' ? activeButtonStyle : buttonStyle}
+          onClick={() => onGizmoModeChange(gizmoMode === 'translate' ? 'off' : 'translate')}
+          title="Move entity (translate gizmo)"
+        >
+          Move
+        </button>
+        <button
+          style={gizmoMode === 'rotate' ? activeButtonStyle : buttonStyle}
+          onClick={() => onGizmoModeChange(gizmoMode === 'rotate' ? 'off' : 'rotate')}
+          title="Rotate entity heading"
+        >
+          Rot
+        </button>
+        <button
+          style={reverseDirection ? activeButtonStyle : buttonStyle}
+          onClick={onToggleReverseDirection}
+          title="Reverse driving direction when snapping to lane"
+        >
+          Rev
+        </button>
+
+        <div style={separatorStyle} />
+
+        {/* Follow camera */}
+        <div style={dropdownContainerStyle}>
           <button
-            style={cameraMode === 'orbit' ? activeButtonStyle : buttonStyle}
-            onClick={() => onCameraModeChange('orbit')}
-            title="Orbit camera mode"
+            style={followTargetEntity ? activeButtonStyle : buttonStyle}
+            onClick={() => setFollowDropdownOpen(!followDropdownOpen)}
+            title="Follow entity with camera"
           >
-            3D
+            Follow{followTargetEntity ? `: ${followTargetEntity}` : ''}
           </button>
-          <button
-            style={cameraMode === 'topDown' ? activeButtonStyle : buttonStyle}
-            onClick={() => onCameraModeChange('topDown')}
-            title="Top-down camera mode"
-          >
-            Top
-          </button>
-          <button
-            style={showGrid ? activeButtonStyle : buttonStyle}
-            onClick={onToggleGrid}
-            title="Toggle grid"
-          >
-            Grid
-          </button>
-          <button
-            style={showLabels ? activeButtonStyle : buttonStyle}
-            onClick={onToggleLabels}
-            title="Toggle entity labels"
-          >
-            Labels
-          </button>
-          <button
-            style={showRoadIds ? activeButtonStyle : buttonStyle}
-            onClick={onToggleRoadIds}
-            title="Toggle road IDs"
-          >
-            RoadID
-          </button>
-          <button
-            style={showLaneIds ? activeButtonStyle : buttonStyle}
-            onClick={onToggleLaneIds}
-            title="Toggle lane IDs"
-          >
-            LaneID
-          </button>
+
+          {followDropdownOpen && (
+            <div style={dropdownMenuStyle}>
+              <button
+                style={!followTargetEntity ? dropdownItemActiveStyle : dropdownItemStyle}
+                onClick={() => handleFollowSelect(null)}
+              >
+                OFF
+              </button>
+              {entities.map((entity) => (
+                <button
+                  key={entity.id}
+                  style={followTargetEntity === entity.name ? dropdownItemActiveStyle : dropdownItemStyle}
+                  onClick={() => handleFollowSelect(entity.name)}
+                >
+                  {entity.name}
+                </button>
+              ))}
+              <div style={{ ...separatorStyle, width: '100%', height: '1px', margin: '2px 0' }} />
+              <button
+                style={followMode === 'thirdPerson' ? dropdownItemActiveStyle : dropdownItemStyle}
+                onClick={() => onFollowModeChange('thirdPerson')}
+              >
+                3rd Person
+              </button>
+              <button
+                style={followMode === 'topDown' ? dropdownItemActiveStyle : dropdownItemStyle}
+                onClick={() => onFollowModeChange('topDown')}
+              >
+                Top Down
+              </button>
+            </div>
+          )}
         </div>
 
-      </>
+        <div style={separatorStyle} />
+
+        {/* Display toggles */}
+        <button
+          style={showGrid ? activeButtonStyle : buttonStyle}
+          onClick={onToggleGrid}
+          title="Toggle grid"
+        >
+          Grid
+        </button>
+        <button
+          style={showLabels ? activeButtonStyle : buttonStyle}
+          onClick={onToggleLabels}
+          title="Toggle entity labels"
+        >
+          Labels
+        </button>
+        <button
+          style={showRoadIds ? activeButtonStyle : buttonStyle}
+          onClick={onToggleRoadIds}
+          title="Toggle road IDs"
+        >
+          RoadID
+        </button>
+        <button
+          style={showLaneIds ? activeButtonStyle : buttonStyle}
+          onClick={onToggleLaneIds}
+          title="Toggle lane IDs"
+        >
+          LaneID
+        </button>
+      </div>
     );
   },
 );
