@@ -1,265 +1,269 @@
-# Feature Catalog — OpenSCENARIO Editor
+# Feature Ledger — OpenSCENARIO Editor
 
-> Generated: 2026-02-28 | Method: App inspection + code review
-> Status legend: ✅ Working | ⚠️ Partial | 🔲 UI Only | ❌ Not Started
+> Generated: 2026-03-04 | Method: Code review + owner Q&A
+> Purpose: PM management ledger (internal tracking)
+> Competitor targets: IPG CarMaker, MathWorks RoadRunner
+> Release: Full-stack OSS
 
-## 1. File Operations
+### Status Legend
 
-| # | Feature | Status | UI Area | Notes |
-|---|---------|--------|---------|-------|
-| 1.1 | New scenario | ✅ | File > New | Resets store to empty scenario |
-| 1.2 | Open .xosc file | ✅ | File > Open (Ctrl+O) | File System Access API, XoscParser |
-| 1.3 | Save .xosc file | ✅ | File > Save (Ctrl+S) | XoscSerializer, save dialog |
-| 1.4 | Open .xodr file | ✅ | Toolbar .xodr button | XodrParser, loads road network |
-| 1.5 | Undo | 🔲 | Toolbar | Enabled only after template apply; disabled for normal edits |
-| 1.6 | Redo | 🔲 | Toolbar | Always disabled |
-| 1.7 | Export as other format | ❌ | — | No export to JSON, PDF, image, etc. |
-| 1.8 | Recent files | ❌ | — | No recent file history |
-| 1.9 | Drag & drop file open | ❌ | — | Not implemented |
-
-## 2. Entity Management
-
-| # | Feature | Status | UI Area | Notes |
-|---|---------|--------|---------|-------|
-| 2.1 | Entity list display | ✅ | Left panel > Entities | Name, type, category shown |
-| 2.2 | Add entity (dialog) | ✅ | + button → dialog | Name + Type (Vehicle) input |
-| 2.3 | Delete entity | ✅ | Delete button per entity | Button exists per entity |
-| 2.4 | Select entity → show properties | ✅ | Left panel → Right panel | Bidirectional sync |
-| 2.5 | Select entity → highlight node | ✅ | Left panel → Node editor | Node gets selected border |
-| 2.6 | Entity type: Pedestrian | ⚠️ | Add dialog | Dropdown may support it but untested |
-| 2.7 | Entity type: MiscObject | ❌ | — | Not in add dialog |
-| 2.8 | Entity inline rename | ❌ | — | Must use Properties panel |
-| 2.9 | Entity duplicate | ❌ | — | No duplicate action |
-| 2.10 | Entity reorder | ❌ | — | No drag reorder |
-
-## 3. Templates
-
-| # | Feature | Status | UI Area | Notes |
-|---|---------|--------|---------|-------|
-| 3.1 | Template list (8 templates) | ✅ | Left panel > Templates | Highway(5), Pedestrian(1), General(2) |
-| 3.2 | Category accordion | ✅ | Templates panel | Expand/collapse per category |
-| 3.3 | Template config dialog | ✅ | Modal dialog | Sliders, dropdowns, numeric inputs |
-| 3.4 | Apply template | ✅ | Apply button | Appends to current scenario (additive) |
-| 3.5 | Template preview | ❌ | — | No preview before applying |
-| 3.6 | Custom template creation | ❌ | — | Cannot save current scenario as template |
-| 3.7 | Template import/export | ❌ | — | Templates are hardcoded |
-
-### Template Inventory
-
-| Category | Template | Parameters |
-|----------|----------|------------|
-| Highway | Cut-In | Ego Speed, Cut-In Vehicle Speed, Trigger Distance, Lane Change Distance, Lane Change Shape, Cut-In Side, Ego Lane, Ego Start Position, Cut-In Start Offset |
-| Highway | Overtaking | (untested) |
-| Highway | Emergency Brake | (untested) |
-| Highway | Follow Lead Vehicle | (untested) |
-| Highway | Highway Merge | (untested) |
-| Pedestrian | Pedestrian Crossing | (untested) |
-| General | Lane Change | (untested) |
-| General | Deceleration to Stop | (untested) |
-
-## 4. Node Editor (Storyboard Visualization)
-
-| # | Feature | Status | UI Area | Notes |
-|---|---------|--------|---------|-------|
-| 4.1 | Storyboard tree visualization | ✅ | Center panel | Storyboard→Story→Act→ManeuverGroup→Maneuver→Event→Action |
-| 4.2 | Entity nodes | ✅ | Center panel | Vehicle name, type, category |
-| 4.3 | Init node | ✅ | Center panel | Shows Teleport, Speed actions |
-| 4.4 | Trigger/Condition nodes | ✅ | Center panel | SimulationTime, RelativeDistance, etc. |
-| 4.5 | Edge connections | ✅ | Center panel | Parent-child relationships visualized |
-| 4.6 | Node selection | ✅ | Click | Selected border, Properties sync |
-| 4.7 | Zoom In/Out | ✅ | Control panel buttons | |
-| 4.8 | Fit View | ✅ | Control panel button | Centers all nodes |
-| 4.9 | Mini Map | ✅ | Bottom-right | Overview of node layout |
-| 4.10 | Toggle Interactivity | ✅ | Control panel button | |
-| 4.11 | Node drag/move | ⚠️ | — | ReactFlow supports it, untested |
-| 4.12 | Add node (from UI) | ❌ | — | No context menu or drag-to-add |
-| 4.13 | Delete node (from UI) | ❌ | — | No delete action on nodes |
-| 4.14 | Connect nodes (draw edge) | ❌ | — | No manual edge creation |
-| 4.15 | Node search/filter | ❌ | — | No search in node editor |
-| 4.16 | Node theming (APEX) | ❌ | — | Nodes use default style, not APEX theme |
-| 4.17 | Collapse/expand sub-trees | ❌ | — | All nodes always expanded |
-
-## 5. 3D Viewer
-
-| # | Feature | Status | UI Area | Notes |
-|---|---------|--------|---------|-------|
-| 5.1 | Grid display | ✅ | Bottom panel | Default grid shown |
-| 5.2 | 3D/Top view toggle | ✅ | Button bar | Camera perspective switch |
-| 5.3 | Grid toggle | ✅ | Button bar | Show/hide grid |
-| 5.4 | Labels toggle | ✅ | Button bar | Show/hide labels |
-| 5.5 | RoadID display | ⚠️ | Button bar | Requires .xodr loaded |
-| 5.6 | LaneID display | ⚠️ | Button bar | Requires .xodr loaded |
-| 5.7 | Road 3D rendering | ⚠️ | — | Requires .xodr; untested in this session |
-| 5.8 | Vehicle 3D rendering | ⚠️ | — | Entity positions need Init data |
-| 5.9 | Camera orbit/pan/zoom | ⚠️ | Mouse interaction | Three.js OrbitControls expected |
-| 5.10 | Entity selection in 3D | ❌ | — | No click-to-select in 3D view |
-| 5.11 | Measurement tools | ❌ | — | No distance/angle measurement |
-| 5.12 | Trajectory visualization | ❌ | — | No path preview |
-
-## 6. Timeline
-
-| # | Feature | Status | UI Area | Notes |
-|---|---------|--------|---------|-------|
-| 6.1 | Entity rows | ⚠️ | Bottom center | Entity name + type shown |
-| 6.2 | Event blocks | ⚠️ | Bottom center | Event name + action type as clickable buttons |
-| 6.3 | Time axis scroll | ❌ | — | No time scrubbing |
-| 6.4 | Playback controls | ❌ | — | Requires simulation backend |
-| 6.5 | Event drag/resize | ❌ | — | Events are static display |
-| 6.6 | Timeline zoom | ❌ | — | No zoom on time axis |
-
-## 7. Properties Panel
-
-| # | Feature | Status | UI Area | Notes |
-|---|---------|--------|---------|-------|
-| 7.1 | Entity properties display | ✅ | Right panel > Properties | Name, Type, Category, Max Speed |
-| 7.2 | Text input editing | ✅ | Right panel | Editable textboxes |
-| 7.3 | Other node type properties | ⚠️ | Right panel | Untested for Story, Event, etc. |
-| 7.4 | Dropdown/select editors | ❌ | — | No enum-based dropdowns for properties |
-| 7.5 | Position editor (XYZ) | ❌ | — | No specialized position input |
-| 7.6 | Nested property expansion | ❌ | — | Flat property display only |
-
-## 8. Validation
-
-| # | Feature | Status | UI Area | Notes |
-|---|---------|--------|---------|-------|
-| 8.1 | Run validation from toolbar | ✅ | Toolbar Validate | Shows error/warning count in status bar |
-| 8.2 | Validation results tab | ✅ | Right panel > Validation | Error/warning count + messages |
-| 8.3 | Re-run validation button | ✅ | Validation tab | Refresh button |
-| 8.4 | Click error → navigate to element | ❌ | — | No navigation from error to element |
-| 8.5 | Real-time validation | ❌ | — | Manual trigger only |
-| 8.6 | XSD schema validation | ❌ | — | Internal rules only, not full XSD |
-
-## 9. Internationalization (i18n)
-
-| # | Feature | Status | UI Area | Notes |
-|---|---------|--------|---------|-------|
-| 9.1 | EN/JA toggle | ✅ | Toolbar | All UI labels switch |
-| 9.2 | Persist language preference | ❌ | — | Resets on reload |
-| 9.3 | Additional languages | ❌ | — | Only EN and JA |
-
-## 10. Status Bar
-
-| # | Feature | Status | UI Area | Notes |
-|---|---------|--------|---------|-------|
-| 10.1 | Connection status | ✅ | Left | Disconnected / Connected |
-| 10.2 | Entity count | ✅ | Left | Real-time update |
-| 10.3 | Story count | ✅ | Left | Real-time update |
-| 10.4 | Validation result | ✅ | Left | Shown after Validate |
-| 10.5 | File name + dirty state | ✅ | Right | `*` for unsaved changes |
-| 10.6 | OpenSCENARIO version | ✅ | Right | v1.2 (fixed) |
-
-## 11. Backend / Simulation
-
-| # | Feature | Status | UI Area | Notes |
-|---|---------|--------|---------|-------|
-| 11.1 | WebSocket connection | 🔲 | Status bar | Backend not started in this session |
-| 11.2 | Run Simulation | 🔲 | Toolbar | Enabled only when connected |
-| 11.3 | GT_Sim integration | 🔲 | — | Via backend, GT_SIM_URL env var |
-| 11.4 | Simulation playback | ❌ | Timeline | No playback visualization |
-| 11.5 | OSI streaming (gRPC) | ❌ | — | Proto definitions exist, implementation status unknown |
-
-## 12. Developer / Infrastructure
-
-| # | Feature | Status | UI Area | Notes |
-|---|---------|--------|---------|-------|
-| 12.1 | Keyboard shortcuts | ⚠️ | — | Ctrl+O, Ctrl+S only |
-| 12.2 | Notifications system | ✅ | Notification area (alt+T) | Toast notification region exists |
-| 12.3 | Responsive layout | ⚠️ | — | Resizable panels via separators |
-| 12.4 | Dark theme (APEX) | ✅ | — | Default dark theme |
-| 12.5 | MCP server (AI integration) | 🔲 | — | Package exists, runtime untested |
-| 12.6 | Accessibility (a11y) | ⚠️ | — | ARIA roles added to 8 components |
+| Icon | Status | Definition |
+|------|--------|------------|
+| ✅ | Verified | Confirmed working through actual use by the owner |
+| ⚠️ | Unverified | Implemented in code but not tested/confirmed by the owner |
+| 🟡 | Partial | Partially implemented; some aspects work, others don't |
+| 🔲 | Scaffold | UI/code structure exists but not functional |
+| ❌ | Not Started | Not yet implemented |
+| 🚫 | Discontinued | Feature discontinued; code may remain for future revival |
 
 ---
 
-## Summary
+## Dashboard
 
-| Category | ✅ Working | ⚠️ Partial | 🔲 UI Only | ❌ Not Started |
-|----------|-----------|------------|-----------|---------------|
-| File Operations | 4 | 0 | 2 | 3 |
-| Entity Management | 5 | 1 | 0 | 4 |
-| Templates | 4 | 0 | 0 | 3 |
-| Node Editor | 10 | 1 | 0 | 6 |
-| 3D Viewer | 4 | 5 | 0 | 3 |
-| Timeline | 0 | 2 | 0 | 4 |
-| Properties | 2 | 1 | 0 | 3 |
-| Validation | 3 | 0 | 0 | 3 |
-| i18n | 1 | 0 | 0 | 2 |
-| Status Bar | 6 | 0 | 0 | 0 |
-| Backend/Sim | 0 | 0 | 3 | 2 |
-| Dev/Infra | 1 | 3 | 1 | 1 |
-| **Total** | **40** | **13** | **6** | **34** |
+| Category | ✅ | ⚠️ | 🟡 | 🔲 | ❌ | 🚫 | Total |
+|----------|----|----|----|----|----|----|-------|
+| File & Project | 4 | 3 | 0 | 1 | 2 | 0 | 10 |
+| Scenario Editing | 18 | 20 | 2 | 0 | 4 | 1 | 45 |
+| 3D & Visualization | 5 | 10 | 0 | 0 | 2 | 0 | 17 |
+| Simulation | 0 | 1 | 6 | 0 | 3 | 1 | 11 |
+| AI Integration | 0 | 1 | 0 | 0 | 2 | 0 | 3 |
+| Validation & Quality | 3 | 0 | 0 | 0 | 3 | 0 | 6 |
+| Infrastructure | 7 | 4 | 2 | 0 | 1 | 0 | 14 |
+| **Total** | **37** | **39** | **10** | **1** | **17** | **2** | **106** |
 
 ---
 
-## Priority Roadmap (Not-Started Features)
+## 1. File & Project
 
-> Goal: Demo-ready in 3 months | Target: OSS public release
-> Compete with: IPG CarMaker, MathWorks RoadRunner (more modern UI, AI-integrated, open)
+| # | Feature | Status | Notes | Tests |
+|---|---------|--------|-------|-------|
+| 1.1 | New scenario | ✅ | File > New, resets store to empty scenario | E2E: `file-operations` |
+| 1.2 | Open .xosc file | ✅ | File > Open (Ctrl+O), File System Access API, XoscParser | E2E: `file-operations` |
+| 1.3 | Save .xosc file | ✅ | File > Save (Ctrl+S), XoscSerializer, save dialog | E2E: `file-operations` |
+| 1.4 | Open .xodr file | ✅ | Toolbar button, XodrParser, loads road network | Unit: `xodr-parser` |
+| 1.5 | Project CRUD | ⚠️ | REST API: list, create, update, delete projects | Unit: `project-routes`, `project-service` |
+| 1.6 | File tree browser | ⚠️ | Backend file service, project file navigation | Unit: `file-routes`, `file-service` |
+| 1.7 | ZIP export/import | ⚠️ | GET /api/projects/:id/export, POST /api/projects/import | -- |
+| 1.8 | Recent files | 🔲 | Store supports `recentProjectIds`, no UI yet | -- |
+| 1.9 | Drag & drop file open | ❌ | — | -- |
+| 1.10 | Export as other format | ❌ | No export to JSON, PDF, image, etc. | -- |
 
-### Tier 1: Demo Must-Have
+---
 
-These features are required to demonstrate the editor as a functional tool.
+## 2. Scenario Editing
 
-| # | Feature | Reason |
-|---|---------|--------|
-| 4.12 | Add node from UI | An "editor" must allow editing |
-| 4.13 | Delete node from UI | Same |
-| 4.16 | Node theming (APEX) | Demo visual impact, differentiation |
-| 7.4 | Dropdown property editors | Enum values need proper UI, not text input |
-| 7.5 | Position editor (XYZ) | Core scenario authoring operation |
-| 7.6 | Nested property expansion | Action/Condition detail editing |
-| 1.5+1.6 | Full Undo/Redo | Editing without undo is unusable |
-| 6.3 | Timeline time axis | Visualize simulation time structure |
+### 2.1 Entities
 
-### Tier 2: Demo Quality Boost
+| # | Feature | Status | Notes | Tests |
+|---|---------|--------|-------|-------|
+| 2.1.1 | Entity list display | ✅ | Left panel > Entities. Name, type, category shown | E2E: `entity-crud` |
+| 2.1.2 | Add entity (dialog) | ✅ | + button → dialog. Name + Type input | E2E: `entity-crud` |
+| 2.1.3 | Delete entity | ✅ | Delete button per entity | E2E: `entity-crud` |
+| 2.1.4 | Select entity → show properties | ✅ | Left panel → Right panel, bidirectional sync | E2E: `entity-crud` |
+| 2.1.5 | Select entity → highlight node | ✅ | Left panel → Node editor selection sync | -- |
+| 2.1.6 | Entity type: Vehicle | ✅ | Full support: category, performance, mass, role, bounding box, axles | Unit: `entity-operations` |
+| 2.1.7 | Entity type: Pedestrian | ⚠️ | Supported in parser/serializer/properties | Unit: `entity-operations` |
+| 2.1.8 | Entity type: MiscObject | ⚠️ | Supported in parser/serializer/properties | Unit: `entity-operations` |
+| 2.1.9 | Entity inline rename | ⚠️ | Via Properties panel text input | -- |
+| 2.1.10 | Entity duplicate | ❌ | No duplicate action | -- |
+| 2.1.11 | Entity reorder | ❌ | No drag reorder | -- |
 
-These features significantly improve the demo impression.
+### 2.2 Node Editor
 
-| # | Feature | Reason |
-|---|---------|--------|
-| 5.7 | Road 3D rendering (.xodr) | 3D view with only grid is underwhelming |
-| 5.8 | Vehicle 3D rendering | Visualize entity positions |
-| 4.17 | Collapse/expand sub-trees | Complex scenarios overwhelm the view |
-| 4.14 | Manual edge connection | Edit node relationships |
-| 8.4 | Error → element navigation | Validation usability |
-| 12.1 | Keyboard shortcuts (full) | Power user efficiency |
-| 3.5 | Template preview | Confidence before applying |
+| # | Feature | Status | Notes | Tests |
+|---|---------|--------|-------|-------|
+| 2.2.1 | Storyboard tree visualization | ✅ | Storyboard→Story→Act→ManeuverGroup→Maneuver→Event→Action | Unit: `document-to-flow` |
+| 2.2.2 | Entity nodes | ✅ | Vehicle name, type, category | Unit: `node-factory` |
+| 2.2.3 | Init node | ✅ | Shows Teleport, Speed actions | -- |
+| 2.2.4 | Trigger/Condition nodes | ✅ | SimulationTime, RelativeDistance, etc. | Unit: `condition-display` |
+| 2.2.5 | Edge connections | ✅ | Parent-child relationships visualized | Unit: `edge-factory` |
+| 2.2.6 | Node selection | ✅ | Selected border, Properties sync | -- |
+| 2.2.7 | Zoom In/Out | ✅ | Control panel buttons | -- |
+| 2.2.8 | Fit View | ✅ | Centers all nodes | -- |
+| 2.2.9 | Mini Map | ✅ | Bottom-right overview | -- |
+| 2.2.10 | Toggle Interactivity | ✅ | Control panel button | -- |
+| 2.2.11 | APEX node theming | ⚠️ | Glass backdrop, colored dots, glow on selection, pulse animation | -- |
+| 2.2.12 | Node add (context menu) | 🟡 | Right-click → Add Child works; want toolbar/drag-drop too | -- |
+| 2.2.13 | Node delete (context menu) | ⚠️ | Right-click → Delete with confirmation dialog | -- |
+| 2.2.14 | Collapse/expand sub-trees | ⚠️ | Via context menu, ▼/▶ visual indicator | -- |
+| 2.2.15 | Node drag/move | ⚠️ | ReactFlow supports it, untested | -- |
+| 2.2.16 | Connect nodes (draw edge) | ❌ | No manual edge creation | -- |
+| 2.2.17 | Node search/filter | ❌ | No search in node editor | -- |
 
-### Tier 3: Nice to Have (For Public Release)
+### 2.3 Properties Panel
 
-| # | Feature | Reason |
-|---|---------|--------|
-| 1.7 | Export (JSON, etc.) | Data portability |
-| 1.8 | Recent files | Basic UX |
-| 1.9 | Drag & drop file open | UX convenience |
-| 2.7 | MiscObject entity type | Complete entity support |
-| 2.9 | Entity duplicate | Efficiency |
-| 3.6 | Custom template creation | User productivity |
-| 4.15 | Node search/filter | Large scenario support |
-| 5.10 | Entity selection in 3D | Intuitive interaction |
-| 6.5 | Event drag/resize | Timeline editing |
-| 6.6 | Timeline zoom | Time axis operation |
-| 8.5 | Real-time validation | Immediate feedback |
-| 8.6 | XSD schema validation | Spec compliance |
-| 9.2 | Persist language preference | Basic UX |
+| # | Feature | Status | Notes | Tests |
+|---|---------|--------|-------|-------|
+| 2.3.1 | Entity properties display | ✅ | Name, Type, Category, Performance | -- |
+| 2.3.2 | Text input editing | ✅ | Editable textboxes | -- |
+| 2.3.3 | Dropdown/enum editors | ⚠️ | EnumSelect component for all enum fields | -- |
+| 2.3.4 | Position editor (XYZ) | ⚠️ | 8 position types: World, Lane, RelativeLane, Road, RelativeRoad, RelativeObject, RelativeWorld, Geo | -- |
+| 2.3.5 | Nested property expansion | ⚠️ | Position fields X/Y/Z/H/P/R expanded, optional fields clearable | -- |
+| 2.3.6 | Parameter-aware inputs | ⚠️ | Autocomplete + type binding for parameter references | -- |
+| 2.3.7 | Action property editor | ⚠️ | 20+ action types supported | Unit: `action-display` |
+| 2.3.8 | Condition property editor | ⚠️ | All entity/value condition types | Unit: `condition-display` |
+| 2.3.9 | Scenario property editor | ⚠️ | FileHeader, RoadNetwork, CatalogLocations | -- |
 
-### Tier 4: Future (Post-Release)
+### 2.4 Catalog System
 
-| # | Feature | Reason |
-|---|---------|--------|
-| 2.10 | Entity reorder | Low priority |
-| 3.7 | Template import/export | Community feature |
-| 5.11 | Measurement tools | Specialized |
-| 5.12 | Trajectory visualization | Advanced viz |
-| 9.3 | Additional languages | i18n expansion |
-| 11.4 | Simulation playback viz | After backend completion |
-| 11.5 | OSI gRPC streaming | Full GT_Sim integration |
+| # | Feature | Status | Notes | Tests |
+|---|---------|--------|-------|-------|
+| 2.4.1 | Catalog reference resolution | 🟡 | Vehicle/Pedestrian/MiscObject/Controller OK. Maneuver/Trajectory/Route/Environment catalogs not yet | Unit: `parse-catalog` |
+| 2.4.2 | Catalog auto-load | ⚠️ | Auto-discover catalogs in project directory | -- |
+| 2.4.3 | Catalog editor modal | ⚠️ | CRUD operations, parameter assignment editing | -- |
+| 2.4.4 | Parameter binding preservation | ⚠️ | Round-trip through simulation preserved | Unit: `round-trip` |
+
+### 2.5 Undo/Redo
+
+| # | Feature | Status | Notes | Tests |
+|---|---------|--------|-------|-------|
+| 2.5.1 | Undo (Ctrl+Z) | ⚠️ | 14+ command types: Entity, Story, Act, ManeuverGroup, Maneuver, Event, Action, Trigger, Condition, Init, Parameter, Scenario | Unit: `command-history` |
+| 2.5.2 | Redo (Ctrl+Y / Ctrl+Shift+Z) | ⚠️ | Full redo stack | Unit: `command-history` |
+| 2.5.3 | Command history (max 100) | ⚠️ | All edit operations tracked, UI buttons reactive | Unit: `command-history` |
+
+### 2.6 Templates
+
+> 🚫 **Templates are DISCONTINUED.** The existing implementation (8 use-case templates + 6 action components)
+> does not meet design standards and needs a complete redesign.
+> Code remains in `packages/templates/`. E2E test `template-apply.spec.ts` exists but is stale.
+
+---
+
+## 3. 3D & Visualization
+
+| # | Feature | Status | Notes | Tests |
+|---|---------|--------|-------|-------|
+| 3.1 | Grid display | ✅ | Default grid shown | -- |
+| 3.2 | 3D/Top view toggle | ✅ | Camera perspective switch | Unit: `viewer-store` |
+| 3.3 | Grid toggle | ✅ | Show/hide grid | -- |
+| 3.4 | Labels toggle | ✅ | Show/hide entity labels | -- |
+| 3.5 | Camera orbit/pan/zoom | ✅ | OrbitControls (middle-button rotate, scroll zoom, right-drag pan) | -- |
+| 3.6 | Road 3D rendering | ⚠️ | Road meshes + lane meshes + junctions from .xodr | Unit: `road-mesh-generator`, `junction-surface-builder` |
+| 3.7 | Entity 3D rendering | ⚠️ | Vehicle: box+cone. Pedestrian: cylinder. MiscObject: box | Unit: `entity-geometry` |
+| 3.8 | Road ID display | ⚠️ | Toggle on toolbar, requires .xodr loaded | -- |
+| 3.9 | Lane ID display | ⚠️ | Toggle on toolbar, requires .xodr loaded | Unit: `lane-type-colors` |
+| 3.10 | FPS fly controls | ⚠️ | Right-click + WASD/EQ, Shift sprint (3x), speed multiplier 0.1x–5.0x | -- |
+| 3.11 | Camera follow | ⚠️ | Smooth third-person track during simulation, entity selector dropdown | -- |
+| 3.12 | Gizmo (translate/rotate) | ⚠️ | TransformControls. Translate on XY plane, rotate heading around Z. Store reflection unconfirmed | -- |
+| 3.13 | Lane snapping | ⚠️ | OpenDRIVE inverse lookup (world → road/lane), driving direction support | Unit: `position-resolver` |
+| 3.14 | Speed multiplier | ⚠️ | Top-right slider 0.1x–5.0x for FPS controls | -- |
+| 3.15 | Entity selection in 3D | ⚠️ | Click to select, double-click to focus/center | Unit: `entity-positions` |
+| 3.16 | Measurement tools | ❌ | No distance/angle measurement | -- |
+| 3.17 | Trajectory visualization | ❌ | Path preview. **Priority upgraded** — needed for scenario authoring UX | -- |
+
+---
+
+## 4. Simulation
+
+### 4.1 WASM esmini Engine
+
+| # | Feature | Status | Notes | Tests |
+|---|---------|--------|-------|-------|
+| 4.1.1 | WASM batch execution | 🟡 | Worker-based. Some scenarios work, others fail. Safety limits: 100K steps / 120s | -- |
+| 4.1.2 | Virtual filesystem mapping | 🟡 | XOSC → /scenarios/, XODR → /scenarios/, catalogs → /catalogs/. Path rewriting | -- |
+| 4.1.3 | Simulation frame collection | 🟡 | Position, speed, heading, road/lane info, storyboard events, condition events | -- |
+| 4.1.4 | 3D viewer simulation display | 🟡 | SimulationOverlay exists. Store → Viewer wiring may be incomplete | -- |
+
+### 4.2 Timeline & Playback
+
+| # | Feature | Status | Notes | Tests |
+|---|---------|--------|-------|-------|
+| 4.2.1 | Entity rows | 🟡 | Entity name + type shown in timeline | -- |
+| 4.2.2 | Event blocks | 🟡 | Event name + action type as clickable buttons | -- |
+| 4.2.3 | Playback controls | ⚠️ | Play/Pause, Skip to start/end, Slider seek, Speed (0.25x–4x), Frame counter | -- |
+| 4.2.4 | Time axis scroll | ❌ | No time scrubbing on ruler | -- |
+| 4.2.5 | Event drag/resize | ❌ | Events are static display | -- |
+| 4.2.6 | Timeline zoom | ❌ | No zoom on time axis | -- |
+
+### 4.3 Server-side Simulation
+
+> 🚫 **Server-side simulation (REST/gRPC) is DISCONTINUED.** WASM esmini is the sole simulation engine.
+> Server-side code preserved in `packages/esmini/` (REST/gRPC client) and `apps/server/` (routes)
+> for potential future revival with GT_Sim integration.
+> E2E tests in `e2e/gt-sim/` are gated behind `USE_GT_SIM` env var.
+
+---
+
+## 5. AI Integration
+
+| # | Feature | Status | Notes | Tests |
+|---|---------|--------|-------|-------|
+| 5.1 | MCP Server (24 tools) | ⚠️ | Scenario, Entity, Action, Trigger, Init, Storyboard, Template, Undo/Redo tools. stdio transport | Unit: 9 test files in `mcp-server` |
+| 5.2 | NL → Scenario generation | ❌ | Natural language to scenario creation (planned) | -- |
+| 5.3 | Other AI integrations | ❌ | Exploring additional AI-assisted features | -- |
+
+---
+
+## 6. Validation & Quality
+
+### 6.1 Validation Features
+
+| # | Feature | Status | Notes | Tests |
+|---|---------|--------|-------|-------|
+| 6.1.1 | Run validation from toolbar | ✅ | Shows error/warning count in status bar | E2E: `validation` |
+| 6.1.2 | Validation results tab | ✅ | Right panel > Validation. Error/warning count + messages | E2E: `validation` |
+| 6.1.3 | Re-run validation button | ✅ | Refresh button in Validation tab | -- |
+| 6.1.4 | Error → element navigation | ❌ | No click-to-navigate from error to element | -- |
+| 6.1.5 | Real-time validation | ❌ | Manual trigger only | -- |
+| 6.1.6 | XSD schema validation | ❌ | Internal rules only, not full XSD compliance | -- |
+
+### 6.2 Test Coverage Dashboard
+
+| Package | Unit Tests | E2E Tests |
+|---------|-----------|-----------|
+| `@osce/scenario-engine` | 9 files: entity-operations, storyboard-operations, trigger-operations, init-operations, command-history, defaults, scenario-store, tree-traversal, parameter-commands | -- |
+| `@osce/openscenario` | 5 files: xosc-parser, xosc-validator, round-trip, thirdparty-files, parse-catalog | -- |
+| `@osce/node-editor` | 8 files: action-display, condition-display, document-to-flow, edge-factory, editor-store, layout, node-factory, compute-time-axis | -- |
+| `@osce/3d-viewer` | 5 files: entity-positions, viewer-store, entity-geometry, lane-type-colors, position-resolver | -- |
+| `@osce/opendrive` | 10 files: arc, lane-boundary, line, reference-line, spiral, lane-offset, parse-and-mesh, junction-surface-builder, road-mesh-generator, xodr-parser | -- |
+| `@osce/mcp-server` | 9 files: action-tools, entity-tools, init-tools, integration, scenario-tools, storyboard-tools, template-tools, trigger-tools, undo-redo-tools | -- |
+| `@osce/esmini` | 3 files: ground-truth-converter, gt-sim-rest-client, gt-sim-service | -- |
+| `apps/server` | 9 files: file-routes, scenario-routes, simulation-routes, project-routes, file-service, scenario-service, mock-esmini-service, project-service, ws-handler | -- |
+| `apps/web` | 1 file: editor-store | 6 specs + 3 GT_Sim specs |
+
+---
+
+## 7. Infrastructure
+
+### 7.1 i18n
+
+| # | Feature | Status | Notes | Tests |
+|---|---------|--------|-------|-------|
+| 7.1.1 | EN/JA toggle | ✅ | Toolbar toggle, all UI labels switch | E2E: `i18n` |
+| 7.1.2 | Language persistence | ⚠️ | localStorage via Zustand `osce-editor-preferences` | -- |
+| 7.1.3 | Additional languages | ❌ | Only EN and JA | -- |
+
+### 7.2 Theme — APEX
+
+| # | Feature | Status | Notes | Tests |
+|---|---------|--------|-------|-------|
+| 7.2.1 | Dark theme | ✅ | Default APEX dark (#0C081D base), 60+ semantic tokens | E2E: `app-startup` |
+| 7.2.2 | Glass effects | ✅ | Backdrop blur, glass panels (.glass, .glass-elevated, .glass-active) | -- |
+| 7.2.3 | Cursor light | ⚠️ | Global mouse tracking, surface reflection, per-element --local-x/y | -- |
+| 7.2.4 | Design tokens | ✅ | Colors, fonts (Orbitron/Exo 2/JetBrains Mono/M PLUS 1p), shadows, animations | -- |
+
+### 7.3 Backend
+
+| # | Feature | Status | Notes | Tests |
+|---|---------|--------|-------|-------|
+| 7.3.1 | REST API (project/file) | ⚠️ | CRUD endpoints for projects and files, 100MB multipart limit | Unit: `project-routes`, `file-routes` |
+| 7.3.2 | WebSocket | ⚠️ | Persistent connection, heartbeat, file ops messaging | Unit: `ws-handler` |
+| 7.3.3 | Notifications system | ✅ | Toast notification area (alt+T) | -- |
+
+### 7.4 Accessibility & UX
+
+| # | Feature | Status | Notes | Tests |
+|---|---------|--------|-------|-------|
+| 7.4.1 | Keyboard shortcuts | 🟡 | Ctrl+O, Ctrl+S, Ctrl+Z, Ctrl+Y, Delete/Backspace. Focus guard on inputs | -- |
+| 7.4.2 | Responsive panels | ✅ | react-resizable-panels, min/max constraints, collapsible file tree | -- |
+| 7.4.3 | ARIA roles | 🟡 | 97 matches across 33 files. Status bar, language toggle, modals. No screen reader testing | -- |
+| 7.4.4 | Status bar | ✅ | Sim status dot (color-coded), entity/story count, validation, filename + dirty, version (v1.2) | -- |
 
 ---
 
 ## Appendix A: OpenSCENARIO v1.2 XSD Spec Coverage Map
 
-> Generated: 2026-02-28 | XSD Source: `Thirdparty/openscenario-v1.2.0/Schema/OpenSCENARIO.xsd`
+> Generated: 2026-03-04 | XSD Source: `Thirdparty/openscenario-v1.2.0/Schema/OpenSCENARIO.xsd`
 > Parser: `packages/openscenario/src/parser/` | Serializer: `packages/openscenario/src/serializer/`
 > Types: `packages/shared/src/types/`
 > Status legend: ✅ Full | ⚠️ Partial | ❌ None
@@ -553,6 +557,9 @@ These features significantly improve the demo impression.
 
 ### A.20 Distribution / Stochastic (NOT IMPLEMENTED)
 
+> Future consideration. Not planned for initial release. Enables automated test variation
+> by applying statistical distributions to scenario parameters.
+
 | XSD Element/Type | Category | Parser | Serializer | Notes |
 |---|---|---|---|---|
 | Deterministic | Distribution | ❌ | ❌ | Deterministic parameter variation for test automation |
@@ -586,7 +593,7 @@ These features significantly improve the demo impression.
 - **AppearanceAction** XSD wrapper structure is flattened; LightStateAction and AnimationAction are parsed as direct PrivateAction children instead.
 
 **Not Implemented:**
-- **Distribution/Stochastic** (14 types): Entire parameter distribution subsystem for automated test variation.
+- **Distribution/Stochastic** (14 types): Entire parameter distribution subsystem for automated test variation. Future consideration.
 - **TrajectoryPosition**: The only position type without a typed model.
 - **TimeOfDayCondition**: The only ByValueCondition variant not dispatched.
 - **Catalog definition files**: Only CatalogLocations and CatalogReference handled; no standalone catalog XML parsing.
