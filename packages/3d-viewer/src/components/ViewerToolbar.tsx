@@ -1,13 +1,17 @@
 /**
  * Toolbar overlay for the 3D viewer.
- * Provides camera mode toggle, display toggles, gizmo mode, follow target, and reverse direction.
+ * Provides mode badge, camera mode toggle, display toggles, gizmo mode,
+ * follow target, reverse direction, and snap toggle.
  */
 
 import React, { useState, useCallback } from 'react';
 import type { ScenarioEntity } from '@osce/shared';
-import type { CameraMode, GizmoMode } from '../store/viewer-types.js';
+import type { CameraMode, GizmoMode, ViewerMode } from '../store/viewer-types.js';
 
 interface ViewerToolbarProps {
+  viewerMode: ViewerMode;
+  onViewerModeChange: (mode: ViewerMode) => void;
+  isSimulating: boolean;
   cameraMode: CameraMode;
   onCameraModeChange: (mode: CameraMode) => void;
   showGrid: boolean;
@@ -22,6 +26,8 @@ interface ViewerToolbarProps {
   onGizmoModeChange: (mode: GizmoMode) => void;
   reverseDirection: boolean;
   onToggleReverseDirection: () => void;
+  snapToLane: boolean;
+  onToggleSnapToLane: () => void;
   followTargetEntity: string | null;
   onFollowTargetChange: (entityName: string | null) => void;
   entities: ScenarioEntity[];
@@ -55,6 +61,22 @@ const activeButtonStyle: React.CSSProperties = {
   backgroundColor: 'rgba(60, 80, 160, 0.85)',
   color: '#fff',
   borderColor: 'rgba(100, 130, 220, 0.8)',
+};
+
+const editBadgeStyle: React.CSSProperties = {
+  ...buttonStyle,
+  backgroundColor: 'rgba(40, 80, 180, 0.9)',
+  color: '#fff',
+  fontWeight: 'bold',
+  borderColor: 'rgba(80, 120, 220, 0.8)',
+};
+
+const playBadgeStyle: React.CSSProperties = {
+  ...buttonStyle,
+  backgroundColor: 'rgba(40, 160, 80, 0.9)',
+  color: '#fff',
+  fontWeight: 'bold',
+  borderColor: 'rgba(60, 200, 100, 0.8)',
 };
 
 const separatorStyle: React.CSSProperties = {
@@ -101,6 +123,9 @@ const dropdownItemActiveStyle: React.CSSProperties = {
 
 export const ViewerToolbar: React.FC<ViewerToolbarProps> = React.memo(
   ({
+    viewerMode,
+    onViewerModeChange,
+    isSimulating,
     cameraMode,
     onCameraModeChange,
     showGrid,
@@ -115,11 +140,14 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = React.memo(
     onGizmoModeChange,
     reverseDirection,
     onToggleReverseDirection,
+    snapToLane,
+    onToggleSnapToLane,
     followTargetEntity,
     onFollowTargetChange,
     entities,
   }) => {
     const [followDropdownOpen, setFollowDropdownOpen] = useState(false);
+    const isEditMode = viewerMode === 'edit';
 
     const handleFollowSelect = useCallback(
       (entityName: string | null) => {
@@ -129,8 +157,36 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = React.memo(
       [onFollowTargetChange],
     );
 
+    const handleModeToggle = useCallback(() => {
+      if (viewerMode === 'play' && isSimulating) return; // cannot switch to edit during simulation
+      onViewerModeChange(isEditMode ? 'play' : 'edit');
+    }, [viewerMode, isEditMode, isSimulating, onViewerModeChange]);
+
     return (
       <div style={toolbarStyle}>
+        {/* Mode badge */}
+        <button
+          style={
+            isEditMode
+              ? editBadgeStyle
+              : isSimulating
+                ? { ...playBadgeStyle, cursor: 'not-allowed' }
+                : playBadgeStyle
+          }
+          onClick={handleModeToggle}
+          title={
+            isEditMode
+              ? 'Switch to play mode'
+              : isSimulating
+                ? 'Cannot switch to edit mode during simulation'
+                : 'Switch to edit mode'
+          }
+        >
+          {isEditMode ? 'EDIT' : 'PLAY'}
+        </button>
+
+        <div style={separatorStyle} />
+
         {/* Camera mode */}
         <button
           style={cameraMode === 'orbit' ? activeButtonStyle : buttonStyle}
@@ -147,30 +203,49 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = React.memo(
           Top
         </button>
 
-        <div style={separatorStyle} />
+        {/* Edit mode tools */}
+        {isEditMode && (
+          <>
+            <div style={separatorStyle} />
 
-        {/* Gizmo mode */}
-        <button
-          style={gizmoMode === 'translate' ? activeButtonStyle : buttonStyle}
-          onClick={() => onGizmoModeChange(gizmoMode === 'translate' ? 'off' : 'translate')}
-          title="Move entity (translate gizmo)"
-        >
-          Move
-        </button>
-        <button
-          style={gizmoMode === 'rotate' ? activeButtonStyle : buttonStyle}
-          onClick={() => onGizmoModeChange(gizmoMode === 'rotate' ? 'off' : 'rotate')}
-          title="Rotate entity heading"
-        >
-          Rot
-        </button>
-        <button
-          style={reverseDirection ? activeButtonStyle : buttonStyle}
-          onClick={onToggleReverseDirection}
-          title="Reverse driving direction when snapping to lane"
-        >
-          Rev
-        </button>
+            {/* Gizmo mode */}
+            <button
+              style={gizmoMode === 'translate' ? activeButtonStyle : buttonStyle}
+              onClick={() => onGizmoModeChange(gizmoMode === 'translate' ? 'off' : 'translate')}
+              title="Move entity (translate gizmo)"
+            >
+              Move
+            </button>
+            <button
+              style={gizmoMode === 'rotate' ? activeButtonStyle : buttonStyle}
+              onClick={() => onGizmoModeChange(gizmoMode === 'rotate' ? 'off' : 'rotate')}
+              title="Rotate entity heading"
+            >
+              Rot
+            </button>
+            <button
+              style={gizmoMode === 'place' ? activeButtonStyle : buttonStyle}
+              onClick={() => onGizmoModeChange(gizmoMode === 'place' ? 'off' : 'place')}
+              title="Click on road to place selected entity"
+            >
+              Place
+            </button>
+            <button
+              style={reverseDirection ? activeButtonStyle : buttonStyle}
+              onClick={onToggleReverseDirection}
+              title="Reverse driving direction when snapping to lane"
+            >
+              Rev
+            </button>
+            <button
+              style={snapToLane ? activeButtonStyle : buttonStyle}
+              onClick={onToggleSnapToLane}
+              title={snapToLane ? 'Snap: ON (lane center)' : 'Snap: OFF (free placement)'}
+            >
+              Snap
+            </button>
+          </>
+        )}
 
         <div style={separatorStyle} />
 

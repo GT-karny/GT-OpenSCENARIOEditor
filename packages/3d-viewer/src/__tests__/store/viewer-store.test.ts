@@ -75,4 +75,84 @@ describe('createViewerStore', () => {
     store.getState().toggleEntityLabels();
     expect(store.getState().showEntityLabels).toBe(false);
   });
+
+  describe('viewerMode', () => {
+    it('defaults to edit mode', () => {
+      const store = createViewerStore();
+      expect(store.getState().viewerMode).toBe('edit');
+    });
+
+    it('switches to play mode and resets gizmo and hover', () => {
+      const store = createViewerStore();
+      store.getState().setGizmoMode('translate');
+      store.getState().setHoverLaneInfo({
+        roadId: '1',
+        laneId: -1,
+        s: 50,
+        offset: 0,
+        heading: 0,
+        worldX: 50,
+        worldY: -1.75,
+      });
+      store.getState().setViewerMode('play');
+      expect(store.getState().viewerMode).toBe('play');
+      expect(store.getState().gizmoMode).toBe('off');
+      expect(store.getState().hoverLaneInfo).toBeNull();
+    });
+
+    it('switches back to edit mode keeping gizmo off', () => {
+      const store = createViewerStore();
+      store.getState().setViewerMode('play');
+      store.getState().setViewerMode('edit');
+      expect(store.getState().viewerMode).toBe('edit');
+      expect(store.getState().gizmoMode).toBe('off');
+    });
+  });
+
+  describe('snapToLane', () => {
+    it('defaults to true', () => {
+      const store = createViewerStore();
+      expect(store.getState().snapToLane).toBe(true);
+    });
+
+    it('toggles snap', () => {
+      const store = createViewerStore();
+      store.getState().toggleSnapToLane();
+      expect(store.getState().snapToLane).toBe(false);
+      store.getState().toggleSnapToLane();
+      expect(store.getState().snapToLane).toBe(true);
+    });
+  });
+
+  describe('gizmoMode with place', () => {
+    it('accepts place mode', () => {
+      const store = createViewerStore();
+      store.getState().setGizmoMode('place');
+      expect(store.getState().gizmoMode).toBe('place');
+    });
+  });
+
+  describe('hoverLaneInfo', () => {
+    it('defaults to null', () => {
+      const store = createViewerStore();
+      expect(store.getState().hoverLaneInfo).toBeNull();
+    });
+
+    it('sets and clears hover info', () => {
+      const store = createViewerStore();
+      const info = {
+        roadId: '1',
+        laneId: -1,
+        s: 50,
+        offset: 0,
+        heading: 0,
+        worldX: 50,
+        worldY: -1.75,
+      };
+      store.getState().setHoverLaneInfo(info);
+      expect(store.getState().hoverLaneInfo).toEqual(info);
+      store.getState().setHoverLaneInfo(null);
+      expect(store.getState().hoverLaneInfo).toBeNull();
+    });
+  });
 });

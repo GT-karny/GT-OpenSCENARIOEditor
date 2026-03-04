@@ -8,7 +8,16 @@ export type { ScenarioViewerProps } from './components/ScenarioViewer.js';
 
 // Viewer store (for advanced usage / external control)
 export { createViewerStore, useViewerStore } from './store/viewer-store.js';
-export type { ViewerState, ViewerActions, ViewerStore, CameraMode, PlaybackState } from './store/viewer-types.js';
+export type {
+  ViewerState,
+  ViewerActions,
+  ViewerStore,
+  CameraMode,
+  ViewerMode,
+  GizmoMode,
+  HoverLaneInfo,
+  PlaybackState,
+} from './store/viewer-types.js';
 
 // Utility functions (for consumers who want to build custom viewers)
 export { getLaneColor } from './utils/lane-type-colors.js';

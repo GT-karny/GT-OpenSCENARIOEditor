@@ -4,15 +4,24 @@
  * scenario store subscription, and simulation playback.
  */
 
-import React, { useState, useCallback, useRef } from 'react';
-import type { OpenDriveDocument, SimulationFrame, EditorPreferences } from '@osce/shared';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import type * as THREE from 'three';
+import type {
+  OpenDriveDocument,
+  SimulationFrame,
+  SimulationStatus,
+  EditorPreferences,
+} from '@osce/shared';
 import { createViewerStore, useViewerStore } from '../store/viewer-store.js';
+import type { HoverLaneInfo } from '../store/viewer-types.js';
 import { ViewerCanvas } from '../scene/ViewerCanvas.js';
 import { SceneEnvironment } from '../scene/SceneEnvironment.js';
 import { CameraController } from '../scene/CameraController.js';
 import type { CameraControllerHandle } from '../scene/CameraController.js';
 import { RoadNetwork } from '../road/RoadNetwork.js';
 import { EntityGroup } from '../entities/EntityGroup.js';
+import { RoadClickHandler } from '../interaction/RoadClickHandler.js';
+import { PlacementOverlay } from '../interaction/PlacementOverlay.js';
 import { ViewerToolbar } from './ViewerToolbar.js';
 import { useScenarioEntities } from '../scenario/useScenarioEntities.js';
 import { useEntityPositions } from '../scenario/useEntityPositions.js';
@@ -30,10 +39,19 @@ export interface ScenarioViewerProps {
   onEntitySelect?: (entityId: string) => void;
   /** Callback when user double-clicks an entity (request focus) */
   onEntityFocus?: (entityId: string) => void;
-  /** Callback when entity position is changed via gizmo drag */
-  onEntityPositionChange?: (entityName: string, x: number, y: number, z: number, h: number) => void;
+  /** Callback when entity position is changed via gizmo drag or click placement */
+  onEntityPositionChange?: (
+    entityName: string,
+    x: number,
+    y: number,
+    z: number,
+    h: number,
+    forceWorldPosition?: boolean,
+  ) => void;
   /** Current simulation frame to display (null = show init positions) */
   currentFrame?: SimulationFrame | null;
+  /** Simulation status for auto-mode-switching */
+  simulationStatus?: SimulationStatus;
   /** Editor preferences for display toggles */
   preferences?: Partial<EditorPreferences>;
   /** CSS class for the container */
@@ -60,7 +78,7 @@ function ScenarioViewerScene({
   selectedEntityId: string | null;
   onEntitySelect: (entityId: string) => void;
   onEntityFocus: (entityId: string) => void;
-  onEntityPositionChange?: (entityName: string, x: number, y: number, z: number, h: number) => void;
+  onEntityPositionChange?: ScenarioViewerProps['onEntityPositionChange'];
   currentFrame?: SimulationFrame | null;
   viewerStore: ReturnType<typeof createViewerStore>;
 }) {
@@ -70,6 +88,9 @@ function ScenarioViewerScene({
   const showRoadIds = useViewerStore(viewerStore, (s) => s.showRoadIds);
   const showEntityLabels = useViewerStore(viewerStore, (s) => s.showEntityLabels);
   const gizmoMode = useViewerStore(viewerStore, (s) => s.gizmoMode);
+  const viewerMode = useViewerStore(viewerStore, (s) => s.viewerMode);
+  const snapToLane = useViewerStore(viewerStore, (s) => s.snapToLane);
+  const reverseDirection = useViewerStore(viewerStore, (s) => s.reverseDirection);
   const followTargetEntity = useViewerStore(viewerStore, (s) => s.followTargetEntity);
   const flySpeed = useViewerStore(viewerStore, (s) => s.flySpeed);
 
@@ -77,9 +98,16 @@ function ScenarioViewerScene({
   const entityPositions = useEntityPositions(scenarioStore, openDriveDocument);
 
   const isSimulating = currentFrame != null;
+  const isEditMode = viewerMode === 'edit';
+
+  // In play mode, force gizmo off and disable position changes
+  const effectiveGizmoMode = isEditMode ? gizmoMode : 'off';
+  const effectiveOnPositionChange = isEditMode ? onEntityPositionChange : undefined;
 
   const [focusTarget, setFocusTarget] = useState<[number, number, number] | null>(null);
   const cameraRef = useRef<CameraControllerHandle>(null);
+  const roadGroupRef = useRef<THREE.Group>(null);
+  const highlightedLaneRef = useRef<{ roadId: string; laneId: number } | null>(null);
 
   // Camera follow (only active during simulation)
   useCameraFollow({
@@ -106,17 +134,57 @@ function ScenarioViewerScene({
     [entities, entityPositions, onEntityFocus],
   );
 
+  // Handle placement from RoadClickHandler
+  const handlePlacement = useCallback(
+    (x: number, y: number, z: number, h: number, forceWorldPosition: boolean) => {
+      if (!selectedEntityId || !onEntityPositionChange) return;
+      const selectedEntity = entities.find((e) => e.id === selectedEntityId);
+      if (!selectedEntity) return;
+      onEntityPositionChange(selectedEntity.name, x, y, z, h, forceWorldPosition);
+    },
+    [selectedEntityId, entities, onEntityPositionChange],
+  );
+
+  const handleHoverLaneChange = useCallback(
+    (info: HoverLaneInfo | null) => {
+      viewerStore.getState().setHoverLaneInfo(info);
+    },
+    [viewerStore],
+  );
+
+  // Determine if hover/click should be active
+  const hoverActive = isEditMode && (gizmoMode === 'place' || gizmoMode === 'translate');
+  const clickActive = isEditMode && gizmoMode === 'place';
+
   return (
     <>
       <SceneEnvironment showGrid={showGrid} />
       <CameraController ref={cameraRef} mode={cameraMode} focusTarget={focusTarget} flySpeed={flySpeed} />
 
       <RoadNetwork
+        ref={roadGroupRef}
         odrDocument={openDriveDocument}
         showRoadMarks
         showRoadIds={showRoadIds}
         showLaneIds={showLaneIds}
+        highlightedLaneRef={highlightedLaneRef}
       />
+
+      {/* Road click handler for Place mode and hover detection */}
+      {isEditMode && (hoverActive || clickActive) && (
+        <RoadClickHandler
+          roadGroupRef={roadGroupRef}
+          hoverActive={hoverActive}
+          clickActive={clickActive}
+          hasSelectedEntity={selectedEntityId != null}
+          openDriveDocument={openDriveDocument}
+          snapToLane={snapToLane}
+          reverseDirection={reverseDirection}
+          onPlacement={handlePlacement}
+          onHoverLaneChange={handleHoverLaneChange}
+          highlightedLaneRef={highlightedLaneRef}
+        />
+      )}
 
       {/* Show init positions when not simulating */}
       {!isSimulating && (
@@ -127,9 +195,9 @@ function ScenarioViewerScene({
           onEntitySelect={onEntitySelect}
           onEntityFocus={handleEntityFocus}
           showLabels={showEntityLabels}
-          gizmoMode={gizmoMode}
+          gizmoMode={effectiveGizmoMode}
           orbitControlsRef={cameraRef.current?.orbitControls}
-          onEntityPositionChange={onEntityPositionChange}
+          onEntityPositionChange={effectiveOnPositionChange}
         />
       )}
 
@@ -178,6 +246,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   onEntityFocus,
   onEntityPositionChange,
   currentFrame: currentFrameProp,
+  simulationStatus,
   preferences,
   className,
   style,
@@ -187,6 +256,13 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
     viewerStoreRef.current = createViewerStore(preferences);
   }
   const viewerStore = viewerStoreRef.current;
+
+  // Auto-switch to play mode when simulation starts
+  useEffect(() => {
+    if (simulationStatus === 'running') {
+      viewerStore.getState().setViewerMode('play');
+    }
+  }, [simulationStatus, viewerStore]);
 
   const handleEntitySelect = useCallback(
     (entityId: string) => onEntitySelect?.(entityId),
@@ -208,15 +284,35 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   const showLaneIds = useViewerStore(viewerStore, (s) => s.showLaneIds);
   const gizmoMode = useViewerStore(viewerStore, (s) => s.gizmoMode);
   const reverseDirection = useViewerStore(viewerStore, (s) => s.reverseDirection);
+  const snapToLane = useViewerStore(viewerStore, (s) => s.snapToLane);
+  const viewerMode = useViewerStore(viewerStore, (s) => s.viewerMode);
   const followTargetEntity = useViewerStore(viewerStore, (s) => s.followTargetEntity);
   const flySpeed = useViewerStore(viewerStore, (s) => s.flySpeed);
+
+  const hoverLaneInfo = useViewerStore(viewerStore, (s) => s.hoverLaneInfo);
+
+  const isSimulating = simulationStatus === 'running';
+
+  // Mode-based border color
+  const modeBorderColor =
+    viewerMode === 'edit' ? 'rgba(60, 120, 220, 0.5)' : 'rgba(60, 180, 100, 0.5)';
 
   return (
     <div
       className={className}
-      style={{ position: 'relative', width: '100%', height: '100%', ...style }}
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        border: `2px solid ${modeBorderColor}`,
+        transition: 'border-color 0.3s ease',
+        ...style,
+      }}
     >
       <ViewerToolbar
+        viewerMode={viewerMode}
+        onViewerModeChange={(m) => viewerStore.getState().setViewerMode(m)}
+        isSimulating={isSimulating}
         cameraMode={cameraMode}
         onCameraModeChange={(m) => viewerStore.getState().setCameraMode(m)}
         showGrid={showGrid}
@@ -231,9 +327,18 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
         onGizmoModeChange={(m) => viewerStore.getState().setGizmoMode(m)}
         reverseDirection={reverseDirection}
         onToggleReverseDirection={() => viewerStore.getState().toggleReverseDirection()}
+        snapToLane={snapToLane}
+        onToggleSnapToLane={() => viewerStore.getState().toggleSnapToLane()}
         followTargetEntity={followTargetEntity}
         onFollowTargetChange={(name) => viewerStore.getState().setFollowTarget(name)}
         entities={entities}
+      />
+
+      {/* Placement overlay (shown in Place mode with hover info) */}
+      <PlacementOverlay
+        hoverLaneInfo={hoverLaneInfo}
+        snapToLane={snapToLane}
+        isPlaceMode={gizmoMode === 'place' && viewerMode === 'edit'}
       />
 
       {/* Speed multiplier slider (top-right) */}

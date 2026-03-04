@@ -58,7 +58,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   selectedEntityId: string | null;
   onEntitySelect: (entityId: string) => void;
   onEntityFocus: (entityId: string) => void;
-  onEntityPositionChange?: (entityName: string, x: number, y: number, z: number, h: number) => void;
+  onEntityPositionChange?: (entityName: string, x: number, y: number, z: number, h: number, forceWorldPosition?: boolean) => void;
   preferences: { showGrid3D: boolean; showLaneIds: boolean; showRoadIds: boolean };
 }) {
   const simStatus = useSimulationStore((s) => s.status);
@@ -96,6 +96,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       onEntityFocus={props.onEntityFocus}
       onEntityPositionChange={props.onEntityPositionChange}
       currentFrame={currentFrame}
+      simulationStatus={simStatus}
       preferences={props.preferences}
       className="h-full w-full"
     />
@@ -145,9 +146,9 @@ export function EditorLayout() {
   }, []);
 
   const handleEntityPositionChange = useCallback(
-    (entityName: string, x: number, y: number, z: number, h: number) => {
-      // Try lane snapping if OpenDRIVE data is available
-      if (roadNetwork) {
+    (entityName: string, x: number, y: number, z: number, h: number, forceWorldPosition?: boolean) => {
+      // When forceWorldPosition is true (snap OFF in Place mode), skip lane snapping
+      if (!forceWorldPosition && roadNetwork) {
         const laneResult = worldToLane(roadNetwork, x, y, 10); // 10m threshold
         if (laneResult && laneResult.distance < 5) {
           scenarioStoreApi.getState().setInitPosition(entityName, {

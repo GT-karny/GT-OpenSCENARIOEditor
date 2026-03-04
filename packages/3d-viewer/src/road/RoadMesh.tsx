@@ -13,10 +13,12 @@ interface RoadMeshProps {
   road: OdrRoad;
   roadMeshData: RoadMeshData;
   showRoadMarks?: boolean;
+  /** Ref-based lane highlight for hover feedback */
+  highlightedLaneRef?: React.RefObject<{ roadId: string; laneId: number } | null>;
 }
 
 export const RoadMesh: React.FC<RoadMeshProps> = React.memo(
-  ({ road, roadMeshData, showRoadMarks = true }) => {
+  ({ road, roadMeshData, showRoadMarks = true, highlightedLaneRef }) => {
     // Build road mark meshes from lane data
     const roadMarkMeshes = useMemo(() => {
       if (!showRoadMarks) return [];
@@ -96,6 +98,8 @@ export const RoadMesh: React.FC<RoadMeshProps> = React.memo(
             <LaneMesh
               key={`s${sIdx}-l${lane.laneId}`}
               laneMesh={lane}
+              roadId={road.id}
+              highlightedLaneRef={highlightedLaneRef}
             />
           )),
         )}

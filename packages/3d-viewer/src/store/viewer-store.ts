@@ -5,7 +5,14 @@
 import { createStore } from 'zustand/vanilla';
 import { useStore } from 'zustand';
 import type { EditorPreferences, SimulationFrame } from '@osce/shared';
-import type { CameraMode, GizmoMode, PlaybackState, ViewerStore } from './viewer-types.js';
+import type {
+  CameraMode,
+  GizmoMode,
+  HoverLaneInfo,
+  PlaybackState,
+  ViewerMode,
+  ViewerStore,
+} from './viewer-types.js';
 
 const DEFAULT_PLAYBACK: PlaybackState = {
   status: 'idle',
@@ -27,13 +34,23 @@ export function createViewerStore(preferences?: Partial<EditorPreferences>) {
     showEntityLabels: true,
     playback: { ...DEFAULT_PLAYBACK },
 
+    viewerMode: 'edit' as ViewerMode,
     gizmoMode: 'off' as GizmoMode,
     reverseDirection: false,
+    snapToLane: true,
+    hoverLaneInfo: null as HoverLaneInfo | null,
     followTargetEntity: null,
     flySpeed: 1,
 
     // Actions
     setCameraMode: (mode: CameraMode) => set({ cameraMode: mode }),
+
+    setViewerMode: (mode: ViewerMode) =>
+      set(
+        mode === 'play'
+          ? { viewerMode: mode, gizmoMode: 'off' as GizmoMode, hoverLaneInfo: null }
+          : { viewerMode: mode },
+      ),
 
     toggleGrid: () => set((s) => ({ showGrid: !s.showGrid })),
     toggleLaneIds: () => set((s) => ({ showLaneIds: !s.showLaneIds })),
@@ -60,6 +77,8 @@ export function createViewerStore(preferences?: Partial<EditorPreferences>) {
 
     setGizmoMode: (mode: GizmoMode) => set({ gizmoMode: mode }),
     toggleReverseDirection: () => set((s) => ({ reverseDirection: !s.reverseDirection })),
+    toggleSnapToLane: () => set((s) => ({ snapToLane: !s.snapToLane })),
+    setHoverLaneInfo: (info: HoverLaneInfo | null) => set({ hoverLaneInfo: info }),
 
     setFollowTarget: (entityName: string | null) => set({ followTargetEntity: entityName }),
     setFlySpeed: (speed: number) => set({ flySpeed: speed }),

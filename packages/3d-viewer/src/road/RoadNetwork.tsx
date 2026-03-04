@@ -7,7 +7,8 @@
  * This component applies a rotation to map between them.
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, forwardRef } from 'react';
+import type * as THREE from 'three';
 import type { OpenDriveDocument } from '@osce/shared';
 import { generateRoadMesh, buildJunctionSurfaceMesh } from '@osce/opendrive';
 import type { JunctionSurfaceData } from '@osce/opendrive';
@@ -20,15 +21,21 @@ interface RoadNetworkProps {
   showRoadMarks?: boolean;
   showRoadIds?: boolean;
   showLaneIds?: boolean;
+  /** Ref-based lane highlight for hover feedback (read in useFrame, no re-renders) */
+  highlightedLaneRef?: React.RefObject<{ roadId: string; laneId: number } | null>;
 }
 
-export const RoadNetwork: React.FC<RoadNetworkProps> = React.memo(
-  ({
-    odrDocument,
-    showRoadMarks = true,
-    showRoadIds = false,
-    showLaneIds = false,
-  }) => {
+export const RoadNetwork = forwardRef<THREE.Group, RoadNetworkProps>(
+  function RoadNetwork(
+    {
+      odrDocument,
+      showRoadMarks = true,
+      showRoadIds = false,
+      showLaneIds = false,
+      highlightedLaneRef,
+    },
+    ref,
+  ) {
     // Generate mesh data for all roads
     const roadMeshes = useMemo(() => {
       if (!odrDocument) return [];
@@ -52,13 +59,14 @@ export const RoadNetwork: React.FC<RoadNetworkProps> = React.memo(
     if (!odrDocument || roadMeshes.length === 0) return null;
 
     return (
-      <group rotation={[-Math.PI / 2, 0, 0]}>
+      <group ref={ref} rotation={[-Math.PI / 2, 0, 0]}>
         {roadMeshes.map(({ road, meshData }) => (
           <RoadMesh
             key={road.id}
             road={road}
             roadMeshData={meshData}
             showRoadMarks={showRoadMarks}
+            highlightedLaneRef={highlightedLaneRef}
           />
         ))}
         {/* Junction surface fills (rendered behind roads via polygonOffset) */}
