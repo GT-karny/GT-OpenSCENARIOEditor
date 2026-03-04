@@ -1,6 +1,6 @@
 /**
- * Camera follow hook: smoothly tracks a target entity's position.
- * Supports third-person (orbit target follows entity) and top-down (camera follows entity) modes.
+ * Camera follow hook: smoothly tracks a target entity's position during simulation.
+ * Moves both camera position and orbit target to follow the entity.
  * Manual camera rotation/zoom remains functional during follow.
  */
 
@@ -9,13 +9,10 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { WorldCoords } from '../utils/position-resolver.js';
 import type { SimulationFrame } from '@osce/shared';
-import type { FollowMode } from '../store/viewer-types.js';
 
 interface CameraFollowOptions {
   /** Entity name to follow (null = disabled) */
   targetEntity: string | null;
-  /** Follow mode */
-  followMode: FollowMode;
   /** Reference to OrbitControls */
   orbitControlsRef: React.RefObject<any>;
   /** Init entity positions (used when not simulating) */
@@ -26,83 +23,72 @@ interface CameraFollowOptions {
   smoothness?: number;
   /** Whether FPS fly mode is currently active (pauses follow) */
   isFlyModeActive?: boolean;
+  /** Whether simulation is currently running (follow only active during simulation) */
+  isSimulating?: boolean;
 }
 
 /**
- * Resolve entity position from either simulation frame or init positions.
+ * Resolve entity position from simulation frame.
  * Returns position in the rotated coordinate frame (inside the [-π/2, 0, 0] group).
  */
 function resolveEntityWorldPosition(
   entityName: string,
-  entityPositions: Map<string, WorldCoords>,
-  currentFrame?: SimulationFrame | null,
+  currentFrame: SimulationFrame,
 ): THREE.Vector3 | null {
-  if (currentFrame) {
-    // Simulation mode: get from frame data
-    const obj = currentFrame.objects.find((o) => o.name === entityName);
-    if (obj) {
-      // Simulation coords need same transform as EntityGroup: rotation [-π/2, 0, 0]
-      // In the rotated frame: Three.js (x, z, -y) ← OSCE (x, y, z)
-      return new THREE.Vector3(obj.x, obj.z, -obj.y);
-    }
+  const obj = currentFrame.objects.find((o) => o.name === entityName);
+  if (obj) {
+    // Simulation coords: Three.js (x, z, -y) ← OSCE (x, y, z)
+    return new THREE.Vector3(obj.x, obj.z, -obj.y);
   }
-
-  // Init mode: get from resolved positions
-  const pos = entityPositions.get(entityName);
-  if (pos) {
-    // Same transform: the rotation group maps OSCE coords to Three.js world
-    return new THREE.Vector3(pos.x, pos.z, -pos.y);
-  }
-
   return null;
 }
 
 export function useCameraFollow({
   targetEntity,
-  followMode,
   orbitControlsRef,
-  entityPositions,
+  entityPositions: _entityPositions,
   currentFrame,
   smoothness = 0.08,
   isFlyModeActive = false,
+  isSimulating = false,
 }: CameraFollowOptions) {
   const prevTargetPos = useRef(new THREE.Vector3());
   const initialized = useRef(false);
 
   useFrame(() => {
-    if (!targetEntity || !orbitControlsRef?.current || isFlyModeActive) {
+    // Only follow during simulation playback
+    if (!targetEntity || !orbitControlsRef?.current || isFlyModeActive || !isSimulating || !currentFrame) {
       initialized.current = false;
       return;
     }
 
     const controls = orbitControlsRef.current;
-    const targetPos = resolveEntityWorldPosition(targetEntity, entityPositions, currentFrame);
+    const targetPos = resolveEntityWorldPosition(targetEntity, currentFrame);
     if (!targetPos) return;
 
     if (!initialized.current) {
-      // First frame — snap to target position
+      // First frame — snap to target position, keep current camera offset
+      const offset = new THREE.Vector3().subVectors(
+        controls.object.position,
+        controls.target,
+      );
       controls.target.copy(targetPos);
+      controls.object.position.copy(targetPos).add(offset);
       prevTargetPos.current.copy(targetPos);
       initialized.current = true;
       controls.update();
       return;
     }
 
-    // Smooth interpolation toward target
-    const currentTarget = controls.target as THREE.Vector3;
-    currentTarget.lerp(targetPos, smoothness);
+    // Compute movement delta from previous frame
+    const delta = new THREE.Vector3().subVectors(targetPos, prevTargetPos.current);
 
-    if (followMode === 'topDown') {
-      // In top-down mode, also move camera X/Z to follow (keep Y fixed)
-      const camera = controls.object;
-      const dx = targetPos.x - prevTargetPos.current.x;
-      const dz = targetPos.z - prevTargetPos.current.z;
-      camera.position.x += dx * smoothness;
-      camera.position.z += dz * smoothness;
-    }
-    // In third-person mode, only the target moves — camera offset maintained by OrbitControls
+    // Apply smoothed delta to both target and camera position
+    const smoothDelta = delta.clone().multiplyScalar(smoothness);
+    controls.target.add(smoothDelta);
+    controls.object.position.add(smoothDelta);
 
-    prevTargetPos.current.copy(targetPos);
+    prevTargetPos.current.lerp(targetPos, smoothness);
     controls.update();
   });
 }

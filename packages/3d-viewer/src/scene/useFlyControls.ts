@@ -22,7 +22,7 @@ interface FlyControlsOptions {
 export function useFlyControls({
   orbitControlsRef,
   moveSpeed = 20,
-  lookSensitivity = 0.002,
+  lookSensitivity = 0.003,
   sprintMultiplier = 3,
 }: FlyControlsOptions) {
   const { camera, gl } = useThree();

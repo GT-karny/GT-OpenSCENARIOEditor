@@ -71,7 +71,7 @@ function ScenarioViewerScene({
   const showEntityLabels = useViewerStore(viewerStore, (s) => s.showEntityLabels);
   const gizmoMode = useViewerStore(viewerStore, (s) => s.gizmoMode);
   const followTargetEntity = useViewerStore(viewerStore, (s) => s.followTargetEntity);
-  const followMode = useViewerStore(viewerStore, (s) => s.followMode);
+  const flySpeed = useViewerStore(viewerStore, (s) => s.flySpeed);
 
   const entities = useScenarioEntities(scenarioStore);
   const entityPositions = useEntityPositions(scenarioStore, openDriveDocument);
@@ -81,13 +81,13 @@ function ScenarioViewerScene({
   const [focusTarget, setFocusTarget] = useState<[number, number, number] | null>(null);
   const cameraRef = useRef<CameraControllerHandle>(null);
 
-  // Camera follow
+  // Camera follow (only active during simulation)
   useCameraFollow({
     targetEntity: followTargetEntity,
-    followMode,
     orbitControlsRef: cameraRef.current?.orbitControls ?? { current: null },
     entityPositions,
     currentFrame,
+    isSimulating,
   });
 
   const handleEntityFocus = useCallback(
@@ -109,7 +109,7 @@ function ScenarioViewerScene({
   return (
     <>
       <SceneEnvironment showGrid={showGrid} />
-      <CameraController ref={cameraRef} mode={cameraMode} focusTarget={focusTarget} />
+      <CameraController ref={cameraRef} mode={cameraMode} focusTarget={focusTarget} flySpeed={flySpeed} />
 
       <RoadNetwork
         odrDocument={openDriveDocument}
@@ -147,6 +147,25 @@ function ScenarioViewerScene({
   );
 }
 
+/** Speed slider styles */
+const speedSliderStyle: React.CSSProperties = {
+  position: 'absolute',
+  top: 8,
+  right: 8,
+  display: 'flex',
+  alignItems: 'center',
+  gap: '6px',
+  padding: '4px 8px',
+  backgroundColor: 'rgba(40, 40, 60, 0.85)',
+  border: '1px solid rgba(100, 100, 140, 0.5)',
+  borderRadius: '4px',
+  zIndex: 10,
+  pointerEvents: 'auto',
+  fontFamily: 'monospace',
+  fontSize: '11px',
+  color: '#ddd',
+};
+
 /**
  * Main exported 3D viewer component.
  * Renders the complete scenario visualization with road network and entities.
@@ -180,7 +199,17 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   );
 
   const entities = useScenarioEntities(scenarioStore);
-  const vs = viewerStore.getState();
+
+  // Reactive state subscriptions for toolbar and speed slider
+  const cameraMode = useViewerStore(viewerStore, (s) => s.cameraMode);
+  const showGrid = useViewerStore(viewerStore, (s) => s.showGrid);
+  const showEntityLabels = useViewerStore(viewerStore, (s) => s.showEntityLabels);
+  const showRoadIds = useViewerStore(viewerStore, (s) => s.showRoadIds);
+  const showLaneIds = useViewerStore(viewerStore, (s) => s.showLaneIds);
+  const gizmoMode = useViewerStore(viewerStore, (s) => s.gizmoMode);
+  const reverseDirection = useViewerStore(viewerStore, (s) => s.reverseDirection);
+  const followTargetEntity = useViewerStore(viewerStore, (s) => s.followTargetEntity);
+  const flySpeed = useViewerStore(viewerStore, (s) => s.flySpeed);
 
   return (
     <div
@@ -188,26 +217,39 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
       style={{ position: 'relative', width: '100%', height: '100%', ...style }}
     >
       <ViewerToolbar
-        cameraMode={vs.cameraMode}
+        cameraMode={cameraMode}
         onCameraModeChange={(m) => viewerStore.getState().setCameraMode(m)}
-        showGrid={vs.showGrid}
+        showGrid={showGrid}
         onToggleGrid={() => viewerStore.getState().toggleGrid()}
-        showLabels={vs.showEntityLabels}
+        showLabels={showEntityLabels}
         onToggleLabels={() => viewerStore.getState().toggleEntityLabels()}
-        showRoadIds={vs.showRoadIds}
+        showRoadIds={showRoadIds}
         onToggleRoadIds={() => viewerStore.getState().toggleRoadIds()}
-        showLaneIds={vs.showLaneIds}
+        showLaneIds={showLaneIds}
         onToggleLaneIds={() => viewerStore.getState().toggleLaneIds()}
-        gizmoMode={vs.gizmoMode}
+        gizmoMode={gizmoMode}
         onGizmoModeChange={(m) => viewerStore.getState().setGizmoMode(m)}
-        reverseDirection={vs.reverseDirection}
+        reverseDirection={reverseDirection}
         onToggleReverseDirection={() => viewerStore.getState().toggleReverseDirection()}
-        followTargetEntity={vs.followTargetEntity}
+        followTargetEntity={followTargetEntity}
         onFollowTargetChange={(name) => viewerStore.getState().setFollowTarget(name)}
-        followMode={vs.followMode}
-        onFollowModeChange={(m) => viewerStore.getState().setFollowMode(m)}
         entities={entities}
       />
+
+      {/* Speed multiplier slider (top-right) */}
+      <div style={speedSliderStyle}>
+        <span>Speed</span>
+        <input
+          type="range"
+          min={0.1}
+          max={5}
+          step={0.1}
+          value={flySpeed}
+          onChange={(e) => viewerStore.getState().setFlySpeed(Number(e.target.value))}
+          style={{ width: 80, cursor: 'pointer' }}
+        />
+        <span style={{ minWidth: 30, textAlign: 'right' }}>{flySpeed.toFixed(1)}x</span>
+      </div>
 
       <ViewerCanvas>
         <ScenarioViewerScene

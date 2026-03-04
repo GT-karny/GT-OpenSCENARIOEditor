@@ -13,6 +13,8 @@ import { useFlyControls } from './useFlyControls.js';
 interface CameraControllerProps {
   mode: CameraMode;
   focusTarget?: [number, number, number] | null;
+  /** Fly controls speed multiplier (1.0 = default) */
+  flySpeed?: number;
 }
 
 export interface CameraControllerHandle {
@@ -21,7 +23,7 @@ export interface CameraControllerHandle {
 }
 
 export const CameraController = forwardRef<CameraControllerHandle, CameraControllerProps>(
-  ({ mode, focusTarget }, ref) => {
+  ({ mode, focusTarget, flySpeed = 1 }, ref) => {
     const controlsRef = useRef<any>(null);
     const { camera } = useThree();
 
@@ -30,8 +32,8 @@ export const CameraController = forwardRef<CameraControllerHandle, CameraControl
       orbitControls: controlsRef,
     }), []);
 
-    // FPS fly controls (right-click + WASD/EQ)
-    useFlyControls({ orbitControlsRef: controlsRef });
+    // FPS fly controls (right-click + WASD/EQ) — base speed × multiplier
+    useFlyControls({ orbitControlsRef: controlsRef, moveSpeed: 20 * flySpeed });
 
     // Handle camera mode changes
     useEffect(() => {
@@ -75,8 +77,8 @@ export const CameraController = forwardRef<CameraControllerHandle, CameraControl
         maxDistance={1000}
         maxPolarAngle={Math.PI / 2 - 0.01}
         mouseButtons={{
-          LEFT: THREE.MOUSE.ROTATE,
-          MIDDLE: THREE.MOUSE.DOLLY,
+          LEFT: undefined as unknown as THREE.MOUSE,
+          MIDDLE: THREE.MOUSE.ROTATE,
           RIGHT: undefined as unknown as THREE.MOUSE,
         }}
       />

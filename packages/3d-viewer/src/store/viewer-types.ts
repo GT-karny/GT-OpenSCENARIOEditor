@@ -6,8 +6,6 @@ import type { SimulationFrame } from '@osce/shared';
 
 export type CameraMode = 'orbit' | 'topDown';
 export type GizmoMode = 'translate' | 'rotate' | 'off';
-export type FollowMode = 'thirdPerson' | 'topDown';
-
 export interface PlaybackState {
   status: 'idle' | 'playing' | 'paused';
   currentTime: number;
@@ -30,8 +28,9 @@ export interface ViewerState {
 
   /** Entity name to follow with camera (null = no follow) */
   followTargetEntity: string | null;
-  /** Camera follow mode */
-  followMode: FollowMode;
+
+  /** Fly controls speed multiplier (1.0 = default, range 0.1–5.0) */
+  flySpeed: number;
 }
 
 export interface ViewerActions {
@@ -49,7 +48,7 @@ export interface ViewerActions {
   toggleReverseDirection: () => void;
 
   setFollowTarget: (entityName: string | null) => void;
-  setFollowMode: (mode: FollowMode) => void;
+  setFlySpeed: (speed: number) => void;
 }
 
 export type ViewerStore = ViewerState & ViewerActions;

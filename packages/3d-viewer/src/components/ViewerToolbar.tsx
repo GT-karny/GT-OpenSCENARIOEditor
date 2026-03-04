@@ -5,7 +5,7 @@
 
 import React, { useState, useCallback } from 'react';
 import type { ScenarioEntity } from '@osce/shared';
-import type { CameraMode, GizmoMode, FollowMode } from '../store/viewer-types.js';
+import type { CameraMode, GizmoMode } from '../store/viewer-types.js';
 
 interface ViewerToolbarProps {
   cameraMode: CameraMode;
@@ -24,8 +24,6 @@ interface ViewerToolbarProps {
   onToggleReverseDirection: () => void;
   followTargetEntity: string | null;
   onFollowTargetChange: (entityName: string | null) => void;
-  followMode: FollowMode;
-  onFollowModeChange: (mode: FollowMode) => void;
   entities: ScenarioEntity[];
 }
 
@@ -119,8 +117,6 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = React.memo(
     onToggleReverseDirection,
     followTargetEntity,
     onFollowTargetChange,
-    followMode,
-    onFollowModeChange,
     entities,
   }) => {
     const [followDropdownOpen, setFollowDropdownOpen] = useState(false);
@@ -205,19 +201,6 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = React.memo(
                   {entity.name}
                 </button>
               ))}
-              <div style={{ ...separatorStyle, width: '100%', height: '1px', margin: '2px 0' }} />
-              <button
-                style={followMode === 'thirdPerson' ? dropdownItemActiveStyle : dropdownItemStyle}
-                onClick={() => onFollowModeChange('thirdPerson')}
-              >
-                3rd Person
-              </button>
-              <button
-                style={followMode === 'topDown' ? dropdownItemActiveStyle : dropdownItemStyle}
-                onClick={() => onFollowModeChange('topDown')}
-              >
-                Top Down
-              </button>
             </div>
           )}
         </div>
