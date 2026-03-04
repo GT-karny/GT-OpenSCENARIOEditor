@@ -27,7 +27,7 @@ export const PedestrianEntity: React.FC<PedestrianEntityProps> = React.memo(
     return (
       <group
         position={[position.x, position.y, position.z]}
-        rotation={[0, 0, position.h]}
+        rotation={[position.pitch ?? 0, position.roll ?? 0, position.h]}
       >
         {/* Pedestrian body (cylinder) */}
         <mesh

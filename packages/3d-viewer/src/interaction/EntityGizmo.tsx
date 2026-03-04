@@ -6,13 +6,11 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { TransformControls } from '@react-three/drei';
 import type * as THREE from 'three';
-import type { GizmoMode } from '../store/viewer-types.js';
-
 interface EntityGizmoProps {
   /** The Three.js object to attach the gizmo to */
   object: React.RefObject<THREE.Object3D | null>;
   /** Gizmo mode: translate or rotate */
-  mode: Exclude<GizmoMode, 'off'>;
+  mode: 'translate' | 'rotate';
   /** Reference to OrbitControls (disabled during gizmo drag) */
   orbitControlsRef?: React.RefObject<any>;
   /** Called when drag ends with new position in OpenSCENARIO world coordinates */
@@ -95,9 +93,11 @@ export const EntityGizmo: React.FC<EntityGizmoProps> = React.memo(
         ref={controlsRef}
         object={object.current}
         mode={mode}
+        space="local"
         size={0.8}
-        // Only translate on X/Y plane (Z is up in the rotated group)
-        showZ={mode === 'translate' ? false : true}
+        showX={mode !== 'rotate'}
+        showY={mode !== 'rotate'}
+        showZ={mode !== 'translate'}
       />
     );
   },

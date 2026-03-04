@@ -7,6 +7,7 @@ import type { Node } from '@xyflow/react';
 import { NodeEditorProvider, NodeEditor, detectElementType } from '@osce/node-editor';
 import type { OsceNodeData, OsceNodeType } from '@osce/node-editor';
 import { ScenarioViewer } from '@osce/3d-viewer';
+import type { ViewerMode } from '@osce/3d-viewer';
 import { worldToLane } from '@osce/opendrive';
 import { HeaderToolbar } from './HeaderToolbar';
 import { StatusBar } from './StatusBar';
@@ -59,6 +60,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   onEntitySelect: (entityId: string) => void;
   onEntityFocus: (entityId: string) => void;
   onEntityPositionChange?: (entityName: string, x: number, y: number, z: number, h: number, forceWorldPosition?: boolean) => void;
+  onViewerModeChange?: (mode: ViewerMode) => void;
   preferences: { showGrid3D: boolean; showLaneIds: boolean; showRoadIds: boolean };
 }) {
   const simStatus = useSimulationStore((s) => s.status);
@@ -95,6 +97,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       onEntitySelect={props.onEntitySelect}
       onEntityFocus={props.onEntityFocus}
       onEntityPositionChange={props.onEntityPositionChange}
+      onViewerModeChange={props.onViewerModeChange}
       currentFrame={currentFrame}
       simulationStatus={simStatus}
       preferences={props.preferences}
@@ -177,6 +180,7 @@ export function EditorLayout() {
   );
 
   // --- Simulation state ---
+  const [viewerMode, setViewerMode] = useState<ViewerMode>('edit');
   const simStatus = useSimulationStore((s) => s.status);
   // NOTE: Do NOT subscribe to s.frames here — it changes 30x/sec and would
   // re-render the entire EditorLayout. Frames are subscribed in
@@ -440,6 +444,7 @@ export function EditorLayout() {
                 onEntitySelect={handleEntitySelect}
                 onEntityFocus={handleEntitySelect}
                 onEntityPositionChange={handleEntityPositionChange}
+                onViewerModeChange={setViewerMode}
                 preferences={{
                   showGrid3D: preferences.showGrid3D,
                   showLaneIds: preferences.showLaneIds,
@@ -451,8 +456,8 @@ export function EditorLayout() {
         </Panel>
       </PanelGroup>
 
-      {/* Simulation timeline (visible during/after simulation) */}
-      {simStatus !== 'idle' && (
+      {/* Simulation timeline (visible during/after simulation in play mode) */}
+      {simStatus !== 'idle' && viewerMode === 'play' && (
         <div className="h-10 shrink-0 border-t border-[var(--color-glass-edge-mid)] bg-[var(--color-bg-deep)]">
           <SimulationTimeline />
         </div>

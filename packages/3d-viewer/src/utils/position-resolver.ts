@@ -7,6 +7,8 @@ import type { Position, OpenDriveDocument, OdrRoad, OdrLaneSection } from '@osce
 import {
   evaluateReferenceLineAtS,
   evaluateElevation,
+  evaluateElevationGradient,
+  evaluateSuperelevation,
   computeLaneInnerT,
   computeLaneOuterT,
   stToXyz,
@@ -22,6 +24,10 @@ export interface WorldCoords {
   z: number;
   /** Heading in radians */
   h: number;
+  /** Road grade angle in radians (atan of dz/ds slope) */
+  pitch?: number;
+  /** Superelevation (crossfall) angle in radians */
+  roll?: number;
 }
 
 /**
@@ -113,11 +119,18 @@ function resolveLanePosition(
     h = drivingH + (pos.orientation?.h ?? 0);
   }
 
+  // Road surface tilt
+  const gradient = evaluateElevationGradient(road.elevationProfile, pos.s);
+  const pitch = Math.atan(gradient);
+  const roll = evaluateSuperelevation(road.lateralProfile, pos.s);
+
   return {
     x: worldPos.x,
     y: worldPos.y,
     z: worldPos.z,
     h,
+    pitch,
+    roll,
   };
 }
 
@@ -134,11 +147,18 @@ function resolveRoadPosition(
   const z = evaluateElevation(road.elevationProfile, pos.s);
   const worldPos = stToXyz(pose, pos.t, z);
 
+  // Road surface tilt
+  const gradient = evaluateElevationGradient(road.elevationProfile, pos.s);
+  const pitch = Math.atan(gradient);
+  const roll = evaluateSuperelevation(road.lateralProfile, pos.s);
+
   return {
     x: worldPos.x,
     y: worldPos.y,
     z: worldPos.z,
     h: pose.hdg,
+    pitch,
+    roll,
   };
 }
 

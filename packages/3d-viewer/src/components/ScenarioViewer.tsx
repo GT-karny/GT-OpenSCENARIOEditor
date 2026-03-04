@@ -13,7 +13,7 @@ import type {
   EditorPreferences,
 } from '@osce/shared';
 import { createViewerStore, useViewerStore } from '../store/viewer-store.js';
-import type { HoverLaneInfo } from '../store/viewer-types.js';
+import type { HoverLaneInfo, ViewerMode } from '../store/viewer-types.js';
 import { ViewerCanvas } from '../scene/ViewerCanvas.js';
 import { SceneEnvironment } from '../scene/SceneEnvironment.js';
 import { CameraController } from '../scene/CameraController.js';
@@ -56,6 +56,8 @@ export interface ScenarioViewerProps {
   preferences?: Partial<EditorPreferences>;
   /** CSS class for the container */
   className?: string;
+  /** Callback when the viewer mode changes (edit/play) */
+  onViewerModeChange?: (mode: ViewerMode) => void;
   /** CSS style for the container */
   style?: React.CSSProperties;
 }
@@ -99,6 +101,7 @@ function ScenarioViewerScene({
 
   const isSimulating = currentFrame != null;
   const isEditMode = viewerMode === 'edit';
+  const showSimulation = isSimulating && !isEditMode;
 
   // In play mode, force gizmo off and disable position changes
   const effectiveGizmoMode = isEditMode ? gizmoMode : 'off';
@@ -187,7 +190,7 @@ function ScenarioViewerScene({
       )}
 
       {/* Show init positions when not simulating */}
-      {!isSimulating && (
+      {!showSimulation && (
         <EntityGroup
           entities={entities}
           entityPositions={entityPositions}
@@ -202,7 +205,7 @@ function ScenarioViewerScene({
       )}
 
       {/* Show simulation positions during playback */}
-      {isSimulating && (
+      {showSimulation && (
         <SimulationOverlay
           entities={entities}
           currentFrame={currentFrame!}
@@ -248,6 +251,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   currentFrame: currentFrameProp,
   simulationStatus,
   preferences,
+  onViewerModeChange,
   className,
   style,
 }) => {
@@ -290,6 +294,11 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   const flySpeed = useViewerStore(viewerStore, (s) => s.flySpeed);
 
   const hoverLaneInfo = useViewerStore(viewerStore, (s) => s.hoverLaneInfo);
+
+  // Notify parent of viewer mode changes
+  useEffect(() => {
+    onViewerModeChange?.(viewerMode);
+  }, [viewerMode, onViewerModeChange]);
 
   const isSimulating = simulationStatus === 'running';
 

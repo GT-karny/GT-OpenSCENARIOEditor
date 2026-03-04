@@ -26,7 +26,7 @@ export const MiscObjectEntity: React.FC<MiscObjectEntityProps> = React.memo(
     return (
       <group
         position={[position.x, position.y, position.z]}
-        rotation={[0, 0, position.h]}
+        rotation={[position.pitch ?? 0, position.roll ?? 0, position.h]}
       >
         {/* Object body */}
         <mesh
