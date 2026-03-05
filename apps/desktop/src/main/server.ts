@@ -6,8 +6,11 @@ import { buildApp } from '@osce/server/app';
 let server: any = null;
 
 export async function startServer(): Promise<number> {
-  const userDataPath = app.getPath('userData');
-  const projectsPath = path.join(userDataPath, 'projects');
+  // Desktop packaged app stores project data beside the exe:
+  // <exe-dir>/OpenSCENARIOEditor-data/projects
+  const exeDirPath = path.dirname(process.execPath);
+  const dataRootPath = path.join(exeDirPath, 'OpenSCENARIOEditor-data');
+  const projectsPath = path.join(dataRootPath, 'projects');
 
   server = await buildApp({
     projectsBasePath: projectsPath,
