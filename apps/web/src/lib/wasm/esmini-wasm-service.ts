@@ -24,6 +24,9 @@ import type {
   WasmStoryBoardEvent,
 } from './types.js';
 
+/** Maximum time (ms) to wait for worker to confirm scenario loaded */
+const LOAD_TIMEOUT_MS = 30_000;
+
 // Map C++ enum values to TypeScript string unions
 const ELEMENT_TYPE_MAP: Record<number, StoryBoardElementType> = {
   1: 'storyboard',
@@ -91,6 +94,7 @@ export class EsminiWasmService implements IEsminiService {
   private conditionCallbacks: Array<(event: ConditionEvent) => void> = [];
   private batchStoryBoardCallbacks: Array<(events: StoryBoardEvent[]) => void> = [];
   private batchConditionCallbacks: Array<(events: ConditionEvent[]) => void> = [];
+  private errorCallbacks: Array<(error: string) => void> = [];
 
   private ensureWorker(): Worker {
     if (!this.worker) {
@@ -102,7 +106,11 @@ export class EsminiWasmService implements IEsminiService {
       };
       this.worker.onerror = (e) => {
         this.status = 'error';
+        const message = e.message ?? 'Worker encountered an unrecoverable error';
         console.error('[EsminiWasmService] Worker error:', e);
+        for (const cb of this.errorCallbacks) {
+          cb(message);
+        }
       };
     }
     return this.worker;
@@ -197,6 +205,9 @@ export class EsminiWasmService implements IEsminiService {
       case 'error':
         this.status = 'error';
         console.error('[EsminiWasmService]', msg.message);
+        for (const cb of this.errorCallbacks) {
+          cb(msg.message);
+        }
         break;
     }
   }
@@ -232,13 +243,28 @@ export class EsminiWasmService implements IEsminiService {
       catalogs: request.catalogXmls,
     });
 
-    // Wait for 'loaded' response
+    // Wait for 'loaded' response with timeout
     await new Promise<void>((resolve, reject) => {
+      let settled = false;
+
+      const timeoutId = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        this.worker?.removeEventListener('message', handler);
+        this.status = 'error';
+        reject(new Error(`Scenario load timed out after ${LOAD_TIMEOUT_MS / 1000}s`));
+      }, LOAD_TIMEOUT_MS);
+
       const handler = (e: MessageEvent<WorkerResponse>) => {
+        if (settled) return;
         if (e.data.type === 'loaded') {
+          settled = true;
+          clearTimeout(timeoutId);
           this.worker?.removeEventListener('message', handler);
           resolve();
         } else if (e.data.type === 'error') {
+          settled = true;
+          clearTimeout(timeoutId);
           this.worker?.removeEventListener('message', handler);
           reject(new Error(e.data.message));
         }
@@ -256,7 +282,7 @@ export class EsminiWasmService implements IEsminiService {
     this.send({ type: 'pause' });
     this.send({ type: 'dispose' });
 
-    if (this.status === 'running') {
+    if (this.status === 'running' || this.status === 'error') {
       const duration = this.frames.length > 0 ? this.frames[this.frames.length - 1].time : 0;
       this.completeSimulation(duration);
     }
@@ -286,7 +312,15 @@ export class EsminiWasmService implements IEsminiService {
     };
   }
 
-  // --- Extended API (storyboard introspection, not in IEsminiService) ---
+  // --- Extended API (storyboard introspection & error, not in IEsminiService) ---
+
+  onError(callback: (error: string) => void): () => void {
+    this.errorCallbacks.push(callback);
+    return () => {
+      const idx = this.errorCallbacks.indexOf(callback);
+      if (idx !== -1) this.errorCallbacks.splice(idx, 1);
+    };
+  }
 
   onStoryBoardEvent(callback: (event: StoryBoardEvent) => void): () => void {
     this.storyBoardCallbacks.push(callback);
@@ -330,5 +364,6 @@ export class EsminiWasmService implements IEsminiService {
     this.conditionCallbacks = [];
     this.batchStoryBoardCallbacks = [];
     this.batchConditionCallbacks = [];
+    this.errorCallbacks = [];
   }
 }

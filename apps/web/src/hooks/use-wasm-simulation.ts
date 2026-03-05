@@ -45,11 +45,16 @@ export function useWasmSimulation() {
       console.warn(`[useWasmSimulation] Batch condition events: ${events.length}`);
       store().setConditionEvents(events);
     });
+    const unsubError = service.onError((errorMessage) => {
+      console.error('[useWasmSimulation] Simulation error:', errorMessage);
+      store().setError(errorMessage);
+    });
 
     return () => {
       unsubComplete();
       unsubSB();
       unsubCond();
+      unsubError();
       service.dispose();
       serviceRef.current = null;
     };
@@ -61,11 +66,17 @@ export function useWasmSimulation() {
       useSimulationStore.getState().reset();
       useSimulationStore.getState().setStatus('running');
 
-      await service.startSimulation({
-        scenarioXml: xml,
-        xodrXml: xodrData,
-        catalogXmls,
-      });
+      try {
+        await service.startSimulation({
+          scenarioXml: xml,
+          xodrXml: xodrData,
+          catalogXmls,
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        useSimulationStore.getState().setError(message);
+        throw err; // Re-throw so SimulationButtons catch can show toast
+      }
     },
     [getService],
   );

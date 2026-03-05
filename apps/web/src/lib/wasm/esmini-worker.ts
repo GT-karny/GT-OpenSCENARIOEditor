@@ -386,10 +386,24 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
       handleLoad(msg.xoscXml, msg.xodrData, msg.catalogs, msg.config);
       break;
     case 'step':
-      executeStep(msg.dt);
+      try {
+        executeStep(msg.dt);
+      } catch (err) {
+        post({
+          type: 'error',
+          message: `Step failed: ${err instanceof Error ? err.message : String(err)}`,
+        });
+      }
       break;
     case 'play':
-      handlePlay(msg.speed, msg.fps);
+      try {
+        handlePlay(msg.speed, msg.fps);
+      } catch (err) {
+        post({
+          type: 'error',
+          message: `Playback crashed: ${err instanceof Error ? err.message : String(err)}`,
+        });
+      }
       break;
     case 'pause':
       stopPlayLoop();
