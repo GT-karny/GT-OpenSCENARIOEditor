@@ -81,6 +81,30 @@ export class ProjectService {
     this.basePath = basePath ?? path.resolve(process.cwd(), 'data/projects');
   }
 
+  private async resolveSampleResourcesBase(): Promise<string | null> {
+    const runtimeResourcesPath = (process as NodeJS.Process & { resourcesPath?: string })
+      .resourcesPath;
+
+    const candidates = [
+      // Electron packaged runtime (desktop exe)
+      runtimeResourcesPath ? path.join(runtimeResourcesPath, 'gtsim-resources') : null,
+      // Existing dev flow: from apps/server cwd -> repo/Thirdparty/GT_Sim/resources
+      path.resolve(process.cwd(), '../../Thirdparty/GT_Sim/resources'),
+    ].filter((p): p is string => Boolean(p));
+
+    for (const base of candidates) {
+      try {
+        await fs.stat(path.join(base, 'xosc'));
+        await fs.stat(path.join(base, 'xodr'));
+        return base;
+      } catch {
+        // Continue trying other candidates
+      }
+    }
+
+    return null;
+  }
+
   // ── Sample project seeding ──────────────────────────────────
 
   /**
@@ -102,15 +126,8 @@ export class ProjectService {
       // Not yet seeded — continue
     }
 
-    // Fixed path: repo-root/Thirdparty/esmini-demo_Windows/esmini-demo/resources
-    // cwd is apps/server/ when run via pnpm filter, so go up two levels
-    const esminiBase = path.resolve(process.cwd(), '../../Thirdparty/esmini-demo_Windows/esmini-demo/resources');
-
-    try {
-      await fs.stat(path.join(esminiBase, 'xosc'));
-    } catch {
-      return; // esmini resources not available — skip
-    }
+    const esminiBase = await this.resolveSampleResourcesBase();
+    if (!esminiBase) return; // sample resources not available — skip
 
     const xoscDir = path.join(esminiBase, 'xosc');
     const xodrDir = path.join(esminiBase, 'xodr');

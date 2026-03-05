@@ -18,6 +18,27 @@ extraResources:
     to: web-dist
     filter:
       - "**/*"
+  - from: ../../Thirdparty/GT_Sim/resources
+    to: gtsim-resources
+    filter:
+      # Sample scenarios (same set as legacy esmini-demo seeding)
+      - "xosc/cut-in.xosc"
+      - "xosc/cut-in_simple.xosc"
+      - "xosc/lane_change.xosc"
+      - "xosc/highway_merge.xosc"
+      - "xosc/pedestrian.xosc"
+      # Referenced roads
+      - "xodr/e6mini.xodr"
+      - "xodr/jolengatan.xodr"
+      - "xodr/soderleden.xodr"
+      - "xodr/fabriksgatan.xodr"
+      - "xodr/straight_500m.xodr"
+      # Catalog files used by the seeded samples
+      - "xosc/Catalogs/Vehicles/VehicleCatalog.xosc"
+      - "xosc/Catalogs/Pedestrians/PedestrianCatalog.xosc"
+      - "xosc/Catalogs/Controllers/ControllerCatalog.xosc"
+      - "xosc/Catalogs/Routes/RoutesAtFabriksgatan.xosc"
+      - "xosc/Catalogs/Maneuvers/HWManeuvers.xosc"
 
 win:
   sign: false
