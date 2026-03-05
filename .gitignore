@@ -1,5 +1,6 @@
-# Third-party libraries (download separately, not redistributable)
+# Third-party: ignore spec/demo files, track submodules
 Thirdparty/
+!Thirdparty/GT_Sim
 !Thirdparty/open-simulation-interface/
 
 # Dependencies
