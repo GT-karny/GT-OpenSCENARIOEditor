@@ -40,6 +40,10 @@ export interface EditorState {
   setCurrentFileName: (name: string | null) => void;
   isDirty: boolean;
   setDirty: (dirty: boolean) => void;
+
+  // SaveAs dialog
+  showSaveAs: boolean;
+  setShowSaveAs: (show: boolean) => void;
 }
 
 const defaultPreferences: EditorPreferences = {
@@ -112,6 +116,10 @@ export const useEditorStore = create<EditorState>()(
       setCurrentFileName: (name) => set({ currentFileName: name }),
       isDirty: false,
       setDirty: (dirty) => set({ isDirty: dirty }),
+
+      // SaveAs dialog
+      showSaveAs: false,
+      setShowSaveAs: (show) => set({ showSaveAs: show }),
     }),
     {
       name: 'osce-editor-preferences',

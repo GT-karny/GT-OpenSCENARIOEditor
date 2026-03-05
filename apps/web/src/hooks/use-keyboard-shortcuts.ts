@@ -6,7 +6,7 @@ import { isInputFocused } from '../lib/dom-utils';
 
 export function useKeyboardShortcuts() {
   const storeApi = useScenarioStoreApi();
-  const { openXosc, saveXosc } = useFileOperations();
+  const { openXosc, saveXosc, saveAsXosc } = useFileOperations();
   const { deleteSelected } = useElementDelete();
 
   useEffect(() => {
@@ -19,6 +19,9 @@ export function useKeyboardShortcuts() {
       } else if (ctrl && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
         e.preventDefault();
         storeApi.getState().redo();
+      } else if (ctrl && e.shiftKey && e.key === 'S') {
+        e.preventDefault();
+        saveAsXosc();
       } else if (ctrl && e.key === 's') {
         e.preventDefault();
         saveXosc();
@@ -34,5 +37,5 @@ export function useKeyboardShortcuts() {
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [storeApi, openXosc, saveXosc, deleteSelected]);
+  }, [storeApi, openXosc, saveXosc, saveAsXosc, deleteSelected]);
 }

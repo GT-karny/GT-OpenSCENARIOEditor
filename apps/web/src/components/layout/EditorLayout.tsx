@@ -24,6 +24,7 @@ import { DeleteConfirmationDialog } from '../node-editor/DeleteConfirmationDialo
 import { ParameterDialog } from '../template/ParameterDialog';
 import { CatalogEditorModal } from '../catalog/CatalogEditorModal';
 import { FileTreeSidebar } from '../editor/FileTreeSidebar';
+import { SaveAsDialog } from '../editor/SaveAsDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { useTranslation } from '@osce/i18n';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
@@ -34,6 +35,7 @@ import { useTemplateDrop } from '../../hooks/use-template-drop';
 import { useElementDelete } from '../../hooks/use-element-delete';
 import { useElementAdd } from '../../hooks/use-element-add';
 import { getDirectChildCount } from '../../lib/count-descendants';
+import { useFileOperations } from '../../hooks/use-file-operations';
 import { useProjectFileOperations } from '../../hooks/use-project-file-operations';
 import { buildFullPathToIdMap } from '../../lib/fullpath-mapping';
 
@@ -125,6 +127,11 @@ export function EditorLayout() {
   useEffect(() => {
     fileTreePanelRef.current?.collapse();
   }, []);
+
+  // --- SaveAs dialog ---
+  const showSaveAs = useEditorStore((s) => s.showSaveAs);
+  const setShowSaveAs = useEditorStore((s) => s.setShowSaveAs);
+  const { handleSaveAs } = useFileOperations();
 
   // --- Auto-load project catalogs ---
   const { autoLoadProjectCatalogs } = useProjectFileOperations();
@@ -498,6 +505,13 @@ export function EditorLayout() {
           onClose={() => setContextMenu(null)}
         />
       )}
+
+      {/* SaveAs Dialog */}
+      <SaveAsDialog
+        open={showSaveAs}
+        onOpenChange={setShowSaveAs}
+        onSave={handleSaveAs}
+      />
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmationDialog

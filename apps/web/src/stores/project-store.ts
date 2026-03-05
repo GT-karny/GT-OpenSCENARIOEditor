@@ -26,6 +26,12 @@ export interface ProjectState {
   openScenarioFile: (relativePath: string) => Promise<string | null>;
   saveCurrentFile: (xmlContent: string) => Promise<void>;
   createNewFile: (relativePath: string) => Promise<void>;
+
+  // File operations
+  renameFile: (oldPath: string, newPath: string) => Promise<void>;
+  trashFile: (relativePath: string) => Promise<void>;
+  restoreFile: (trashPath: string) => Promise<void>;
+  permanentlyDeleteFile: (relativePath: string) => Promise<void>;
 }
 
 function addToRecent(ids: string[], id: string): string[] {
@@ -121,6 +127,44 @@ export const useProjectStore = create<ProjectState>()(
   </Storyboard>
 </OpenSCENARIO>`;
         await api.writeProjectFile(currentProject.meta.id, relativePath, emptyXosc);
+        await refreshProject();
+      },
+
+      renameFile: async (oldPath, newPath) => {
+        const { currentProject, currentFilePath, currentXodrPath, refreshProject } = get();
+        if (!currentProject) return;
+        await api.renameProjectFile(currentProject.meta.id, oldPath, newPath);
+        const updates: Partial<ProjectState> = {};
+        if (currentFilePath === oldPath) updates.currentFilePath = newPath;
+        if (currentXodrPath === oldPath) updates.currentXodrPath = newPath;
+        if (Object.keys(updates).length > 0) set(updates);
+        await refreshProject();
+      },
+
+      trashFile: async (relativePath) => {
+        const { currentProject, currentFilePath, currentXodrPath, refreshProject } = get();
+        if (!currentProject) return;
+        const trashPath = `.trash/${relativePath}`;
+        await api.renameProjectFile(currentProject.meta.id, relativePath, trashPath);
+        const updates: Partial<ProjectState> = {};
+        if (currentFilePath === relativePath) updates.currentFilePath = null;
+        if (currentXodrPath === relativePath) updates.currentXodrPath = null;
+        if (Object.keys(updates).length > 0) set(updates);
+        await refreshProject();
+      },
+
+      restoreFile: async (trashPath) => {
+        const { currentProject, refreshProject } = get();
+        if (!currentProject) return;
+        const originalPath = trashPath.replace(/^\.trash\//, '');
+        await api.renameProjectFile(currentProject.meta.id, trashPath, originalPath);
+        await refreshProject();
+      },
+
+      permanentlyDeleteFile: async (relativePath) => {
+        const { currentProject, refreshProject } = get();
+        if (!currentProject) return;
+        await api.deleteProjectFile(currentProject.meta.id, relativePath);
         await refreshProject();
       },
     }),

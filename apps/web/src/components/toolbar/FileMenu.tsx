@@ -1,5 +1,5 @@
 import { useTranslation } from '@osce/i18n';
-import { FilePlus, FolderOpen, Save } from 'lucide-react';
+import { FilePlus, FolderOpen, Save, SaveAll } from 'lucide-react';
 import { Button } from '../ui/button';
 import {
   DropdownMenu,
@@ -13,7 +13,7 @@ import { useFileOperations } from '../../hooks/use-file-operations';
 
 export function FileMenu() {
   const { t } = useTranslation('common');
-  const { newScenario, openXosc, saveXosc } = useFileOperations();
+  const { newScenario, openXosc, saveXosc, saveAsXosc } = useFileOperations();
 
   return (
     <DropdownMenu>
@@ -37,6 +37,11 @@ export function FileMenu() {
           <Save />
           {t('buttons.save')} .xosc
           <DropdownMenuShortcut>Ctrl+S</DropdownMenuShortcut>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={saveAsXosc}>
+          <SaveAll />
+          {t('buttons.saveAs')} .xosc
+          <DropdownMenuShortcut>Ctrl+Shift+S</DropdownMenuShortcut>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

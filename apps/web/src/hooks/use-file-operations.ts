@@ -1,10 +1,13 @@
 import { useCallback } from 'react';
 import { XoscParser, XoscSerializer } from '@osce/openscenario';
 import { XodrParser } from '@osce/opendrive';
+import { useTranslation } from '@osce/i18n';
+import { toast } from 'sonner';
 import { useScenarioStoreApi } from '../stores/use-scenario-store';
 import { useEditorStore } from '../stores/editor-store';
 import { useProjectStore } from '../stores/project-store';
 import { buildCatalogLocationsFromProject } from '../lib/catalog-location-utils';
+import * as api from '../lib/project-api';
 
 // File picker type definitions for File System Access API
 interface FilePickerOptions {
@@ -93,10 +96,12 @@ async function writeFileToDisk(
 
 export function useFileOperations() {
   const storeApi = useScenarioStoreApi();
+  const { t } = useTranslation('common');
   const setCurrentFileName = useEditorStore((s) => s.setCurrentFileName);
   const setDirty = useEditorStore((s) => s.setDirty);
   const setValidationResult = useEditorStore((s) => s.setValidationResult);
   const setRoadNetwork = useEditorStore((s) => s.setRoadNetwork);
+  const setShowSaveAs = useEditorStore((s) => s.setShowSaveAs);
 
   const newScenario = useCallback(() => {
     storeApi.getState().createScenario();
@@ -140,22 +145,31 @@ export function useFileOperations() {
 
   const saveXosc = useCallback(async () => {
     const currentProject = useProjectStore.getState().currentProject;
+    const currentFilePath = useProjectStore.getState().currentFilePath;
 
-    // Project mode: save via API
-    if (currentProject) {
+    // Project mode with known file: save via API (overwrite)
+    if (currentProject && currentFilePath) {
       try {
         const doc = storeApi.getState().document;
         const serializer = new XoscSerializer();
         const xml = serializer.serializeFormatted(doc);
         await useProjectStore.getState().saveCurrentFile(xml);
         setDirty(false);
-      } catch {
-        // Save failed
+        toast.success(t('labels.fileSaved'));
+      } catch (err) {
+        console.error('Save failed:', err);
+        toast.error(t('labels.serializeFailed'));
       }
       return;
     }
 
-    // Standalone mode: save to disk
+    // Project mode without file path: open SaveAs dialog
+    if (currentProject) {
+      setShowSaveAs(true);
+      return;
+    }
+
+    // Standalone mode: save to disk via file picker
     try {
       const doc = storeApi.getState().document;
       const serializer = new XoscSerializer();
@@ -163,10 +177,44 @@ export function useFileOperations() {
       const currentName = useEditorStore.getState().currentFileName;
       await writeFileToDisk(xml, '.xosc', currentName);
       setDirty(false);
-    } catch {
-      // User cancelled the save picker
+      toast.success(t('labels.fileSaved'));
+    } catch (err) {
+      // AbortError = user cancelled the file picker
+      if (err instanceof Error && err.name !== 'AbortError') {
+        console.error('Save failed:', err);
+        toast.error(t('labels.serializeFailed'));
+      }
     }
-  }, [storeApi, setDirty]);
+  }, [storeApi, setDirty, setShowSaveAs, t]);
+
+  const handleSaveAs = useCallback(
+    async (relativePath: string) => {
+      const currentProject = useProjectStore.getState().currentProject;
+      if (!currentProject) return;
+
+      const doc = storeApi.getState().document;
+      const serializer = new XoscSerializer();
+      const xml = serializer.serializeFormatted(doc);
+
+      await api.writeProjectFile(currentProject.meta.id, relativePath, xml);
+
+      // Update state to track the saved file path
+      useProjectStore.setState({ currentFilePath: relativePath });
+      const fileName = relativePath.split('/').pop() ?? relativePath;
+      setCurrentFileName(fileName);
+      setDirty(false);
+
+      // Refresh project file list
+      await useProjectStore.getState().refreshProject();
+
+      toast.success(t('labels.fileSaved'));
+    },
+    [storeApi, setCurrentFileName, setDirty, t],
+  );
+
+  const saveAsXosc = useCallback(() => {
+    setShowSaveAs(true);
+  }, [setShowSaveAs]);
 
   const loadXodr = useCallback(async () => {
     try {
@@ -179,5 +227,5 @@ export function useFileOperations() {
     }
   }, [setRoadNetwork]);
 
-  return { newScenario, openXosc, saveXosc, loadXodr };
+  return { newScenario, openXosc, saveXosc, saveAsXosc, loadXodr, handleSaveAs };
 }

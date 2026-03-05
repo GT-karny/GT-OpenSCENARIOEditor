@@ -61,8 +61,8 @@ export async function writeProjectFile(
   const encodedPath = relativePath.split('/').map(encodeURIComponent).join('/');
   const res = await fetch(`${API_BASE}/projects/${projectId}/files/${encodedPath}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'text/plain' },
-    body: content,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content }),
   });
   if (!res.ok) throw new Error(`Failed to write file: ${res.statusText}`);
 }
@@ -73,6 +73,19 @@ export async function deleteProjectFile(projectId: string, relativePath: string)
     method: 'DELETE',
   });
   if (!res.ok) throw new Error(`Failed to delete file: ${res.statusText}`);
+}
+
+export async function renameProjectFile(
+  projectId: string,
+  from: string,
+  to: string,
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/projects/${projectId}/files/rename`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from, to }),
+  });
+  if (!res.ok) throw new Error(`Failed to rename file: ${res.statusText}`);
 }
 
 export function exportProjectUrl(projectId: string): string {
