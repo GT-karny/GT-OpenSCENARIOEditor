@@ -6,10 +6,12 @@ directories:
   output: release
   buildResources: build-resources
 
+# Main process is bundled by esbuild — workspace packages are inlined.
+# Only dist/ and runtime node_modules deps are needed.
 files:
   - dist/**/*
-  - node_modules/**/*
   - package.json
+  - "!node_modules/@osce/**"
 
 extraResources:
   - from: ../web/dist
@@ -18,8 +20,10 @@ extraResources:
       - "**/*"
 
 win:
+  sign: false
+  signDlls: false
   target:
-    - target: portable
+    - target: dir
       arch:
         - x64
 
@@ -43,5 +47,7 @@ asar: true
 asarUnpack:
   - "node_modules/@grpc/**"
   - "node_modules/protobufjs/**"
+
+npmRebuild: true
 
 publish: null

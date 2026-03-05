@@ -3,21 +3,31 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "dist/main/index.js",
+  "description": "OpenSCENARIO Editor desktop application",
+  "author": "GT-karny",
+  "main": "dist/main/index.mjs",
   "scripts": {
-    "build": "tsc --project tsconfig.main.json && node scripts/build-preload.mjs",
+    "build": "node scripts/bundle.mjs",
+    "build:check": "tsc --project tsconfig.main.json --noEmit",
     "dev": "node scripts/dev.mjs",
-    "pack": "pnpm build && electron-builder --config electron-builder.yml",
-    "pack:win": "pnpm pack -- --win portable",
-    "pack:mac": "pnpm pack -- --mac dir",
-    "pack:linux": "pnpm pack -- --linux dir"
+    "dist": "pnpm build && node scripts/dist.mjs",
+    "dist:win": "pnpm build && npx electron-builder --config electron-builder.yml --win",
+    "dist:mac": "pnpm build && npx electron-builder --config electron-builder.yml --mac",
+    "dist:linux": "pnpm build && npx electron-builder --config electron-builder.yml --linux"
   },
   "dependencies": {
-    "@osce/server": "workspace:*",
+    "fastify": "^5.0.0",
+    "@fastify/cors": "^10.0.0",
+    "@fastify/websocket": "^11.0.0",
+    "@fastify/multipart": "^9.0.0",
     "@fastify/static": "^8.0.0",
+    "@grpc/grpc-js": "^1.12.0",
+    "@grpc/proto-loader": "^0.7.0",
+    "adm-zip": "^0.5.16",
     "electron-store": "^10.0.0"
   },
   "devDependencies": {
+    "@osce/server": "workspace:*",
     "@types/node": "^22.0.0",
     "esbuild": "^0.24.0",
     "electron": "^33.0.0",

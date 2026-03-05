@@ -9,7 +9,7 @@
     "dev:server": "pnpm --filter @osce/server dev",
     "dev:full": "pnpm --filter @osce/server --filter @osce/web --parallel dev",
     "dev:desktop": "pnpm --filter @osce/desktop dev",
-    "build:desktop": "pnpm build && pnpm --filter @osce/desktop pack",
+    "build:desktop": "pnpm build && pnpm --filter @osce/desktop dist",
     "build": "pnpm -r build",
     "build:shared": "pnpm --filter @osce/shared build",
     "maturity:validate": "node scripts/maturity/validate-capabilities.mjs",

@@ -32,16 +32,37 @@ importers:
 
   apps/desktop:
     dependencies:
+      '@fastify/cors':
+        specifier: ^10.0.0
+        version: 10.1.0
+      '@fastify/multipart':
+        specifier: ^9.0.0
+        version: 9.4.0
       '@fastify/static':
         specifier: ^8.0.0
         version: 8.3.0
-      '@osce/server':
-        specifier: workspace:*
-        version: link:../server
+      '@fastify/websocket':
+        specifier: ^11.0.0
+        version: 11.2.0
+      '@grpc/grpc-js':
+        specifier: ^1.12.0
+        version: 1.14.3
+      '@grpc/proto-loader':
+        specifier: ^0.7.0
+        version: 0.7.15
+      adm-zip:
+        specifier: ^0.5.16
+        version: 0.5.16
       electron-store:
         specifier: ^10.0.0
         version: 10.1.0
+      fastify:
+        specifier: ^5.0.0
+        version: 5.7.4
     devDependencies:
+      '@osce/server':
+        specifier: workspace:*
+        version: link:../server
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.13

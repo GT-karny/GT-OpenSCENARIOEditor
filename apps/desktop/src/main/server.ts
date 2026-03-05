@@ -1,5 +1,6 @@
 import { app } from 'electron';
 import path from 'node:path';
+import { buildApp } from '@osce/server/app';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let server: any = null;
@@ -7,8 +8,6 @@ let server: any = null;
 export async function startServer(): Promise<number> {
   const userDataPath = app.getPath('userData');
   const projectsPath = path.join(userDataPath, 'projects');
-
-  const { buildApp } = await import('@osce/server/app');
 
   server = await buildApp({
     projectsBasePath: projectsPath,
