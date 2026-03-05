@@ -4,6 +4,7 @@ import { XodrParser } from '@osce/opendrive';
 import { useScenarioStoreApi } from '../stores/use-scenario-store';
 import { useEditorStore } from '../stores/editor-store';
 import { useProjectStore } from '../stores/project-store';
+import { buildCatalogLocationsFromProject } from '../lib/catalog-location-utils';
 
 // File picker type definitions for File System Access API
 interface FilePickerOptions {
@@ -99,6 +100,21 @@ export function useFileOperations() {
 
   const newScenario = useCallback(() => {
     storeApi.getState().createScenario();
+
+    // Auto-populate CatalogLocations in project mode
+    const project = useProjectStore.getState().currentProject;
+    if (project) {
+      const currentFilePath = useProjectStore.getState().currentFilePath;
+      const catalogLocations = buildCatalogLocationsFromProject(
+        project.files,
+        currentFilePath ?? '',
+      );
+      if (Object.keys(catalogLocations).length > 0) {
+        const doc = storeApi.getState().document;
+        storeApi.setState({ document: { ...doc, catalogLocations } });
+      }
+    }
+
     setCurrentFileName(null);
     setDirty(false);
     setValidationResult(null);

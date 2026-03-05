@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { AppView, ProjectDetail, ProjectCreateRequest } from '@osce/shared';
 import * as api from '../lib/project-api';
+import { buildCatalogLocationsXml } from '../lib/catalog-location-utils';
 
 export interface ProjectState {
   // View state
@@ -104,11 +105,12 @@ export const useProjectStore = create<ProjectState>()(
       createNewFile: async (relativePath) => {
         const { currentProject, refreshProject } = get();
         if (!currentProject) return;
+        const catalogLocations = buildCatalogLocationsXml(currentProject.files, relativePath);
         const emptyXosc = `<?xml version="1.0" encoding="UTF-8"?>
 <OpenSCENARIO>
   <FileHeader revMajor="1" revMinor="2" date="" description="" author=""/>
   <ParameterDeclarations/>
-  <CatalogLocations/>
+  ${catalogLocations}
   <RoadNetwork><LogicFile filepath=""/></RoadNetwork>
   <Entities/>
   <Storyboard>

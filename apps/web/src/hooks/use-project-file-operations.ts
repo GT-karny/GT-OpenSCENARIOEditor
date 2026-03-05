@@ -7,6 +7,7 @@ import { useScenarioStoreApi } from '../stores/use-scenario-store';
 import { useEditorStore } from '../stores/editor-store';
 import { useProjectStore } from '../stores/project-store';
 import { useCatalogStore } from '../stores/catalog-store';
+import { buildCatalogLocationsFromProject } from '../lib/catalog-location-utils';
 import * as api from '../lib/project-api';
 
 /**
@@ -128,6 +129,15 @@ export function useProjectFileOperations() {
         const content = await api.readProjectFile(project.meta.id, relativePath);
         const parser = new XoscParser();
         const doc = parser.parse(content);
+
+        // Auto-populate CatalogLocations from project catalog folders if empty
+        const hasCatalogLocations = Object.keys(doc.catalogLocations).length > 0;
+        if (!hasCatalogLocations) {
+          doc.catalogLocations = buildCatalogLocationsFromProject(
+            project.files,
+            relativePath,
+          );
+        }
 
         // Load into scenario store
         scenarioStoreApi.getState().createScenario();
