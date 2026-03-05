@@ -1,7 +1,6 @@
 import { Plus, X, Zap } from 'lucide-react';
 import type { ScenarioEvent } from '@osce/shared';
 import { Label } from '../ui/label';
-import { Input } from '../ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { EnumSelect } from './EnumSelect';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
@@ -15,15 +14,11 @@ interface EventPropertyEditorProps {
 }
 
 /**
- * Tabbed Event property editor (Action / Event / Trigger).
+ * Tabbed Action + Trigger property editor.
  * Shown when selecting an ActionRow in the Composer view.
  */
 export function EventPropertyEditor({ event }: EventPropertyEditorProps) {
   const storeApi = useScenarioStoreApi();
-
-  const handleNameChange = (name: string) => {
-    storeApi.getState().updateEvent(event.id, { name });
-  };
 
   const handlePriorityChange = (value: string) => {
     storeApi.getState().updateEvent(event.id, {
@@ -67,9 +62,6 @@ export function EventPropertyEditor({ event }: EventPropertyEditorProps) {
           <TabsTrigger value="action" className="flex-1 text-[11px]">
             Action
           </TabsTrigger>
-          <TabsTrigger value="event" className="flex-1 text-[11px]">
-            Event
-          </TabsTrigger>
           <TabsTrigger value="trigger" className="flex-1 text-[11px]">
             Trigger
           </TabsTrigger>
@@ -77,27 +69,7 @@ export function EventPropertyEditor({ event }: EventPropertyEditorProps) {
 
         {/* Action tab */}
         <TabsContent value="action">
-          <div className="space-y-2 p-2">
-            {firstAction ? (
-              <ActionPropertyEditor action={firstAction} />
-            ) : (
-              <p className="text-xs text-muted-foreground italic">No actions defined</p>
-            )}
-          </div>
-        </TabsContent>
-
-        {/* Event tab */}
-        <TabsContent value="event">
           <div className="space-y-3 p-2">
-            <div className="grid gap-2">
-              <Label className="text-xs">Name</Label>
-              <Input
-                value={event.name}
-                onChange={(e) => handleNameChange(e.target.value)}
-                className="h-8 text-sm"
-              />
-            </div>
-
             <div className="grid gap-2">
               <Label className="text-xs">Priority</Label>
               <EnumSelect
@@ -107,6 +79,12 @@ export function EventPropertyEditor({ event }: EventPropertyEditorProps) {
                 className="h-8 text-sm"
               />
             </div>
+
+            {firstAction ? (
+              <ActionPropertyEditor action={firstAction} />
+            ) : (
+              <p className="text-xs text-muted-foreground italic">No actions defined</p>
+            )}
           </div>
         </TabsContent>
 
