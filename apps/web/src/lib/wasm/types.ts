@@ -58,14 +58,41 @@ export interface WasmOpenScenarioConfig {
   dt: number;
 }
 
+// --- RoadManager WASM types (match C++ RMPositionResult) ---
+
+export interface WasmRMPositionResult {
+  x: number;
+  y: number;
+  z: number;
+  h: number;
+  p: number;
+  r: number;
+  road_id: number;
+  lane_id: number;
+  s: number;
+  t: number;
+  offset: number;
+  return_code: number; // 0 = OK, negative = error
+}
+
 // --- Worker message protocol ---
 
 export type WorkerRequest =
+  // Simulation messages
   | { type: 'load'; xoscXml: string; xodrData?: string; catalogs?: Record<string, string>; config?: Partial<WasmOpenScenarioConfig> }
   | { type: 'step'; dt: number }
   | { type: 'play'; speed: number; fps: number }
   | { type: 'pause' }
-  | { type: 'dispose' };
+  | { type: 'dispose' }
+  // RoadManager messages
+  | { type: 'rm-load-odr'; xodrXml: string }
+  | { type: 'rm-lane-to-world'; roadId: number; laneId: number; s: number; offset: number; requestId: string }
+  | { type: 'rm-world-to-lane'; x: number; y: number; requestId: string }
+  | { type: 'rm-track-to-world'; roadId: number; s: number; t: number; requestId: string }
+  | { type: 'rm-road-length'; roadId: number; requestId: string }
+  | { type: 'rm-lane-width'; roadId: number; laneId: number; s: number; requestId: string }
+  | { type: 'rm-road-count'; requestId: string }
+  | { type: 'rm-lane-count'; roadId: number; s: number; requestId: string };
 
 export type WorkerResponse =
   | {
@@ -94,4 +121,9 @@ export type WorkerResponse =
   | {
       type: 'error';
       message: string;
-    };
+    }
+  // RoadManager responses
+  | { type: 'rm-loaded' }
+  | { type: 'rm-position'; requestId: string; result: WasmRMPositionResult }
+  | { type: 'rm-scalar'; requestId: string; value: number }
+  | { type: 'rm-error'; requestId?: string; message: string };

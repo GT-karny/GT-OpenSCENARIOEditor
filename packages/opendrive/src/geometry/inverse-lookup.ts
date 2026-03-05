@@ -6,6 +6,7 @@
 import type { OpenDriveDocument, OdrRoad, OdrLaneSection } from '@osce/shared';
 import { evaluateReferenceLineAtS } from './reference-line.js';
 import { computeLaneInnerT, computeLaneOuterT } from './lane-boundary.js';
+import { evaluateLaneOffset } from './lane-offset.js';
 import { evaluateElevation } from './elevation.js';
 import { computeDrivingHeading } from './driving-direction.js';
 import { findRecordAtS } from '../utils/math.js';
@@ -188,12 +189,13 @@ export function worldToLane(
   let bestLaneDistSq = Infinity;
 
   const allLanes = [...(laneSection.leftLanes ?? []), ...(laneSection.rightLanes ?? [])];
+  const laneOff = evaluateLaneOffset(road.laneOffset, roadResult.s);
 
   for (const lane of allLanes) {
     if (lane.id === 0) continue; // Skip center lane
 
-    const innerT = computeLaneInnerT(laneSection, lane, dsFromSectionStart);
-    const outerT = computeLaneOuterT(laneSection, lane, dsFromSectionStart);
+    const innerT = computeLaneInnerT(laneSection, lane, dsFromSectionStart) + laneOff;
+    const outerT = computeLaneOuterT(laneSection, lane, dsFromSectionStart) + laneOff;
 
     const minT = Math.min(innerT, outerT);
     const maxT = Math.max(innerT, outerT);

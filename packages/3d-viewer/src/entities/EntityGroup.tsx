@@ -2,17 +2,19 @@
  * Orchestrates rendering of all scenario entities.
  * Dispatches to the appropriate entity renderer based on entity type.
  * When a gizmo mode is active, attaches a TransformControls gizmo to the selected entity.
+ * For road-coordinate translate mode, uses RoadGizmo instead of TransformControls.
  */
 
 import React, { useRef, useState, useCallback } from 'react';
 import type * as THREE from 'three';
-import type { ScenarioEntity } from '@osce/shared';
+import type { ScenarioEntity, OpenDriveDocument } from '@osce/shared';
 import type { WorldCoords } from '../utils/position-resolver.js';
 import type { GizmoMode } from '../store/viewer-types.js';
 import { VehicleEntity } from './VehicleEntity.js';
 import { PedestrianEntity } from './PedestrianEntity.js';
 import { MiscObjectEntity } from './MiscObjectEntity.js';
 import { EntityGizmo } from '../interaction/EntityGizmo.js';
+import { RoadGizmo } from '../interaction/RoadGizmo.js';
 
 interface EntityGroupProps {
   entities: ScenarioEntity[];
@@ -24,6 +26,12 @@ interface EntityGroupProps {
   gizmoMode?: GizmoMode;
   orbitControlsRef?: React.RefObject<any>;
   onEntityPositionChange?: (entityName: string, x: number, y: number, z: number, h: number) => void;
+  /** OpenDRIVE document for road-coordinate gizmo projection */
+  openDriveDocument?: OpenDriveDocument | null;
+  /** Whether to snap gizmo movement to lane centers */
+  snapToLane?: boolean;
+  /** Current road position of the selected entity (for road-coordinate gizmo) */
+  selectedEntityRoadPosition?: { roadId: string; laneId: number; s: number } | null;
 }
 
 function isEgoEntity(entity: ScenarioEntity, index: number): boolean {
@@ -33,6 +41,7 @@ function isEgoEntity(entity: ScenarioEntity, index: number): boolean {
 
 /**
  * Wrapper that provides a ref for attaching the gizmo.
+ * Optionally renders RoadGizmo as a child (inside the rotation group).
  */
 function EntityWithRef({
   entity,
@@ -43,6 +52,7 @@ function EntityWithRef({
   onSelect,
   onFocus,
   groupRef,
+  roadGizmoProps,
 }: {
   entity: ScenarioEntity;
   position: WorldCoords;
@@ -52,6 +62,13 @@ function EntityWithRef({
   onSelect: () => void;
   onFocus?: () => void;
   groupRef?: React.Ref<THREE.Group>;
+  roadGizmoProps?: {
+    entityRef: React.RefObject<THREE.Group | null>;
+    openDriveDocument: OpenDriveDocument;
+    currentRoadPosition: { roadId: string; laneId: number; s: number };
+    orbitControlsRef?: React.RefObject<any>;
+    onDragEnd?: (worldX: number, worldY: number, worldZ: number, heading: number) => void;
+  };
 }) {
   const commonProps = {
     entity,
@@ -96,6 +113,16 @@ function EntityWithRef({
           />
         )}
       </group>
+      {/* RoadGizmo rendered INSIDE the entity group so arrows inherit position + heading */}
+      {roadGizmoProps && (
+        <RoadGizmo
+          entityRef={roadGizmoProps.entityRef}
+          openDriveDocument={roadGizmoProps.openDriveDocument}
+          currentRoadPosition={roadGizmoProps.currentRoadPosition}
+          orbitControlsRef={roadGizmoProps.orbitControlsRef}
+          onDragEnd={roadGizmoProps.onDragEnd}
+        />
+      )}
     </group>
   );
 }
@@ -111,6 +138,9 @@ export const EntityGroup: React.FC<EntityGroupProps> = React.memo(
     gizmoMode = 'off',
     orbitControlsRef,
     onEntityPositionChange,
+    openDriveDocument,
+    snapToLane,
+    selectedEntityRoadPosition,
   }) => {
     const selectedGroupRef = useRef<THREE.Group>(null);
     const [selectedGroup, setSelectedGroup] = useState<THREE.Group | null>(null);
@@ -129,6 +159,17 @@ export const EntityGroup: React.FC<EntityGroupProps> = React.memo(
       },
       [selectedEntity, onEntityPositionChange],
     );
+
+    // Determine if road-coordinate gizmo should be used
+    const useRoadGizmo =
+      gizmoMode === 'translate' &&
+      !!openDriveDocument &&
+      !!snapToLane &&
+      !!selectedEntityRoadPosition;
+
+    // Use standard EntityGizmo for rotate mode or when road gizmo is not applicable
+    const useEntityGizmo =
+      (gizmoMode === 'translate' || gizmoMode === 'rotate') && !useRoadGizmo;
 
     return (
       <>
@@ -153,6 +194,17 @@ export const EntityGroup: React.FC<EntityGroupProps> = React.memo(
                   onSelect={() => onEntitySelect(entity.id)}
                   onFocus={() => onEntityFocus?.(entity.id)}
                   groupRef={selectedGroupCallbackRef}
+                  roadGizmoProps={
+                    useRoadGizmo
+                      ? {
+                          entityRef: selectedGroupRef,
+                          openDriveDocument: openDriveDocument!,
+                          currentRoadPosition: selectedEntityRoadPosition!,
+                          orbitControlsRef,
+                          onDragEnd: handleGizmoDragEnd,
+                        }
+                      : undefined
+                  }
                 />
               );
             }
@@ -196,8 +248,8 @@ export const EntityGroup: React.FC<EntityGroupProps> = React.memo(
           })}
         </group>
 
-        {/* Gizmo rendered OUTSIDE the rotation group to avoid double-transform */}
-        {(gizmoMode === 'translate' || gizmoMode === 'rotate') && selectedGroup && (
+        {/* Standard gizmo rendered OUTSIDE the rotation group (for rotate mode or non-road entities) */}
+        {useEntityGizmo && selectedGroup && (
           <EntityGizmo
             object={selectedGroupRef}
             mode={gizmoMode as 'translate' | 'rotate'}

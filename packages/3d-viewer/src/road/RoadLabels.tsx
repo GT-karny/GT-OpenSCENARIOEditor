@@ -6,7 +6,7 @@
 import React, { useMemo } from 'react';
 import { Html } from '@react-three/drei';
 import type { OdrRoad } from '@osce/shared';
-import { evaluateReferenceLineAtS, evaluateElevation, stToXyz, computeLaneInnerT, computeLaneOuterT } from '@osce/opendrive';
+import { evaluateReferenceLineAtS, evaluateElevation, evaluateLaneOffset, stToXyz, computeLaneInnerT, computeLaneOuterT } from '@osce/opendrive';
 
 interface RoadLabelsProps {
   roads: OdrRoad[];
@@ -53,9 +53,10 @@ export const RoadLabels: React.FC<RoadLabelsProps> = React.memo(
           const dsFromSection = midS - section.s;
 
           const allLanes = [...section.leftLanes, ...section.rightLanes];
+          const laneOff = evaluateLaneOffset(road.laneOffset, midS);
           for (const lane of allLanes) {
-            const innerT = computeLaneInnerT(section, lane, dsFromSection);
-            const outerT = computeLaneOuterT(section, lane, dsFromSection);
+            const innerT = computeLaneInnerT(section, lane, dsFromSection) + laneOff;
+            const outerT = computeLaneOuterT(section, lane, dsFromSection) + laneOff;
             const t = (innerT + outerT) / 2;
             const lanePos = stToXyz(pose, t, z + 1);
             result.push({

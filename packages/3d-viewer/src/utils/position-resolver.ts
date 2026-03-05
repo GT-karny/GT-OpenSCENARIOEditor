@@ -9,6 +9,7 @@ import {
   evaluateElevation,
   evaluateElevationGradient,
   evaluateSuperelevation,
+  evaluateLaneOffset,
   computeLaneInnerT,
   computeLaneOuterT,
   stToXyz,
@@ -99,9 +100,10 @@ function resolveLanePosition(
 
   const dsFromSection = pos.s - laneSection.s;
 
-  // Compute t at the center of the lane
-  const innerT = computeLaneInnerT(laneSection, lane, dsFromSection);
-  const outerT = computeLaneOuterT(laneSection, lane, dsFromSection);
+  // Compute t at the center of the lane (including road-level lane offset)
+  const laneOff = evaluateLaneOffset(road.laneOffset, pos.s);
+  const innerT = computeLaneInnerT(laneSection, lane, dsFromSection) + laneOff;
+  const outerT = computeLaneOuterT(laneSection, lane, dsFromSection) + laneOff;
   const t = (innerT + outerT) / 2 + (pos.offset ?? 0);
 
   const pose = evaluateReferenceLineAtS(road.planView, pos.s);

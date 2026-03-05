@@ -183,6 +183,26 @@ export function makeScenarioWithEntities(): ScenarioDocument {
   };
 }
 
+/**
+ * Create a straight road with a non-zero laneOffset.
+ * Same geometry as makeStraightRoad but with laneOffset a=3.5 (one lane width).
+ */
+export function makeStraightRoadDocWithLaneOffset(offsetA = 3.5): OpenDriveDocument {
+  const road = makeStraightRoad();
+  road.laneOffset = [{ s: 0, a: offsetA, b: 0, c: 0, d: 0 }];
+  return {
+    header: {
+      revMajor: 1,
+      revMinor: 7,
+      name: 'TestRoadWithOffset',
+      date: '2024-01-01',
+    },
+    roads: [road],
+    controllers: [],
+    junctions: [],
+  };
+}
+
 function makeVehicleDefinition(name: string): VehicleDefinition {
   return {
     kind: 'vehicle',

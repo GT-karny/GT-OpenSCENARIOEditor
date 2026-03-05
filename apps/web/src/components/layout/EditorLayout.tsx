@@ -162,7 +162,10 @@ export function EditorLayout() {
             offset: Math.abs(laneResult.offset) > 0.01
               ? Math.round(laneResult.offset * 100) / 100
               : undefined,
-            orientation: { h: laneResult.heading },
+            orientation:
+              Math.abs(h - laneResult.heading) > 0.01
+                ? { h: h - laneResult.heading }
+                : undefined,
           });
           return;
         }

@@ -1,11 +1,15 @@
 /**
  * Wraps drei's TransformControls to provide gizmo-based entity manipulation.
  * Handles coordinate conversion between Three.js and OpenSCENARIO coordinate systems.
+ *
+ * Used for world-space translate and rotate modes.
+ * For road-coordinate translate mode, see RoadGizmo.tsx.
  */
 
 import React, { useRef, useEffect, useCallback } from 'react';
 import { TransformControls } from '@react-three/drei';
 import type * as THREE from 'three';
+
 interface EntityGizmoProps {
   /** The Three.js object to attach the gizmo to */
   object: React.RefObject<THREE.Object3D | null>;
@@ -18,22 +22,6 @@ interface EntityGizmoProps {
 }
 
 /**
- * Convert Three.js local position/rotation (inside the rotation group [-π/2, 0, 0])
- * back to OpenSCENARIO world coordinates.
- *
- * The EntityGroup applies `rotation={[-π/2, 0, 0]}` which maps:
- *   Three.js (x, y, z) → OpenSCENARIO (x, -z, y)
- * Inverse:
- *   OpenSCENARIO (x, y, z) ← Three.js (x, z, -y)
- * But entities are placed at [pos.x, pos.y, pos.z] with rotation [0, 0, pos.h]
- * where pos is already in the rotated frame. So:
- *   osce.x = three.x, osce.y = -three.z (wait, let me re-check)
- *
- * Looking at EntityGroup: position={[pos.x, pos.y, pos.z]} rotation={[0, 0, pos.h]}
- * where pos = WorldCoords {x, y, z, h} from position-resolver.
- * The resolver returns: { x: worldPos.x, y: worldPos.y, z: worldPos.z, h: pose.hdg }
- * These are OpenDRIVE coords placed inside the rotation group.
- *
  * The rotation group [-π/2, 0, 0] rotates the Y-up Three.js world to Z-up OpenDRIVE.
  * Inside the group: the local coordinate system has Z pointing up.
  * So the entity's local position directly maps to OpenSCENARIO (x, y, z).
@@ -94,7 +82,7 @@ export const EntityGizmo: React.FC<EntityGizmoProps> = React.memo(
         object={object.current}
         mode={mode}
         space="local"
-        size={0.8}
+        size={15}
         showX={mode !== 'rotate'}
         showY={mode !== 'rotate'}
         showZ={mode !== 'translate'}

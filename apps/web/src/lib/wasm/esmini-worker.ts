@@ -18,6 +18,7 @@ import type {
   WasmStoryBoardEvent,
   WasmConditionEvent,
   WasmOpenScenarioConfig,
+  WasmRMPositionResult,
 } from './types.js';
 
 // Emscripten module factory type
@@ -31,6 +32,16 @@ interface EsminiModule {
     path: string,
     config: WasmOpenScenarioConfig,
   ) => EsminiScenario;
+  RoadManagerJS: {
+    loadOpenDrive(xodrXml: string): boolean;
+    laneToWorld(roadId: number, laneId: number, s: number, offset: number): WasmRMPositionResult;
+    worldToLane(x: number, y: number): WasmRMPositionResult;
+    trackToWorld(roadId: number, s: number, t: number): WasmRMPositionResult;
+    getRoadLength(roadId: number): number;
+    getLaneWidth(roadId: number, laneId: number, s: number): number;
+    getNumberOfRoads(): number;
+    getNumberOfLanes(roadId: number, s: number): number;
+  };
 }
 
 interface EsminiVector<T> {
@@ -324,10 +335,53 @@ function handleDispose() {
   }
 }
 
+// --- RoadManager handlers ---
+
+async function handleRmLoadOdr(xodrXml: string) {
+  try {
+    const mod = await loadModule();
+    const ok = mod.RoadManagerJS.loadOpenDrive(xodrXml);
+    if (ok) {
+      post({ type: 'rm-loaded' });
+    } else {
+      post({ type: 'rm-error', message: 'Failed to load OpenDRIVE XML' });
+    }
+  } catch (err) {
+    post({ type: 'rm-error', message: err instanceof Error ? err.message : String(err) });
+  }
+}
+
+async function handleRmPosition(
+  requestId: string,
+  fn: (mod: EsminiModule) => WasmRMPositionResult,
+) {
+  try {
+    const mod = await loadModule();
+    const result = fn(mod);
+    post({ type: 'rm-position', requestId, result });
+  } catch (err) {
+    post({ type: 'rm-error', requestId, message: err instanceof Error ? err.message : String(err) });
+  }
+}
+
+async function handleRmScalar(
+  requestId: string,
+  fn: (mod: EsminiModule) => number,
+) {
+  try {
+    const mod = await loadModule();
+    const value = fn(mod);
+    post({ type: 'rm-scalar', requestId, value });
+  } catch (err) {
+    post({ type: 'rm-error', requestId, message: err instanceof Error ? err.message : String(err) });
+  }
+}
+
 self.onmessage = (event: MessageEvent<WorkerRequest>) => {
   const msg = event.data;
 
   switch (msg.type) {
+    // Simulation messages
     case 'load':
       handleLoad(msg.xoscXml, msg.xodrData, msg.catalogs, msg.config);
       break;
@@ -342,6 +396,46 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
       break;
     case 'dispose':
       handleDispose();
+      break;
+
+    // RoadManager messages
+    case 'rm-load-odr':
+      handleRmLoadOdr(msg.xodrXml);
+      break;
+    case 'rm-lane-to-world':
+      handleRmPosition(msg.requestId, (mod) =>
+        mod.RoadManagerJS.laneToWorld(msg.roadId, msg.laneId, msg.s, msg.offset),
+      );
+      break;
+    case 'rm-world-to-lane':
+      handleRmPosition(msg.requestId, (mod) =>
+        mod.RoadManagerJS.worldToLane(msg.x, msg.y),
+      );
+      break;
+    case 'rm-track-to-world':
+      handleRmPosition(msg.requestId, (mod) =>
+        mod.RoadManagerJS.trackToWorld(msg.roadId, msg.s, msg.t),
+      );
+      break;
+    case 'rm-road-length':
+      handleRmScalar(msg.requestId, (mod) =>
+        mod.RoadManagerJS.getRoadLength(msg.roadId),
+      );
+      break;
+    case 'rm-lane-width':
+      handleRmScalar(msg.requestId, (mod) =>
+        mod.RoadManagerJS.getLaneWidth(msg.roadId, msg.laneId, msg.s),
+      );
+      break;
+    case 'rm-road-count':
+      handleRmScalar(msg.requestId, (mod) =>
+        mod.RoadManagerJS.getNumberOfRoads(),
+      );
+      break;
+    case 'rm-lane-count':
+      handleRmScalar(msg.requestId, (mod) =>
+        mod.RoadManagerJS.getNumberOfLanes(msg.roadId, msg.s),
+      );
       break;
   }
 };

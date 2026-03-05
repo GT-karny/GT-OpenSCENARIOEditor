@@ -4,13 +4,15 @@
  * scenario store subscription, and simulation playback.
  */
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { useStore } from 'zustand';
 import type * as THREE from 'three';
 import type {
   OpenDriveDocument,
   SimulationFrame,
   SimulationStatus,
   EditorPreferences,
+  ScenarioDocument,
 } from '@osce/shared';
 import { createViewerStore, useViewerStore } from '../store/viewer-store.js';
 import type { HoverLaneInfo, ViewerMode } from '../store/viewer-types.js';
@@ -107,6 +109,33 @@ function ScenarioViewerScene({
   const effectiveGizmoMode = isEditMode ? gizmoMode : 'off';
   const effectiveOnPositionChange = isEditMode ? onEntityPositionChange : undefined;
 
+  // Extract selected entity's road position for road-coordinate gizmo
+  const initEntityActions = useStore(
+    scenarioStore,
+    (state: { document: ScenarioDocument }) => state.document.storyboard.init.entityActions,
+  );
+
+  const selectedEntityRoadPosition = useMemo(() => {
+    if (!selectedEntityId) return null;
+    const selectedEntity = entities.find((e) => e.id === selectedEntityId);
+    if (!selectedEntity) return null;
+
+    const ea = initEntityActions.find((a) => a.entityRef === selectedEntity.name);
+    if (!ea) return null;
+
+    for (const pa of ea.privateActions) {
+      if (pa.action.type === 'teleportAction' && pa.action.position.type === 'lanePosition') {
+        const pos = pa.action.position;
+        return {
+          roadId: pos.roadId,
+          laneId: parseInt(pos.laneId, 10),
+          s: pos.s,
+        };
+      }
+    }
+    return null;
+  }, [selectedEntityId, entities, initEntityActions]);
+
   const [focusTarget, setFocusTarget] = useState<[number, number, number] | null>(null);
   const cameraRef = useRef<CameraControllerHandle>(null);
   const roadGroupRef = useRef<THREE.Group>(null);
@@ -201,6 +230,9 @@ function ScenarioViewerScene({
           gizmoMode={effectiveGizmoMode}
           orbitControlsRef={cameraRef.current?.orbitControls}
           onEntityPositionChange={effectiveOnPositionChange}
+          openDriveDocument={openDriveDocument}
+          snapToLane={snapToLane}
+          selectedEntityRoadPosition={selectedEntityRoadPosition}
         />
       )}
 

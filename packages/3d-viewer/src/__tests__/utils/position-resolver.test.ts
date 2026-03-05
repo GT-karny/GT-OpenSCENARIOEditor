@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { resolvePositionToWorld } from '../../utils/position-resolver.js';
 import type { Position } from '@osce/shared';
-import { makeStraightRoadDoc } from '../helpers.js';
+import { makeStraightRoadDoc, makeStraightRoadDocWithLaneOffset } from '../helpers.js';
 
 describe('resolvePositionToWorld', () => {
   describe('WorldPosition', () => {
@@ -68,6 +68,54 @@ describe('resolvePositionToWorld', () => {
         s: 50,
       };
       expect(resolvePositionToWorld(pos, null)).toBeNull();
+    });
+  });
+
+  describe('LanePosition with laneOffset', () => {
+    it('applies laneOffset to right lane center position', () => {
+      const odrDoc = makeStraightRoadDocWithLaneOffset(3.5);
+      const pos: Position = {
+        type: 'lanePosition',
+        roadId: '1',
+        laneId: '-1',
+        s: 50,
+      };
+      const result = resolvePositionToWorld(pos, odrDoc);
+      expect(result).not.toBeNull();
+      // Without offset: right lane center at y = -1.75
+      // With laneOffset a=3.5: center shifts by +3.5 → y ≈ +1.75
+      expect(result!.y).toBeCloseTo(1.75, 1);
+    });
+
+    it('applies laneOffset to left lane center position', () => {
+      const odrDoc = makeStraightRoadDocWithLaneOffset(3.5);
+      const pos: Position = {
+        type: 'lanePosition',
+        roadId: '1',
+        laneId: '1',
+        s: 50,
+      };
+      const result = resolvePositionToWorld(pos, odrDoc);
+      expect(result).not.toBeNull();
+      // Without offset: left lane center at y = +1.75
+      // With laneOffset a=3.5: center shifts by +3.5 → y ≈ +5.25
+      expect(result!.y).toBeCloseTo(5.25, 1);
+    });
+
+    it('zero laneOffset produces same result as no laneOffset', () => {
+      const docNoOff = makeStraightRoadDoc();
+      const docZeroOff = makeStraightRoadDocWithLaneOffset(0);
+      const pos: Position = {
+        type: 'lanePosition',
+        roadId: '1',
+        laneId: '-1',
+        s: 50,
+      };
+      const r1 = resolvePositionToWorld(pos, docNoOff);
+      const r2 = resolvePositionToWorld(pos, docZeroOff);
+      expect(r1).not.toBeNull();
+      expect(r2).not.toBeNull();
+      expect(r1!.y).toBeCloseTo(r2!.y, 5);
     });
   });
 

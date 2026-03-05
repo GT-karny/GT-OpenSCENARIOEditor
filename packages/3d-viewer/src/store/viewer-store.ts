@@ -35,7 +35,7 @@ export function createViewerStore(preferences?: Partial<EditorPreferences>) {
     playback: { ...DEFAULT_PLAYBACK },
 
     viewerMode: 'edit' as ViewerMode,
-    gizmoMode: 'off' as GizmoMode,
+    gizmoMode: 'translate' as GizmoMode,
     reverseDirection: false,
     snapToLane: true,
     hoverLaneInfo: null as HoverLaneInfo | null,
@@ -49,7 +49,7 @@ export function createViewerStore(preferences?: Partial<EditorPreferences>) {
       set(
         mode === 'play'
           ? { viewerMode: mode, gizmoMode: 'off' as GizmoMode, hoverLaneInfo: null }
-          : { viewerMode: mode },
+          : { viewerMode: mode, gizmoMode: 'translate' as GizmoMode },
       ),
 
     toggleGrid: () => set((s) => ({ showGrid: !s.showGrid })),
