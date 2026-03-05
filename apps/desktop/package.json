@@ -1,0 +1,27 @@
+{
+  "name": "@osce/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "build": "tsc --project tsconfig.main.json && node scripts/build-preload.mjs",
+    "dev": "node scripts/dev.mjs",
+    "pack": "pnpm build && electron-builder --config electron-builder.yml",
+    "pack:win": "pnpm pack -- --win portable",
+    "pack:mac": "pnpm pack -- --mac dir",
+    "pack:linux": "pnpm pack -- --linux dir"
+  },
+  "dependencies": {
+    "@osce/server": "workspace:*",
+    "@fastify/static": "^8.0.0",
+    "electron-store": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.24.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
+    "typescript": "^5.7.0"
+  }
+}

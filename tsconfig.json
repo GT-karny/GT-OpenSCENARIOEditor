@@ -12,6 +12,7 @@
     { "path": "packages/templates" },
     { "path": "packages/i18n" },
     { "path": "apps/web" },
-    { "path": "apps/server" }
+    { "path": "apps/server" },
+    { "path": "apps/desktop" }
   ]
 }

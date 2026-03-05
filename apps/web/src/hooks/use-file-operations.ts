@@ -29,6 +29,22 @@ async function readFileFromDisk(
   accept: string,
   extensions: string[],
 ): Promise<{ text: string; name: string }> {
+  // Electron: use native dialog + Node.js fs
+  if (window.electronAPI?.isElectron) {
+    const result = await window.electronAPI.showOpenDialog({
+      filters: [
+        { name: `${accept} files`, extensions: extensions.map((e) => e.replace('.', '')) },
+      ],
+      properties: ['openFile'],
+    });
+    if (result.canceled || !result.filePaths[0]) throw new Error('Cancelled');
+    const filePath = result.filePaths[0];
+    const text = await window.electronAPI.readFile(filePath);
+    const name = filePath.split(/[/\\]/).pop() ?? 'file';
+    window.electronAPI.addRecentFile(filePath);
+    return { text, name };
+  }
+
   // Try File System Access API first (Chromium)
   if (window.showOpenFilePicker) {
     const [handle] = await window.showOpenFilePicker({
@@ -67,6 +83,20 @@ async function writeFileToDisk(
   extension: string,
   suggestedName?: string | null,
 ): Promise<void> {
+  // Electron: use native dialog + Node.js fs
+  if (window.electronAPI?.isElectron) {
+    const result = await window.electronAPI.showSaveDialog({
+      defaultPath: suggestedName ?? `scenario${extension}`,
+      filters: [
+        { name: `${extension} file`, extensions: [extension.replace('.', '')] },
+      ],
+    });
+    if (result.canceled || !result.filePath) throw new Error('Cancelled');
+    await window.electronAPI.writeFile(result.filePath, content);
+    window.electronAPI.addRecentFile(result.filePath);
+    return;
+  }
+
   // Try File System Access API first (Chromium)
   if (window.showSaveFilePicker) {
     const handle = await window.showSaveFilePicker({

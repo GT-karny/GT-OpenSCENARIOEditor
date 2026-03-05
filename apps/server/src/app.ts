@@ -24,8 +24,15 @@ declare module 'fastify' {
   }
 }
 
-export async function buildApp() {
-  const app = Fastify({ logger: true });
+export interface AppOptions {
+  /** Custom base path for project storage (default: process.cwd()/data/projects) */
+  projectsBasePath?: string;
+  /** Enable Fastify logger (default: true) */
+  logger?: boolean;
+}
+
+export async function buildApp(options?: AppOptions) {
+  const app = Fastify({ logger: options?.logger ?? true });
 
   // Plugins
   await app.register(cors, { origin: true });
@@ -35,7 +42,7 @@ export async function buildApp() {
   // Services
   const fileService = new FileService();
   const scenarioService = new ScenarioService();
-  const projectService = new ProjectService();
+  const projectService = new ProjectService(options?.projectsBasePath);
   const esminiService = process.env.GT_SIM_URL
     ? new GtSimService({
         restBaseUrl: process.env.GT_SIM_URL,

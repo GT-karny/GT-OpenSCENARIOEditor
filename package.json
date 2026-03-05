@@ -8,6 +8,8 @@
     "dev": "pnpm --filter @osce/web dev",
     "dev:server": "pnpm --filter @osce/server dev",
     "dev:full": "pnpm --filter @osce/server --filter @osce/web --parallel dev",
+    "dev:desktop": "pnpm --filter @osce/desktop dev",
+    "build:desktop": "pnpm build && pnpm --filter @osce/desktop pack",
     "build": "pnpm -r build",
     "build:shared": "pnpm --filter @osce/shared build",
     "maturity:validate": "node scripts/maturity/validate-capabilities.mjs",
@@ -24,6 +26,9 @@
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=9.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["electron", "esbuild", "protobufjs"]
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
