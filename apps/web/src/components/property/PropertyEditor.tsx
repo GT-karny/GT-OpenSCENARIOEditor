@@ -5,6 +5,7 @@ import { EventPropertyEditor } from './EventPropertyEditor';
 import { ConditionPropertyEditor } from './ConditionPropertyEditor';
 import { ActPropertyEditor } from './ActPropertyEditor';
 import { InitPropertyEditor } from './InitPropertyEditor';
+import { ManeuverGroupPropertyEditor } from './ManeuverGroupPropertyEditor';
 
 interface PropertyEditorProps {
   element: unknown;
@@ -23,6 +24,9 @@ export function PropertyEditor({ element }: PropertyEditorProps) {
 
     case 'action':
       return <ActionPropertyEditor action={detected.element} />;
+
+    case 'maneuverGroup':
+      return <ManeuverGroupPropertyEditor group={detected.element} />;
 
     case 'story':
       return (

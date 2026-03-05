@@ -1,4 +1,4 @@
-import type { ScenarioEntity, ScenarioEvent, ScenarioAction, Story, Act, Trigger, EntityInitActions } from '@osce/shared';
+import type { ScenarioEntity, ScenarioEvent, ScenarioAction, Story, Act, ManeuverGroup, Trigger, EntityInitActions } from '@osce/shared';
 
 export type DetectedElementType =
   | { kind: 'entity'; element: ScenarioEntity }
@@ -6,6 +6,7 @@ export type DetectedElementType =
   | { kind: 'action'; element: ScenarioAction }
   | { kind: 'story'; element: Story }
   | { kind: 'act'; element: Act }
+  | { kind: 'maneuverGroup'; element: ManeuverGroup }
   | { kind: 'trigger'; element: Trigger }
   | { kind: 'entityInit'; element: EntityInitActions }
   | { kind: 'unknown'; element: unknown };
@@ -38,6 +39,11 @@ export function detectElementType(element: unknown): DetectedElementType {
   // ScenarioAction: has action field
   if ('action' in obj && 'name' in obj && !('acts' in obj) && !('events' in obj)) {
     return { kind: 'action', element: element as ScenarioAction };
+  }
+
+  // ManeuverGroup: has maneuvers + actors, no startTrigger
+  if ('maneuvers' in obj && 'actors' in obj && !('startTrigger' in obj)) {
+    return { kind: 'maneuverGroup', element: element as ManeuverGroup };
   }
 
   // Story: has acts array
