@@ -119,7 +119,12 @@ export function EditorLayout() {
   const currentProject = useProjectStore((s) => s.currentProject);
   const [centerTab, setCenterTab] = useState<'composer' | 'graph'>('composer');
   const fileTreePanelRef = useRef<ImperativePanelHandle>(null);
-  const [fileTreeCollapsed, setFileTreeCollapsed] = useState(false);
+  const [fileTreeCollapsed, setFileTreeCollapsed] = useState(true);
+
+  // --- Collapse file tree on mount ---
+  useEffect(() => {
+    fileTreePanelRef.current?.collapse();
+  }, []);
 
   // --- Auto-load project catalogs ---
   const { autoLoadProjectCatalogs } = useProjectFileOperations();
@@ -280,181 +285,186 @@ export function EditorLayout() {
     <div className="relative flex flex-col h-screen overflow-hidden">
       <HeaderToolbar />
 
-      <PanelGroup direction="vertical" className="flex-1">
-        {/* Main area */}
-        <Panel defaultSize={70} minSize={30}>
-          <PanelGroup direction="horizontal">
-            {/* File Tree sidebar (project mode only) */}
-            {currentProject && (
-              <>
-                <Panel
-                  ref={fileTreePanelRef}
-                  defaultSize={15}
-                  minSize={3}
-                  maxSize={25}
-                  collapsible
-                  collapsedSize={3}
-                  onCollapse={() => setFileTreeCollapsed(true)}
-                  onExpand={() => setFileTreeCollapsed(false)}
-                >
-                  {fileTreeCollapsed ? (
-                    <div className="flex flex-col items-center h-full bg-[var(--color-bg-deep)] border-r border-[var(--color-glass-edge-mid)] py-2">
-                      <button
-                        type="button"
-                        onClick={() => fileTreePanelRef.current?.expand()}
-                        className="p-2 rounded hover:bg-[var(--color-glass-2)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
-                        title={t('fileTree.expand')}
-                      >
-                        <FolderTree size={16} />
-                      </button>
-                    </div>
-                  ) : (
-                    <FileTreeSidebar
-                      onCollapse={() => fileTreePanelRef.current?.collapse()}
-                    />
-                  )}
-                </Panel>
-                <ResizeHandle />
-              </>
-            )}
-
-            {/* Left sidebar */}
-            <Panel defaultSize={20} minSize={8} maxSize={35}>
-              <div className="h-full bg-[var(--color-bg-deep)] enter-l">
-                <Tabs defaultValue="entities" className="flex flex-col h-full">
-                  <TabsList className="bg-[var(--color-glass-1)] backdrop-blur-[28px] rounded-none p-0">
-                    <TabsTrigger value="entities" className="apex-tab flex-1">
-                      {t('panels.entityList')}
-                    </TabsTrigger>
-                    <TabsTrigger value="templates" className="apex-tab flex-1">
-                      {t('panels.templates')}
-                    </TabsTrigger>
-                    <TabsTrigger value="parameters" className="apex-tab flex-1">
-                      {t('panels.parameters')}
-                    </TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="entities" className="flex-1 overflow-hidden mt-0">
-                    <EntityListPanel />
-                  </TabsContent>
-                  <TabsContent value="templates" className="flex-1 overflow-hidden mt-0">
-                    <TemplatePalettePanel />
-                  </TabsContent>
-                  <TabsContent value="parameters" className="flex-1 overflow-hidden mt-0">
-                    <ParameterListPanel />
-                  </TabsContent>
-                </Tabs>
+      <PanelGroup direction="horizontal" className="flex-1">
+        {/* Left section: 3D Viewer (top) + Editing area (bottom) */}
+        <Panel defaultSize={75} minSize={40}>
+          <PanelGroup direction="vertical">
+            {/* 3D Viewer (top) */}
+            <Panel defaultSize={30} minSize={10}>
+              <div data-testid="viewer-3d-panel" className="h-full bg-[var(--color-bg-deep)] enter d5">
+                <ErrorBoundary fallbackTitle="3D Viewer Error">
+                  <SimulationViewerBridge
+                    scenarioStore={scenarioStoreApi}
+                    openDriveDocument={roadNetwork}
+                    selectedEntityId={selectedEntityId}
+                    onEntitySelect={handleEntitySelect}
+                    onEntityFocus={handleEntitySelect}
+                    onEntityPositionChange={handleEntityPositionChange}
+                    onViewerModeChange={setViewerMode}
+                    preferences={{
+                      showGrid3D: preferences.showGrid3D,
+                      showLaneIds: preferences.showLaneIds,
+                      showRoadIds: preferences.showRoadIds,
+                    }}
+                  />
+                </ErrorBoundary>
               </div>
             </Panel>
 
-            <ResizeHandle />
+            <ResizeHandleH />
 
-            {/* Center area */}
-            <Panel defaultSize={40} minSize={30}>
-              <NodeEditorProvider
-                scenarioStore={scenarioStoreApi}
-                selectedElementIds={selectedElementIds}
-                onSelectionChange={handleSelectionChange}
-                focusNodeId={focusNodeId}
-                onFocusComplete={handleFocusComplete}
-                activeNodeIds={activeNodeIds}
-              >
-                <div className="flex flex-col h-full enter d2">
-                  {/* Tab bar */}
-                  <div className="flex shrink-0 border-b border-[var(--color-border-glass)] bg-[var(--color-glass-1)] backdrop-blur-[28px]">
-                    {(['composer', 'graph'] as const).map((tab) => (
-                      <button
-                        key={tab}
-                        onClick={() => setCenterTab(tab)}
-                        className={[
-                          'relative px-4 py-1.5 text-xs font-medium capitalize transition-colors',
-                          centerTab === tab
-                            ? 'text-[var(--color-accent-1)]'
-                            : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]',
-                        ].join(' ')}
-                      >
-                        {tab}
-                        {centerTab === tab && (
-                          <span className="absolute bottom-0 left-0 right-0 h-px bg-[var(--color-accent-1)]" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                  {/* Content — both views stay mounted to preserve React Flow state */}
-                  <div className="flex-1 overflow-hidden relative">
-                    <div className={`absolute inset-0 ${centerTab !== 'composer' ? 'hidden' : ''}`}>
-                      <SceneComposerView />
-                    </div>
-                    <div className={`absolute inset-0 ${centerTab !== 'graph' ? 'hidden' : ''}`}>
-                      <ErrorBoundary fallbackTitle="Node Editor Error">
-                        <div
-                          data-testid="node-editor-panel"
-                          className={`h-full node-editor-grid ${isDragOver ? 'ring-2 ring-[var(--color-accent-1)] ring-inset' : ''}`}
-                          onDragLeave={handleDragLeave}
-                        >
-                          <NodeEditor
-                            className="h-full"
-                            onDrop={handleDrop}
-                            onDragOver={handleDragOver}
-                            onPaneContextMenu={handlePaneContextMenu}
-                            onNodeContextMenu={handleNodeContextMenu}
-                            deleteKeyCode={null}
-                            disableBuiltinShortcuts
-                          />
+            {/* Editing area */}
+            <Panel defaultSize={70} minSize={30}>
+              <PanelGroup direction="horizontal">
+                {/* File Tree sidebar (project mode only) */}
+                {currentProject && (
+                  <>
+                    <Panel
+                      ref={fileTreePanelRef}
+                      defaultSize={15}
+                      minSize={3}
+                      maxSize={25}
+                      collapsible
+                      collapsedSize={3}
+                      onCollapse={() => setFileTreeCollapsed(true)}
+                      onExpand={() => setFileTreeCollapsed(false)}
+                    >
+                      {fileTreeCollapsed ? (
+                        <div className="flex flex-col items-center h-full bg-[var(--color-bg-deep)] border-r border-[var(--color-glass-edge-mid)] py-2">
+                          <button
+                            type="button"
+                            onClick={() => fileTreePanelRef.current?.expand()}
+                            className="p-2 rounded hover:bg-[var(--color-glass-2)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+                            title={t('fileTree.expand')}
+                          >
+                            <FolderTree size={16} />
+                          </button>
                         </div>
-                      </ErrorBoundary>
-                    </div>
+                      ) : (
+                        <FileTreeSidebar
+                          onCollapse={() => fileTreePanelRef.current?.collapse()}
+                        />
+                      )}
+                    </Panel>
+                    <ResizeHandle />
+                  </>
+                )}
+
+                {/* Left sidebar */}
+                <Panel defaultSize={25} minSize={8} maxSize={35}>
+                  <div className="h-full bg-[var(--color-bg-deep)] enter-l">
+                    <Tabs defaultValue="entities" className="flex flex-col h-full">
+                      <TabsList className="bg-[var(--color-glass-1)] backdrop-blur-[28px] rounded-none p-0">
+                        <TabsTrigger value="entities" className="apex-tab flex-1">
+                          {t('panels.entityList')}
+                        </TabsTrigger>
+                        <TabsTrigger value="templates" className="apex-tab flex-1">
+                          {t('panels.templates')}
+                        </TabsTrigger>
+                        <TabsTrigger value="parameters" className="apex-tab flex-1">
+                          {t('panels.parameters')}
+                        </TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="entities" className="flex-1 overflow-hidden mt-0">
+                        <EntityListPanel />
+                      </TabsContent>
+                      <TabsContent value="templates" className="flex-1 overflow-hidden mt-0">
+                        <TemplatePalettePanel />
+                      </TabsContent>
+                      <TabsContent value="parameters" className="flex-1 overflow-hidden mt-0">
+                        <ParameterListPanel />
+                      </TabsContent>
+                    </Tabs>
                   </div>
-                </div>
-              </NodeEditorProvider>
-            </Panel>
+                </Panel>
 
-            <ResizeHandle />
+                <ResizeHandle />
 
-            {/* Right sidebar */}
-            <Panel defaultSize={25} minSize={12} maxSize={35}>
-              <div className="h-full bg-[var(--color-bg-deep)] enter-r">
-                <Tabs defaultValue="properties" className="flex flex-col h-full">
-                  <TabsList className="bg-[var(--color-glass-1)] backdrop-blur-[28px] rounded-none p-0">
-                    <TabsTrigger value="properties" className="apex-tab flex-1">
-                      {t('panels.properties')}
-                    </TabsTrigger>
-                    <TabsTrigger value="validation" className="apex-tab flex-1">
-                      {t('panels.validation')}
-                    </TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="properties" className="flex-1 overflow-hidden mt-0">
-                    <PropertyPanel />
-                  </TabsContent>
-                  <TabsContent value="validation" className="flex-1 overflow-hidden mt-0">
-                    <ValidationPanel />
-                  </TabsContent>
-                </Tabs>
-              </div>
+                {/* Center area */}
+                <Panel defaultSize={60} minSize={30}>
+                  <NodeEditorProvider
+                    scenarioStore={scenarioStoreApi}
+                    selectedElementIds={selectedElementIds}
+                    onSelectionChange={handleSelectionChange}
+                    focusNodeId={focusNodeId}
+                    onFocusComplete={handleFocusComplete}
+                    activeNodeIds={activeNodeIds}
+                  >
+                    <div className="flex flex-col h-full enter d2">
+                      {/* Tab bar */}
+                      <div className="flex shrink-0 border-b border-[var(--color-border-glass)] bg-[var(--color-glass-1)] backdrop-blur-[28px]">
+                        {(['composer', 'graph'] as const).map((tab) => (
+                          <button
+                            key={tab}
+                            onClick={() => setCenterTab(tab)}
+                            className={[
+                              'relative px-4 py-1.5 text-xs font-medium capitalize transition-colors',
+                              centerTab === tab
+                                ? 'text-[var(--color-accent-1)]'
+                                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]',
+                            ].join(' ')}
+                          >
+                            {tab}
+                            {centerTab === tab && (
+                              <span className="absolute bottom-0 left-0 right-0 h-px bg-[var(--color-accent-1)]" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                      {/* Content — both views stay mounted to preserve React Flow state */}
+                      <div className="flex-1 overflow-hidden relative">
+                        <div className={`absolute inset-0 ${centerTab !== 'composer' ? 'hidden' : ''}`}>
+                          <SceneComposerView />
+                        </div>
+                        <div className={`absolute inset-0 ${centerTab !== 'graph' ? 'hidden' : ''}`}>
+                          <ErrorBoundary fallbackTitle="Node Editor Error">
+                            <div
+                              data-testid="node-editor-panel"
+                              className={`h-full node-editor-grid ${isDragOver ? 'ring-2 ring-[var(--color-accent-1)] ring-inset' : ''}`}
+                              onDragLeave={handleDragLeave}
+                            >
+                              <NodeEditor
+                                className="h-full"
+                                onDrop={handleDrop}
+                                onDragOver={handleDragOver}
+                                onPaneContextMenu={handlePaneContextMenu}
+                                onNodeContextMenu={handleNodeContextMenu}
+                                deleteKeyCode={null}
+                                disableBuiltinShortcuts
+                              />
+                            </div>
+                          </ErrorBoundary>
+                        </div>
+                      </div>
+                    </div>
+                  </NodeEditorProvider>
+                </Panel>
+              </PanelGroup>
             </Panel>
           </PanelGroup>
         </Panel>
 
-        <ResizeHandleH />
+        <ResizeHandle />
 
-        {/* 3D Viewer */}
-        <Panel defaultSize={30} minSize={10}>
-          <div data-testid="viewer-3d-panel" className="h-full bg-[var(--color-bg-deep)] enter d5">
-            <ErrorBoundary fallbackTitle="3D Viewer Error">
-              <SimulationViewerBridge
-                scenarioStore={scenarioStoreApi}
-                openDriveDocument={roadNetwork}
-                selectedEntityId={selectedEntityId}
-                onEntitySelect={handleEntitySelect}
-                onEntityFocus={handleEntitySelect}
-                onEntityPositionChange={handleEntityPositionChange}
-                onViewerModeChange={setViewerMode}
-                preferences={{
-                  showGrid3D: preferences.showGrid3D,
-                  showLaneIds: preferences.showLaneIds,
-                  showRoadIds: preferences.showRoadIds,
-                }}
-              />
-            </ErrorBoundary>
+        {/* Right sidebar — full height */}
+        <Panel defaultSize={25} minSize={12} maxSize={35}>
+          <div className="h-full bg-[var(--color-bg-deep)] enter-r">
+            <Tabs defaultValue="properties" className="flex flex-col h-full">
+              <TabsList className="bg-[var(--color-glass-1)] backdrop-blur-[28px] rounded-none p-0">
+                <TabsTrigger value="properties" className="apex-tab flex-1">
+                  {t('panels.properties')}
+                </TabsTrigger>
+                <TabsTrigger value="validation" className="apex-tab flex-1">
+                  {t('panels.validation')}
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="properties" className="flex-1 overflow-hidden mt-0">
+                <PropertyPanel />
+              </TabsContent>
+              <TabsContent value="validation" className="flex-1 overflow-hidden mt-0">
+                <ValidationPanel />
+              </TabsContent>
+            </Tabs>
           </div>
         </Panel>
       </PanelGroup>
