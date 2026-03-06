@@ -6,11 +6,12 @@ import { PositionEditor } from './PositionEditor';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { createDefaultPosition } from '../../constants/position-defaults';
 
-interface InitPropertyEditorProps {
+interface InitPropertyEditorContentProps {
   entityInit: EntityInitActions;
 }
 
-export function InitPropertyEditor({ entityInit }: InitPropertyEditorProps) {
+/** Reusable content for editing entity initial state (position + speed). */
+export function InitPropertyEditorContent({ entityInit }: InitPropertyEditorContentProps) {
   const storeApi = useScenarioStoreApi();
   const { entityRef, privateActions } = entityInit;
 
@@ -50,13 +51,7 @@ export function InitPropertyEditor({ entityInit }: InitPropertyEditorProps) {
   };
 
   return (
-    <div className="flex flex-col gap-5 p-1">
-      {/* Entity name */}
-      <div className="pb-2 border-b">
-        <p className="text-sm font-medium">{entityRef}</p>
-        <p className="text-xs text-muted-foreground">Initial State</p>
-      </div>
-
+    <div className="flex flex-col gap-5">
       {/* Position section */}
       <section className="space-y-2">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
