@@ -15,6 +15,7 @@ interface VehicleEntityProps {
   entity: ScenarioEntity;
   position: WorldCoords;
   isSelected: boolean;
+  isHovered?: boolean;
   isEgo: boolean;
   showLabel: boolean;
   onClick?: () => void;
@@ -22,7 +23,7 @@ interface VehicleEntityProps {
 }
 
 export const VehicleEntity: React.FC<VehicleEntityProps> = React.memo(
-  ({ entity, position, isSelected, isEgo, showLabel, onClick, onDoubleClick }) => {
+  ({ entity, position, isSelected, isHovered, isEgo, showLabel, onClick, onDoubleClick }) => {
     const meshRef = useRef<THREE.Mesh>(null);
     const geom = getEntityGeometry(entity);
     const color = getEntityColor('vehicle', isEgo);
@@ -41,12 +42,17 @@ export const VehicleEntity: React.FC<VehicleEntityProps> = React.memo(
         >
           <boxGeometry args={[geom.length, geom.width, geom.height]} />
           <meshStandardMaterial
-            color={color}
-            transparent={isSelected}
-            opacity={isSelected ? 0.9 : 1}
+            color={isHovered ? '#66BBFF' : color}
+            transparent={isSelected || !!isHovered}
+            opacity={isSelected ? 0.9 : isHovered ? 0.8 : 1}
+            emissive={isHovered ? '#55CCFF' : '#000000'}
+            emissiveIntensity={isHovered ? 1.2 : 0}
           />
           {isSelected && (
             <Outlines thickness={0.08} color="#FFFF00" />
+          )}
+          {!isSelected && isHovered && (
+            <Outlines thickness={0.15} color="#44DDFF" />
           )}
         </mesh>
 
@@ -60,11 +66,12 @@ export const VehicleEntity: React.FC<VehicleEntityProps> = React.memo(
         </mesh>
 
         {/* Entity label */}
-        {showLabel && (
+        {(showLabel || isHovered) && (
           <EntityLabel
             name={entity.name}
             position={[geom.centerX, 0, geom.centerZ + geom.height / 2 + 0.5]}
             isSelected={isSelected}
+            isHovered={isHovered}
           />
         )}
       </group>

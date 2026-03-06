@@ -13,13 +13,14 @@ interface PedestrianEntityProps {
   entity: ScenarioEntity;
   position: WorldCoords;
   isSelected: boolean;
+  isHovered?: boolean;
   showLabel: boolean;
   onClick?: () => void;
   onDoubleClick?: () => void;
 }
 
 export const PedestrianEntity: React.FC<PedestrianEntityProps> = React.memo(
-  ({ entity, position, isSelected, showLabel, onClick, onDoubleClick }) => {
+  ({ entity, position, isSelected, isHovered, showLabel, onClick, onDoubleClick }) => {
     const geom = getEntityGeometry(entity);
     const color = getEntityColor('pedestrian', false);
     const radius = Math.max(geom.width, geom.length) / 2;
@@ -36,18 +37,28 @@ export const PedestrianEntity: React.FC<PedestrianEntityProps> = React.memo(
           onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick?.(); }}
         >
           <cylinderGeometry args={[radius, radius, geom.height, 12]} />
-          <meshStandardMaterial color={color} />
+          <meshStandardMaterial
+            color={isHovered ? '#66BBFF' : color}
+            transparent={!!isHovered}
+            opacity={isHovered ? 0.8 : 1}
+            emissive={isHovered ? '#55CCFF' : '#000000'}
+            emissiveIntensity={isHovered ? 1.2 : 0}
+          />
           {isSelected && (
             <Outlines thickness={0.06} color="#FFFF00" />
+          )}
+          {!isSelected && isHovered && (
+            <Outlines thickness={0.12} color="#44DDFF" />
           )}
         </mesh>
 
         {/* Label */}
-        {showLabel && (
+        {(showLabel || isHovered) && (
           <EntityLabel
             name={entity.name}
             position={[geom.centerX, 0, geom.centerZ + geom.height / 2 + 0.5]}
             isSelected={isSelected}
+            isHovered={isHovered}
           />
         )}
       </group>

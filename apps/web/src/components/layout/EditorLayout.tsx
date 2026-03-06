@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useRef, useEffect, memo } from 'react';
+import { useStore } from 'zustand';
 import { SceneComposerView } from '../scene-composer/SceneComposerView';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import type { ImperativePanelHandle } from 'react-resizable-panels';
@@ -58,6 +59,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   scenarioStore: ReturnType<typeof import('../../stores/use-scenario-store').useScenarioStoreApi>;
   openDriveDocument: import('@osce/shared').OpenDriveDocument | null;
   selectedEntityId: string | null;
+  hoveredEntityName: string | null;
   onEntitySelect: (entityId: string) => void;
   onEntityFocus: (entityId: string) => void;
   onEntityPositionChange?: (entityName: string, x: number, y: number, z: number, h: number, forceWorldPosition?: boolean) => void;
@@ -95,6 +97,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       scenarioStore={props.scenarioStore}
       openDriveDocument={props.openDriveDocument}
       selectedEntityId={props.selectedEntityId}
+      hoveredEntityName={props.hoveredEntityName}
       onEntitySelect={props.onEntitySelect}
       onEntityFocus={props.onEntityFocus}
       onEntityPositionChange={props.onEntityPositionChange}
@@ -142,10 +145,34 @@ export function EditorLayout() {
 
   // --- Selection sync ---
   const selectedElementIds = useEditorStore((s) => s.selection.selectedElementIds);
+  const hoveredElementId = useEditorStore((s) => s.selection.hoveredElementId);
   const roadNetwork = useEditorStore((s) => s.roadNetwork);
   const preferences = useEditorStore((s) => s.preferences);
   const focusNodeId = useEditorStore((s) => s.focusNodeId);
   const selectedEntityId = selectedElementIds.length === 1 ? selectedElementIds[0] : null;
+
+  // Resolve ManeuverGroup selection → first actor entity ID for 3D highlighting
+  const scenarioEntities = useStore(scenarioStoreApi, (s) => s.document.entities);
+  const storyboardStories = useStore(scenarioStoreApi, (s) => s.document.storyboard.stories);
+  const viewerSelectedEntityId = useMemo(() => {
+    if (!selectedEntityId) return null;
+    // Direct entity match — use as-is
+    if (scenarioEntities.some((e) => e.id === selectedEntityId)) return selectedEntityId;
+    // Try ManeuverGroup → resolve to first actor's entity ID
+    for (const story of storyboardStories) {
+      for (const act of story.acts) {
+        for (const group of act.maneuverGroups) {
+          if (group.id === selectedEntityId) {
+            const firstActorName = group.actors.entityRefs[0];
+            if (firstActorName) {
+              return scenarioEntities.find((e) => e.name === firstActorName)?.id ?? null;
+            }
+          }
+        }
+      }
+    }
+    return selectedEntityId;
+  }, [selectedEntityId, scenarioEntities, storyboardStories]);
 
   const handleSelectionChange = useCallback((ids: string[]) => {
     useEditorStore.getState().setSelection({ selectedElementIds: ids });
@@ -302,7 +329,8 @@ export function EditorLayout() {
                   <SimulationViewerBridge
                     scenarioStore={scenarioStoreApi}
                     openDriveDocument={roadNetwork}
-                    selectedEntityId={selectedEntityId}
+                    selectedEntityId={viewerSelectedEntityId}
+                    hoveredEntityName={hoveredElementId}
                     onEntitySelect={handleEntitySelect}
                     onEntityFocus={handleEntitySelect}
                     onEntityPositionChange={handleEntityPositionChange}

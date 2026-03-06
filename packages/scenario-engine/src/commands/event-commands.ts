@@ -47,6 +47,50 @@ export class AddEventCommand extends BaseCommand {
   }
 }
 
+export class ReorderEventCommand extends BaseCommand {
+  private readonly eventId: string;
+  private readonly newIndex: number;
+  private oldIndex = -1;
+  private parentManeuverId: string | null = null;
+  private readonly getDoc: GetDoc;
+  private readonly setDoc: SetDoc;
+
+  constructor(eventId: string, newIndex: number, getDoc: GetDoc, setDoc: SetDoc) {
+    super(`Reorder event: ${eventId}`);
+    this.eventId = eventId;
+    this.newIndex = newIndex;
+    this.getDoc = getDoc;
+    this.setDoc = setDoc;
+  }
+
+  execute(): void {
+    const doc = this.getDoc();
+    const found = findEventById(doc, this.eventId);
+    if (!found) return;
+    this.oldIndex = found.eventIndex;
+    this.parentManeuverId = found.maneuver.id;
+
+    this.setDoc(produce(doc, (draft) => {
+      const f = findManeuverById(draft, this.parentManeuverId!);
+      if (f) {
+        const [event] = f.maneuver.events.splice(this.oldIndex, 1);
+        f.maneuver.events.splice(this.newIndex, 0, event);
+      }
+    }));
+  }
+
+  undo(): void {
+    if (!this.parentManeuverId || this.oldIndex === -1) return;
+    this.setDoc(produce(this.getDoc(), (draft) => {
+      const f = findManeuverById(draft, this.parentManeuverId!);
+      if (f) {
+        const [event] = f.maneuver.events.splice(this.newIndex, 1);
+        f.maneuver.events.splice(this.oldIndex, 0, event);
+      }
+    }));
+  }
+}
+
 export class RemoveEventCommand extends BaseCommand {
   private removedEvent: ScenarioEvent | null = null;
   private removedIndex = -1;

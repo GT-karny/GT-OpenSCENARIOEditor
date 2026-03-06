@@ -11,7 +11,8 @@ import type { ManeuverGroup } from '@osce/shared';
  * Hierarchy mapping:
  *   Story/Act/Maneuver → auto-generated / hidden
  *   ManeuverGroup      → "Entity Behavior" card (visible)
- *   Event + Action     → Action row within card (visible)
+ *   Event              → Trigger-based row within card (visible)
+ *   Action             → Indented action items under event trigger
  */
 export function SceneComposerView() {
   const storeApi = useScenarioStoreApi();
