@@ -72,6 +72,8 @@ export const common = {
     parameterType: 'パラメータ型',
     defaultValue: 'デフォルト値',
     noParameters: 'パラメータが定義されていません',
+    definitionTab: '定義',
+    initialStateTab: '初期状態',
   },
   units: {
     mps: 'm/s',

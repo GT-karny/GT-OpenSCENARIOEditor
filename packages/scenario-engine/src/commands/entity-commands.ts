@@ -3,9 +3,9 @@
  */
 
 import { produce } from 'immer';
-import type { ScenarioDocument, ScenarioEntity } from '@osce/shared';
+import type { ScenarioDocument, ScenarioEntity, EntityInitActions } from '@osce/shared';
 import { BaseCommand } from './base-command.js';
-import { createEntityFromPartial } from '../store/defaults.js';
+import { createEntityFromPartial, createEntityInitActions } from '../store/defaults.js';
 import { findEntityIndex } from '../operations/entity-operations.js';
 
 export type GetDoc = () => ScenarioDocument;
@@ -26,6 +26,15 @@ export class AddEntityCommand extends BaseCommand {
   execute(): void {
     this.setDoc(produce(this.getDoc(), (draft) => {
       draft.entities.push(this.entity);
+      // Auto-create empty EntityInitActions
+      const existing = draft.storyboard.init.entityActions.find(
+        (ea) => ea.entityRef === this.entity.name,
+      );
+      if (!existing) {
+        draft.storyboard.init.entityActions.push(
+          createEntityInitActions(this.entity.name),
+        );
+      }
     }));
   }
 
@@ -33,6 +42,11 @@ export class AddEntityCommand extends BaseCommand {
     this.setDoc(produce(this.getDoc(), (draft) => {
       const idx = findEntityIndex(draft, this.entity.id);
       if (idx !== -1) draft.entities.splice(idx, 1);
+      // Also remove auto-created EntityInitActions
+      const eaIdx = draft.storyboard.init.entityActions.findIndex(
+        (ea) => ea.entityRef === this.entity.name,
+      );
+      if (eaIdx !== -1) draft.storyboard.init.entityActions.splice(eaIdx, 1);
     }));
   }
 
@@ -44,6 +58,8 @@ export class AddEntityCommand extends BaseCommand {
 export class RemoveEntityCommand extends BaseCommand {
   private removedEntity: ScenarioEntity | null = null;
   private removedIndex = -1;
+  private removedInitActions: EntityInitActions | null = null;
+  private removedInitIndex = -1;
   private readonly entityId: string;
   private readonly getDoc: GetDoc;
   private readonly setDoc: SetDoc;
@@ -60,9 +76,20 @@ export class RemoveEntityCommand extends BaseCommand {
     this.removedIndex = findEntityIndex(doc, this.entityId);
     if (this.removedIndex !== -1) {
       this.removedEntity = doc.entities[this.removedIndex];
+      // Save EntityInitActions for undo
+      const eaIdx = doc.storyboard.init.entityActions.findIndex(
+        (ea) => ea.entityRef === this.removedEntity!.name,
+      );
+      if (eaIdx !== -1) {
+        this.removedInitActions = structuredClone(doc.storyboard.init.entityActions[eaIdx]);
+        this.removedInitIndex = eaIdx;
+      }
     }
     this.setDoc(produce(doc, (draft) => {
       if (this.removedIndex !== -1) draft.entities.splice(this.removedIndex, 1);
+      if (this.removedInitIndex !== -1) {
+        draft.storyboard.init.entityActions.splice(this.removedInitIndex, 1);
+      }
     }));
   }
 
@@ -70,14 +97,20 @@ export class RemoveEntityCommand extends BaseCommand {
     if (!this.removedEntity || this.removedIndex === -1) return;
     const entity = this.removedEntity;
     const idx = this.removedIndex;
+    const initActions = this.removedInitActions;
+    const initIdx = this.removedInitIndex;
     this.setDoc(produce(this.getDoc(), (draft) => {
       draft.entities.splice(idx, 0, entity);
+      if (initActions && initIdx !== -1) {
+        draft.storyboard.init.entityActions.splice(initIdx, 0, initActions);
+      }
     }));
   }
 }
 
 export class UpdateEntityCommand extends BaseCommand {
   private previousEntity: ScenarioEntity | null = null;
+  private previousEntityRef: string | null = null;
   private readonly entityId: string;
   private readonly updates: Partial<ScenarioEntity>;
   private readonly getDoc: GetDoc;
@@ -97,16 +130,33 @@ export class UpdateEntityCommand extends BaseCommand {
     if (idx === -1) return;
     this.previousEntity = structuredClone(doc.entities[idx]);
     this.setDoc(produce(doc, (draft) => {
+      const oldName = draft.entities[idx].name;
       Object.assign(draft.entities[idx], this.updates);
+      // Sync entityRef in init actions if name changed
+      if (this.updates.name && this.updates.name !== oldName) {
+        this.previousEntityRef = oldName;
+        const ea = draft.storyboard.init.entityActions.find(
+          (ea) => ea.entityRef === oldName,
+        );
+        if (ea) ea.entityRef = this.updates.name;
+      }
     }));
   }
 
   undo(): void {
     if (!this.previousEntity) return;
     const prev = this.previousEntity;
+    const prevRef = this.previousEntityRef;
     this.setDoc(produce(this.getDoc(), (draft) => {
       const idx = findEntityIndex(draft, this.entityId);
       if (idx !== -1) draft.entities[idx] = prev;
+      // Restore previous entityRef if name was changed
+      if (prevRef && this.updates.name) {
+        const ea = draft.storyboard.init.entityActions.find(
+          (ea) => ea.entityRef === this.updates.name,
+        );
+        if (ea) ea.entityRef = prevRef;
+      }
     }));
   }
 }

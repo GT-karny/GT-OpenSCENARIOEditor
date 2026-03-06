@@ -9,9 +9,12 @@ import type {
 } from '@osce/shared';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { EntityIcon } from '../entity/EntityIcon';
 import { EnumSelect } from './EnumSelect';
-import { useScenarioStoreApi } from '../../stores/use-scenario-store';
+import { InitPropertyEditorContent } from './InitPropertyEditor';
+import { useScenarioStore, useScenarioStoreApi } from '../../stores/use-scenario-store';
+import { useEditorStore } from '../../stores/editor-store';
 import { useCatalogStore } from '../../stores/catalog-store';
 import { CatalogPicker } from '../catalog/CatalogPicker';
 import { ParameterAssignmentEditor } from '../catalog/ParameterAssignmentEditor';
@@ -29,6 +32,60 @@ interface EntityPropertyEditorProps {
 }
 
 export function EntityPropertyEditor({ entity }: EntityPropertyEditorProps) {
+  const { t } = useTranslation('common');
+
+  // Tab state persistence
+  const activeTab = useEditorStore((s) => s.entityPropertyTab);
+  const setActiveTab = useEditorStore((s) => s.setEntityPropertyTab);
+
+  // Look up EntityInitActions by entity name
+  const entityInit = useScenarioStore((s) =>
+    s.document.storyboard.init.entityActions.find(
+      (ea) => ea.entityRef === entity.name,
+    ),
+  );
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center gap-2 pb-2 border-b">
+        <EntityIcon type={entity.type} className="h-5 w-5" />
+        <div>
+          <p className="text-sm font-medium">{entity.name}</p>
+          <p className="text-xs text-muted-foreground capitalize">{entity.type}</p>
+        </div>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'definition' | 'initialState')}>
+        <TabsList className="w-full">
+          <TabsTrigger value="definition" className="flex-1 text-[11px]">
+            {t('labels.definitionTab')}
+          </TabsTrigger>
+          <TabsTrigger value="initialState" className="flex-1 text-[11px]">
+            {t('labels.initialStateTab')}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="definition">
+          <EntityDefinitionContent entity={entity} />
+        </TabsContent>
+
+        <TabsContent value="initialState">
+          {entityInit ? (
+            <InitPropertyEditorContent entityInit={entityInit} />
+          ) : (
+            <p className="text-xs text-muted-foreground italic p-2">
+              No initial state configured.
+            </p>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+/** Entity definition form (name, type, source mode, inline/catalog config). */
+function EntityDefinitionContent({ entity }: { entity: ScenarioEntity }) {
   const { t } = useTranslation('common');
   const storeApi = useScenarioStoreApi();
 
@@ -58,7 +115,6 @@ export function EntityPropertyEditor({ entity }: EntityPropertyEditorProps) {
         } satisfies CatalogReference,
       });
     } else {
-      // Switch to inline: create a default definition based on entity type
       const defaultDef = createDefaultDefinition(entity.type);
       storeApi.getState().updateEntity(entity.id, { definition: defaultDef });
     }
@@ -85,20 +141,11 @@ export function EntityPropertyEditor({ entity }: EntityPropertyEditorProps) {
     });
   };
 
-  // Get parameter declarations for the referenced entry
   const resolveReference = useCatalogStore((s) => s.resolveReference);
   const resolved = def.kind === 'catalogReference' ? resolveReference(def) : null;
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 pb-2 border-b">
-        <EntityIcon type={entity.type} className="h-5 w-5" />
-        <div>
-          <p className="text-sm font-medium">{entity.name}</p>
-          <p className="text-xs text-muted-foreground capitalize">{entity.type}</p>
-        </div>
-      </div>
-
       <div className="grid gap-2">
         <Label className="text-xs">{t('labels.name')}</Label>
         <Input
@@ -142,7 +189,6 @@ export function EntityPropertyEditor({ entity }: EntityPropertyEditorProps) {
             onEntryNameChange={handleEntryNameChange}
           />
 
-          {/* Parameter overrides */}
           {resolved && (
             <ParameterAssignmentEditor
               declarations={resolved.parameterDeclarations}
@@ -151,7 +197,6 @@ export function EntityPropertyEditor({ entity }: EntityPropertyEditorProps) {
             />
           )}
 
-          {/* Resolved preview */}
           {def.catalogName && def.entryName && (
             <ResolvedEntryPreview catalogRef={def} />
           )}

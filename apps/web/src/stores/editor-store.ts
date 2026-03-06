@@ -44,6 +44,10 @@ export interface EditorState {
   // SaveAs dialog
   showSaveAs: boolean;
   setShowSaveAs: (show: boolean) => void;
+
+  // Entity property tab persistence
+  entityPropertyTab: 'definition' | 'initialState';
+  setEntityPropertyTab: (tab: 'definition' | 'initialState') => void;
 }
 
 const defaultPreferences: EditorPreferences = {
@@ -120,12 +124,17 @@ export const useEditorStore = create<EditorState>()(
       // SaveAs dialog
       showSaveAs: false,
       setShowSaveAs: (show) => set({ showSaveAs: show }),
+
+      // Entity property tab persistence
+      entityPropertyTab: 'definition',
+      setEntityPropertyTab: (tab) => set({ entityPropertyTab: tab }),
     }),
     {
       name: 'osce-editor-preferences',
       partialize: (state) => ({
         preferences: state.preferences,
         panelVisibility: state.panelVisibility,
+        entityPropertyTab: state.entityPropertyTab,
       }),
     },
   ),
