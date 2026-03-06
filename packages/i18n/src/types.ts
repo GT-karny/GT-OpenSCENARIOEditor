@@ -4,6 +4,7 @@ import type { useCases } from './locales/en/useCases.js';
 import type { openscenario } from './locales/en/openscenario.js';
 import type { errors } from './locales/en/errors.js';
 import type { tooltips } from './locales/en/tooltips.js';
+import type { composer } from './locales/en/composer.js';
 
 declare module 'i18next' {
   interface CustomTypeOptions {
@@ -15,6 +16,7 @@ declare module 'i18next' {
       openscenario: typeof openscenario;
       errors: typeof errors;
       tooltips: typeof tooltips;
+      composer: typeof composer;
     };
   }
 }

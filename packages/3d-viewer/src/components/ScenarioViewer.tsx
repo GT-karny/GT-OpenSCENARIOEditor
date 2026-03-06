@@ -37,6 +37,8 @@ export interface ScenarioViewerProps {
   openDriveDocument: OpenDriveDocument | null;
   /** Currently selected entity ID (controlled externally) */
   selectedEntityId?: string | null;
+  /** Entity name to highlight on hover (from composer card) */
+  hoveredEntityName?: string | null;
   /** Callback when user clicks an entity in the viewer */
   onEntitySelect?: (entityId: string) => void;
   /** Callback when user double-clicks an entity (request focus) */
@@ -71,6 +73,7 @@ function ScenarioViewerScene({
   scenarioStore,
   openDriveDocument,
   selectedEntityId,
+  hoveredEntityName,
   onEntitySelect,
   onEntityFocus,
   onEntityPositionChange,
@@ -80,6 +83,7 @@ function ScenarioViewerScene({
   scenarioStore: ScenarioViewerProps['scenarioStore'];
   openDriveDocument: OpenDriveDocument | null;
   selectedEntityId: string | null;
+  hoveredEntityName?: string | null;
   onEntitySelect: (entityId: string) => void;
   onEntityFocus: (entityId: string) => void;
   onEntityPositionChange?: ScenarioViewerProps['onEntityPositionChange'];
@@ -224,6 +228,7 @@ function ScenarioViewerScene({
           entities={entities}
           entityPositions={entityPositions}
           selectedEntityId={selectedEntityId}
+          hoveredEntityName={hoveredEntityName}
           onEntitySelect={onEntitySelect}
           onEntityFocus={handleEntityFocus}
           showLabels={showEntityLabels}
@@ -277,6 +282,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   scenarioStore,
   openDriveDocument,
   selectedEntityId = null,
+  hoveredEntityName,
   onEntitySelect,
   onEntityFocus,
   onEntityPositionChange,
@@ -402,6 +408,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           scenarioStore={scenarioStore}
           openDriveDocument={openDriveDocument}
           selectedEntityId={selectedEntityId ?? null}
+          hoveredEntityName={hoveredEntityName}
           onEntitySelect={handleEntitySelect}
           onEntityFocus={handleEntityFocus}
           onEntityPositionChange={onEntityPositionChange}

@@ -20,6 +20,8 @@ interface EntityGroupProps {
   entities: ScenarioEntity[];
   entityPositions: Map<string, WorldCoords>;
   selectedEntityId: string | null;
+  /** Entity name to highlight on hover (from composer card) */
+  hoveredEntityName?: string | null;
   onEntitySelect: (entityId: string) => void;
   onEntityFocus?: (entityId: string) => void;
   showLabels: boolean;
@@ -132,6 +134,7 @@ export const EntityGroup: React.FC<EntityGroupProps> = React.memo(
     entities,
     entityPositions,
     selectedEntityId,
+    hoveredEntityName,
     onEntitySelect,
     onEntityFocus,
     showLabels,
@@ -179,6 +182,7 @@ export const EntityGroup: React.FC<EntityGroupProps> = React.memo(
             if (!position) return null;
 
             const isSelected = entity.id === selectedEntityId;
+            const isHovered = !isSelected && entity.name === hoveredEntityName;
             const isEgo = isEgoEntity(entity, idx);
 
             if (isSelected && (gizmoMode === 'translate' || gizmoMode === 'rotate')) {
@@ -214,6 +218,7 @@ export const EntityGroup: React.FC<EntityGroupProps> = React.memo(
               entity,
               position,
               isSelected,
+              isHovered,
               showLabel: showLabels,
               onClick: () => onEntitySelect(entity.id),
               onDoubleClick: () => onEntityFocus?.(entity.id),

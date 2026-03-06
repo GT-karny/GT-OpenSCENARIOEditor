@@ -15,7 +15,7 @@ interface EventPropertyEditorProps {
 
 /**
  * Tabbed Action + Trigger property editor.
- * Shown when selecting an ActionRow in the Composer view.
+ * Shown when selecting an EventRow in the Composer view.
  */
 export function EventPropertyEditor({ event }: EventPropertyEditorProps) {
   const storeApi = useScenarioStoreApi();
