@@ -4,6 +4,7 @@
  */
 
 import type { RouteStrategy } from '../enums/osc-enums.js';
+import type { ParameterDeclaration } from './parameters.js';
 
 export type Position =
   | WorldPosition
@@ -114,6 +115,7 @@ export interface Route {
   id: string;
   name: string;
   closed: boolean;
+  parameterDeclarations?: ParameterDeclaration[];
   waypoints: Waypoint[];
 }
 

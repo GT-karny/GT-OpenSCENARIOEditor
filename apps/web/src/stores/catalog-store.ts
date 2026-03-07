@@ -3,16 +3,13 @@ import type {
   CatalogDocument,
   CatalogEntry,
   CatalogReference,
-  VehicleDefinition,
-  PedestrianDefinition,
-  MiscObjectDefinition,
   ParameterDeclaration,
 } from '@osce/shared';
 import { parseCatalogXml } from '@osce/openscenario';
 
 export interface ResolvedCatalogEntry {
   catalogType: CatalogEntry['catalogType'];
-  definition: VehicleDefinition | PedestrianDefinition | MiscObjectDefinition;
+  definition: CatalogEntry['definition'];
   parameterDeclarations: ParameterDeclaration[];
 }
 

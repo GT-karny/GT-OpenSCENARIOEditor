@@ -90,34 +90,36 @@ export function CatalogEntryEditor() {
           />
         </div>
 
-        {def.kind === 'vehicle' && (
+        {entry.catalogType === 'vehicle' && (
           <VehicleFields
             entry={entry as { catalogType: 'vehicle'; definition: VehicleDefinition }}
             onUpdate={handleUpdate}
             {...hlProps}
           />
         )}
-        {def.kind === 'pedestrian' && (
+        {entry.catalogType === 'pedestrian' && (
           <PedestrianFields
             entry={entry as { catalogType: 'pedestrian'; definition: PedestrianDefinition }}
             onUpdate={handleUpdate}
           />
         )}
-        {def.kind === 'miscObject' && (
+        {entry.catalogType === 'miscObject' && (
           <MiscObjectFields
             entry={entry as { catalogType: 'miscObject'; definition: MiscObjectDefinition }}
             onUpdate={handleUpdate}
           />
         )}
 
-        {/* BoundingBox */}
-        <BoundingBoxEditor entry={entry} onUpdate={handleUpdate} {...hlProps} />
+        {/* BoundingBox (only for entity types) */}
+        {hasEntityShape(entry) && (
+          <BoundingBoxEditor entry={entry} onUpdate={handleUpdate} {...hlProps} />
+        )}
 
         {/* Parameter Declarations */}
-        {def.parameterDeclarations.length > 0 && (
+        {(getParameterDeclarations(def)).length > 0 && (
           <div className="space-y-1">
             <p className="text-[10px] font-medium text-muted-foreground">{t('labels.parameters')}</p>
-            {def.parameterDeclarations.map((pd, i) => (
+            {getParameterDeclarations(def).map((pd, i) => (
               <div key={i} className="grid grid-cols-3 gap-1 text-[10px]">
                 <span className="text-muted-foreground truncate">{pd.name}</span>
                 <span className="text-muted-foreground">{pd.parameterType}</span>
@@ -128,7 +130,7 @@ export function CatalogEntryEditor() {
         )}
 
         {/* Properties */}
-        {def.properties.length > 0 && (
+        {hasProperties(def) && def.properties.length > 0 && (
           <div className="space-y-1">
             <p className="text-[10px] font-medium text-muted-foreground">Properties</p>
             {def.properties.map((p, i) => (
@@ -141,14 +143,22 @@ export function CatalogEntryEditor() {
         )}
       </div>
 
-      {/* Right: Diagram */}
-      <div className="flex-1 min-w-0 p-2 bg-[var(--color-bg-void,#050311)]">
-        <EntityDiagramPanel
-          definition={def as VehicleDefinition | PedestrianDefinition | MiscObjectDefinition}
-          highlighted={highlighted}
-          onHighlight={setHighlighted}
-        />
-      </div>
+      {/* Right: Diagram (only for entity types with bounding box) */}
+      {hasEntityShape(entry) ? (
+        <div className="flex-1 min-w-0 p-2 bg-[var(--color-bg-void,#050311)]">
+          <EntityDiagramPanel
+            definition={def as VehicleDefinition | PedestrianDefinition | MiscObjectDefinition}
+            highlighted={highlighted}
+            onHighlight={setHighlighted}
+          />
+        </div>
+      ) : (
+        <div className="flex-1 min-w-0 p-4 bg-[var(--color-bg-void,#050311)] flex items-center justify-center">
+          <p className="text-xs text-muted-foreground">
+            {entry.catalogType.charAt(0).toUpperCase() + entry.catalogType.slice(1)} catalog entry
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -384,7 +394,32 @@ function MiscObjectFields({
   );
 }
 
-// --- BoundingBox editor (shared across all types) ---
+// --- Type guards for catalog entry features ---
+
+/** Entity types that have boundingBox */
+function hasEntityShape(entry: CatalogEntry): entry is
+  | { catalogType: 'vehicle'; definition: VehicleDefinition }
+  | { catalogType: 'pedestrian'; definition: PedestrianDefinition }
+  | { catalogType: 'miscObject'; definition: MiscObjectDefinition } {
+  return entry.catalogType === 'vehicle' || entry.catalogType === 'pedestrian' || entry.catalogType === 'miscObject';
+}
+
+/** Safely get parameterDeclarations from any definition type */
+function getParameterDeclarations(def: CatalogEntry['definition']) {
+  return ('parameterDeclarations' in def && def.parameterDeclarations) ? def.parameterDeclarations : [];
+}
+
+/** Check if definition has properties */
+function hasProperties(def: CatalogEntry['definition']): def is { properties: { name: string; value: string }[] } & CatalogEntry['definition'] {
+  return 'properties' in def && Array.isArray(def.properties);
+}
+
+// --- BoundingBox editor (shared across entity types) ---
+
+type EntityCatalogEntry =
+  | { catalogType: 'vehicle'; definition: VehicleDefinition }
+  | { catalogType: 'pedestrian'; definition: PedestrianDefinition }
+  | { catalogType: 'miscObject'; definition: MiscObjectDefinition };
 
 function BoundingBoxEditor({
   entry,
@@ -392,7 +427,7 @@ function BoundingBoxEditor({
   highlighted,
   onHighlight,
 }: {
-  entry: CatalogEntry;
+  entry: EntityCatalogEntry;
   onUpdate: (e: CatalogEntry) => void;
 } & HighlightProps) {
   const bb = entry.definition.boundingBox;

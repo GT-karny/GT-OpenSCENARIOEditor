@@ -8,7 +8,11 @@ import type {
   VehicleDefinition,
   PedestrianDefinition,
   MiscObjectDefinition,
+  ControllerDefinition,
 } from './entities.js';
+import type { Environment, Trajectory } from './actions.js';
+import type { Maneuver } from './storyboard.js';
+import type { Route } from './positions.js';
 
 /** The 8 catalog types defined by OpenSCENARIO v1.2 */
 export type CatalogType =
@@ -42,12 +46,16 @@ export interface CatalogDocument {
 /**
  * A single entry in a catalog.
  * Each entry wraps one of the known definition types.
- * Phase 1 supports Vehicle, Pedestrian, MiscObject.
  */
 export type CatalogEntry =
   | VehicleCatalogEntry
   | PedestrianCatalogEntry
-  | MiscObjectCatalogEntry;
+  | MiscObjectCatalogEntry
+  | ControllerCatalogEntry
+  | EnvironmentCatalogEntry
+  | ManeuverCatalogEntry
+  | TrajectoryCatalogEntry
+  | RouteCatalogEntry;
 
 export interface VehicleCatalogEntry {
   catalogType: 'vehicle';
@@ -62,4 +70,29 @@ export interface PedestrianCatalogEntry {
 export interface MiscObjectCatalogEntry {
   catalogType: 'miscObject';
   definition: MiscObjectDefinition;
+}
+
+export interface ControllerCatalogEntry {
+  catalogType: 'controller';
+  definition: ControllerDefinition;
+}
+
+export interface EnvironmentCatalogEntry {
+  catalogType: 'environment';
+  definition: Environment;
+}
+
+export interface ManeuverCatalogEntry {
+  catalogType: 'maneuver';
+  definition: Maneuver;
+}
+
+export interface TrajectoryCatalogEntry {
+  catalogType: 'trajectory';
+  definition: Trajectory;
+}
+
+export interface RouteCatalogEntry {
+  catalogType: 'route';
+  definition: Route;
 }

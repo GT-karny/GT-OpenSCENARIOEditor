@@ -19,6 +19,7 @@ import type {
 } from '@osce/shared';
 import { ensureArray } from '../utils/ensure-array.js';
 import { generateId } from '../utils/uuid.js';
+import { parseParameterDeclarations } from './parse-parameters.js';
 import { numAttr, strAttr, optNumAttr, optStrAttr, boolAttr, pushBindingFieldPrefix, popBindingFieldPrefix } from '../utils/xml-helpers.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -179,11 +180,12 @@ function parseRouteRef(raw: any): RouteRef {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseRoute(raw: any): Route {
+export function parseRoute(raw: any): Route {
   return {
     id: generateId(),
     name: strAttr(raw, 'name'),
     closed: boolAttr(raw, 'closed'),
+    parameterDeclarations: parseParameterDeclarations(raw.ParameterDeclarations),
     waypoints: ensureArray(raw?.Waypoint).map(parseWaypoint),
   };
 }
