@@ -10,6 +10,7 @@ import type {
   Role,
   PedestrianCategory,
   MiscObjectCategory,
+  ControllerType,
 } from '../enums/osc-enums.js';
 
 export type EntityType = 'vehicle' | 'pedestrian' | 'miscObject';
@@ -100,6 +101,7 @@ export interface ObjectController {
 export interface ControllerDefinition {
   kind: 'controller';
   name: string;
+  controllerType?: ControllerType;
   parameterDeclarations?: ParameterDeclaration[];
   properties: Property[];
 }

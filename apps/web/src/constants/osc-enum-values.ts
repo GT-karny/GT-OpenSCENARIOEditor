@@ -11,6 +11,8 @@ import type {
   ConditionEdge,
   DynamicsShape,
   Rule,
+  ControllerType,
+  ParameterType,
 } from '@osce/shared';
 import type { EventPriority } from '@osce/shared';
 
@@ -51,6 +53,26 @@ export const MISC_OBJECT_CATEGORIES: readonly MiscObjectCategory[] = [
   'tree',
   'vegetation',
   'wind',
+] as const;
+
+export const CONTROLLER_TYPES: readonly ControllerType[] = [
+  'lateral',
+  'longitudinal',
+  'lighting',
+  'animation',
+  'movement',
+  'appearance',
+  'all',
+] as const;
+
+export const PARAMETER_TYPES: readonly ParameterType[] = [
+  'string',
+  'double',
+  'int',
+  'boolean',
+  'dateTime',
+  'unsignedInt',
+  'unsignedShort',
 ] as const;
 
 export const CONDITION_EDGES: readonly ConditionEdge[] = [
