@@ -8,6 +8,7 @@ interface EntityListItemProps {
   entity: ScenarioEntity;
   selected: boolean;
   onSelect: () => void;
+  onDoubleClick?: () => void;
   onDelete: () => void;
 }
 
@@ -26,7 +27,7 @@ function getEntityCategory(entity: ScenarioEntity): string | undefined {
   }
 }
 
-export function EntityListItem({ entity, selected, onSelect, onDelete }: EntityListItemProps) {
+export function EntityListItem({ entity, selected, onSelect, onDoubleClick, onDelete }: EntityListItemProps) {
   const category = getEntityCategory(entity);
 
   return (
@@ -36,6 +37,7 @@ export function EntityListItem({ entity, selected, onSelect, onDelete }: EntityL
         selected && 'selected',
       )}
       onClick={onSelect}
+      onDoubleClick={onDoubleClick}
     >
       {/* Selected indicator — left accent bar */}
       {selected && (

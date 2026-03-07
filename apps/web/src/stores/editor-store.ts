@@ -48,6 +48,10 @@ export interface EditorState {
   // Entity property tab persistence
   entityPropertyTab: 'definition' | 'initialState';
   setEntityPropertyTab: (tab: 'definition' | 'initialState') => void;
+
+  // Focus entity in 3D viewer (from panel double-click)
+  focusEntityId: string | null;
+  setFocusEntityId: (id: string | null) => void;
 }
 
 const defaultPreferences: EditorPreferences = {
@@ -128,6 +132,10 @@ export const useEditorStore = create<EditorState>()(
       // Entity property tab persistence
       entityPropertyTab: 'definition',
       setEntityPropertyTab: (tab) => set({ entityPropertyTab: tab }),
+
+      // Focus entity in 3D viewer
+      focusEntityId: null,
+      setFocusEntityId: (id) => set({ focusEntityId: id }),
     }),
     {
       name: 'osce-editor-preferences',

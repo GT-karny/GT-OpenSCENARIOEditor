@@ -7,6 +7,7 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useStore } from 'zustand';
 import type * as THREE from 'three';
+import { Vector3 } from 'three';
 import type {
   OpenDriveDocument,
   SimulationFrame,
@@ -29,6 +30,7 @@ import { useScenarioEntities } from '../scenario/useScenarioEntities.js';
 import { useEntityPositions } from '../scenario/useEntityPositions.js';
 import { SimulationOverlay } from '../scenario/SimulationOverlay.js';
 import { useCameraFollow } from '../scene/useCameraFollow.js';
+import { Minimap } from './Minimap.js';
 
 export interface ScenarioViewerProps {
   /** The scenario engine Zustand store (vanilla) */
@@ -64,6 +66,8 @@ export interface ScenarioViewerProps {
   onViewerModeChange?: (mode: ViewerMode) => void;
   /** CSS style for the container */
   style?: React.CSSProperties;
+  /** Entity ID to focus camera on (from external panel double-click) */
+  focusEntityId?: string | null;
 }
 
 /**
@@ -79,6 +83,8 @@ function ScenarioViewerScene({
   onEntityPositionChange,
   currentFrame,
   viewerStore,
+  focusEntityId,
+  cameraStateRef,
 }: {
   scenarioStore: ScenarioViewerProps['scenarioStore'];
   openDriveDocument: OpenDriveDocument | null;
@@ -89,6 +95,8 @@ function ScenarioViewerScene({
   onEntityPositionChange?: ScenarioViewerProps['onEntityPositionChange'];
   currentFrame?: SimulationFrame | null;
   viewerStore: ReturnType<typeof createViewerStore>;
+  focusEntityId?: string | null;
+  cameraStateRef?: React.RefObject<{ position: THREE.Vector3; target: THREE.Vector3 }>;
 }) {
   const cameraMode = useViewerStore(viewerStore, (s) => s.cameraMode);
   const showGrid = useViewerStore(viewerStore, (s) => s.showGrid);
@@ -188,6 +196,27 @@ function ScenarioViewerScene({
     [viewerStore],
   );
 
+  // React to external focus request (from panel double-click)
+  const prevFocusEntityIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (focusEntityId && focusEntityId !== prevFocusEntityIdRef.current) {
+      handleEntityFocus(focusEntityId);
+      prevFocusEntityIdRef.current = focusEntityId;
+    }
+    if (!focusEntityId) {
+      prevFocusEntityIdRef.current = null;
+    }
+  }, [focusEntityId, handleEntityFocus]);
+
+  // React to focusWorldPosition from viewer store (minimap click)
+  const focusWorldPosition = useViewerStore(viewerStore, (s) => s.focusWorldPosition);
+  useEffect(() => {
+    if (focusWorldPosition) {
+      setFocusTarget(focusWorldPosition);
+      viewerStore.getState().setFocusWorldPosition(null);
+    }
+  }, [focusWorldPosition, viewerStore]);
+
   // Determine if hover/click should be active
   const hoverActive = isEditMode && (gizmoMode === 'place' || gizmoMode === 'translate');
   const clickActive = isEditMode && gizmoMode === 'place';
@@ -195,7 +224,7 @@ function ScenarioViewerScene({
   return (
     <>
       <SceneEnvironment showGrid={showGrid} />
-      <CameraController ref={cameraRef} mode={cameraMode} focusTarget={focusTarget} flySpeed={flySpeed} />
+      <CameraController ref={cameraRef} mode={cameraMode} focusTarget={focusTarget} flySpeed={flySpeed} cameraStateRef={cameraStateRef} />
 
       <RoadNetwork
         ref={roadGroupRef}
@@ -292,12 +321,16 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   onViewerModeChange,
   className,
   style,
+  focusEntityId,
 }) => {
   const viewerStoreRef = useRef<ReturnType<typeof createViewerStore> | null>(null);
   if (!viewerStoreRef.current) {
     viewerStoreRef.current = createViewerStore(preferences);
   }
   const viewerStore = viewerStoreRef.current;
+
+  // Camera state ref for minimap (written each frame by CameraController)
+  const cameraStateRef = useRef({ position: new Vector3(), target: new Vector3() });
 
   // Auto-switch to play mode when simulation starts
   useEffect(() => {
@@ -332,6 +365,21 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   const flySpeed = useViewerStore(viewerStore, (s) => s.flySpeed);
 
   const hoverLaneInfo = useViewerStore(viewerStore, (s) => s.hoverLaneInfo);
+  const showMinimap = useViewerStore(viewerStore, (s) => s.showMinimap);
+  const minimapSize = useViewerStore(viewerStore, (s) => s.minimapSize);
+
+  // Entity positions for minimap
+  const entityPositions = useEntityPositions(scenarioStore, openDriveDocument);
+
+  // Minimap click handler
+  const handleMinimapClick = useCallback(
+    (worldX: number, worldY: number) => {
+      // worldX, worldY are in OpenDRIVE coords
+      // Convert to Three.js coords: (x, 0, -y)
+      viewerStore.getState().setFocusWorldPosition([worldX, 0, -worldY]);
+    },
+    [viewerStore],
+  );
 
   // Notify parent of viewer mode changes
   useEffect(() => {
@@ -379,6 +427,10 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
         followTargetEntity={followTargetEntity}
         onFollowTargetChange={(name) => viewerStore.getState().setFollowTarget(name)}
         entities={entities}
+        showMinimap={showMinimap}
+        onToggleMinimap={() => viewerStore.getState().toggleMinimap()}
+        minimapSize={minimapSize}
+        onCycleMinimapSize={() => viewerStore.getState().cycleMinimapSize()}
       />
 
       {/* Placement overlay (shown in Place mode with hover info) */}
@@ -403,6 +455,20 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
         <span style={{ minWidth: 30, textAlign: 'right' }}>{flySpeed.toFixed(1)}x</span>
       </div>
 
+      {/* Minimap overlay (bottom-right) */}
+      {showMinimap && (
+        <Minimap
+          openDriveDocument={openDriveDocument}
+          entityPositions={entityPositions}
+          entities={entities}
+          selectedEntityId={selectedEntityId ?? null}
+          cameraStateRef={cameraStateRef}
+          size={minimapSize}
+          onClickPosition={handleMinimapClick}
+          currentFrame={currentFrameProp}
+        />
+      )}
+
       <ViewerCanvas>
         <ScenarioViewerScene
           scenarioStore={scenarioStore}
@@ -414,6 +480,8 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           onEntityPositionChange={onEntityPositionChange}
           currentFrame={currentFrameProp}
           viewerStore={viewerStore}
+          focusEntityId={focusEntityId}
+          cameraStateRef={cameraStateRef}
         />
       </ViewerCanvas>
     </div>

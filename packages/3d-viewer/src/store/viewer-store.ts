@@ -9,6 +9,7 @@ import type {
   CameraMode,
   GizmoMode,
   HoverLaneInfo,
+  MinimapSize,
   PlaybackState,
   ViewerMode,
   ViewerStore,
@@ -41,6 +42,9 @@ export function createViewerStore(preferences?: Partial<EditorPreferences>) {
     hoverLaneInfo: null as HoverLaneInfo | null,
     followTargetEntity: null,
     flySpeed: 1,
+    showMinimap: true,
+    minimapSize: 'medium' as MinimapSize,
+    focusWorldPosition: null,
 
     // Actions
     setCameraMode: (mode: CameraMode) => set({ cameraMode: mode }),
@@ -82,6 +86,15 @@ export function createViewerStore(preferences?: Partial<EditorPreferences>) {
 
     setFollowTarget: (entityName: string | null) => set({ followTargetEntity: entityName }),
     setFlySpeed: (speed: number) => set({ flySpeed: speed }),
+
+    toggleMinimap: () => set((s) => ({ showMinimap: !s.showMinimap })),
+    cycleMinimapSize: () =>
+      set((s) => {
+        const sizes: MinimapSize[] = ['small', 'medium', 'large'];
+        const idx = sizes.indexOf(s.minimapSize);
+        return { minimapSize: sizes[(idx + 1) % sizes.length] };
+      }),
+    setFocusWorldPosition: (pos: [number, number, number] | null) => set({ focusWorldPosition: pos }),
   }));
 }
 

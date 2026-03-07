@@ -65,6 +65,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   onEntityPositionChange?: (entityName: string, x: number, y: number, z: number, h: number, forceWorldPosition?: boolean) => void;
   onViewerModeChange?: (mode: ViewerMode) => void;
   preferences: { showGrid3D: boolean; showLaneIds: boolean; showRoadIds: boolean };
+  focusEntityId?: string | null;
 }) {
   const simStatus = useSimulationStore((s) => s.status);
   const simFrames = useSimulationStore((s) => s.frames);
@@ -105,6 +106,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       currentFrame={currentFrame}
       simulationStatus={simStatus}
       preferences={props.preferences}
+      focusEntityId={props.focusEntityId}
       className="h-full w-full"
     />
   );
@@ -149,6 +151,7 @@ export function EditorLayout() {
   const roadNetwork = useEditorStore((s) => s.roadNetwork);
   const preferences = useEditorStore((s) => s.preferences);
   const focusNodeId = useEditorStore((s) => s.focusNodeId);
+  const focusEntityId = useEditorStore((s) => s.focusEntityId);
   const selectedEntityId = selectedElementIds.length === 1 ? selectedElementIds[0] : null;
 
   // Resolve ManeuverGroup selection → first actor entity ID for 3D highlighting
@@ -332,7 +335,10 @@ export function EditorLayout() {
                     selectedEntityId={viewerSelectedEntityId}
                     hoveredEntityName={hoveredElementId}
                     onEntitySelect={handleEntitySelect}
-                    onEntityFocus={handleEntitySelect}
+                    onEntityFocus={(entityId) => {
+                      handleEntitySelect(entityId);
+                      useEditorStore.getState().setFocusEntityId(null);
+                    }}
                     onEntityPositionChange={handleEntityPositionChange}
                     onViewerModeChange={setViewerMode}
                     preferences={{
@@ -340,6 +346,7 @@ export function EditorLayout() {
                       showLaneIds: preferences.showLaneIds,
                       showRoadIds: preferences.showRoadIds,
                     }}
+                    focusEntityId={focusEntityId}
                   />
                 </ErrorBoundary>
               </div>

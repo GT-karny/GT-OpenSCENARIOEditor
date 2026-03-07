@@ -6,7 +6,7 @@
 
 import React, { useState, useCallback } from 'react';
 import type { ScenarioEntity } from '@osce/shared';
-import type { CameraMode, GizmoMode, ViewerMode } from '../store/viewer-types.js';
+import type { CameraMode, GizmoMode, MinimapSize, ViewerMode } from '../store/viewer-types.js';
 
 interface ViewerToolbarProps {
   viewerMode: ViewerMode;
@@ -31,6 +31,10 @@ interface ViewerToolbarProps {
   followTargetEntity: string | null;
   onFollowTargetChange: (entityName: string | null) => void;
   entities: ScenarioEntity[];
+  showMinimap: boolean;
+  onToggleMinimap: () => void;
+  minimapSize: MinimapSize;
+  onCycleMinimapSize: () => void;
 }
 
 const toolbarStyle: React.CSSProperties = {
@@ -145,6 +149,10 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = React.memo(
     followTargetEntity,
     onFollowTargetChange,
     entities,
+    showMinimap,
+    onToggleMinimap,
+    minimapSize,
+    onCycleMinimapSize,
   }) => {
     const [followDropdownOpen, setFollowDropdownOpen] = useState(false);
     const isEditMode = viewerMode === 'edit';
@@ -311,6 +319,26 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = React.memo(
         >
           LaneID
         </button>
+
+        <div style={separatorStyle} />
+
+        {/* Minimap toggle */}
+        <button
+          style={showMinimap ? activeButtonStyle : buttonStyle}
+          onClick={onToggleMinimap}
+          title="Toggle minimap"
+        >
+          Map
+        </button>
+        {showMinimap && (
+          <button
+            style={buttonStyle}
+            onClick={onCycleMinimapSize}
+            title={`Minimap size: ${minimapSize}`}
+          >
+            {minimapSize === 'small' ? 'S' : minimapSize === 'medium' ? 'M' : 'L'}
+          </button>
+        )}
       </div>
     );
   },
