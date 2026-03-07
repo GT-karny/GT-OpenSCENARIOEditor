@@ -39,6 +39,7 @@ export function EntityListPanel() {
             entity={entity}
             selected={selectedIds.includes(entity.id)}
             onSelect={() => setSelection({ selectedElementIds: [entity.id] })}
+            onDoubleClick={() => useEditorStore.getState().setFocusEntityId(entity.id)}
             onDelete={() => handleDelete(entity.id)}
           />
         ))}

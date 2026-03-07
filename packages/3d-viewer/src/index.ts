@@ -15,6 +15,7 @@ export type {
   CameraMode,
   ViewerMode,
   GizmoMode,
+  MinimapSize,
   HoverLaneInfo,
   PlaybackState,
 } from './store/viewer-types.js';

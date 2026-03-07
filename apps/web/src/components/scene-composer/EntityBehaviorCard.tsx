@@ -213,7 +213,17 @@ export function EntityBehaviorCard({ group, selected, onSelect }: EntityBehavior
           {actorEntities.length > 0 ? (
             <div className="flex items-center gap-2 flex-wrap">
               {actorEntities.map((actor) => (
-                <span key={actor.name} className="flex items-center gap-1">
+                <span
+                  key={actor.name}
+                  className="flex items-center gap-1 cursor-pointer"
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    const entity = entities.find((ent) => ent.name === actor.name);
+                    if (entity) {
+                      useEditorStore.getState().setFocusEntityId(entity.id);
+                    }
+                  }}
+                >
                   <EntityIcon type={actor.type} className="h-3.5 w-3.5 text-[var(--color-accent-1)]" />
                   <span className="text-[11px] text-[var(--color-text-primary)]">
                     {actor.name}
