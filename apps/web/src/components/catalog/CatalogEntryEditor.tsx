@@ -7,13 +7,19 @@ import {
   VEHICLE_CATEGORIES,
   PEDESTRIAN_CATEGORIES,
   MISC_OBJECT_CATEGORIES,
+  CONTROLLER_TYPES,
 } from '../../constants/osc-enum-values';
 import type {
   CatalogEntry,
   VehicleDefinition,
   PedestrianDefinition,
   MiscObjectDefinition,
+  ControllerDefinition,
+  ControllerType,
 } from '@osce/shared';
+import { cn } from '@/lib/utils';
+import { ParameterDeclarationsEditor } from './ParameterDeclarationsEditor';
+import { PropertiesEditor } from './PropertiesEditor';
 import { EntityDiagramPanel, useDiagramHighlight } from './diagrams';
 import type { HighlightKey } from './diagrams';
 
@@ -86,8 +92,14 @@ export function CatalogEntryEditor() {
             onChange={(e) =>
               handleUpdate({ ...entry, definition: { ...def, name: e.target.value } } as CatalogEntry)
             }
-            className="h-7 text-xs"
+            className={cn('h-7 text-xs', !def.name.trim() && 'border-destructive')}
           />
+          {!def.name.trim() && (
+            <p className="text-[10px] text-destructive">{t('catalog.emptyNameError')}</p>
+          )}
+          {doc && isDuplicateName(def.name, selectedEntryIndex!, doc.entries) && (
+            <p className="text-[10px] text-yellow-500">{t('catalog.duplicateNameWarning')}</p>
+          )}
         </div>
 
         {entry.catalogType === 'vehicle' && (
@@ -109,6 +121,12 @@ export function CatalogEntryEditor() {
             onUpdate={handleUpdate}
           />
         )}
+        {entry.catalogType === 'controller' && (
+          <ControllerFields
+            entry={entry as { catalogType: 'controller'; definition: ControllerDefinition }}
+            onUpdate={handleUpdate}
+          />
+        )}
 
         {/* BoundingBox (only for entity types) */}
         {hasEntityShape(entry) && (
@@ -116,30 +134,29 @@ export function CatalogEntryEditor() {
         )}
 
         {/* Parameter Declarations */}
-        {(getParameterDeclarations(def)).length > 0 && (
-          <div className="space-y-1">
-            <p className="text-[10px] font-medium text-muted-foreground">{t('labels.parameters')}</p>
-            {getParameterDeclarations(def).map((pd, i) => (
-              <div key={i} className="grid grid-cols-3 gap-1 text-[10px]">
-                <span className="text-muted-foreground truncate">{pd.name}</span>
-                <span className="text-muted-foreground">{pd.parameterType}</span>
-                <span>{pd.value}</span>
-              </div>
-            ))}
-          </div>
+        {hasParameterDeclarations(def) && (
+          <ParameterDeclarationsEditor
+            parameters={getParameterDeclarations(def)}
+            onChange={(params) =>
+              handleUpdate({
+                ...entry,
+                definition: { ...def, parameterDeclarations: params },
+              } as CatalogEntry)
+            }
+          />
         )}
 
         {/* Properties */}
-        {hasProperties(def) && def.properties.length > 0 && (
-          <div className="space-y-1">
-            <p className="text-[10px] font-medium text-muted-foreground">Properties</p>
-            {def.properties.map((p, i) => (
-              <div key={i} className="grid grid-cols-2 gap-1 text-[10px]">
-                <span className="text-muted-foreground truncate">{p.name}</span>
-                <span>{p.value}</span>
-              </div>
-            ))}
-          </div>
+        {hasProperties(def) && (
+          <PropertiesEditor
+            properties={def.properties}
+            onChange={(props) =>
+              handleUpdate({
+                ...entry,
+                definition: { ...def, properties: props },
+              } as CatalogEntry)
+            }
+          />
         )}
       </div>
 
@@ -154,8 +171,10 @@ export function CatalogEntryEditor() {
         </div>
       ) : (
         <div className="flex-1 min-w-0 p-4 bg-[var(--color-bg-void,#050311)] flex items-center justify-center">
-          <p className="text-xs text-muted-foreground">
-            {entry.catalogType.charAt(0).toUpperCase() + entry.catalogType.slice(1)} catalog entry
+          <p className="text-xs text-muted-foreground text-center max-w-48">
+            {entry.catalogType === 'controller'
+              ? t('catalog.controllerPlaceholder')
+              : `${entry.catalogType.charAt(0).toUpperCase() + entry.catalogType.slice(1)} catalog entry`}
           </p>
         </div>
       )}
@@ -394,6 +413,39 @@ function MiscObjectFields({
   );
 }
 
+// --- Controller-specific fields ---
+
+function ControllerFields({
+  entry,
+  onUpdate,
+}: {
+  entry: { catalogType: 'controller'; definition: ControllerDefinition };
+  onUpdate: (e: CatalogEntry) => void;
+}) {
+  const { t } = useTranslation('common');
+  const def = entry.definition;
+
+  const update = (partial: Partial<ControllerDefinition>) =>
+    onUpdate({ ...entry, definition: { ...def, ...partial } });
+
+  return (
+    <>
+      {/* Controller Type */}
+      <div className="grid gap-1">
+        <Label className="text-xs">{t('catalog.controllerType')}</Label>
+        <EnumSelect
+          value={def.controllerType ?? ''}
+          options={['', ...CONTROLLER_TYPES]}
+          onValueChange={(v) =>
+            update({ controllerType: (v || undefined) as ControllerType | undefined })
+          }
+          className="h-7 text-xs"
+        />
+      </div>
+    </>
+  );
+}
+
 // --- Type guards for catalog entry features ---
 
 /** Entity types that have boundingBox */
@@ -404,9 +456,20 @@ function hasEntityShape(entry: CatalogEntry): entry is
   return entry.catalogType === 'vehicle' || entry.catalogType === 'pedestrian' || entry.catalogType === 'miscObject';
 }
 
+/** Check if definition type supports parameterDeclarations */
+function hasParameterDeclarations(def: CatalogEntry['definition']): boolean {
+  return 'parameterDeclarations' in def;
+}
+
 /** Safely get parameterDeclarations from any definition type */
 function getParameterDeclarations(def: CatalogEntry['definition']) {
   return ('parameterDeclarations' in def && def.parameterDeclarations) ? def.parameterDeclarations : [];
+}
+
+/** Check if entry name is duplicated within the same catalog */
+function isDuplicateName(name: string, currentIndex: number, entries: CatalogEntry[]): boolean {
+  if (!name.trim()) return false;
+  return entries.some((e, i) => i !== currentIndex && e.definition.name === name);
 }
 
 /** Check if definition has properties */

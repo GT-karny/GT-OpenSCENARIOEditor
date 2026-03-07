@@ -2,7 +2,7 @@ import { useTranslation } from '@osce/i18n';
 import { useCatalogStore } from '../../stores/catalog-store';
 import { cn } from '@/lib/utils';
 import { Car, User, Box, Plus, Copy, Trash2, Gamepad2, Cloud, GitBranch, Spline, Route } from 'lucide-react';
-import type { CatalogEntry, VehicleDefinition, PedestrianDefinition, MiscObjectDefinition } from '@osce/shared';
+import type { CatalogEntry, VehicleDefinition, PedestrianDefinition, MiscObjectDefinition, ControllerDefinition } from '@osce/shared';
 
 function entryIcon(entry: CatalogEntry) {
   switch (entry.catalogType) {
@@ -22,7 +22,7 @@ function entrySubtitle(entry: CatalogEntry): string {
     case 'vehicle': return (entry.definition as VehicleDefinition).vehicleCategory;
     case 'pedestrian': return (entry.definition as PedestrianDefinition).pedestrianCategory;
     case 'miscObject': return (entry.definition as MiscObjectDefinition).miscObjectCategory;
-    case 'controller': return 'controller';
+    case 'controller': return (entry.definition as ControllerDefinition).controllerType ?? 'controller';
     case 'environment': return 'environment';
     case 'maneuver': return 'maneuver';
     case 'trajectory': return 'trajectory';
@@ -53,7 +53,16 @@ export function CatalogEntryList() {
   }
 
   const handleAddEntry = () => {
-    const newEntry: CatalogEntry = doc.catalogType === 'pedestrian'
+    const newEntry: CatalogEntry = doc.catalogType === 'controller'
+      ? {
+          catalogType: 'controller',
+          definition: {
+            kind: 'controller',
+            name: `new_controller_${doc.entries.length + 1}`,
+            properties: [],
+          },
+        }
+      : doc.catalogType === 'pedestrian'
       ? {
           catalogType: 'pedestrian',
           definition: {

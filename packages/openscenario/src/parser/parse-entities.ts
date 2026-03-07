@@ -13,6 +13,7 @@ import type {
   CatalogReference,
   ParameterAssignment,
   Property,
+  ControllerType,
 } from '@osce/shared';
 import { parseParameterDeclarations } from './parse-parameters.js';
 import { ensureArray } from '../utils/ensure-array.js';
@@ -274,6 +275,7 @@ export function parseControllerDefinition(raw: any): ControllerDefinition {
   return {
     kind: 'controller',
     name: strAttr(raw, 'name'),
+    controllerType: optStrAttr(raw, 'controllerType') as ControllerType | undefined,
     parameterDeclarations: parseParameterDeclarations(raw.ParameterDeclarations),
     properties: parseProperties(raw.Properties),
   };
