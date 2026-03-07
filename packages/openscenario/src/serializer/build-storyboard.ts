@@ -78,7 +78,7 @@ function buildManeuverGroup(mg: ManeuverGroup, allBindings: AllBindings): any {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildManeuver(m: Maneuver, allBindings: AllBindings): any {
+export function buildManeuver(m: Maneuver, allBindings: AllBindings): any {
   return {
     ...buildAttrs({ name: m.name }),
     ParameterDeclarations: buildParameterDeclarations(m.parameterDeclarations),

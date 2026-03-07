@@ -1,12 +1,10 @@
 import type {
-  VehicleDefinition,
-  PedestrianDefinition,
-  MiscObjectDefinition,
   ParameterAssignment,
   ParameterDeclaration,
+  CatalogEntry,
 } from '@osce/shared';
 
-type EntityDefinition = VehicleDefinition | PedestrianDefinition | MiscObjectDefinition;
+type EntityDefinition = CatalogEntry['definition'];
 
 /**
  * Resolve parameter assignments against a catalog entry's parameter declarations.
@@ -36,7 +34,10 @@ export function applyParameterAssignments<T extends EntityDefinition>(
   definition: T,
   assignments: ParameterAssignment[],
 ): T {
-  const resolved = resolveParameters(definition.parameterDeclarations, assignments);
+  const declarations = ('parameterDeclarations' in definition && definition.parameterDeclarations)
+    ? definition.parameterDeclarations
+    : [];
+  const resolved = resolveParameters(declarations, assignments);
   if (resolved.size === 0) return definition;
 
   // Deep-clone and substitute $Param references in string values

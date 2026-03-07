@@ -18,7 +18,9 @@ import type {
   TrafficSignalAction,
   Position,
 } from '@osce/shared';
+import type { ParameterDeclaration } from '@osce/shared';
 import { buildPosition, buildPositionWrapped } from './build-positions.js';
+import { buildParameterDeclarations } from './build-parameters.js';
 import { buildAttrs, getSubBindings } from '../utils/xml-helpers.js';
 
 // ─── Private Action ──────────────────────────────────────────────────────────
@@ -504,9 +506,12 @@ function buildFinalSpeed(fs: FinalSpeed): Record<string, any> {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildTrajectory(t: Trajectory): Record<string, any> {
+export function buildTrajectory(t: Trajectory): Record<string, any> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result: any = buildAttrs({ name: t.name, closed: t.closed });
+  if (t.parameterDeclarations && t.parameterDeclarations.length > 0) {
+    result.ParameterDeclarations = buildParameterDeclarations(t.parameterDeclarations);
+  }
   result.Shape = buildTrajectoryShape(t.shape);
   return result;
 }
@@ -586,9 +591,12 @@ function buildOverrideGearValue(ogv: OverrideGearValue): Record<string, string> 
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildEnvironment(env: Environment): Record<string, any> {
+export function buildEnvironment(env: Environment): Record<string, any> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result: any = buildAttrs({ name: env.name });
+  if (env.parameterDeclarations && env.parameterDeclarations.length > 0) {
+    result.ParameterDeclarations = buildParameterDeclarations(env.parameterDeclarations);
+  }
   result.TimeOfDay = buildAttrs({
     animation: env.timeOfDay.animation,
     dateTime: env.timeOfDay.dateTime,
@@ -669,17 +677,23 @@ function buildTrafficSignalAction(tsa: TrafficSignalAction): Record<string, any>
   return result;
 }
 
-function buildRoute(route: {
+export function buildRoute(route: {
   name: string;
   closed: boolean;
+  parameterDeclarations?: ParameterDeclaration[];
   waypoints: Array<{ position: Position; routeStrategy: string }>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 }): any {
-  return {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result: any = {
     ...buildAttrs({ name: route.name, closed: route.closed }),
-    Waypoint: route.waypoints.map((wp) => ({
-      ...buildAttrs({ routeStrategy: wp.routeStrategy }),
-      Position: buildPosition(wp.position),
-    })),
   };
+  if (route.parameterDeclarations && route.parameterDeclarations.length > 0) {
+    result.ParameterDeclarations = buildParameterDeclarations(route.parameterDeclarations);
+  }
+  result.Waypoint = route.waypoints.map((wp) => ({
+    ...buildAttrs({ routeStrategy: wp.routeStrategy }),
+    Position: buildPosition(wp.position),
+  }));
+  return result;
 }

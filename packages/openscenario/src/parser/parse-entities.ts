@@ -270,10 +270,11 @@ function parseObjectController(raw: any): ObjectController {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseControllerDefinition(raw: any): ControllerDefinition {
+export function parseControllerDefinition(raw: any): ControllerDefinition {
   return {
     kind: 'controller',
     name: strAttr(raw, 'name'),
+    parameterDeclarations: parseParameterDeclarations(raw.ParameterDeclarations),
     properties: parseProperties(raw.Properties),
   };
 }

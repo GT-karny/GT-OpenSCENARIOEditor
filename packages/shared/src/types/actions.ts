@@ -6,6 +6,7 @@
 
 import type { Position } from './positions.js';
 import type { Property } from './scenario.js';
+import type { ParameterDeclaration } from './parameters.js';
 import type {
   DynamicsShape,
   DynamicsDimension,
@@ -224,6 +225,7 @@ export interface EnvironmentAction {
 
 export interface Environment {
   name: string;
+  parameterDeclarations?: ParameterDeclaration[];
   timeOfDay: TimeOfDay;
   weather: Weather;
   roadCondition: RoadCondition;
@@ -339,6 +341,7 @@ export interface FinalSpeed {
 export interface Trajectory {
   name: string;
   closed: boolean;
+  parameterDeclarations?: ParameterDeclaration[];
   shape: TrajectoryShape;
 }
 

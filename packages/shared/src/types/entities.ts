@@ -100,5 +100,6 @@ export interface ObjectController {
 export interface ControllerDefinition {
   kind: 'controller';
   name: string;
+  parameterDeclarations?: ParameterDeclaration[];
   properties: Property[];
 }

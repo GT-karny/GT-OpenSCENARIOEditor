@@ -81,7 +81,7 @@ function parseActors(raw: any): Actors {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseManeuver(raw: any): Maneuver {
+export function parseManeuver(raw: any): Maneuver {
   return {
     id: generateId(),
     name: strAttr(raw, 'name'),

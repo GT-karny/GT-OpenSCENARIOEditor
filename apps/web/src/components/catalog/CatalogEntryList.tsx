@@ -1,7 +1,7 @@
 import { useTranslation } from '@osce/i18n';
 import { useCatalogStore } from '../../stores/catalog-store';
 import { cn } from '@/lib/utils';
-import { Car, User, Box, Plus, Copy, Trash2 } from 'lucide-react';
+import { Car, User, Box, Plus, Copy, Trash2, Gamepad2, Cloud, GitBranch, Spline, Route } from 'lucide-react';
 import type { CatalogEntry, VehicleDefinition, PedestrianDefinition, MiscObjectDefinition } from '@osce/shared';
 
 function entryIcon(entry: CatalogEntry) {
@@ -9,16 +9,24 @@ function entryIcon(entry: CatalogEntry) {
     case 'vehicle': return <Car className="h-3.5 w-3.5 shrink-0" />;
     case 'pedestrian': return <User className="h-3.5 w-3.5 shrink-0" />;
     case 'miscObject': return <Box className="h-3.5 w-3.5 shrink-0" />;
+    case 'controller': return <Gamepad2 className="h-3.5 w-3.5 shrink-0" />;
+    case 'environment': return <Cloud className="h-3.5 w-3.5 shrink-0" />;
+    case 'maneuver': return <GitBranch className="h-3.5 w-3.5 shrink-0" />;
+    case 'trajectory': return <Spline className="h-3.5 w-3.5 shrink-0" />;
+    case 'route': return <Route className="h-3.5 w-3.5 shrink-0" />;
   }
 }
 
 function entrySubtitle(entry: CatalogEntry): string {
-  const def = entry.definition;
-  switch (def.kind) {
-    case 'vehicle': return (def as VehicleDefinition).vehicleCategory;
-    case 'pedestrian': return (def as PedestrianDefinition).pedestrianCategory;
-    case 'miscObject': return (def as MiscObjectDefinition).miscObjectCategory;
-    default: return '';
+  switch (entry.catalogType) {
+    case 'vehicle': return (entry.definition as VehicleDefinition).vehicleCategory;
+    case 'pedestrian': return (entry.definition as PedestrianDefinition).pedestrianCategory;
+    case 'miscObject': return (entry.definition as MiscObjectDefinition).miscObjectCategory;
+    case 'controller': return 'controller';
+    case 'environment': return 'environment';
+    case 'maneuver': return 'maneuver';
+    case 'trajectory': return 'trajectory';
+    case 'route': return 'route';
   }
 }
 
