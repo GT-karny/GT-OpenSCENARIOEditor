@@ -533,7 +533,8 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           step={0.1}
           value={flySpeed}
           onChange={(e) => viewerStore.getState().setFlySpeed(Number(e.target.value))}
-          style={{ width: 80, cursor: 'pointer' }}
+          className="cursor-pointer"
+          style={{ width: 80 }}
         />
         <span style={{ minWidth: 30, textAlign: 'right' }}>{flySpeed.toFixed(1)}x</span>
       </div>

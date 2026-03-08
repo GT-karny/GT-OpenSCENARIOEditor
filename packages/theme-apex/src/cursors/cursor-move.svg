@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <defs>
+    <filter id="g" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1" result="b"/>
+      <feFlood flood-color="#9B84E8" flood-opacity="0.3" result="c"/>
+      <feComposite in="c" in2="b" operator="in" result="s"/>
+      <feMerge><feMergeNode in="s"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <polygon points="16,2 21,9 11,9"
+    fill="rgba(20,14,48,0.6)" stroke="#D0C6F2" stroke-opacity="0.5" stroke-width="1" filter="url(#g)"/>
+  <polygon points="16,30 11,23 21,23"
+    fill="rgba(20,14,48,0.6)" stroke="#D0C6F2" stroke-opacity="0.5" stroke-width="1" filter="url(#g)"/>
+  <polygon points="2,16 9,11 9,21"
+    fill="rgba(20,14,48,0.6)" stroke="#D0C6F2" stroke-opacity="0.5" stroke-width="1" filter="url(#g)"/>
+  <polygon points="30,16 23,21 23,11"
+    fill="rgba(20,14,48,0.6)" stroke="#D0C6F2" stroke-opacity="0.5" stroke-width="1" filter="url(#g)"/>
+  <rect x="13" y="13" width="6" height="6" fill="rgba(20,14,48,0.6)"
+    stroke="#D0C6F2" stroke-opacity="0.5" stroke-width="1"/>
+</svg>

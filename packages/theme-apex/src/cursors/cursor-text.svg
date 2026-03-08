@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <defs>
+    <filter id="g" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="b"/>
+      <feFlood flood-color="#D0C6F2" flood-opacity="0.7" result="c"/>
+      <feComposite in="c" in2="b" operator="in" result="s"/>
+      <feMerge><feMergeNode in="s"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- Top serif -->
+  <rect x="9" y="4" width="14" height="2.5" fill="#D0C6F2" opacity="0.8" filter="url(#g)"/>
+  <!-- Vertical bar -->
+  <rect x="14" y="4" width="3" height="24" fill="#D0C6F2" opacity="0.9" filter="url(#g)"/>
+  <!-- Bottom serif -->
+  <rect x="9" y="25.5" width="14" height="2.5" fill="#D0C6F2" opacity="0.8" filter="url(#g)"/>
+</svg>

@@ -17,6 +17,9 @@
 @import "@fontsource/m-plus-1p/700.css";
 @import "@fontsource/jetbrains-mono/400.css";
 
+/* APEX glass cursors */
+@import "./cursors.css";
+
 /* ============================================
    APEX v4 — Tailwind @theme tokens
    ============================================ */
