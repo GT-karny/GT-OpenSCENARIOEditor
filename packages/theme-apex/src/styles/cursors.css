@@ -1,0 +1,150 @@
+/* ============================================
+   APEX Glass Cursors
+   32x32 SVG cursors with glass morphism styling
+   ============================================ */
+
+/* --- A. Tailwind @utility overrides --- */
+/* These replace Tailwind's built-in cursor-* utilities
+   so existing className="cursor-pointer" etc. get APEX cursors */
+
+@utility cursor-default {
+  cursor: url('../cursors/cursor-default.svg') 4 1, default;
+}
+
+@utility cursor-pointer {
+  cursor: url('../cursors/cursor-pointer.svg') 8 1, pointer;
+}
+
+@utility cursor-text {
+  cursor: url('../cursors/cursor-text.svg') 16 16, text;
+}
+
+@utility cursor-grab {
+  cursor: url('../cursors/cursor-grab.svg') 14 11, grab;
+}
+
+@utility cursor-grabbing {
+  cursor: url('../cursors/cursor-grabbing.svg') 14 11, grabbing;
+}
+
+@utility cursor-crosshair {
+  cursor: url('../cursors/cursor-crosshair.svg') 16 16, crosshair;
+}
+
+@utility cursor-move {
+  cursor: url('../cursors/cursor-move.svg') 16 16, move;
+}
+
+@utility cursor-not-allowed {
+  cursor: url('../cursors/cursor-not-allowed.svg') 16 16, not-allowed;
+}
+
+@utility cursor-nwse-resize {
+  cursor: url('../cursors/cursor-nwse-resize.svg') 16 16, nwse-resize;
+}
+
+@utility cursor-nesw-resize {
+  cursor: url('../cursors/cursor-nesw-resize.svg') 16 16, nesw-resize;
+}
+
+@utility cursor-ns-resize {
+  cursor: url('../cursors/cursor-ns-resize.svg') 16 16, ns-resize;
+}
+
+@utility cursor-ew-resize {
+  cursor: url('../cursors/cursor-ew-resize.svg') 16 16, ew-resize;
+}
+
+/* --- B. Base layer — element selectors --- */
+
+@layer base {
+  /* Default cursor for all elements */
+  *,
+  *::before,
+  *::after {
+    cursor: url('../cursors/cursor-default.svg') 4 1, default;
+  }
+
+  /* Pointer for clickable elements */
+  a,
+  button,
+  [role='button'],
+  [role='link'],
+  [role='tab'],
+  [role='menuitem'],
+  [role='option'],
+  [role='checkbox'],
+  [role='radio'],
+  [role='switch'],
+  label[for],
+  select,
+  summary {
+    cursor: url('../cursors/cursor-pointer.svg') 8 1, pointer;
+  }
+
+  /* Text cursor for editable content */
+  input[type='text'],
+  input[type='email'],
+  input[type='password'],
+  input[type='search'],
+  input[type='url'],
+  input[type='number'],
+  input[type='tel'],
+  input:not([type]),
+  textarea,
+  [contenteditable='true'] {
+    cursor: url('../cursors/cursor-text.svg') 16 16, text;
+  }
+
+  /* Grab for draggable elements */
+  [draggable='true'] {
+    cursor: url('../cursors/cursor-grab.svg') 14 11, grab;
+  }
+
+  [draggable='true']:active {
+    cursor: url('../cursors/cursor-grabbing.svg') 14 11, grabbing;
+  }
+
+  /* Not-allowed for disabled elements */
+  [disabled],
+  [aria-disabled='true'],
+  :disabled {
+    cursor: url('../cursors/cursor-not-allowed.svg') 16 16, not-allowed;
+  }
+}
+
+/* --- C. Component layer — third-party overrides --- */
+
+@layer components {
+  /* React Flow */
+  .react-flow__pane {
+    cursor: url('../cursors/cursor-grab.svg') 14 11, grab;
+  }
+
+  .react-flow__pane.dragging,
+  .react-flow__pane:active {
+    cursor: url('../cursors/cursor-grabbing.svg') 14 11, grabbing !important;
+  }
+
+  .react-flow__node {
+    cursor: url('../cursors/cursor-pointer.svg') 8 1, pointer;
+  }
+
+  .react-flow__handle {
+    cursor: url('../cursors/cursor-crosshair.svg') 16 16, crosshair;
+  }
+
+  .react-flow__edge {
+    cursor: url('../cursors/cursor-pointer.svg') 8 1, pointer;
+  }
+
+  .react-flow__resize-control.line.right,
+  .react-flow__resize-control.line.left {
+    cursor: url('../cursors/cursor-ew-resize.svg') 16 16, ew-resize;
+  }
+
+  .react-flow__resize-control.line.top,
+  .react-flow__resize-control.line.bottom {
+    cursor: url('../cursors/cursor-ns-resize.svg') 16 16, ns-resize;
+  }
+}
