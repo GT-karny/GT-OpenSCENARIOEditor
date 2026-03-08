@@ -8,7 +8,6 @@ import type {
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { EnumSelect } from '../EnumSelect';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 const STORYBOARD_ELEMENT_TYPES: readonly StoryboardElementType[] = [
   'story',
@@ -31,15 +30,15 @@ const STORYBOARD_ELEMENT_STATES: readonly StoryboardElementState[] = [
 
 interface StoryboardElementStateConditionEditorProps {
   condition: Condition;
+  onUpdate: (conditionId: string, partial: Partial<Condition>) => void;
 }
 
-export function StoryboardElementStateConditionEditor({ condition }: StoryboardElementStateConditionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function StoryboardElementStateConditionEditor({ condition, onUpdate }: StoryboardElementStateConditionEditorProps) {
   const inner = condition.condition as ByValueCondition;
   const cond = inner.valueCondition as StoryboardElementStateCondition;
 
   const update = (updates: Partial<StoryboardElementStateCondition>) => {
-    storeApi.getState().updateCondition(condition.id, {
+    onUpdate(condition.id, {
       condition: { ...inner, valueCondition: { ...cond, ...updates } },
     } as Partial<Condition>);
   };

@@ -16,6 +16,12 @@ export const composer = {
     traveledDistance: '{{value}}m走行後',
     collision: '衝突時',
     endOfRoad: '道路終端',
+    addCondition: '条件を追加',
+    addOrGroup: 'ORグループを追加',
+    selectCondition: '編集する条件を選択してください',
+    removeGroup: 'グループを削除',
+    noConditions: '条件なし — 即時トリガー',
+    conditionDetail: '条件の詳細',
   },
   action: {
     speedAction: '速度変更',

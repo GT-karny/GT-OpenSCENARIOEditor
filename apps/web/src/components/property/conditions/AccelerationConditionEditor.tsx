@@ -2,22 +2,21 @@ import type { Condition, ByEntityCondition, AccelerationCondition, DirectionalDi
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 import { RULES } from '../../../constants/osc-enum-values';
 
 const DIRECTIONAL_DIMENSIONS = ['longitudinal', 'lateral', 'vertical'] as const;
 
 interface AccelerationConditionEditorProps {
   condition: Condition;
+  onUpdate: (conditionId: string, partial: Partial<Condition>) => void;
 }
 
-export function AccelerationConditionEditor({ condition }: AccelerationConditionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function AccelerationConditionEditor({ condition, onUpdate }: AccelerationConditionEditorProps) {
   const inner = condition.condition as ByEntityCondition;
   const cond = inner.entityCondition as AccelerationCondition;
 
   const update = (updates: Partial<AccelerationCondition>) => {
-    storeApi.getState().updateCondition(condition.id, {
+    onUpdate(condition.id, {
       condition: { ...inner, entityCondition: { ...cond, ...updates } },
     } as Partial<Condition>);
   };
@@ -54,7 +53,7 @@ export function AccelerationConditionEditor({ condition }: AccelerationCondition
             onValueChange={(v) => {
               if (v === '') {
                 const { direction: _d, ...rest } = cond;
-                storeApi.getState().updateCondition(condition.id, {
+                onUpdate(condition.id, {
                   condition: { ...inner, entityCondition: rest as AccelerationCondition },
                 } as Partial<Condition>);
               } else {

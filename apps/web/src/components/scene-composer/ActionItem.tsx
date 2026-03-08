@@ -28,7 +28,7 @@ interface ActionItemProps {
   onRemove: () => void;
 }
 
-const actionIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+export const actionIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   speedAction: Gauge,
   speedProfileAction: Activity,
   laneChangeAction: ArrowLeftRight,

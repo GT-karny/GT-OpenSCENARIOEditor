@@ -2,20 +2,19 @@ import type { Condition, ByValueCondition, VariableCondition } from '@osce/share
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { EnumSelect } from '../EnumSelect';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 import { RULES } from '../../../constants/osc-enum-values';
 
 interface VariableConditionEditorProps {
   condition: Condition;
+  onUpdate: (conditionId: string, partial: Partial<Condition>) => void;
 }
 
-export function VariableConditionEditor({ condition }: VariableConditionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function VariableConditionEditor({ condition, onUpdate }: VariableConditionEditorProps) {
   const inner = condition.condition as ByValueCondition;
   const cond = inner.valueCondition as VariableCondition;
 
   const update = (updates: Partial<VariableCondition>) => {
-    storeApi.getState().updateCondition(condition.id, {
+    onUpdate(condition.id, {
       condition: { ...inner, valueCondition: { ...cond, ...updates } },
     } as Partial<Condition>);
   };

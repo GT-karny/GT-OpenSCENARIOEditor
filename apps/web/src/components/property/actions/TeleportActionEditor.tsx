@@ -1,10 +1,10 @@
 import type { ScenarioAction, Position } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { PositionEditor } from '../PositionEditor';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 interface TeleportActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
 interface PositionField {
@@ -29,13 +29,12 @@ function getPositionFields(action: ScenarioAction['action']): PositionField[] {
   }
 }
 
-export function TeleportActionEditor({ action }: TeleportActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function TeleportActionEditor({ action, onUpdate }: TeleportActionEditorProps) {
   const inner = action.action as Record<string, unknown>;
   const fields = getPositionFields(action.action);
 
   const handlePositionChange = (fieldName: string, newPosition: Position) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate({
       action: { ...inner, [fieldName]: newPosition },
     } as Partial<ScenarioAction>);
   };

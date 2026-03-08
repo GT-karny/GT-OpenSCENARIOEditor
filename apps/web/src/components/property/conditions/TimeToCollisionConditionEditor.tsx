@@ -11,7 +11,6 @@ import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
 import { PositionEditor } from '../PositionEditor';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 import { RULES } from '../../../constants/osc-enum-values';
 
 const COORDINATE_SYSTEMS = ['entity', 'lane', 'road', 'trajectory'] as const;
@@ -20,15 +19,15 @@ const TARGET_KINDS = ['entity', 'position'] as const;
 
 interface TimeToCollisionConditionEditorProps {
   condition: Condition;
+  onUpdate: (conditionId: string, partial: Partial<Condition>) => void;
 }
 
-export function TimeToCollisionConditionEditor({ condition }: TimeToCollisionConditionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function TimeToCollisionConditionEditor({ condition, onUpdate }: TimeToCollisionConditionEditorProps) {
   const inner = condition.condition as ByEntityCondition;
   const cond = inner.entityCondition as TimeToCollisionCondition;
 
   const update = (updates: Partial<TimeToCollisionCondition>) => {
-    storeApi.getState().updateCondition(condition.id, {
+    onUpdate(condition.id, {
       condition: { ...inner, entityCondition: { ...cond, ...updates } },
     } as Partial<Condition>);
   };
@@ -125,7 +124,7 @@ export function TimeToCollisionConditionEditor({ condition }: TimeToCollisionCon
             onValueChange={(v) => {
               if (v === '') {
                 const { coordinateSystem: _cs, ...rest } = cond;
-                storeApi.getState().updateCondition(condition.id, {
+                onUpdate(condition.id, {
                   condition: { ...inner, entityCondition: rest as TimeToCollisionCondition },
                 } as Partial<Condition>);
               } else {
@@ -143,7 +142,7 @@ export function TimeToCollisionConditionEditor({ condition }: TimeToCollisionCon
             onValueChange={(v) => {
               if (v === '') {
                 const { relativeDistanceType: _rdt, ...rest } = cond;
-                storeApi.getState().updateCondition(condition.id, {
+                onUpdate(condition.id, {
                   condition: { ...inner, entityCondition: rest as TimeToCollisionCondition },
                 } as Partial<Condition>);
               } else {

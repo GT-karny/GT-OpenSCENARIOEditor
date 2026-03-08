@@ -2,22 +2,21 @@ import type { Condition, ByEntityCondition, SpeedCondition, DirectionalDimension
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 import { RULES } from '../../../constants/osc-enum-values';
 
 const DIRECTIONAL_DIMENSIONS = ['longitudinal', 'lateral', 'vertical'] as const;
 
 interface SpeedConditionEditorProps {
   condition: Condition;
+  onUpdate: (conditionId: string, partial: Partial<Condition>) => void;
 }
 
-export function SpeedConditionEditor({ condition }: SpeedConditionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function SpeedConditionEditor({ condition, onUpdate }: SpeedConditionEditorProps) {
   const inner = condition.condition as ByEntityCondition;
   const cond = inner.entityCondition as SpeedCondition;
 
   const update = (updates: Partial<SpeedCondition>) => {
-    storeApi.getState().updateCondition(condition.id, {
+    onUpdate(condition.id, {
       condition: { ...inner, entityCondition: { ...cond, ...updates } },
     } as Partial<Condition>);
   };
@@ -54,7 +53,7 @@ export function SpeedConditionEditor({ condition }: SpeedConditionEditorProps) {
             onValueChange={(v) => {
               if (v === '') {
                 const { direction: _d, ...rest } = cond;
-                storeApi.getState().updateCondition(condition.id, {
+                onUpdate(condition.id, {
                   condition: { ...inner, entityCondition: rest as SpeedCondition },
                 } as Partial<Condition>);
               } else {

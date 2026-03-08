@@ -2,22 +2,21 @@ import type { ScenarioAction, AssignControllerAction, Property } from '@osce/sha
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { EnumSelect } from '../EnumSelect';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 type SourceMode = 'inline' | 'catalog';
 
 interface AssignControllerActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
-export function AssignControllerActionEditor({ action }: AssignControllerActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function AssignControllerActionEditor({ action, onUpdate }: AssignControllerActionEditorProps) {
   const inner = action.action as AssignControllerAction;
 
   const sourceMode: SourceMode = inner.controller ? 'inline' : inner.catalogReference ? 'catalog' : 'inline';
 
   const updateInner = (updates: Partial<AssignControllerAction>) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate({
       action: { ...inner, ...updates },
     } as Partial<ScenarioAction>);
   };
@@ -26,12 +25,12 @@ export function AssignControllerActionEditor({ action }: AssignControllerActionE
     const newMode = mode as SourceMode;
     if (newMode === 'inline') {
       const { catalogReference: _, ...rest } = inner;
-      storeApi.getState().updateAction(action.id, {
+      onUpdate({
         action: { ...rest, controller: inner.controller ?? { name: '', properties: [] } },
       } as Partial<ScenarioAction>);
     } else {
       const { controller: _, ...rest } = inner;
-      storeApi.getState().updateAction(action.id, {
+      onUpdate({
         action: { ...rest, catalogReference: inner.catalogReference ?? { catalogName: '', entryName: '' } },
       } as Partial<ScenarioAction>);
     }

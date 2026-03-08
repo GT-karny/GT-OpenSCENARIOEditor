@@ -2,20 +2,19 @@ import type { ScenarioAction, AnimationAction } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { EnumSelect } from '../EnumSelect';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 interface AnimationActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
 const ANIMATION_TYPES = ['componentAnimation', 'pedestrianAnimation', 'animationFile', 'userDefinedAnimation'] as const;
 
-export function AnimationActionEditor({ action }: AnimationActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function AnimationActionEditor({ action, onUpdate }: AnimationActionEditorProps) {
   const inner = action.action as AnimationAction;
 
   const updateInner = (updates: Partial<AnimationAction>) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate({
       action: { ...inner, ...updates },
     } as Partial<ScenarioAction>);
   };
@@ -51,7 +50,7 @@ export function AnimationActionEditor({ action }: AnimationActionEditorProps) {
             const v = parseFloat(e.target.value);
             if (isNaN(v)) {
               const { duration: _, ...rest } = inner;
-              storeApi.getState().updateAction(action.id, { action: { ...rest } } as Partial<ScenarioAction>);
+              onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
             } else {
               updateInner({ duration: v });
             }

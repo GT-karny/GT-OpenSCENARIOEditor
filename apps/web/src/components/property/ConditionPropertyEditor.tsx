@@ -12,7 +12,6 @@ import { Input } from '../ui/input';
 import { ParameterAwareInput } from './ParameterAwareInput';
 import { EnumSelect } from './EnumSelect';
 import { PositionEditor } from './PositionEditor';
-import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { defaultEntityConditionByType, defaultValueConditionByType } from '@osce/scenario-engine';
 import { CONDITION_EDGES, RULES, ENTITY_CONDITION_TYPES, VALUE_CONDITION_TYPES } from '../../constants/osc-enum-values';
 import { GenericConditionEditor } from './conditions/GenericConditionEditor';
@@ -49,9 +48,10 @@ const DEDICATED_EDITOR_TYPES = new Set([
 
 interface ConditionPropertyEditorProps {
   trigger: Trigger;
+  onUpdateCondition: (conditionId: string, partial: Partial<Condition>) => void;
 }
 
-export function ConditionPropertyEditor({ trigger }: ConditionPropertyEditorProps) {
+export function ConditionPropertyEditor({ trigger, onUpdateCondition }: ConditionPropertyEditorProps) {
   const conditions = trigger.conditionGroups.flatMap((group) => group.conditions);
 
   return (
@@ -65,7 +65,7 @@ export function ConditionPropertyEditor({ trigger }: ConditionPropertyEditorProp
       </div>
 
       {conditions.map((condition) => (
-        <ConditionItem key={condition.id} condition={condition} />
+        <ConditionItem key={condition.id} condition={condition} onUpdateCondition={onUpdateCondition} />
       ))}
 
       {conditions.length === 0 && (
@@ -77,13 +77,12 @@ export function ConditionPropertyEditor({ trigger }: ConditionPropertyEditorProp
 
 interface ConditionItemProps {
   condition: Condition;
+  onUpdateCondition: (conditionId: string, partial: Partial<Condition>) => void;
 }
 
-function ConditionItem({ condition }: ConditionItemProps) {
-  const storeApi = useScenarioStoreApi();
-
+export function ConditionItem({ condition, onUpdateCondition }: ConditionItemProps) {
   const handleConditionEdgeChange = (value: string) => {
-    storeApi.getState().updateCondition(condition.id, {
+    onUpdateCondition(condition.id, {
       conditionEdge: value as Condition['conditionEdge'],
     });
   };
@@ -102,7 +101,7 @@ function ConditionItem({ condition }: ConditionItemProps) {
         valueCondition: defaultValueConditionByType('simulationTime'),
       };
     }
-    storeApi.getState().updateCondition(condition.id, {
+    onUpdateCondition(condition.id, {
       condition: newConditionBody,
     } as Partial<Condition>);
   };
@@ -121,7 +120,7 @@ function ConditionItem({ condition }: ConditionItemProps) {
         valueCondition: defaultValueConditionByType(newType as ValueCondition['type']),
       } as ByValueCondition;
     }
-    storeApi.getState().updateCondition(condition.id, {
+    onUpdateCondition(condition.id, {
       condition: newConditionBody,
     } as Partial<Condition>);
   };
@@ -131,7 +130,7 @@ function ConditionItem({ condition }: ConditionItemProps) {
     if (inner.kind === 'byEntity') {
       const entityCondition = inner.entityCondition;
       if ('rule' in entityCondition) {
-        storeApi.getState().updateCondition(condition.id, {
+        onUpdateCondition(condition.id, {
           condition: {
             ...inner,
             entityCondition: { ...entityCondition, rule: value },
@@ -141,7 +140,7 @@ function ConditionItem({ condition }: ConditionItemProps) {
     } else if (inner.kind === 'byValue') {
       const valueCondition = inner.valueCondition;
       if ('rule' in valueCondition) {
-        storeApi.getState().updateCondition(condition.id, {
+        onUpdateCondition(condition.id, {
           condition: {
             ...inner,
             valueCondition: { ...valueCondition, rule: value },
@@ -156,7 +155,7 @@ function ConditionItem({ condition }: ConditionItemProps) {
     if (inner.kind === 'byEntity') {
       const entityCondition = inner.entityCondition;
       if ('position' in entityCondition) {
-        storeApi.getState().updateCondition(condition.id, {
+        onUpdateCondition(condition.id, {
           condition: {
             ...inner,
             entityCondition: { ...entityCondition, position: newPosition },
@@ -208,45 +207,45 @@ function ConditionItem({ condition }: ConditionItemProps) {
 
   const renderConditionEditor = () => {
     if (conditionType === 'simulationTime') {
-      return <SimulationTimeConditionEditor condition={condition} />;
+      return <SimulationTimeConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
     }
     if (conditionType === 'timeHeadway') {
-      return <TimeHeadwayConditionEditor condition={condition} />;
+      return <TimeHeadwayConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
     }
     if (conditionType === 'speed') {
-      return <SpeedConditionEditor condition={condition} />;
+      return <SpeedConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
     }
     if (conditionType === 'distance') {
-      return <DistanceConditionEditor condition={condition} />;
+      return <DistanceConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
     }
     if (conditionType === 'reachPosition') {
-      return <ReachPositionConditionEditor condition={condition} />;
+      return <ReachPositionConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
     }
     if (conditionType === 'standStill') {
-      return <StandStillConditionEditor condition={condition} />;
+      return <StandStillConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
     }
     if (conditionType === 'traveledDistance') {
-      return <TraveledDistanceConditionEditor condition={condition} />;
+      return <TraveledDistanceConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
     }
     if (conditionType === 'acceleration') {
-      return <AccelerationConditionEditor condition={condition} />;
+      return <AccelerationConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
     }
     if (conditionType === 'relativeSpeed') {
-      return <RelativeSpeedConditionEditor condition={condition} />;
+      return <RelativeSpeedConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
     }
     if (conditionType === 'timeToCollision') {
-      return <TimeToCollisionConditionEditor condition={condition} />;
+      return <TimeToCollisionConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
     }
     if (conditionType === 'storyboardElementState') {
-      return <StoryboardElementStateConditionEditor condition={condition} />;
+      return <StoryboardElementStateConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
     }
     if (conditionType === 'parameter') {
-      return <ParameterConditionEditor condition={condition} />;
+      return <ParameterConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
     }
     if (conditionType === 'variable') {
-      return <VariableConditionEditor condition={condition} />;
+      return <VariableConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
     }
-    return <GenericConditionEditor condition={condition} />;
+    return <GenericConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
   };
 
   return (
@@ -263,7 +262,7 @@ function ConditionItem({ condition }: ConditionItemProps) {
           fieldName="delay"
           value={condition.delay}
           onValueChange={(v) =>
-            storeApi.getState().updateCondition(condition.id, {
+            onUpdateCondition(condition.id, {
               delay: parseFloat(v) || 0,
             })
           }

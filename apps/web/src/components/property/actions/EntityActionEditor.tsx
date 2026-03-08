@@ -3,10 +3,10 @@ import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { EnumSelect } from '../EnumSelect';
 import { PositionEditor } from '../PositionEditor';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 interface EntityActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
 const DEFAULT_WORLD_POSITION: Position = {
@@ -19,12 +19,11 @@ const DEFAULT_WORLD_POSITION: Position = {
   r: 0,
 };
 
-export function EntityActionEditor({ action }: EntityActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function EntityActionEditor({ action, onUpdate }: EntityActionEditorProps) {
   const inner = action.action as EntityAction;
 
   const updateInner = (updates: Partial<EntityAction>) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate({
       action: { ...inner, ...updates },
     } as Partial<ScenarioAction>);
   };
@@ -52,7 +51,7 @@ export function EntityActionEditor({ action }: EntityActionEditorProps) {
               updateInner({ actionType, position: inner.position ?? DEFAULT_WORLD_POSITION });
             } else {
               const { position: _, ...rest } = inner;
-              storeApi.getState().updateAction(action.id, {
+              onUpdate({
                 action: { ...rest, actionType },
               } as Partial<ScenarioAction>);
             }

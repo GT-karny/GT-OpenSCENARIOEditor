@@ -5,6 +5,7 @@ import { EventPropertyEditor } from './EventPropertyEditor';
 import { ConditionPropertyEditor } from './ConditionPropertyEditor';
 import { ActPropertyEditor } from './ActPropertyEditor';
 import { ManeuverGroupPropertyEditor } from './ManeuverGroupPropertyEditor';
+import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 
 interface PropertyEditorProps {
   element: unknown;
@@ -12,6 +13,7 @@ interface PropertyEditorProps {
 }
 
 export function PropertyEditor({ element }: PropertyEditorProps) {
+  const storeApi = useScenarioStoreApi();
   const detected = detectElementType(element);
 
   switch (detected.kind) {
@@ -22,7 +24,14 @@ export function PropertyEditor({ element }: PropertyEditorProps) {
       return <EventPropertyEditor event={detected.element} />;
 
     case 'action':
-      return <ActionPropertyEditor action={detected.element} />;
+      return (
+        <ActionPropertyEditor
+          action={detected.element}
+          onUpdate={(actionId, partial) =>
+            storeApi.getState().updateAction(actionId, partial)
+          }
+        />
+      );
 
     case 'maneuverGroup':
       return <ManeuverGroupPropertyEditor group={detected.element} />;
@@ -41,7 +50,14 @@ export function PropertyEditor({ element }: PropertyEditorProps) {
       return <ActPropertyEditor act={detected.element} />;
 
     case 'trigger':
-      return <ConditionPropertyEditor trigger={detected.element} />;
+      return (
+        <ConditionPropertyEditor
+          trigger={detected.element}
+          onUpdateCondition={(conditionId, partial) =>
+            storeApi.getState().updateCondition(conditionId, partial)
+          }
+        />
+      );
 
     default:
       return (

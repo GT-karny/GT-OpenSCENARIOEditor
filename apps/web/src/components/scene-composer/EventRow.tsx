@@ -2,7 +2,7 @@ import { GripVertical, Clock, Zap, Plus, Trash2, ChevronRight } from 'lucide-rea
 import { useTranslation } from '@osce/i18n';
 import type { ScenarioEvent } from '@osce/shared';
 import { cn } from '../../lib/utils';
-import { getNaturalTriggerSummary } from './trigger-summary';
+import { TriggerSummaryBadges } from './TriggerSummaryBadges';
 import { ActionItem } from './ActionItem';
 
 interface EventRowProps {
@@ -44,7 +44,6 @@ export function EventRow({
     event.startTrigger.conditionGroups.length > 0 &&
     event.startTrigger.conditionGroups.some((g) => g.conditions.length > 0);
 
-  const triggerLabel = getNaturalTriggerSummary(event.startTrigger, t);
   const isEventSelected = selectedEventId === event.id;
 
   return (
@@ -75,11 +74,9 @@ export function EventRow({
         )}
 
         {/* Trigger summary */}
-        <div className="flex-1 min-w-0 flex items-center gap-1">
-          <span className="text-[11px] font-medium text-[var(--color-text-primary)] truncate">
-            {triggerLabel}
-          </span>
-          <ChevronRight className="h-2.5 w-2.5 shrink-0 text-[var(--color-text-muted)]" />
+        <div className="flex-1 min-w-0 flex items-start gap-1">
+          <TriggerSummaryBadges trigger={event.startTrigger} t={t} />
+          <ChevronRight className="h-2.5 w-2.5 shrink-0 text-[var(--color-text-muted)] mt-0.5" />
         </div>
 
         {/* Delete event */}

@@ -3,18 +3,17 @@ import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { EnumSelect } from '../EnumSelect';
 import { PositionEditor } from '../PositionEditor';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 interface RoutingActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
-export function RoutingActionEditor({ action }: RoutingActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function RoutingActionEditor({ action, onUpdate }: RoutingActionEditorProps) {
   const inner = action.action as RoutingAction;
 
   const updateInner = (updates: Partial<RoutingAction>) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate({
       action: { ...inner, ...updates },
     } as Partial<ScenarioAction>);
   };

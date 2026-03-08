@@ -2,15 +2,14 @@ import type { ScenarioAction, SpeedAction, SpeedTarget, TransitionDynamics } fro
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 import { DYNAMICS_SHAPES } from '../../../constants/osc-enum-values';
 
 interface SpeedActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
-export function SpeedActionEditor({ action }: SpeedActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function SpeedActionEditor({ action, onUpdate }: SpeedActionEditorProps) {
   const inner = action.action as SpeedAction;
   const relTarget =
     inner.target.kind === 'relative'
@@ -18,7 +17,7 @@ export function SpeedActionEditor({ action }: SpeedActionEditorProps) {
       : null;
 
   const updateInner = (updates: Partial<SpeedAction>) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate({
       action: { ...inner, ...updates },
     } as Partial<ScenarioAction>);
   };

@@ -1,18 +1,17 @@
 import type { ScenarioAction, VisibilityAction } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 interface VisibilityActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
-export function VisibilityActionEditor({ action }: VisibilityActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function VisibilityActionEditor({ action, onUpdate }: VisibilityActionEditorProps) {
   const inner = action.action as VisibilityAction;
 
   const updateInner = (updates: Partial<VisibilityAction>) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate({
       action: { ...inner, ...updates },
     } as Partial<ScenarioAction>);
   };
@@ -57,7 +56,7 @@ export function VisibilityActionEditor({ action }: VisibilityActionEditorProps) 
           onChange={(e) => {
             if (e.target.value === '') {
               const { entityRef: _, ...rest } = inner;
-              storeApi.getState().updateAction(action.id, {
+              onUpdate({
                 action: { ...rest },
               } as Partial<ScenarioAction>);
             } else {

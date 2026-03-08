@@ -2,19 +2,18 @@ import type { ScenarioAction, LaneChangeAction, TransitionDynamics } from '@osce
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 import { DYNAMICS_SHAPES } from '../../../constants/osc-enum-values';
 
 interface LaneChangeActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
-export function LaneChangeActionEditor({ action }: LaneChangeActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function LaneChangeActionEditor({ action, onUpdate }: LaneChangeActionEditorProps) {
   const inner = action.action as LaneChangeAction;
 
   const updateInner = (updates: Partial<LaneChangeAction>) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate({
       action: { ...inner, ...updates },
     } as Partial<ScenarioAction>);
   };

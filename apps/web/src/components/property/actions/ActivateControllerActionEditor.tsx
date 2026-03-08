@@ -1,18 +1,17 @@
 import type { ScenarioAction, ActivateControllerAction } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 interface ActivateControllerActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
-export function ActivateControllerActionEditor({ action }: ActivateControllerActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function ActivateControllerActionEditor({ action, onUpdate }: ActivateControllerActionEditorProps) {
   const inner = action.action as ActivateControllerAction;
 
   const updateInner = (updates: Partial<ActivateControllerAction>) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate({
       action: { ...inner, ...updates },
     } as Partial<ScenarioAction>);
   };
@@ -67,7 +66,7 @@ export function ActivateControllerActionEditor({ action }: ActivateControllerAct
             onChange={(e) => {
               if (e.target.value === '') {
                 const { controllerRef: _, ...rest } = inner;
-                storeApi.getState().updateAction(action.id, {
+                onUpdate({
                   action: { ...rest },
                 } as Partial<ScenarioAction>);
               } else {

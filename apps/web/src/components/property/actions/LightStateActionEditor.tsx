@@ -2,10 +2,10 @@ import type { ScenarioAction, LightStateAction } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { EnumSelect } from '../EnumSelect';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 interface LightStateActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
 const VEHICLE_LIGHT_TYPES = [
@@ -24,12 +24,11 @@ const VEHICLE_LIGHT_TYPES = [
   'specialPurposeLights',
 ] as const;
 
-export function LightStateActionEditor({ action }: LightStateActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function LightStateActionEditor({ action, onUpdate }: LightStateActionEditorProps) {
   const inner = action.action as LightStateAction;
 
   const updateInner = (updates: Partial<LightStateAction>) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate({
       action: { ...inner, ...updates },
     } as Partial<ScenarioAction>);
   };
@@ -106,7 +105,7 @@ export function LightStateActionEditor({ action }: LightStateActionEditorProps) 
               const v = parseFloat(e.target.value);
               if (isNaN(v)) {
                 const { intensity: _, ...rest } = inner;
-                storeApi.getState().updateAction(action.id, { action: { ...rest } } as Partial<ScenarioAction>);
+                onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
               } else {
                 updateInner({ intensity: v });
               }
@@ -125,7 +124,7 @@ export function LightStateActionEditor({ action }: LightStateActionEditorProps) 
               const v = parseFloat(e.target.value);
               if (isNaN(v)) {
                 const { transitionTime: _, ...rest } = inner;
-                storeApi.getState().updateAction(action.id, { action: { ...rest } } as Partial<ScenarioAction>);
+                onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
               } else {
                 updateInner({ transitionTime: v });
               }

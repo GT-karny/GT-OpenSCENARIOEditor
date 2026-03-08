@@ -9,7 +9,6 @@ import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
 import { PositionEditor } from '../PositionEditor';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 import { RULES } from '../../../constants/osc-enum-values';
 
 const RELATIVE_DISTANCE_TYPES = ['longitudinal', 'lateral', 'euclidianDistance'] as const;
@@ -17,15 +16,15 @@ const COORDINATE_SYSTEMS = ['entity', 'lane', 'road', 'trajectory'] as const;
 
 interface DistanceConditionEditorProps {
   condition: Condition;
+  onUpdate: (conditionId: string, partial: Partial<Condition>) => void;
 }
 
-export function DistanceConditionEditor({ condition }: DistanceConditionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function DistanceConditionEditor({ condition, onUpdate }: DistanceConditionEditorProps) {
   const inner = condition.condition as ByEntityCondition;
   const cond = inner.entityCondition as DistanceCondition;
 
   const update = (updates: Partial<DistanceCondition>) => {
-    storeApi.getState().updateCondition(condition.id, {
+    onUpdate(condition.id, {
       condition: { ...inner, entityCondition: { ...cond, ...updates } },
     } as Partial<Condition>);
   };
@@ -71,7 +70,7 @@ export function DistanceConditionEditor({ condition }: DistanceConditionEditorPr
             onValueChange={(v) => {
               if (v === '') {
                 const { coordinateSystem: _cs, ...rest } = cond;
-                storeApi.getState().updateCondition(condition.id, {
+                onUpdate(condition.id, {
                   condition: { ...inner, entityCondition: rest as DistanceCondition },
                 } as Partial<Condition>);
               } else {
@@ -89,7 +88,7 @@ export function DistanceConditionEditor({ condition }: DistanceConditionEditorPr
             onValueChange={(v) => {
               if (v === '') {
                 const { relativeDistanceType: _rdt, ...rest } = cond;
-                storeApi.getState().updateCondition(condition.id, {
+                onUpdate(condition.id, {
                   condition: { ...inner, entityCondition: rest as DistanceCondition },
                 } as Partial<Condition>);
               } else {

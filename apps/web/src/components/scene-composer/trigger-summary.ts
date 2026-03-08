@@ -1,17 +1,14 @@
-import type { Trigger } from '@osce/shared';
+import type { Trigger, Condition } from '@osce/shared';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type TranslateFunc = (...args: any[]) => string;
+export type TranslateFunc = (...args: any[]) => string;
 
-/** Returns a natural-language trigger summary using i18n. */
-export function getNaturalTriggerSummary(trigger: Trigger, t: TranslateFunc): string {
-  const firstCondition = trigger.conditionGroups[0]?.conditions[0];
-  if (!firstCondition) return t('composer:trigger.immediate');
+/** Returns a natural-language summary for a single Condition using i18n. */
+export function getConditionNaturalSummary(condition: Condition, t: TranslateFunc): string {
+  const { condition: inner } = condition;
 
-  const { condition } = firstCondition;
-
-  if (condition.kind === 'byValue') {
-    const vc = condition.valueCondition;
+  if (inner.kind === 'byValue') {
+    const vc = inner.valueCondition;
     switch (vc.type) {
       case 'simulationTime':
         return t('composer:trigger.simulationTime', { value: vc.value });
@@ -37,8 +34,8 @@ export function getNaturalTriggerSummary(trigger: Trigger, t: TranslateFunc): st
     }
   }
 
-  if (condition.kind === 'byEntity') {
-    const ec = condition.entityCondition;
+  if (inner.kind === 'byEntity') {
+    const ec = inner.entityCondition;
     switch (ec.type) {
       case 'distance':
         return t('composer:trigger.distance', { value: ec.value });
@@ -73,15 +70,19 @@ export function getNaturalTriggerSummary(trigger: Trigger, t: TranslateFunc): st
   return t('composer:trigger.immediate');
 }
 
-/** Returns a short human-readable label for a Trigger. */
-export function getTriggerSummary(trigger: Trigger): string {
+/** Returns a natural-language trigger summary using i18n. */
+export function getNaturalTriggerSummary(trigger: Trigger, t: TranslateFunc): string {
   const firstCondition = trigger.conditionGroups[0]?.conditions[0];
-  if (!firstCondition) return 'Immediate';
+  if (!firstCondition) return t('composer:trigger.immediate');
+  return getConditionNaturalSummary(firstCondition, t);
+}
 
-  const { condition } = firstCondition;
+/** Returns a short human-readable label for a single Condition. */
+export function getConditionShortSummary(condition: Condition): string {
+  const { condition: inner } = condition;
 
-  if (condition.kind === 'byValue') {
-    const vc = condition.valueCondition;
+  if (inner.kind === 'byValue') {
+    const vc = inner.valueCondition;
     switch (vc.type) {
       case 'simulationTime': return `t ≥ ${vc.value}s`;
       case 'storyboardElementState': return `${vc.storyboardElementRef} ${vc.state}`;
@@ -91,8 +92,8 @@ export function getTriggerSummary(trigger: Trigger): string {
     }
   }
 
-  if (condition.kind === 'byEntity') {
-    const ec = condition.entityCondition;
+  if (inner.kind === 'byEntity') {
+    const ec = inner.entityCondition;
     switch (ec.type) {
       case 'distance': return `dist ${ec.rule} ${ec.value}m`;
       case 'relativeDistance': return `near ${ec.entityRef}`;
@@ -110,4 +111,11 @@ export function getTriggerSummary(trigger: Trigger): string {
   }
 
   return 'trigger';
+}
+
+/** Returns a short human-readable label for a Trigger. */
+export function getTriggerSummary(trigger: Trigger): string {
+  const firstCondition = trigger.conditionGroups[0]?.conditions[0];
+  if (!firstCondition) return 'Immediate';
+  return getConditionShortSummary(firstCondition);
 }
