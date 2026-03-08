@@ -3,7 +3,14 @@
  * Bridges scenario position data to 3D rendering coordinates.
  */
 
-import type { Position, OpenDriveDocument, OdrRoad, OdrLaneSection } from '@osce/shared';
+import type {
+  Position,
+  OpenDriveDocument,
+  OdrRoad,
+  OdrLaneSection,
+  Route,
+  RoutePosition,
+} from '@osce/shared';
 import {
   evaluateReferenceLineAtS,
   evaluateElevation,
@@ -32,16 +39,26 @@ export interface WorldCoords {
 }
 
 /**
+ * Options for resolving positions that require external data.
+ */
+export interface PositionResolveOptions {
+  /** Resolve a catalog reference to an inline Route definition. */
+  resolveCatalogRoute?: (ref: { catalogName: string; entryName: string }) => Route | null;
+}
+
+/**
  * Resolve any Position variant to world coordinates.
  * Returns null for position types that require entity state (relative positions)
- * or features not yet supported (geo positions, route positions).
+ * or features not yet supported (geo positions).
  *
  * @param position - OpenSCENARIO Position (discriminated union)
  * @param odrDoc - Parsed OpenDRIVE document (needed for lane/road positions)
+ * @param options - Optional resolvers for catalog references etc.
  */
 export function resolvePositionToWorld(
   position: Position,
   odrDoc: OpenDriveDocument | null,
+  options?: PositionResolveOptions,
 ): WorldCoords | null {
   switch (position.type) {
     case 'worldPosition':
@@ -65,8 +82,9 @@ export function resolvePositionToWorld(
     case 'relativeWorldPosition':
       return null;
 
-    // Route and geo positions not supported in MVP
     case 'routePosition':
+      return resolveRoutePosition(position, odrDoc, options);
+
     case 'geoPosition':
       return null;
 
@@ -173,4 +191,134 @@ function findLaneSectionAtS(road: OdrRoad, s: number): OdrLaneSection | null {
   }
   // Fallback to last section
   return road.lanes.length > 0 ? road.lanes[road.lanes.length - 1] : null;
+}
+
+/**
+ * Resolve a RoutePosition to world coordinates.
+ * Uses the route's waypoint positions to approximate the location along the route.
+ */
+function resolveRoutePosition(
+  pos: RoutePosition,
+  odrDoc: OpenDriveDocument | null,
+  options?: PositionResolveOptions,
+): WorldCoords | null {
+  if (!odrDoc) return null;
+
+  // Get the route definition (inline or from catalog)
+  let route: Route | null | undefined = pos.routeRef.route;
+  if (!route && pos.routeRef.catalogReference && options?.resolveCatalogRoute) {
+    route = options.resolveCatalogRoute(pos.routeRef.catalogReference);
+  }
+  if (!route || route.waypoints.length === 0) return null;
+
+  const irp = pos.inRoutePosition;
+
+  // Handle FromLaneCoordinates: position along route at pathS with specified laneId
+  if (irp.positionInLaneCoordinates) {
+    const pathS = irp.positionInLaneCoordinates.pathS;
+    const laneId = irp.positionInLaneCoordinates.laneId;
+    const laneOffset = irp.positionInLaneCoordinates.laneOffset;
+
+    // For pathS=0, use the first waypoint's road/s with the specified laneId
+    if (pathS === 0) {
+      const firstWp = route.waypoints[0].position;
+      if (firstWp.type === 'lanePosition') {
+        return resolveLanePosition(
+          { roadId: firstWp.roadId, laneId, s: firstWp.s, offset: laneOffset },
+          odrDoc,
+        );
+      }
+    }
+
+    // For non-zero pathS, accumulate distance along waypoints to find position
+    const wpPositions = resolveWaypointPositions(route, odrDoc);
+    if (wpPositions.length < 2) {
+      // Only one waypoint — resolve using its position
+      const wp = route.waypoints[0].position;
+      if (wp.type === 'lanePosition') {
+        return resolveLanePosition(
+          { roadId: wp.roadId, laneId, s: wp.s + pathS, offset: laneOffset },
+          odrDoc,
+        );
+      }
+      return null;
+    }
+
+    // Walk along the route, accumulating straight-line distance between resolved waypoints
+    let accumulated = 0;
+    for (let i = 0; i < wpPositions.length - 1; i++) {
+      const from = wpPositions[i];
+      const to = wpPositions[i + 1];
+      const segLen = Math.sqrt(
+        (to.x - from.x) ** 2 + (to.y - from.y) ** 2 + (to.z - from.z) ** 2,
+      );
+
+      if (accumulated + segLen >= pathS) {
+        // pathS falls within this segment — interpolate using the waypoint's lane position
+        const wp = route.waypoints[i + 1].position;
+        if (wp.type === 'lanePosition') {
+          const ratio = segLen > 0 ? (pathS - accumulated) / segLen : 0;
+          const fromWp = route.waypoints[i].position;
+          if (fromWp.type === 'lanePosition') {
+            const interpS = fromWp.s + ratio * (wp.s - fromWp.s);
+            return resolveLanePosition(
+              { roadId: fromWp.roadId, laneId, s: interpS, offset: laneOffset },
+              odrDoc,
+            );
+          }
+        }
+        break;
+      }
+      accumulated += segLen;
+    }
+
+    // pathS exceeds total route length — use last waypoint
+    const lastWp = route.waypoints[route.waypoints.length - 1].position;
+    if (lastWp.type === 'lanePosition') {
+      return resolveLanePosition(
+        { roadId: lastWp.roadId, laneId, s: lastWp.s, offset: laneOffset },
+        odrDoc,
+      );
+    }
+    return null;
+  }
+
+  // Handle FromRoadCoordinates
+  if (irp.positionInRoadCoordinates) {
+    const firstWp = route.waypoints[0].position;
+    if (firstWp.type === 'lanePosition' || firstWp.type === 'roadPosition') {
+      return resolveRoadPosition(
+        {
+          roadId: firstWp.roadId,
+          s: (firstWp.type === 'lanePosition' ? firstWp.s : firstWp.s) + irp.positionInRoadCoordinates.pathS,
+          t: irp.positionInRoadCoordinates.t,
+        },
+        odrDoc,
+      );
+    }
+    return null;
+  }
+
+  // Handle FromCurrentEntity — cannot resolve statically
+  return null;
+}
+
+/**
+ * Resolve all waypoint positions in a route to world coords (for distance accumulation).
+ */
+function resolveWaypointPositions(route: Route, odrDoc: OpenDriveDocument): WorldCoords[] {
+  const result: WorldCoords[] = [];
+  for (const wp of route.waypoints) {
+    const pos = wp.position;
+    if (pos.type === 'lanePosition') {
+      const resolved = resolveLanePosition(pos, odrDoc);
+      if (resolved) result.push(resolved);
+    } else if (pos.type === 'worldPosition') {
+      result.push({ x: pos.x, y: pos.y, z: pos.z ?? 0, h: pos.h ?? 0 });
+    } else if (pos.type === 'roadPosition') {
+      const resolved = resolveRoadPosition(pos, odrDoc);
+      if (resolved) result.push(resolved);
+    }
+  }
+  return result;
 }

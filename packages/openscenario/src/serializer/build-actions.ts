@@ -126,11 +126,13 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
     case 'followTrajectoryAction': {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const fta: any = buildAttrs({
-        followingMode: action.followingMode,
         initialDistanceOffset: action.initialDistanceOffset,
       }, elementBindings);
       fta.Trajectory = buildTrajectory(action.trajectory);
       fta.TimeReference = buildTimeReference(action.timeReference);
+      if (action.followingMode) {
+        fta.TrajectoryFollowingMode = buildAttrs({ followingMode: action.followingMode });
+      }
       return { RoutingAction: { FollowTrajectoryAction: fta } };
     }
 
@@ -149,6 +151,18 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
               RoutingAction: {
                 AssignRouteAction: {
                   Route: buildRoute(action.route),
+                },
+              },
+            };
+          }
+          if (action.catalogReference) {
+            return {
+              RoutingAction: {
+                AssignRouteAction: {
+                  CatalogReference: buildAttrs({
+                    catalogName: action.catalogReference.catalogName,
+                    entryName: action.catalogReference.entryName,
+                  }),
                 },
               },
             };

@@ -21,6 +21,14 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     await fs.writeFile(filePath, content, 'utf-8');
   });
 
+  ipcMain.handle('fs:readDir', async (_event, dirPath: string) => {
+    try {
+      return await fs.readdir(dirPath);
+    } catch {
+      return [];
+    }
+  });
+
   // Window title
   ipcMain.on('window:setTitle', (_event, title: string) => {
     mainWindow.setTitle(title);
@@ -37,6 +45,7 @@ export function unregisterIpcHandlers(): void {
   ipcMain.removeHandler('dialog:save');
   ipcMain.removeHandler('fs:readFile');
   ipcMain.removeHandler('fs:writeFile');
+  ipcMain.removeHandler('fs:readDir');
   ipcMain.removeHandler('recent:get');
   ipcMain.removeAllListeners('window:setTitle');
   ipcMain.removeAllListeners('recent:add');

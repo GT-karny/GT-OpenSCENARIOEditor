@@ -6,7 +6,7 @@
  * Mirrors RoadClickHandler's coordinate conversion and click detection pattern.
  */
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { OpenDriveDocument } from '@osce/shared';
@@ -36,26 +36,14 @@ export function RouteClickHandler({
   onWaypointAdd,
 }: RouteClickHandlerProps) {
   const { camera, gl } = useThree();
-  const pointerDownRef = useRef({ x: 0, y: 0 });
   const onWaypointAddRef = useRef(onWaypointAdd);
   onWaypointAddRef.current = onWaypointAdd;
 
-  const handlePointerDown = useCallback((e: PointerEvent) => {
-    if (e.button !== 0) return;
-    pointerDownRef.current = { x: e.clientX, y: e.clientY };
-  }, []);
-
-  const handlePointerUp = useCallback(
-    (e: PointerEvent) => {
-      if (e.button !== 0) return;
+  const handleDblClick = useCallback(
+    (e: MouseEvent) => {
       if (!roadGroupRef.current || !openDriveDocument) return;
 
-      // Click vs drag heuristic: 5px threshold
-      const dx = e.clientX - pointerDownRef.current.x;
-      const dy = e.clientY - pointerDownRef.current.y;
-      if (dx * dx + dy * dy > 25) return;
-
-      // Fresh raycast at click position
+      // Raycast at double-click position
       const canvas = gl.domElement;
       const rect = canvas.getBoundingClientRect();
       pointerNdc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -72,8 +60,6 @@ export function RouteClickHandler({
       if (!meshHit) return;
 
       // Convert hit point to OpenDRIVE local coords
-      // After worldToLocal, coordinates are in the road group's local space
-      // which IS the OpenDRIVE coordinate system (x=east, y=north, z=up)
       const localPt = roadGroupRef.current.worldToLocal(meshHit.point.clone());
       const osceX = localPt.x;
       const osceY = localPt.y;
@@ -98,13 +84,11 @@ export function RouteClickHandler({
 
   useEffect(() => {
     const canvas = gl.domElement;
-    canvas.addEventListener('pointerdown', handlePointerDown);
-    canvas.addEventListener('pointerup', handlePointerUp);
+    canvas.addEventListener('dblclick', handleDblClick);
     return () => {
-      canvas.removeEventListener('pointerdown', handlePointerDown);
-      canvas.removeEventListener('pointerup', handlePointerUp);
+      canvas.removeEventListener('dblclick', handleDblClick);
     };
-  }, [gl, handlePointerDown, handlePointerUp]);
+  }, [gl, handleDblClick]);
 
   return null;
 }

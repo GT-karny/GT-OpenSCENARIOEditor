@@ -201,24 +201,27 @@ function parseWaypoint(raw: any): Waypoint {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseInRoutePosition(raw: any): InRoutePosition {
   if (!raw) return {};
+
+  // XSD element names: FromCurrentEntity, FromRoadCoordinates, FromLaneCoordinates
+  const fromCurrent = raw.FromCurrentEntity;
+  const fromRoad = raw.FromRoadCoordinates;
+  const fromLane = raw.FromLaneCoordinates;
+
   return {
-    fromCurrentEntity: raw.FromCurrentEntity
-      ? { entityRef: strAttr(raw.FromCurrentEntity, 'entityRef') }
+    fromCurrentEntity: fromCurrent
+      ? { entityRef: strAttr(fromCurrent, 'entityRef') }
       : undefined,
-    positionOfCurrentEntity: raw.PositionOfCurrentEntity
-      ? { entityRef: strAttr(raw.PositionOfCurrentEntity, 'entityRef') }
-      : undefined,
-    positionInRoadCoordinates: raw.PositionInRoadCoordinates
+    positionInRoadCoordinates: fromRoad
       ? {
-          pathS: numAttr(raw.PositionInRoadCoordinates, 'pathS'),
-          t: numAttr(raw.PositionInRoadCoordinates, 't'),
+          pathS: numAttr(fromRoad, 'pathS'),
+          t: numAttr(fromRoad, 't'),
         }
       : undefined,
-    positionInLaneCoordinates: raw.PositionInLaneCoordinates
+    positionInLaneCoordinates: fromLane
       ? {
-          pathS: numAttr(raw.PositionInLaneCoordinates, 'pathS'),
-          laneId: strAttr(raw.PositionInLaneCoordinates, 'laneId'),
-          laneOffset: optNumAttr(raw.PositionInLaneCoordinates, 'laneOffset'),
+          pathS: numAttr(fromLane, 'pathS'),
+          laneId: strAttr(fromLane, 'laneId'),
+          laneOffset: optNumAttr(fromLane, 'laneOffset'),
         }
       : undefined,
   };

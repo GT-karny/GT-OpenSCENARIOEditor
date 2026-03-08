@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readFile: (filePath: string) => ipcRenderer.invoke('fs:readFile', filePath),
   writeFile: (filePath: string, content: string) =>
     ipcRenderer.invoke('fs:writeFile', filePath, content),
+  readDir: (dirPath: string) => ipcRenderer.invoke('fs:readDir', dirPath),
 
   // Menu commands (renderer listens for these)
   onMenuAction: (callback: (action: string) => void) => {

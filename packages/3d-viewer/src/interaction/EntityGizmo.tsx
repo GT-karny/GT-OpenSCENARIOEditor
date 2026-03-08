@@ -82,7 +82,7 @@ export const EntityGizmo: React.FC<EntityGizmoProps> = React.memo(
         object={object.current}
         mode={mode}
         space="local"
-        size={15}
+        size={1.5}
         showX={mode !== 'rotate'}
         showY={mode !== 'rotate'}
         showZ={mode !== 'translate'}

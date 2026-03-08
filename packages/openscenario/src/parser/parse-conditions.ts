@@ -159,9 +159,11 @@ function parseTimeToCollisionTarget(raw: any): TimeToCollisionTarget {
   if (!raw) throw new Error('TimeToCollisionConditionTarget element is missing');
 
   if (raw.EntityRef) {
+    // EntityRef is parsed as an array by fxp-config; take the first element
+    const ref = Array.isArray(raw.EntityRef) ? raw.EntityRef[0] : raw.EntityRef;
     return {
       kind: 'entity',
-      entityRef: strAttr(raw.EntityRef, 'entityRef'),
+      entityRef: strAttr(ref, 'entityRef'),
     };
   }
   if (raw.Position) {
@@ -252,9 +254,11 @@ function parseCollisionCondition(raw: any): CollisionCondition {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseCollisionTarget(raw: any): CollisionTarget {
   if (raw.EntityRef) {
+    // EntityRef is parsed as an array by fxp-config; take the first element
+    const ref = Array.isArray(raw.EntityRef) ? raw.EntityRef[0] : raw.EntityRef;
     return {
       kind: 'entity',
-      entityRef: strAttr(raw.EntityRef, 'entityRef'),
+      entityRef: strAttr(ref, 'entityRef'),
     };
   }
   if (raw.ByType) {

@@ -23,9 +23,11 @@ export type {
 // Utility functions (for consumers who want to build custom viewers)
 export { getLaneColor } from './utils/lane-type-colors.js';
 export { resolvePositionToWorld } from './utils/position-resolver.js';
-export type { WorldCoords } from './utils/position-resolver.js';
+export type { WorldCoords, PositionResolveOptions } from './utils/position-resolver.js';
 export { getEntityGeometry, getEntityColor } from './utils/entity-geometry.js';
 export type { EntityGeometryParams } from './utils/entity-geometry.js';
+export { roadCoordsToWorld } from './utils/road-projection.js';
+export type { RoadProjectionResult } from './utils/road-projection.js';
 
 // Scenario data bridge hooks
 export { useScenarioEntities } from './scenario/useScenarioEntities.js';

@@ -132,17 +132,15 @@ function buildRoutePosition(pos: RoutePosition): any {
     if (pos.inRoutePosition.fromCurrentEntity) {
       irp.FromCurrentEntity = buildAttrs({ entityRef: pos.inRoutePosition.fromCurrentEntity.entityRef });
     }
-    if (pos.inRoutePosition.positionOfCurrentEntity) {
-      irp.PositionOfCurrentEntity = buildAttrs({ entityRef: pos.inRoutePosition.positionOfCurrentEntity.entityRef });
-    }
+    // XSD element names: FromRoadCoordinates, FromLaneCoordinates
     if (pos.inRoutePosition.positionInRoadCoordinates) {
-      irp.PositionInRoadCoordinates = buildAttrs({
+      irp.FromRoadCoordinates = buildAttrs({
         pathS: pos.inRoutePosition.positionInRoadCoordinates.pathS,
         t: pos.inRoutePosition.positionInRoadCoordinates.t,
       });
     }
     if (pos.inRoutePosition.positionInLaneCoordinates) {
-      irp.PositionInLaneCoordinates = buildAttrs({
+      irp.FromLaneCoordinates = buildAttrs({
         pathS: pos.inRoutePosition.positionInLaneCoordinates.pathS,
         laneId: pos.inRoutePosition.positionInLaneCoordinates.laneId,
         laneOffset: pos.inRoutePosition.positionInLaneCoordinates.laneOffset,
