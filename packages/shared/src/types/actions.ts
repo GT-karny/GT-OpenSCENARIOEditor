@@ -136,6 +136,7 @@ export interface RoutingAction {
   type: 'routingAction';
   routeAction: 'assignRoute' | 'followToConnectingRoad' | 'acquirePosition';
   route?: { name: string; closed: boolean; waypoints: Array<{ position: Position; routeStrategy: string }> };
+  catalogReference?: { catalogName: string; entryName: string };
   position?: Position;
 }
 

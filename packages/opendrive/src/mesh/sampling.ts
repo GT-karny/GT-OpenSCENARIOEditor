@@ -79,6 +79,76 @@ export function generateSamplePoints(
 }
 
 /**
+ * Generate curvature-adaptive sample points for a road segment.
+ * Uses denser sampling on curved sections (arcs, spirals) and sparser on straights.
+ * Targets ~2 degrees of arc per sample step for visually smooth polylines.
+ */
+export function generateCurvatureAdaptiveSamples(
+  road: OdrRoad,
+  sStart: number,
+  sEnd: number,
+  options?: Partial<SamplingOptions>,
+): number[] {
+  const opts = { ...DEFAULT_OPTIONS, ...options };
+
+  // Collect critical s values (boundaries where we must have a sample)
+  const criticalS = new Set<number>();
+  criticalS.add(sStart);
+  criticalS.add(sEnd);
+
+  for (const geom of road.planView) {
+    if (geom.s > sStart && geom.s < sEnd) criticalS.add(geom.s);
+  }
+  for (const elev of road.elevationProfile) {
+    if (elev.s > sStart && elev.s < sEnd) criticalS.add(elev.s);
+  }
+  for (const ls of road.lanes) {
+    if (ls.s > sStart && ls.s < sEnd) criticalS.add(ls.s);
+  }
+  for (const lo of road.laneOffset) {
+    if (lo.s > sStart && lo.s < sEnd) criticalS.add(lo.s);
+  }
+
+  const samples = new Set<number>(criticalS);
+
+  // Walk through each geometry segment within [sStart, sEnd]
+  for (const geom of road.planView) {
+    const segStart = Math.max(sStart, geom.s);
+    const segEnd = Math.min(sEnd, geom.s + geom.length);
+    if (segStart >= segEnd) continue;
+
+    // Determine step based on geometry curvature
+    let step: number;
+    if (geom.type === 'line') {
+      step = opts.maxStep;
+    } else if (geom.type === 'arc' && geom.curvature) {
+      const radius = 1 / Math.abs(geom.curvature);
+      // ~2 degrees per step: step = radius * 0.035 rad
+      step = Math.max(opts.minStep, Math.min(opts.maxStep, radius * 0.035));
+    } else if (geom.type === 'spiral') {
+      const maxK = Math.max(Math.abs(geom.curvStart ?? 0), Math.abs(geom.curvEnd ?? 0));
+      if (maxK > 1e-6) {
+        const minRadius = 1 / maxK;
+        step = Math.max(opts.minStep, Math.min(opts.maxStep, minRadius * 0.035));
+      } else {
+        step = opts.maxStep; // Nearly straight spiral
+      }
+    } else {
+      // poly3, paramPoly3: use baseStep
+      step = opts.baseStep;
+    }
+
+    let s = segStart + step;
+    while (s < segEnd - 1e-6) {
+      samples.add(s);
+      s += step;
+    }
+  }
+
+  return Array.from(samples).sort((a, b) => a - b);
+}
+
+/**
  * Simple uniform sampling without boundary awareness.
  */
 export function generateUniformSamples(

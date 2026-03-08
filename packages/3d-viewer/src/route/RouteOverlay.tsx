@@ -6,7 +6,9 @@
 
 import React from 'react';
 import type { ThreeEvent } from '@react-three/fiber';
+import type { OpenDriveDocument } from '@osce/shared';
 import { WaypointMarker } from './WaypointMarker.js';
+import { WaypointGizmo } from './WaypointGizmo.js';
 import { RouteConnectionLine } from './RouteConnectionLine.js';
 
 export interface RouteOverlayProps {
@@ -16,6 +18,19 @@ export interface RouteOverlayProps {
   onWaypointClick?: (index: number) => void;
   onWaypointContextMenu?: (index: number, event: ThreeEvent<MouseEvent>) => void;
   onLineClick?: (segmentIndex: number, event: ThreeEvent<MouseEvent>) => void;
+  openDriveDocument?: OpenDriveDocument | null;
+  orbitControlsRef?: React.RefObject<any>;
+  onWaypointDragEnd?: (
+    index: number,
+    worldX: number,
+    worldY: number,
+    worldZ: number,
+    heading: number,
+    roadId: string,
+    laneId: string,
+    s: number,
+    offset: number,
+  ) => void;
 }
 
 export const RouteOverlay: React.FC<RouteOverlayProps> = React.memo(
@@ -26,7 +41,13 @@ export const RouteOverlay: React.FC<RouteOverlayProps> = React.memo(
     onWaypointClick,
     onWaypointContextMenu,
     onLineClick,
+    openDriveDocument,
+    orbitControlsRef,
+    onWaypointDragEnd,
   }) => {
+    const selectedWp =
+      selectedWaypointIndex !== null ? waypoints[selectedWaypointIndex] : null;
+
     return (
       <group>
         {/* Connection lines between waypoints */}
@@ -53,6 +74,18 @@ export const RouteOverlay: React.FC<RouteOverlayProps> = React.memo(
             }
           />
         ))}
+
+        {/* Drag gizmo for selected waypoint */}
+        {selectedWp && openDriveDocument && onWaypointDragEnd && selectedWaypointIndex !== null && (
+          <WaypointGizmo
+            position={[selectedWp.x, selectedWp.y, selectedWp.z]}
+            openDriveDocument={openDriveDocument}
+            orbitControlsRef={orbitControlsRef}
+            onDragEnd={(wX, wY, wZ, h, rId, lId, s, off) =>
+              onWaypointDragEnd(selectedWaypointIndex, wX, wY, wZ, h, rId, lId, s, off)
+            }
+          />
+        )}
       </group>
     );
   },

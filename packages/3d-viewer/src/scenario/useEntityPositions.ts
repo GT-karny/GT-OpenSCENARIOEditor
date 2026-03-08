@@ -10,7 +10,11 @@ import type {
   OpenDriveDocument,
   EntityInitActions,
 } from '@osce/shared';
-import { resolvePositionToWorld, type WorldCoords } from '../utils/position-resolver.js';
+import {
+  resolvePositionToWorld,
+  type WorldCoords,
+  type PositionResolveOptions,
+} from '../utils/position-resolver.js';
 
 /**
  * Extract entity positions from Init section of a scenario document.
@@ -19,6 +23,7 @@ import { resolvePositionToWorld, type WorldCoords } from '../utils/position-reso
 export function extractEntityPositions(
   doc: ScenarioDocument,
   odrDoc: OpenDriveDocument | null,
+  options?: PositionResolveOptions,
 ): Map<string, WorldCoords> {
   const positions = new Map<string, WorldCoords>();
 
@@ -36,7 +41,7 @@ export function extractEntityPositions(
   ): WorldCoords | null {
     for (const initAction of entityActions.privateActions) {
       if (initAction.action.type === 'teleportAction') {
-        return resolvePositionToWorld(initAction.action.position, odrDoc);
+        return resolvePositionToWorld(initAction.action.position, odrDoc, options);
       }
     }
     return null;
@@ -49,6 +54,7 @@ export function extractEntityPositions(
 export function useEntityPositions(
   store: ReturnType<typeof import('@osce/scenario-engine').createScenarioStore>,
   odrDocument: OpenDriveDocument | null,
+  options?: PositionResolveOptions,
 ): Map<string, WorldCoords> {
   const initEntityActions = useStore(
     store,
@@ -58,8 +64,8 @@ export function useEntityPositions(
   return useMemo(
     () => {
       const doc = store.getState().document;
-      return extractEntityPositions(doc, odrDocument);
+      return extractEntityPositions(doc, odrDocument, options);
     },
-    [initEntityActions, odrDocument, store],
+    [initEntityActions, odrDocument, store, options],
   );
 }

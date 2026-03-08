@@ -14,6 +14,7 @@ import type {
   SimulationStatus,
   EditorPreferences,
   ScenarioDocument,
+  Route,
 } from '@osce/shared';
 import { createViewerStore, useViewerStore } from '../store/viewer-store.js';
 import type { HoverLaneInfo, ViewerMode } from '../store/viewer-types.js';
@@ -91,6 +92,12 @@ export interface ScenarioViewerProps {
     worldX: number, worldY: number, worldZ: number, heading: number,
     roadId: string, laneId: string, s: number, offset: number,
   ) => void;
+  /** Callback when user drags a waypoint to a new position */
+  onRouteWaypointDragEnd?: (
+    index: number,
+    worldX: number, worldY: number, worldZ: number, heading: number,
+    roadId: string, laneId: string, s: number, offset: number,
+  ) => void;
   /** Callback to save and exit route editing */
   onRouteEditSave?: () => void;
   /** Callback to cancel route editing */
@@ -99,6 +106,8 @@ export interface ScenarioViewerProps {
   routeWarnings?: string[];
   /** Number of waypoints in the editing route */
   routeWaypointCount?: number;
+  /** Resolve a catalog reference to a Route definition (for RoutePosition placement) */
+  resolveCatalogRoute?: (ref: { catalogName: string; entryName: string }) => Route | null;
 }
 
 /**
@@ -124,6 +133,8 @@ function ScenarioViewerScene({
   onRouteWaypointContextMenu,
   onRouteLineClick,
   onRouteWaypointAdd,
+  onRouteWaypointDragEnd,
+  resolveCatalogRoute,
 }: {
   scenarioStore: ScenarioViewerProps['scenarioStore'];
   openDriveDocument: OpenDriveDocument | null;
@@ -144,6 +155,8 @@ function ScenarioViewerScene({
   onRouteWaypointContextMenu?: (index: number, event: ThreeEvent<MouseEvent>) => void;
   onRouteLineClick?: (segmentIndex: number, event: ThreeEvent<MouseEvent>) => void;
   onRouteWaypointAdd?: ScenarioViewerProps['onRouteWaypointAdd'];
+  onRouteWaypointDragEnd?: ScenarioViewerProps['onRouteWaypointDragEnd'];
+  resolveCatalogRoute?: ScenarioViewerProps['resolveCatalogRoute'];
 }) {
   const cameraMode = useViewerStore(viewerStore, (s) => s.cameraMode);
   const showGrid = useViewerStore(viewerStore, (s) => s.showGrid);
@@ -157,8 +170,13 @@ function ScenarioViewerScene({
   const followTargetEntity = useViewerStore(viewerStore, (s) => s.followTargetEntity);
   const flySpeed = useViewerStore(viewerStore, (s) => s.flySpeed);
 
+  const resolveOptions = useMemo(
+    () => (resolveCatalogRoute ? { resolveCatalogRoute } : undefined),
+    [resolveCatalogRoute],
+  );
+
   const entities = useScenarioEntities(scenarioStore);
-  const entityPositions = useEntityPositions(scenarioStore, openDriveDocument);
+  const entityPositions = useEntityPositions(scenarioStore, openDriveDocument, resolveOptions);
 
   const isSimulating = currentFrame != null;
   const isEditMode = viewerMode === 'edit';
@@ -308,6 +326,9 @@ function ScenarioViewerScene({
             onWaypointClick={onRouteWaypointClick}
             onWaypointContextMenu={onRouteWaypointContextMenu}
             onLineClick={onRouteLineClick}
+            openDriveDocument={openDriveDocument}
+            orbitControlsRef={cameraRef.current?.orbitControls}
+            onWaypointDragEnd={onRouteWaypointDragEnd}
           />
         </group>
       )}
@@ -401,10 +422,12 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   onRouteWaypointContextMenu,
   onRouteLineClick,
   onRouteWaypointAdd,
+  onRouteWaypointDragEnd,
   onRouteEditSave,
   onRouteEditCancel,
   routeWarnings,
   routeWaypointCount,
+  resolveCatalogRoute,
 }) => {
   const viewerStoreRef = useRef<ReturnType<typeof createViewerStore> | null>(null);
   if (!viewerStoreRef.current) {
@@ -584,6 +607,8 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           onRouteWaypointContextMenu={onRouteWaypointContextMenu}
           onRouteLineClick={onRouteLineClick}
           onRouteWaypointAdd={onRouteWaypointAdd}
+          onRouteWaypointDragEnd={onRouteWaypointDragEnd}
+          resolveCatalogRoute={resolveCatalogRoute}
         />
       </ViewerCanvas>
     </div>

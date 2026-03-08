@@ -19,6 +19,8 @@ import { ValidationPanel } from '../panels/ValidationPanel';
 import { SimulationTimeline } from '../panels/SimulationTimeline';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { NodeEditorContextMenu } from '../node-editor/NodeEditorContextMenu';
+import { WaypointContextMenu } from '../route/WaypointContextMenu';
+import type { WaypointContextMenuPosition } from '../route/WaypointContextMenu';
 import type { ContextMenuPosition } from '../node-editor/NodeEditorContextMenu';
 import { DeleteConfirmationDialog } from '../node-editor/DeleteConfirmationDialog';
 import { ParameterDialog } from '../template/ParameterDialog';
@@ -32,6 +34,7 @@ import { useEditorStore } from '../../stores/editor-store';
 import { useProjectStore } from '../../stores/project-store';
 import { useSimulationStore } from '../../stores/simulation-store';
 import { useRouteEdit } from '../../hooks/use-route-edit';
+import { useRoadManagerClient } from '../../hooks/use-road-manager-client';
 import { useCatalogStore } from '../../stores/catalog-store';
 import { useTemplateDrop } from '../../hooks/use-template-drop';
 import { useElementDelete } from '../../hooks/use-element-delete';
@@ -77,10 +80,12 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   onRouteWaypointContextMenu?: (index: number, event: unknown) => void;
   onRouteLineClick?: (segmentIndex: number, event: unknown) => void;
   onRouteWaypointAdd?: (worldX: number, worldY: number, worldZ: number, heading: number, roadId: string, laneId: string, s: number, offset: number) => void;
+  onRouteWaypointDragEnd?: (index: number, worldX: number, worldY: number, worldZ: number, heading: number, roadId: string, laneId: string, s: number, offset: number) => void;
   onRouteEditSave?: () => void;
   onRouteEditCancel?: () => void;
   routeWarnings?: string[];
   routeWaypointCount?: number;
+  resolveCatalogRoute?: (ref: { catalogName: string; entryName: string }) => import('@osce/shared').Route | null;
 }) {
   const simStatus = useSimulationStore((s) => s.status);
   const simFrames = useSimulationStore((s) => s.frames);
@@ -130,10 +135,12 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       onRouteWaypointContextMenu={props.onRouteWaypointContextMenu}
       onRouteLineClick={props.onRouteLineClick}
       onRouteWaypointAdd={props.onRouteWaypointAdd}
+      onRouteWaypointDragEnd={props.onRouteWaypointDragEnd}
       onRouteEditSave={props.onRouteEditSave}
       onRouteEditCancel={props.onRouteEditCancel}
       routeWarnings={props.routeWarnings}
       routeWaypointCount={props.routeWaypointCount}
+      resolveCatalogRoute={props.resolveCatalogRoute}
       className="h-full w-full"
     />
   );
@@ -268,20 +275,38 @@ export function EditorLayout() {
   }, [activeElements, scenarioStoreApi]);
 
   // --- Route editing ---
-  const routeEdit = useRouteEdit(roadNetwork);
+  const roadManagerClient = useRoadManagerClient();
+  const routeEdit = useRouteEdit(roadNetwork, roadManagerClient);
   const updateCatalogEntry = useCatalogStore((s) => s.updateEntry);
+  const catalogResolveReference = useCatalogStore((s) => s.resolveReference);
+
+  const resolveCatalogRoute = useCallback(
+    (ref: { catalogName: string; entryName: string }) => {
+      const resolved = catalogResolveReference({
+        kind: 'catalogReference',
+        catalogName: ref.catalogName,
+        entryName: ref.entryName,
+        parameterAssignments: [],
+      });
+      if (resolved && resolved.catalogType === 'route') {
+        return resolved.definition as import('@osce/shared').Route;
+      }
+      return null;
+    },
+    [catalogResolveReference],
+  );
 
   const handleRouteWaypointAdd = useCallback(
     (
       _worldX: number, _worldY: number, _worldZ: number, _heading: number,
-      roadId: string, laneId: string, s: number, offset: number,
+      roadId: string, laneId: string, s: number, _offset: number,
     ) => {
+      // Route waypoints always snap to lane center (no lateral offset)
       routeEdit.addWaypoint({
         type: 'lanePosition',
         roadId,
         laneId,
         s: Math.round(s * 100) / 100,
-        offset: Math.abs(offset) > 0.01 ? Math.round(offset * 100) / 100 : undefined,
       });
     },
     [routeEdit],
@@ -294,16 +319,73 @@ export function EditorLayout() {
     [routeEdit],
   );
 
+  // --- Waypoint context menu ---
+  const [waypointContextMenu, setWaypointContextMenu] =
+    useState<WaypointContextMenuPosition | null>(null);
+
+  const handleRouteWaypointContextMenu = useCallback(
+    (index: number, event: unknown) => {
+      const nativeEvent = (event as { nativeEvent?: MouseEvent })?.nativeEvent;
+      if (!nativeEvent) return;
+      nativeEvent.preventDefault();
+      setWaypointContextMenu({
+        x: nativeEvent.clientX,
+        y: nativeEvent.clientY,
+        waypointIndex: index,
+      });
+    },
+    [],
+  );
+
+  const handleRouteWaypointDragEnd = useCallback(
+    (
+      index: number,
+      _worldX: number, _worldY: number, _worldZ: number, _heading: number,
+      roadId: string, laneId: string, s: number, _offset: number,
+    ) => {
+      // Route waypoints always snap to lane center (no lateral offset)
+      routeEdit.updateWaypointPosition(index, {
+        type: 'lanePosition',
+        roadId,
+        laneId,
+        s: Math.round(s * 100) / 100,
+      });
+    },
+    [routeEdit],
+  );
+
   const handleRouteLineClick = useCallback(
-    (segmentIndex: number) => {
-      // Insert a waypoint after the segment start (placeholder position)
-      // User will then move it via gizmo
-      if (!routeEdit.editingRoute) return;
+    (segmentIndex: number, event: unknown) => {
+      if (!routeEdit.editingRoute || !roadNetwork) return;
+
+      // Extract click position from ThreeEvent
+      const threeEvent = event as { point?: { x: number; y: number; z: number } };
+      if (threeEvent?.point) {
+        // ThreeEvent point is in Three.js world coords (inside rotation group)
+        // Convert to OpenDRIVE: odrX = point.x, odrY = -point.z
+        const odrX = threeEvent.point.x;
+        const odrY = -threeEvent.point.z;
+        const lane = worldToLane(roadNetwork, odrX, odrY, 20);
+        if (lane) {
+          routeEdit.insertWaypoint(segmentIndex, {
+            type: 'lanePosition',
+            roadId: lane.roadId,
+            laneId: String(lane.laneId),
+            s: Math.round(lane.s * 100) / 100,
+            offset: Math.abs(lane.offset) > 0.01
+              ? Math.round(lane.offset * 100) / 100
+              : undefined,
+          });
+          return;
+        }
+      }
+
+      // Fallback: duplicate segment start position
       const wp = routeEdit.editingRoute.waypoints[segmentIndex];
       if (!wp) return;
       routeEdit.insertWaypoint(segmentIndex, wp.position);
     },
-    [routeEdit],
+    [routeEdit, roadNetwork],
   );
 
   const handleRouteEditSave = useCallback(() => {
@@ -438,14 +520,31 @@ export function EditorLayout() {
                     routePathSegments={routeEdit.pathSegments}
                     routeSelectedWaypointIndex={routeEdit.selectedWaypointIndex}
                     onRouteWaypointClick={handleRouteWaypointClick}
+                    onRouteWaypointContextMenu={handleRouteWaypointContextMenu}
                     onRouteLineClick={handleRouteLineClick}
                     onRouteWaypointAdd={handleRouteWaypointAdd}
+                    onRouteWaypointDragEnd={handleRouteWaypointDragEnd}
                     onRouteEditSave={handleRouteEditSave}
                     onRouteEditCancel={handleRouteEditCancel}
                     routeWarnings={routeEdit.warnings}
                     routeWaypointCount={routeEdit.editingRoute?.waypoints.length ?? 0}
+                    resolveCatalogRoute={resolveCatalogRoute}
                   />
                 </ErrorBoundary>
+                {waypointContextMenu && (
+                  <WaypointContextMenu
+                    position={waypointContextMenu}
+                    onSelect={() => {
+                      routeEdit.selectWaypoint(waypointContextMenu.waypointIndex);
+                      setWaypointContextMenu(null);
+                    }}
+                    onDelete={() => {
+                      routeEdit.removeWaypoint(waypointContextMenu.waypointIndex);
+                      setWaypointContextMenu(null);
+                    }}
+                    onClose={() => setWaypointContextMenu(null)}
+                  />
+                )}
               </div>
             </Panel>
 

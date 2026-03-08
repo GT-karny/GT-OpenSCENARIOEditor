@@ -662,6 +662,11 @@ function parseAssignRouteAction(raw: any): RoutingAction {
       closed: boolAttr(raw.Route, 'closed'),
       waypoints: ensureArray(raw.Route.Waypoint).map(parseRouteWaypoint),
     };
+  } else if (raw.CatalogReference) {
+    result.catalogReference = {
+      catalogName: strAttr(raw.CatalogReference, 'catalogName'),
+      entryName: strAttr(raw.CatalogReference, 'entryName'),
+    };
   }
 
   return result;

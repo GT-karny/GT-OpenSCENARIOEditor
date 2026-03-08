@@ -48,7 +48,7 @@ export function RoutingActionEditor({ action, onUpdate }: RoutingActionEditorPro
     routeEditSource.actionId === action.id;
 
   // Determine route source mode for assignRoute variant
-  const routeSourceMode: RouteSourceMode = inner.route ? 'inline' : 'catalogRef';
+  const routeSourceMode: RouteSourceMode = inner.catalogReference ? 'catalogRef' : 'inline';
 
   const updateInner = (updates: Partial<RoutingAction>) => {
     onUpdate({
@@ -87,6 +87,7 @@ export function RoutingActionEditor({ action, onUpdate }: RoutingActionEditorPro
     if (mode === 'inline') {
       updateInner({
         route: inner.route ?? { name: '', closed: false, waypoints: [] },
+        catalogReference: undefined,
       });
     } else {
       // Switch to catalog reference mode: clear inline route
@@ -97,9 +98,7 @@ export function RoutingActionEditor({ action, onUpdate }: RoutingActionEditorPro
   };
 
   const handleCatalogReferenceChange = (ref: { catalogName: string; entryName: string }) => {
-    updateInner({
-      catalogReference: ref,
-    } as Partial<RoutingAction>);
+    updateInner({ catalogReference: ref });
   };
 
   const handleWaypointDelete = (index: number) => {
@@ -145,10 +144,7 @@ export function RoutingActionEditor({ action, onUpdate }: RoutingActionEditorPro
           {/* Route source selector */}
           <RouteSourceSelector
             mode={routeSourceMode}
-            catalogReference={
-              (inner as unknown as { catalogReference?: { catalogName: string; entryName: string } })
-                .catalogReference
-            }
+            catalogReference={inner.catalogReference}
             onModeChange={handleRouteSourceModeChange}
             onCatalogReferenceChange={handleCatalogReferenceChange}
           />
