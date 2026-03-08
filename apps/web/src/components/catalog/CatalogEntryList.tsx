@@ -26,7 +26,10 @@ function entrySubtitle(entry: CatalogEntry): string {
     case 'environment': return 'environment';
     case 'maneuver': return 'maneuver';
     case 'trajectory': return 'trajectory';
-    case 'route': return 'route';
+    case 'route': {
+      const route = entry.definition as import('@osce/shared').Route;
+      return `${route.waypoints.length} waypoint${route.waypoints.length !== 1 ? 's' : ''}`;
+    }
   }
 }
 
@@ -85,6 +88,16 @@ export function CatalogEntryList() {
             parameterDeclarations: [],
             boundingBox: { center: { x: 0, y: 0, z: 0.9 }, dimensions: { width: 0.5, length: 0.6, height: 1.8 } },
             properties: [],
+          },
+        }
+      : doc.catalogType === 'route'
+      ? {
+          catalogType: 'route',
+          definition: {
+            id: `route_${Date.now()}`,
+            name: `new_route_${count}`,
+            closed: false,
+            waypoints: [],
           },
         }
       : doc.catalogType === 'miscObject'

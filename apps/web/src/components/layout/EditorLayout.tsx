@@ -31,6 +31,8 @@ import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
 import { useProjectStore } from '../../stores/project-store';
 import { useSimulationStore } from '../../stores/simulation-store';
+import { useRouteEdit } from '../../hooks/use-route-edit';
+import { useCatalogStore } from '../../stores/catalog-store';
 import { useTemplateDrop } from '../../hooks/use-template-drop';
 import { useElementDelete } from '../../hooks/use-element-delete';
 import { useElementAdd } from '../../hooks/use-element-add';
@@ -66,6 +68,19 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   onViewerModeChange?: (mode: ViewerMode) => void;
   preferences: { showGrid3D: boolean; showLaneIds: boolean; showRoadIds: boolean };
   focusEntityId?: string | null;
+  // Route editing props
+  routeEditActive?: boolean;
+  routeWaypoints?: Array<{ x: number; y: number; z: number; h: number }>;
+  routePathSegments?: Array<Array<{ x: number; y: number; z: number }>>;
+  routeSelectedWaypointIndex?: number | null;
+  onRouteWaypointClick?: (index: number) => void;
+  onRouteWaypointContextMenu?: (index: number, event: unknown) => void;
+  onRouteLineClick?: (segmentIndex: number, event: unknown) => void;
+  onRouteWaypointAdd?: (worldX: number, worldY: number, worldZ: number, heading: number, roadId: string, laneId: string, s: number, offset: number) => void;
+  onRouteEditSave?: () => void;
+  onRouteEditCancel?: () => void;
+  routeWarnings?: string[];
+  routeWaypointCount?: number;
 }) {
   const simStatus = useSimulationStore((s) => s.status);
   const simFrames = useSimulationStore((s) => s.frames);
@@ -107,6 +122,18 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       simulationStatus={simStatus}
       preferences={props.preferences}
       focusEntityId={props.focusEntityId}
+      routeEditActive={props.routeEditActive}
+      routeWaypoints={props.routeWaypoints}
+      routePathSegments={props.routePathSegments}
+      routeSelectedWaypointIndex={props.routeSelectedWaypointIndex}
+      onRouteWaypointClick={props.onRouteWaypointClick}
+      onRouteWaypointContextMenu={props.onRouteWaypointContextMenu}
+      onRouteLineClick={props.onRouteLineClick}
+      onRouteWaypointAdd={props.onRouteWaypointAdd}
+      onRouteEditSave={props.onRouteEditSave}
+      onRouteEditCancel={props.onRouteEditCancel}
+      routeWarnings={props.routeWarnings}
+      routeWaypointCount={props.routeWaypointCount}
       className="h-full w-full"
     />
   );
@@ -240,6 +267,65 @@ export function EditorLayout() {
       .filter((id): id is string => id !== undefined);
   }, [activeElements, scenarioStoreApi]);
 
+  // --- Route editing ---
+  const routeEdit = useRouteEdit(roadNetwork);
+  const updateCatalogEntry = useCatalogStore((s) => s.updateEntry);
+
+  const handleRouteWaypointAdd = useCallback(
+    (
+      _worldX: number, _worldY: number, _worldZ: number, _heading: number,
+      roadId: string, laneId: string, s: number, offset: number,
+    ) => {
+      routeEdit.addWaypoint({
+        type: 'lanePosition',
+        roadId,
+        laneId,
+        s: Math.round(s * 100) / 100,
+        offset: Math.abs(offset) > 0.01 ? Math.round(offset * 100) / 100 : undefined,
+      });
+    },
+    [routeEdit],
+  );
+
+  const handleRouteWaypointClick = useCallback(
+    (index: number) => {
+      routeEdit.selectWaypoint(index);
+    },
+    [routeEdit],
+  );
+
+  const handleRouteLineClick = useCallback(
+    (segmentIndex: number) => {
+      // Insert a waypoint after the segment start (placeholder position)
+      // User will then move it via gizmo
+      if (!routeEdit.editingRoute) return;
+      const wp = routeEdit.editingRoute.waypoints[segmentIndex];
+      if (!wp) return;
+      routeEdit.insertWaypoint(segmentIndex, wp.position);
+    },
+    [routeEdit],
+  );
+
+  const handleRouteEditSave = useCallback(() => {
+    routeEdit.saveRoute(
+      // For action source: update via scenario store
+      (actionId, updates) => {
+        scenarioStoreApi.getState().updateAction(actionId, updates);
+      },
+      // For catalog source: update via catalog store
+      (catalogName, entryIndex, route) => {
+        updateCatalogEntry(catalogName, entryIndex, {
+          catalogType: 'route',
+          definition: route,
+        });
+      },
+    );
+  }, [routeEdit, scenarioStoreApi, updateCatalogEntry]);
+
+  const handleRouteEditCancel = useCallback(() => {
+    routeEdit.cancelRoute();
+  }, [routeEdit]);
+
   // --- Drag & Drop ---
   const {
     handleDragOver,
@@ -347,6 +433,17 @@ export function EditorLayout() {
                       showRoadIds: preferences.showRoadIds,
                     }}
                     focusEntityId={focusEntityId}
+                    routeEditActive={routeEdit.active}
+                    routeWaypoints={routeEdit.waypointWorldPositions}
+                    routePathSegments={routeEdit.pathSegments}
+                    routeSelectedWaypointIndex={routeEdit.selectedWaypointIndex}
+                    onRouteWaypointClick={handleRouteWaypointClick}
+                    onRouteLineClick={handleRouteLineClick}
+                    onRouteWaypointAdd={handleRouteWaypointAdd}
+                    onRouteEditSave={handleRouteEditSave}
+                    onRouteEditCancel={handleRouteEditCancel}
+                    routeWarnings={routeEdit.warnings}
+                    routeWaypointCount={routeEdit.editingRoute?.waypoints.length ?? 0}
                   />
                 </ErrorBoundary>
               </div>

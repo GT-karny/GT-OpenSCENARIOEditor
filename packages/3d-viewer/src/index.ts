@@ -31,6 +31,12 @@ export type { EntityGeometryParams } from './utils/entity-geometry.js';
 export { useScenarioEntities } from './scenario/useScenarioEntities.js';
 export { useEntityPositions, extractEntityPositions } from './scenario/useEntityPositions.js';
 
+// Route visualization & interaction
+export { RouteOverlay } from './route/RouteOverlay.js';
+export type { RouteOverlayProps } from './route/RouteOverlay.js';
+export { RouteEditOverlay } from './route/RouteEditOverlay.js';
+export { RouteClickHandler } from './interaction/RouteClickHandler.js';
+
 // Sub-components (for composition)
 export { RoadNetwork } from './road/RoadNetwork.js';
 export { EntityGroup } from './entities/EntityGroup.js';

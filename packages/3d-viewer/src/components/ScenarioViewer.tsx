@@ -31,6 +31,10 @@ import { useEntityPositions } from '../scenario/useEntityPositions.js';
 import { SimulationOverlay } from '../scenario/SimulationOverlay.js';
 import { useCameraFollow } from '../scene/useCameraFollow.js';
 import { Minimap } from './Minimap.js';
+import { RouteOverlay } from '../route/RouteOverlay.js';
+import { RouteClickHandler } from '../interaction/RouteClickHandler.js';
+import { RouteEditOverlay } from '../route/RouteEditOverlay.js';
+import type { ThreeEvent } from '@react-three/fiber';
 
 export interface ScenarioViewerProps {
   /** The scenario engine Zustand store (vanilla) */
@@ -68,6 +72,33 @@ export interface ScenarioViewerProps {
   style?: React.CSSProperties;
   /** Entity ID to focus camera on (from external panel double-click) */
   focusEntityId?: string | null;
+  /** Whether route editing mode is active */
+  routeEditActive?: boolean;
+  /** Waypoints in OpenDRIVE coordinates */
+  routeWaypoints?: Array<{ x: number; y: number; z: number; h: number }>;
+  /** Path segments (interpolated points between waypoints) */
+  routePathSegments?: Array<Array<{ x: number; y: number; z: number }>>;
+  /** Currently selected waypoint index */
+  routeSelectedWaypointIndex?: number | null;
+  /** Callback when user clicks a waypoint marker */
+  onRouteWaypointClick?: (index: number) => void;
+  /** Callback when user right-clicks a waypoint marker */
+  onRouteWaypointContextMenu?: (index: number, event: ThreeEvent<MouseEvent>) => void;
+  /** Callback when user clicks a route line segment */
+  onRouteLineClick?: (segmentIndex: number, event: ThreeEvent<MouseEvent>) => void;
+  /** Callback when user clicks road surface to add a waypoint */
+  onRouteWaypointAdd?: (
+    worldX: number, worldY: number, worldZ: number, heading: number,
+    roadId: string, laneId: string, s: number, offset: number,
+  ) => void;
+  /** Callback to save and exit route editing */
+  onRouteEditSave?: () => void;
+  /** Callback to cancel route editing */
+  onRouteEditCancel?: () => void;
+  /** Warnings from route validation */
+  routeWarnings?: string[];
+  /** Number of waypoints in the editing route */
+  routeWaypointCount?: number;
 }
 
 /**
@@ -85,6 +116,14 @@ function ScenarioViewerScene({
   viewerStore,
   focusEntityId,
   cameraStateRef,
+  routeEditActive,
+  routeWaypoints,
+  routePathSegments,
+  routeSelectedWaypointIndex,
+  onRouteWaypointClick,
+  onRouteWaypointContextMenu,
+  onRouteLineClick,
+  onRouteWaypointAdd,
 }: {
   scenarioStore: ScenarioViewerProps['scenarioStore'];
   openDriveDocument: OpenDriveDocument | null;
@@ -97,6 +136,14 @@ function ScenarioViewerScene({
   viewerStore: ReturnType<typeof createViewerStore>;
   focusEntityId?: string | null;
   cameraStateRef?: React.RefObject<{ position: THREE.Vector3; target: THREE.Vector3 }>;
+  routeEditActive?: boolean;
+  routeWaypoints?: Array<{ x: number; y: number; z: number; h: number }>;
+  routePathSegments?: Array<Array<{ x: number; y: number; z: number }>>;
+  routeSelectedWaypointIndex?: number | null;
+  onRouteWaypointClick?: (index: number) => void;
+  onRouteWaypointContextMenu?: (index: number, event: ThreeEvent<MouseEvent>) => void;
+  onRouteLineClick?: (segmentIndex: number, event: ThreeEvent<MouseEvent>) => void;
+  onRouteWaypointAdd?: ScenarioViewerProps['onRouteWaypointAdd'];
 }) {
   const cameraMode = useViewerStore(viewerStore, (s) => s.cameraMode);
   const showGrid = useViewerStore(viewerStore, (s) => s.showGrid);
@@ -251,6 +298,29 @@ function ScenarioViewerScene({
         />
       )}
 
+      {/* Route overlay (inside rotation group to match OpenDRIVE coords) */}
+      {routeEditActive && routeWaypoints && routeWaypoints.length > 0 && (
+        <group rotation={[-Math.PI / 2, 0, 0]}>
+          <RouteOverlay
+            waypoints={routeWaypoints}
+            pathSegments={routePathSegments ?? []}
+            selectedWaypointIndex={routeSelectedWaypointIndex ?? null}
+            onWaypointClick={onRouteWaypointClick}
+            onWaypointContextMenu={onRouteWaypointContextMenu}
+            onLineClick={onRouteLineClick}
+          />
+        </group>
+      )}
+
+      {/* Route click handler for waypoint placement (route edit mode only) */}
+      {routeEditActive && onRouteWaypointAdd && (
+        <RouteClickHandler
+          roadGroupRef={roadGroupRef}
+          openDriveDocument={openDriveDocument}
+          onWaypointAdd={onRouteWaypointAdd}
+        />
+      )}
+
       {/* Show init positions when not simulating */}
       {!showSimulation && (
         <EntityGroup
@@ -267,6 +337,7 @@ function ScenarioViewerScene({
           openDriveDocument={openDriveDocument}
           snapToLane={snapToLane}
           selectedEntityRoadPosition={selectedEntityRoadPosition}
+          routeOpacity={routeEditActive ? 0.3 : undefined}
         />
       )}
 
@@ -322,6 +393,18 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   className,
   style,
   focusEntityId,
+  routeEditActive,
+  routeWaypoints,
+  routePathSegments,
+  routeSelectedWaypointIndex,
+  onRouteWaypointClick,
+  onRouteWaypointContextMenu,
+  onRouteLineClick,
+  onRouteWaypointAdd,
+  onRouteEditSave,
+  onRouteEditCancel,
+  routeWarnings,
+  routeWaypointCount,
 }) => {
   const viewerStoreRef = useRef<ReturnType<typeof createViewerStore> | null>(null);
   if (!viewerStoreRef.current) {
@@ -455,6 +538,16 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
         <span style={{ minWidth: 30, textAlign: 'right' }}>{flySpeed.toFixed(1)}x</span>
       </div>
 
+      {/* Route edit overlay (bottom-center, shown during route editing) */}
+      {routeEditActive && onRouteEditSave && onRouteEditCancel && (
+        <RouteEditOverlay
+          waypointCount={routeWaypointCount ?? 0}
+          warnings={routeWarnings ?? []}
+          onSave={onRouteEditSave}
+          onCancel={onRouteEditCancel}
+        />
+      )}
+
       {/* Minimap overlay (bottom-right) */}
       {showMinimap && (
         <Minimap
@@ -482,6 +575,14 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           viewerStore={viewerStore}
           focusEntityId={focusEntityId}
           cameraStateRef={cameraStateRef}
+          routeEditActive={routeEditActive}
+          routeWaypoints={routeWaypoints}
+          routePathSegments={routePathSegments}
+          routeSelectedWaypointIndex={routeSelectedWaypointIndex}
+          onRouteWaypointClick={onRouteWaypointClick}
+          onRouteWaypointContextMenu={onRouteWaypointContextMenu}
+          onRouteLineClick={onRouteLineClick}
+          onRouteWaypointAdd={onRouteWaypointAdd}
         />
       </ViewerCanvas>
     </div>

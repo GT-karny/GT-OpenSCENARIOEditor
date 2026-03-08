@@ -75,6 +75,18 @@ export interface WasmRMPositionResult {
   return_code: number; // 0 = OK, negative = error
 }
 
+// --- Route pathfinding types ---
+
+export interface WasmRMPathPoint {
+  x: number;
+  y: number;
+  z: number;
+  h: number;
+  road_id: number;
+  lane_id: number;
+  s: number;
+}
+
 // --- Worker message protocol ---
 
 export type WorkerRequest =
@@ -92,7 +104,9 @@ export type WorkerRequest =
   | { type: 'rm-road-length'; roadId: number; requestId: string }
   | { type: 'rm-lane-width'; roadId: number; laneId: number; s: number; requestId: string }
   | { type: 'rm-road-count'; requestId: string }
-  | { type: 'rm-lane-count'; roadId: number; s: number; requestId: string };
+  | { type: 'rm-lane-count'; roadId: number; s: number; requestId: string }
+  // Route pathfinding messages
+  | { type: 'rm-calculate-path'; startRoadId: number; startLaneId: number; startS: number; endRoadId: number; endLaneId: number; endS: number; sampleInterval: number; requestId: string };
 
 export type WorkerResponse =
   | {
@@ -126,4 +140,5 @@ export type WorkerResponse =
   | { type: 'rm-loaded' }
   | { type: 'rm-position'; requestId: string; result: WasmRMPositionResult }
   | { type: 'rm-scalar'; requestId: string; value: number }
+  | { type: 'rm-path'; requestId: string; points: WasmRMPathPoint[] }
   | { type: 'rm-error'; requestId?: string; message: string };
