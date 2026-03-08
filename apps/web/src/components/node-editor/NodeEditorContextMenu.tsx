@@ -20,7 +20,7 @@ interface NodeEditorContextMenuProps {
 }
 
 interface MenuItemProps {
-  icon: React.ElementType;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   onClick: () => void;
   destructive?: boolean;

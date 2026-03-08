@@ -174,7 +174,8 @@ export const useCatalogStore = create<CatalogState>((set, get) => ({
     return {
       catalogType: entry.catalogType,
       definition: entry.definition,
-      parameterDeclarations: entry.definition.parameterDeclarations ?? [],
+      parameterDeclarations:
+        'parameterDeclarations' in entry.definition ? (entry.definition.parameterDeclarations ?? []) : [],
     };
   },
 

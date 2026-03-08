@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from '@osce/i18n';
-import type { CatalogReference, VehicleDefinition, PedestrianDefinition, MiscObjectDefinition } from '@osce/shared';
+import type { CatalogReference, VehicleDefinition, PedestrianDefinition, MiscObjectDefinition, Route } from '@osce/shared';
 import { useCatalogStore, type ResolvedCatalogEntry } from '../../stores/catalog-store';
 import { applyParameterAssignments } from '@osce/openscenario';
 import { ChevronDown, ChevronRight } from 'lucide-react';
@@ -24,9 +24,18 @@ export function ResolvedEntryPreview({ catalogRef }: ResolvedEntryPreviewProps) 
     );
   }
 
-  const effectiveDef = catalogRef.parameterAssignments.length > 0
-    ? applyParameterAssignments(resolved.definition, catalogRef.parameterAssignments)
-    : resolved.definition;
+  const isEntityType =
+    resolved.catalogType === 'vehicle' ||
+    resolved.catalogType === 'pedestrian' ||
+    resolved.catalogType === 'miscObject';
+
+  const effectiveDef =
+    isEntityType && catalogRef.parameterAssignments.length > 0
+      ? applyParameterAssignments(
+          resolved.definition as VehicleDefinition | PedestrianDefinition | MiscObjectDefinition,
+          catalogRef.parameterAssignments,
+        )
+      : resolved.definition;
 
   return (
     <div className="space-y-1">
@@ -71,6 +80,15 @@ export function ResolvedEntryPreview({ catalogRef }: ResolvedEntryPreviewProps) 
                 <Row label={t('labels.category')} value={mDef.miscObjectCategory} />
                 <Row label="Mass" value={String(mDef.mass)} />
                 <Row label="BoundingBox" value={`${mDef.boundingBox.dimensions.width}×${mDef.boundingBox.dimensions.length}×${mDef.boundingBox.dimensions.height}`} />
+              </>
+            );
+          })()}
+          {resolved.catalogType === 'route' && (() => {
+            const rDef = effectiveDef as Route;
+            return (
+              <>
+                <Row label="Closed" value={rDef.closed ? 'Yes' : 'No'} />
+                <Row label="Waypoints" value={String(rDef.waypoints.length)} />
               </>
             );
           })()}

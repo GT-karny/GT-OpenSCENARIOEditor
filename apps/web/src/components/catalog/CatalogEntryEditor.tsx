@@ -18,6 +18,7 @@ import type {
   ControllerDefinition,
   ControllerType,
   Maneuver,
+  Route,
 } from '@osce/shared';
 import { cn } from '@/lib/utils';
 import { ParameterDeclarationsEditor } from './ParameterDeclarationsEditor';
@@ -26,6 +27,7 @@ import { EntityDiagramPanel, useDiagramHighlight } from './diagrams';
 import type { HighlightKey } from './diagrams';
 import { ManeuverFields } from './ManeuverFields';
 import { ManeuverEventPanel } from './ManeuverEventPanel';
+import { RouteFields } from './RouteFields';
 
 interface HighlightProps {
   highlighted: HighlightKey;
@@ -134,6 +136,12 @@ export function CatalogEntryEditor() {
             onUpdate={handleUpdate}
           />
         )}
+        {entry.catalogType === 'route' && (
+          <RouteFields
+            entry={entry as { catalogType: 'route'; definition: Route }}
+            onUpdate={handleUpdate}
+          />
+        )}
         {entry.catalogType === 'maneuver' && (
           <ManeuverFields
             entry={entry as { catalogType: 'maneuver'; definition: Maneuver }}
@@ -202,6 +210,12 @@ export function CatalogEntryEditor() {
             }
             onSelectAction={setManeuverActionIndex}
           />
+        </div>
+      ) : entry.catalogType === 'route' ? (
+        <div className="flex-1 min-w-0 p-4 bg-[var(--color-bg-void,#050311)] flex items-center justify-center">
+          <p className="text-xs text-muted-foreground text-center max-w-48">
+            {`Route catalog entry with ${(def as Route).waypoints.length} waypoint${(def as Route).waypoints.length !== 1 ? 's' : ''}`}
+          </p>
         </div>
       ) : (
         <div className="flex-1 min-w-0 p-4 bg-[var(--color-bg-void,#050311)] flex items-center justify-center">

@@ -41,6 +41,11 @@ interface EsminiModule {
     getLaneWidth(roadId: number, laneId: number, s: number): number;
     getNumberOfRoads(): number;
     getNumberOfLanes(roadId: number, s: number): number;
+    calculatePath(
+      startRoadId: number, startLaneId: number, startS: number,
+      endRoadId: number, endLaneId: number, endS: number,
+      sampleInterval: number,
+    ): unknown[];
   };
 }
 
@@ -377,6 +382,37 @@ async function handleRmScalar(
   }
 }
 
+async function handleRmPath(
+  requestId: string,
+  startRoadId: number, startLaneId: number, startS: number,
+  endRoadId: number, endLaneId: number, endS: number,
+  sampleInterval: number,
+) {
+  try {
+    const mod = await loadModule();
+    const rawPoints = mod.RoadManagerJS.calculatePath(
+      startRoadId, startLaneId, startS,
+      endRoadId, endLaneId, endS,
+      sampleInterval,
+    );
+    // Convert embind result to plain JS array
+    const points = Array.isArray(rawPoints)
+      ? (rawPoints as Record<string, number>[]).map((p) => ({
+          x: p.x,
+          y: p.y,
+          z: p.z,
+          h: p.h,
+          road_id: p.road_id,
+          lane_id: p.lane_id,
+          s: p.s,
+        }))
+      : [];
+    post({ type: 'rm-path', requestId, points });
+  } catch (err) {
+    post({ type: 'rm-error', requestId, message: err instanceof Error ? err.message : String(err) });
+  }
+}
+
 self.onmessage = (event: MessageEvent<WorkerRequest>) => {
   const msg = event.data;
 
@@ -449,6 +485,14 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
     case 'rm-lane-count':
       handleRmScalar(msg.requestId, (mod) =>
         mod.RoadManagerJS.getNumberOfLanes(msg.roadId, msg.s),
+      );
+      break;
+    case 'rm-calculate-path':
+      handleRmPath(
+        msg.requestId,
+        msg.startRoadId, msg.startLaneId, msg.startS,
+        msg.endRoadId, msg.endLaneId, msg.endS,
+        msg.sampleInterval,
       );
       break;
   }

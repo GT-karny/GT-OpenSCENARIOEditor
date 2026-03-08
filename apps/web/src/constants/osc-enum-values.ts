@@ -13,6 +13,7 @@ import type {
   Rule,
   ControllerType,
   ParameterType,
+  RouteStrategy,
 } from '@osce/shared';
 import type { EventPriority } from '@osce/shared';
 
@@ -103,6 +104,13 @@ export const EVENT_PRIORITIES: readonly EventPriority[] = [
   'overwrite',
   'skip',
   'parallel',
+] as const;
+
+export const ROUTE_STRATEGIES: readonly RouteStrategy[] = [
+  'fastest',
+  'leastIntersections',
+  'random',
+  'shortest',
 ] as const;
 
 export const PRIVATE_ACTION_TYPES = [
