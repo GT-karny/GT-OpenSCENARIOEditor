@@ -2,19 +2,18 @@ import type { Condition, ByEntityCondition, ReachPositionCondition } from '@osce
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { PositionEditor } from '../PositionEditor';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 interface ReachPositionConditionEditorProps {
   condition: Condition;
+  onUpdate: (conditionId: string, partial: Partial<Condition>) => void;
 }
 
-export function ReachPositionConditionEditor({ condition }: ReachPositionConditionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function ReachPositionConditionEditor({ condition, onUpdate }: ReachPositionConditionEditorProps) {
   const inner = condition.condition as ByEntityCondition;
   const cond = inner.entityCondition as ReachPositionCondition;
 
   const update = (updates: Partial<ReachPositionCondition>) => {
-    storeApi.getState().updateCondition(condition.id, {
+    onUpdate(condition.id, {
       condition: { ...inner, entityCondition: { ...cond, ...updates } },
     } as Partial<Condition>);
   };

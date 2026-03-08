@@ -53,12 +53,23 @@ export function CatalogEntryList() {
   }
 
   const handleAddEntry = () => {
-    const newEntry: CatalogEntry = doc.catalogType === 'controller'
+    const count = doc.entries.length + 1;
+    const newEntry: CatalogEntry = doc.catalogType === 'maneuver'
+      ? {
+          catalogType: 'maneuver',
+          definition: {
+            id: crypto.randomUUID(),
+            name: `new_maneuver_${count}`,
+            parameterDeclarations: [],
+            events: [],
+          },
+        }
+      : doc.catalogType === 'controller'
       ? {
           catalogType: 'controller',
           definition: {
             kind: 'controller',
-            name: `new_controller_${doc.entries.length + 1}`,
+            name: `new_controller_${count}`,
             properties: [],
           },
         }
@@ -67,7 +78,7 @@ export function CatalogEntryList() {
           catalogType: 'pedestrian',
           definition: {
             kind: 'pedestrian',
-            name: `new_pedestrian_${doc.entries.length + 1}`,
+            name: `new_pedestrian_${count}`,
             pedestrianCategory: 'pedestrian',
             mass: 80,
             model: '',
@@ -81,7 +92,7 @@ export function CatalogEntryList() {
             catalogType: 'miscObject',
             definition: {
               kind: 'miscObject',
-              name: `new_object_${doc.entries.length + 1}`,
+              name: `new_object_${count}`,
               miscObjectCategory: 'none',
               mass: 0,
               parameterDeclarations: [],
@@ -93,7 +104,7 @@ export function CatalogEntryList() {
             catalogType: 'vehicle',
             definition: {
               kind: 'vehicle',
-              name: `new_vehicle_${doc.entries.length + 1}`,
+              name: `new_vehicle_${count}`,
               vehicleCategory: 'car',
               parameterDeclarations: [],
               performance: { maxSpeed: 69, maxAcceleration: 5, maxDeceleration: 10 },

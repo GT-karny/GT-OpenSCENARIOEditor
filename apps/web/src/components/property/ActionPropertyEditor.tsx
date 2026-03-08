@@ -2,7 +2,6 @@ import type { ScenarioAction } from '@osce/shared';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { EnumSelect } from './EnumSelect';
-import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { defaultActionByType } from '@osce/scenario-engine';
 import {
   PRIVATE_ACTION_TYPES,
@@ -56,10 +55,10 @@ const PHASE5_TYPES = [
 
 interface ActionPropertyEditorProps {
   action: ScenarioAction;
+  onUpdate: (actionId: string, partial: Partial<ScenarioAction>) => void;
 }
 
-export function ActionPropertyEditor({ action }: ActionPropertyEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function ActionPropertyEditor({ action, onUpdate }: ActionPropertyEditorProps) {
   const actionType = action.action.type;
   const category = detectCategory(actionType);
 
@@ -77,13 +76,13 @@ export function ActionPropertyEditor({ action }: ActionPropertyEditorProps) {
         : newCategory === 'global'
           ? GLOBAL_ACTION_TYPES[0]
           : 'userDefinedAction';
-    storeApi.getState().updateAction(action.id, {
+    onUpdate(action.id, {
       action: defaultActionByType(firstType),
     } as Partial<ScenarioAction>);
   };
 
   const handleTypeChange = (newType: string) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate(action.id, {
       action: defaultActionByType(newType),
     } as Partial<ScenarioAction>);
   };
@@ -121,27 +120,27 @@ export function ActionPropertyEditor({ action }: ActionPropertyEditorProps) {
       </div>
 
       <div className="pt-1 border-t">
-        {actionType === 'speedAction' && <SpeedActionEditor action={action} />}
-        {actionType === 'laneChangeAction' && <LaneChangeActionEditor action={action} />}
-        {actionType === 'longitudinalDistanceAction' && <LongitudinalDistanceActionEditor action={action} />}
-        {actionType === 'laneOffsetAction' && <LaneOffsetActionEditor action={action} />}
-        {actionType === 'acquirePositionAction' && <AcquirePositionActionEditor action={action} />}
-        {actionType === 'activateControllerAction' && <ActivateControllerActionEditor action={action} />}
-        {actionType === 'assignControllerAction' && <AssignControllerActionEditor action={action} />}
-        {actionType === 'followTrajectoryAction' && <FollowTrajectoryActionEditor action={action} />}
-        {actionType === 'routingAction' && <RoutingActionEditor action={action} />}
+        {actionType === 'speedAction' && <SpeedActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />}
+        {actionType === 'laneChangeAction' && <LaneChangeActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />}
+        {actionType === 'longitudinalDistanceAction' && <LongitudinalDistanceActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />}
+        {actionType === 'laneOffsetAction' && <LaneOffsetActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />}
+        {actionType === 'acquirePositionAction' && <AcquirePositionActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />}
+        {actionType === 'activateControllerAction' && <ActivateControllerActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />}
+        {actionType === 'assignControllerAction' && <AssignControllerActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />}
+        {actionType === 'followTrajectoryAction' && <FollowTrajectoryActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />}
+        {actionType === 'routingAction' && <RoutingActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />}
         {(POSITION_BASED_TYPES as readonly string[]).includes(actionType) && (
-          <TeleportActionEditor action={action} />
+          <TeleportActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
         )}
-        {actionType === 'visibilityAction' && <VisibilityActionEditor action={action} />}
-        {actionType === 'connectTrailerAction' && <ConnectTrailerActionEditor action={action} />}
-        {actionType === 'disconnectTrailerAction' && <DisconnectTrailerActionEditor action={action} />}
-        {actionType === 'animationAction' && <AnimationActionEditor action={action} />}
-        {actionType === 'lightStateAction' && <LightStateActionEditor action={action} />}
-        {actionType === 'overrideControllerAction' && <OverrideControllerActionEditor action={action} />}
-        {actionType === 'entityAction' && <EntityActionEditor action={action} />}
-        {actionType === 'environmentAction' && <EnvironmentActionEditor action={action} />}
-        {actionType === 'trafficAction' && <TrafficActionEditor action={action} />}
+        {actionType === 'visibilityAction' && <VisibilityActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />}
+        {actionType === 'connectTrailerAction' && <ConnectTrailerActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />}
+        {actionType === 'disconnectTrailerAction' && <DisconnectTrailerActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />}
+        {actionType === 'animationAction' && <AnimationActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />}
+        {actionType === 'lightStateAction' && <LightStateActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />}
+        {actionType === 'overrideControllerAction' && <OverrideControllerActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />}
+        {actionType === 'entityAction' && <EntityActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />}
+        {actionType === 'environmentAction' && <EnvironmentActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />}
+        {actionType === 'trafficAction' && <TrafficActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />}
         {actionType !== 'speedAction' &&
           actionType !== 'laneChangeAction' &&
           actionType !== 'longitudinalDistanceAction' &&
@@ -153,7 +152,7 @@ export function ActionPropertyEditor({ action }: ActionPropertyEditorProps) {
           actionType !== 'routingAction' &&
           !(POSITION_BASED_TYPES as readonly string[]).includes(actionType) &&
           !(PHASE5_TYPES as readonly string[]).includes(actionType) && (
-            <GenericActionEditor action={action} />
+            <GenericActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
           )}
       </div>
     </div>

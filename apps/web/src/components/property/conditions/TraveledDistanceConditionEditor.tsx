@@ -1,19 +1,18 @@
 import type { Condition, ByEntityCondition, TraveledDistanceCondition } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 interface TraveledDistanceConditionEditorProps {
   condition: Condition;
+  onUpdate: (conditionId: string, partial: Partial<Condition>) => void;
 }
 
-export function TraveledDistanceConditionEditor({ condition }: TraveledDistanceConditionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function TraveledDistanceConditionEditor({ condition, onUpdate }: TraveledDistanceConditionEditorProps) {
   const inner = condition.condition as ByEntityCondition;
   const cond = inner.entityCondition as TraveledDistanceCondition;
 
   const update = (updates: Partial<TraveledDistanceCondition>) => {
-    storeApi.getState().updateCondition(condition.id, {
+    onUpdate(condition.id, {
       condition: { ...inner, entityCondition: { ...cond, ...updates } },
     } as Partial<Condition>);
   };

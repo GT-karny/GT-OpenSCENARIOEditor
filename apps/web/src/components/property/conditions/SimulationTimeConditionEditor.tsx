@@ -2,20 +2,19 @@ import type { Condition, ByValueCondition, SimulationTimeCondition } from '@osce
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 import { RULES } from '../../../constants/osc-enum-values';
 
 interface SimulationTimeConditionEditorProps {
   condition: Condition;
+  onUpdate: (conditionId: string, partial: Partial<Condition>) => void;
 }
 
-export function SimulationTimeConditionEditor({ condition }: SimulationTimeConditionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function SimulationTimeConditionEditor({ condition, onUpdate }: SimulationTimeConditionEditorProps) {
   const inner = condition.condition as ByValueCondition;
   const cond = inner.valueCondition as SimulationTimeCondition;
 
   const update = (updates: Partial<SimulationTimeCondition>) => {
-    storeApi.getState().updateCondition(condition.id, {
+    onUpdate(condition.id, {
       condition: { ...inner, valueCondition: { ...cond, ...updates } },
     } as Partial<Condition>);
   };

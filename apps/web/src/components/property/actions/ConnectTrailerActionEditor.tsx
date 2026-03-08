@@ -1,18 +1,17 @@
 import type { ScenarioAction, ConnectTrailerAction } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 interface ConnectTrailerActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
-export function ConnectTrailerActionEditor({ action }: ConnectTrailerActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function ConnectTrailerActionEditor({ action, onUpdate }: ConnectTrailerActionEditorProps) {
   const inner = action.action as ConnectTrailerAction;
 
   const updateInner = (updates: Partial<ConnectTrailerAction>) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate({
       action: { ...inner, ...updates },
     } as Partial<ScenarioAction>);
   };

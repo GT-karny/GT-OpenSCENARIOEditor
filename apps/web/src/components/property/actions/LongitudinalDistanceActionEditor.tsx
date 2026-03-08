@@ -8,21 +8,20 @@ import type {
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 const LONGITUDINAL_DISPLACEMENTS = ['any', 'trailingReferencedEntity', 'leadingReferencedEntity'] as const;
 const COORDINATE_SYSTEMS = ['entity', 'lane', 'road', 'trajectory'] as const;
 
 interface LongitudinalDistanceActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
-export function LongitudinalDistanceActionEditor({ action }: LongitudinalDistanceActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function LongitudinalDistanceActionEditor({ action, onUpdate }: LongitudinalDistanceActionEditorProps) {
   const inner = action.action as LongitudinalDistanceAction;
 
   const updateInner = (updates: Partial<LongitudinalDistanceAction>) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate({
       action: { ...inner, ...updates },
     } as Partial<ScenarioAction>);
   };

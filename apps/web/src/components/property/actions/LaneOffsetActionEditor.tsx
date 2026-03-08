@@ -8,18 +8,17 @@ import type {
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { EnumSelect } from '../EnumSelect';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 interface LaneOffsetActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
-export function LaneOffsetActionEditor({ action }: LaneOffsetActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function LaneOffsetActionEditor({ action, onUpdate }: LaneOffsetActionEditorProps) {
   const inner = action.action as LaneOffsetAction;
 
   const updateInner = (updates: Partial<LaneOffsetAction>) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate({
       action: { ...inner, ...updates },
     } as Partial<ScenarioAction>);
   };

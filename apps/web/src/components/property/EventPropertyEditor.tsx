@@ -1,4 +1,4 @@
-import { Plus, X, Zap } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import type { ScenarioEvent } from '@osce/shared';
 import { Label } from '../ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
@@ -6,8 +6,7 @@ import { EnumSelect } from './EnumSelect';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { EVENT_PRIORITIES } from '../../constants/osc-enum-values';
 import { ActionPropertyEditor } from './ActionPropertyEditor';
-import { ConditionPropertyEditor } from './ConditionPropertyEditor';
-import { getTriggerSummary } from '../scene-composer/trigger-summary';
+import { TriggerSectionEditor } from './TriggerSectionEditor';
 
 interface EventPropertyEditorProps {
   event: ScenarioEvent;
@@ -19,6 +18,12 @@ interface EventPropertyEditorProps {
  */
 export function EventPropertyEditor({ event }: EventPropertyEditorProps) {
   const storeApi = useScenarioStoreApi();
+  const [selectedConditionId, setSelectedConditionId] = useState<string | null>(null);
+
+  // Reset condition selection when event changes
+  useEffect(() => {
+    setSelectedConditionId(null);
+  }, [event.id]);
 
   const handlePriorityChange = (value: string) => {
     storeApi.getState().updateEvent(event.id, {
@@ -28,16 +33,24 @@ export function EventPropertyEditor({ event }: EventPropertyEditorProps) {
 
   const firstAction = event.actions[0] ?? null;
 
-  const allConditions = event.startTrigger.conditionGroups.flatMap((g) => g.conditions);
+  // ── Trigger callbacks ──────────────────────────────────────────
 
-  const handleAddCondition = () => {
+  const handleAddCondition = (groupId: string) => {
+    storeApi.getState().addCondition(groupId, {
+      name: 'SimTime',
+      delay: 0,
+      conditionEdge: 'none',
+      condition: {
+        kind: 'byValue',
+        valueCondition: { type: 'simulationTime', value: 0, rule: 'greaterThan' },
+      },
+    });
+  };
+
+  const handleAddOrGroup = () => {
     const store = storeApi.getState();
-    const trigger = event.startTrigger;
-    const group =
-      trigger.conditionGroups.length > 0
-        ? trigger.conditionGroups[0]
-        : store.addConditionGroup(trigger.id);
-    store.addCondition(group.id, {
+    const newGroup = store.addConditionGroup(event.startTrigger.id);
+    store.addCondition(newGroup.id, {
       name: 'SimTime',
       delay: 0,
       conditionEdge: 'none',
@@ -50,6 +63,14 @@ export function EventPropertyEditor({ event }: EventPropertyEditorProps) {
 
   const handleRemoveCondition = (conditionId: string) => {
     storeApi.getState().removeCondition(conditionId);
+  };
+
+  const handleRemoveGroup = (groupId: string) => {
+    storeApi.getState().removeConditionGroup(groupId);
+  };
+
+  const handleUpdateCondition = (conditionId: string, partial: Partial<import('@osce/shared').Condition>) => {
+    storeApi.getState().updateCondition(conditionId, partial);
   };
 
   return (
@@ -81,7 +102,12 @@ export function EventPropertyEditor({ event }: EventPropertyEditorProps) {
             </div>
 
             {firstAction ? (
-              <ActionPropertyEditor action={firstAction} />
+              <ActionPropertyEditor
+                action={firstAction}
+                onUpdate={(actionId, partial) =>
+                  storeApi.getState().updateAction(actionId, partial)
+                }
+              />
             ) : (
               <p className="text-xs text-muted-foreground italic">No actions defined</p>
             )}
@@ -91,52 +117,16 @@ export function EventPropertyEditor({ event }: EventPropertyEditorProps) {
         {/* Trigger tab */}
         <TabsContent value="trigger">
           <div className="space-y-3 p-2">
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-                <Zap className="h-3 w-3" />
-                Start Trigger
-              </p>
-              <button
-                onClick={handleAddCondition}
-                className="flex items-center gap-1 text-[10px] text-[var(--color-accent-vivid)] hover:opacity-80 transition-opacity"
-                title="Add condition"
-              >
-                <Plus className="h-3 w-3" />
-                Add
-              </button>
-            </div>
-
-            {allConditions.length === 0 ? (
-              <p className="text-[11px] text-muted-foreground italic px-1">
-                No conditions — triggers immediately
-              </p>
-            ) : (
-              <div className="space-y-1">
-                {allConditions.map((condition) => (
-                  <div
-                    key={condition.id}
-                    className="flex items-center justify-between px-2 py-1.5 rounded bg-[var(--color-glass-2)] border border-[var(--color-glass-edge)] group/cond"
-                  >
-                    <span className="text-[11px] font-mono text-[var(--color-text-primary)] truncate">
-                      {getTriggerSummary({
-                        id: '',
-                        conditionGroups: [{ id: '', conditions: [condition] }],
-                      })}
-                    </span>
-                    <button
-                      onClick={() => handleRemoveCondition(condition.id)}
-                      className="ml-2 shrink-0 opacity-0 group-hover/cond:opacity-100 text-muted-foreground hover:text-destructive transition-all"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {allConditions.length > 0 && (
-              <ConditionPropertyEditor trigger={event.startTrigger} />
-            )}
+            <TriggerSectionEditor
+              trigger={event.startTrigger}
+              selectedConditionId={selectedConditionId}
+              onSelectCondition={setSelectedConditionId}
+              onUpdateCondition={handleUpdateCondition}
+              onAddCondition={handleAddCondition}
+              onRemoveCondition={handleRemoveCondition}
+              onAddOrGroup={handleAddOrGroup}
+              onRemoveGroup={handleRemoveGroup}
+            />
           </div>
         </TabsContent>
       </Tabs>

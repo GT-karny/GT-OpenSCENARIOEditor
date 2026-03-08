@@ -1,10 +1,10 @@
 import type { ScenarioAction, OverrideControllerAction, OverrideValue, OverrideGearValue } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 interface OverrideControllerActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
 interface OverrideValueGroupProps {
@@ -144,12 +144,11 @@ function GearGroup({ value, onChange }: GearGroupProps) {
   );
 }
 
-export function OverrideControllerActionEditor({ action }: OverrideControllerActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function OverrideControllerActionEditor({ action, onUpdate }: OverrideControllerActionEditorProps) {
   const inner = action.action as OverrideControllerAction;
 
   const updateInner = (updates: Partial<OverrideControllerAction>) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate({
       action: { ...inner, ...updates },
     } as Partial<ScenarioAction>);
   };

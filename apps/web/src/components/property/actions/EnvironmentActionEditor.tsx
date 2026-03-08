@@ -2,10 +2,10 @@ import type { ScenarioAction, EnvironmentAction, Weather } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { EnumSelect } from '../EnumSelect';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 interface EnvironmentActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
 const FRACTIONAL_CLOUD_COVER_OPTIONS = [
@@ -26,13 +26,12 @@ const PRECIPITATION_TYPES = ['dry', 'rain', 'snow'] as const;
 
 const WETNESS_OPTIONS = ['dry', 'moist', 'wetWithPuddles', 'lowFlooded', 'highFlooded'] as const;
 
-export function EnvironmentActionEditor({ action }: EnvironmentActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionEditorProps) {
   const inner = action.action as EnvironmentAction;
   const env = inner.environment;
 
   const updateEnv = (updates: Partial<typeof env>) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate({
       action: { ...inner, environment: { ...env, ...updates } },
     } as Partial<ScenarioAction>);
   };

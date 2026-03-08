@@ -2,20 +2,19 @@ import type { Condition, ByEntityCondition, TimeHeadwayCondition, CoordinateSyst
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 import { RULES } from '../../../constants/osc-enum-values';
 
 interface TimeHeadwayConditionEditorProps {
   condition: Condition;
+  onUpdate: (conditionId: string, partial: Partial<Condition>) => void;
 }
 
-export function TimeHeadwayConditionEditor({ condition }: TimeHeadwayConditionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function TimeHeadwayConditionEditor({ condition, onUpdate }: TimeHeadwayConditionEditorProps) {
   const inner = condition.condition as ByEntityCondition;
   const cond = inner.entityCondition as TimeHeadwayCondition;
 
   const update = (updates: Partial<TimeHeadwayCondition>) => {
-    storeApi.getState().updateCondition(condition.id, {
+    onUpdate(condition.id, {
       condition: { ...inner, entityCondition: { ...cond, ...updates } },
     } as Partial<Condition>);
   };
@@ -23,7 +22,7 @@ export function TimeHeadwayConditionEditor({ condition }: TimeHeadwayConditionEd
   const remove = (...keys: (keyof TimeHeadwayCondition)[]) => {
     const next = { ...cond };
     for (const k of keys) delete next[k];
-    storeApi.getState().updateCondition(condition.id, {
+    onUpdate(condition.id, {
       condition: { ...inner, entityCondition: next },
     } as Partial<Condition>);
   };

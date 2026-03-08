@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import type { Condition, ByEntityCondition, ByValueCondition } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 interface GenericConditionEditorProps {
   condition: Condition;
+  onUpdate: (conditionId: string, partial: Partial<Condition>) => void;
 }
 
-export function GenericConditionEditor({ condition }: GenericConditionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function GenericConditionEditor({ condition, onUpdate }: GenericConditionEditorProps) {
   const inner = condition.condition;
 
   const innerBody = inner.kind === 'byEntity' ? inner.entityCondition : inner.valueCondition;
@@ -31,7 +30,7 @@ export function GenericConditionEditor({ condition }: GenericConditionEditorProp
       } else {
         newConditionBody = { ...inner, valueCondition: parsed } as ByValueCondition;
       }
-      storeApi.getState().updateCondition(condition.id, {
+      onUpdate(condition.id, {
         condition: newConditionBody,
       } as Partial<Condition>);
     } catch (e) {

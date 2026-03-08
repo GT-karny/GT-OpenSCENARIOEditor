@@ -10,18 +10,17 @@ import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 interface FollowTrajectoryActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
-export function FollowTrajectoryActionEditor({ action }: FollowTrajectoryActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTrajectoryActionEditorProps) {
   const inner = action.action as FollowTrajectoryAction;
 
   const updateInner = (updates: Partial<FollowTrajectoryAction>) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate({
       action: { ...inner, ...updates },
     } as Partial<ScenarioAction>);
   };
@@ -100,7 +99,7 @@ export function FollowTrajectoryActionEditor({ action }: FollowTrajectoryActionE
           onValueChange={(v) => {
             if (v === '') {
               const { initialDistanceOffset: _, ...rest } = inner;
-              storeApi.getState().updateAction(action.id, {
+              onUpdate({
                 action: { ...rest },
               } as Partial<ScenarioAction>);
             } else {

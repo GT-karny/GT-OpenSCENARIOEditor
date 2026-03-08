@@ -1,19 +1,18 @@
 import type { Condition, ByEntityCondition, StandStillCondition } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 interface StandStillConditionEditorProps {
   condition: Condition;
+  onUpdate: (conditionId: string, partial: Partial<Condition>) => void;
 }
 
-export function StandStillConditionEditor({ condition }: StandStillConditionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function StandStillConditionEditor({ condition, onUpdate }: StandStillConditionEditorProps) {
   const inner = condition.condition as ByEntityCondition;
   const cond = inner.entityCondition as StandStillCondition;
 
   const update = (updates: Partial<StandStillCondition>) => {
-    storeApi.getState().updateCondition(condition.id, {
+    onUpdate(condition.id, {
       condition: { ...inner, entityCondition: { ...cond, ...updates } },
     } as Partial<Condition>);
   };

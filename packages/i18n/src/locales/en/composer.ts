@@ -16,6 +16,12 @@ export const composer = {
     traveledDistance: 'After {{value}}m traveled',
     collision: 'On collision',
     endOfRoad: 'At end of road',
+    addCondition: 'Add Condition',
+    addOrGroup: 'Add OR Group',
+    selectCondition: 'Select a condition to edit',
+    removeGroup: 'Remove group',
+    noConditions: 'No conditions — triggers immediately',
+    conditionDetail: 'Condition Detail',
   },
   action: {
     speedAction: 'Speed',

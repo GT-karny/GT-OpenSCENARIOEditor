@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import type { ScenarioAction } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 interface GenericActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
-export function GenericActionEditor({ action }: GenericActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function GenericActionEditor({ action, onUpdate }: GenericActionEditorProps) {
   const [text, setText] = useState(() => JSON.stringify(action.action, null, 2));
   const [error, setError] = useState<string | null>(null);
 
@@ -21,7 +20,7 @@ export function GenericActionEditor({ action }: GenericActionEditorProps) {
     try {
       const parsed = JSON.parse(text) as ScenarioAction['action'];
       setError(null);
-      storeApi.getState().updateAction(action.id, { action: parsed } as Partial<ScenarioAction>);
+      onUpdate({ action: parsed } as Partial<ScenarioAction>);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Invalid JSON');
     }

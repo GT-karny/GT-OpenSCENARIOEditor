@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from '@osce/i18n';
 import { useCatalogStore } from '../../stores/catalog-store';
 import { Input } from '../ui/input';
@@ -16,12 +17,15 @@ import type {
   MiscObjectDefinition,
   ControllerDefinition,
   ControllerType,
+  Maneuver,
 } from '@osce/shared';
 import { cn } from '@/lib/utils';
 import { ParameterDeclarationsEditor } from './ParameterDeclarationsEditor';
 import { PropertiesEditor } from './PropertiesEditor';
 import { EntityDiagramPanel, useDiagramHighlight } from './diagrams';
 import type { HighlightKey } from './diagrams';
+import { ManeuverFields } from './ManeuverFields';
+import { ManeuverEventPanel } from './ManeuverEventPanel';
 
 interface HighlightProps {
   highlighted: HighlightKey;
@@ -57,6 +61,9 @@ export function CatalogEntryEditor() {
   const catalogs = useCatalogStore((s) => s.catalogs);
   const updateEntry = useCatalogStore((s) => s.updateEntry);
   const { highlighted, setHighlighted } = useDiagramHighlight();
+  const [maneuverEventIndex, setManeuverEventIndex] = useState<number | null>(null);
+  const [maneuverActionIndex, setManeuverActionIndex] = useState<number | null>(null);
+  const [maneuverTab, setManeuverTab] = useState<'event' | 'action'>('event');
 
   const doc = selectedCatalogName ? catalogs.get(selectedCatalogName) : null;
   const entry = doc && selectedEntryIndex !== null ? doc.entries[selectedEntryIndex] : null;
@@ -127,14 +134,27 @@ export function CatalogEntryEditor() {
             onUpdate={handleUpdate}
           />
         )}
+        {entry.catalogType === 'maneuver' && (
+          <ManeuverFields
+            entry={entry as { catalogType: 'maneuver'; definition: Maneuver }}
+            onUpdate={handleUpdate}
+            selectedEventIndex={maneuverEventIndex}
+            onSelectEvent={setManeuverEventIndex}
+            onSelectAction={(eventIdx, actionIdx) => {
+              setManeuverEventIndex(eventIdx);
+              setManeuverActionIndex(actionIdx);
+              setManeuverTab('action');
+            }}
+          />
+        )}
 
         {/* BoundingBox (only for entity types) */}
         {hasEntityShape(entry) && (
           <BoundingBoxEditor entry={entry} onUpdate={handleUpdate} {...hlProps} />
         )}
 
-        {/* Parameter Declarations */}
-        {hasParameterDeclarations(def) && (
+        {/* Parameter Declarations (maneuver handles its own) */}
+        {entry.catalogType !== 'maneuver' && hasParameterDeclarations(def) && (
           <ParameterDeclarationsEditor
             parameters={getParameterDeclarations(def)}
             onChange={(params) =>
@@ -160,13 +180,27 @@ export function CatalogEntryEditor() {
         )}
       </div>
 
-      {/* Right: Diagram (only for entity types with bounding box) */}
+      {/* Right panel */}
       {hasEntityShape(entry) ? (
         <div className="flex-1 min-w-0 p-2 bg-[var(--color-bg-void,#050311)]">
           <EntityDiagramPanel
             definition={def as VehicleDefinition | PedestrianDefinition | MiscObjectDefinition}
             highlighted={highlighted}
             onHighlight={setHighlighted}
+          />
+        </div>
+      ) : entry.catalogType === 'maneuver' ? (
+        <div className="flex-1 min-w-0 overflow-auto bg-[var(--color-bg-void,#050311)]">
+          <ManeuverEventPanel
+            maneuver={def as Maneuver}
+            selectedEventIndex={maneuverEventIndex}
+            selectedActionIndex={maneuverActionIndex}
+            activeTab={maneuverTab}
+            onTabChange={setManeuverTab}
+            onManeuverChange={(updated) =>
+              handleUpdate({ ...entry, definition: updated } as CatalogEntry)
+            }
+            onSelectAction={setManeuverActionIndex}
           />
         </div>
       ) : (
