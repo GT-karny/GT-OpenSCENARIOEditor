@@ -30,6 +30,7 @@ import { OverrideControllerActionEditor } from './actions/OverrideControllerActi
 import { EntityActionEditor } from './actions/EntityActionEditor';
 import { EnvironmentActionEditor } from './actions/EnvironmentActionEditor';
 import { TrafficActionEditor } from './actions/TrafficActionEditor';
+import { InfrastructureActionEditor } from './actions/InfrastructureActionEditor';
 import { GenericActionEditor } from './actions/GenericActionEditor';
 import { cn } from '@/lib/utils';
 
@@ -66,6 +67,7 @@ const PHASE5_TYPES = [
   'entityAction',
   'environmentAction',
   'trafficAction',
+  'infrastructureAction',
 ] as const;
 
 interface ActionPropertyEditorProps {
@@ -279,6 +281,9 @@ export function ActionPropertyEditor({ action, onUpdate }: ActionPropertyEditorP
         )}
         {actionType === 'trafficAction' && (
           <TrafficActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
+        )}
+        {actionType === 'infrastructureAction' && (
+          <InfrastructureActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
         )}
         {actionType !== 'speedAction' &&
           actionType !== 'laneChangeAction' &&
