@@ -28,6 +28,8 @@ import { ParameterConditionEditor } from './conditions/ParameterConditionEditor'
 import { VariableConditionEditor } from './conditions/VariableConditionEditor';
 import { StoryboardElementStateConditionEditor } from './conditions/StoryboardElementStateConditionEditor';
 import { TimeToCollisionConditionEditor } from './conditions/TimeToCollisionConditionEditor';
+import { TrafficSignalConditionEditor } from './conditions/TrafficSignalConditionEditor';
+import { TrafficSignalControllerConditionEditor } from './conditions/TrafficSignalControllerConditionEditor';
 
 // Condition types that have dedicated editors (suppress shared rule/position editors)
 const DEDICATED_EDITOR_TYPES = new Set([
@@ -44,6 +46,8 @@ const DEDICATED_EDITOR_TYPES = new Set([
   'storyboardElementState',
   'parameter',
   'variable',
+  'trafficSignal',
+  'trafficSignalController',
 ]);
 
 interface ConditionPropertyEditorProps {
@@ -244,6 +248,12 @@ export function ConditionItem({ condition, onUpdateCondition }: ConditionItemPro
     }
     if (conditionType === 'variable') {
       return <VariableConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
+    }
+    if (conditionType === 'trafficSignal') {
+      return <TrafficSignalConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
+    }
+    if (conditionType === 'trafficSignalController') {
+      return <TrafficSignalControllerConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
     }
     return <GenericConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
   };
