@@ -116,6 +116,19 @@ export const openscenario = {
     follow: 'Follow',
     position: 'Position',
   },
+  actionCategories: {
+    private: 'Private',
+    global: 'Global',
+    userDefined: 'Custom',
+  },
+  actionSubcategories: {
+    longitudinal: 'Longitudinal',
+    lateral: 'Lateral',
+    routing: 'Routing',
+    controller: 'Controller',
+    appearance: 'Appearance',
+    trailer: 'Trailer',
+  },
   rule: {
     equalTo: 'Equal to',
     greaterThan: 'Greater than',

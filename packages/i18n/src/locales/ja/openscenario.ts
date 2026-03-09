@@ -116,6 +116,19 @@ export const openscenario = {
     follow: '追従',
     position: '位置',
   },
+  actionCategories: {
+    private: 'プライベート',
+    global: 'グローバル',
+    userDefined: 'カスタム',
+  },
+  actionSubcategories: {
+    longitudinal: '縦方向',
+    lateral: '横方向',
+    routing: '経路',
+    controller: '制御',
+    appearance: '外観',
+    trailer: '牽引',
+  },
   rule: {
     equalTo: '等しい',
     greaterThan: 'より大きい',
