@@ -145,6 +145,48 @@ export const GLOBAL_ACTION_TYPES = [
   'trafficAction',
 ] as const;
 
+export const PRIVATE_ACTION_SUBCATEGORIES = [
+  {
+    key: 'longitudinal',
+    types: ['speedAction', 'longitudinalDistanceAction', 'speedProfileAction'],
+  },
+  {
+    key: 'lateral',
+    types: ['laneChangeAction', 'laneOffsetAction', 'lateralDistanceAction'],
+  },
+  {
+    key: 'routing',
+    types: [
+      'teleportAction',
+      'acquirePositionAction',
+      'routingAction',
+      'followTrajectoryAction',
+      'synchronizeAction',
+    ],
+  },
+  {
+    key: 'controller',
+    types: ['assignControllerAction', 'activateControllerAction', 'overrideControllerAction'],
+  },
+  {
+    key: 'appearance',
+    types: ['visibilityAction', 'animationAction', 'lightStateAction', 'appearanceAction'],
+  },
+  {
+    key: 'trailer',
+    types: ['connectTrailerAction', 'disconnectTrailerAction'],
+  },
+] as const;
+
+export const GLOBAL_ACTION_ORDER = [
+  'environmentAction',
+  'entityAction',
+  'trafficAction',
+  'infrastructureAction',
+  'parameterAction',
+  'variableAction',
+] as const;
+
 export const ENTITY_CONDITION_TYPES = [
   'distance',
   'relativeDistance',
