@@ -43,6 +43,7 @@ import { getDirectChildCount } from '../../lib/count-descendants';
 import { useFileOperations } from '../../hooks/use-file-operations';
 import { useProjectFileOperations } from '../../hooks/use-project-file-operations';
 import { buildFullPathToIdMap } from '../../lib/fullpath-mapping';
+import { buildCatalogLocationsFromProject } from '../../lib/catalog-location-utils';
 
 function ResizeHandle() {
   return (
@@ -176,8 +177,23 @@ export function EditorLayout() {
   useEffect(() => {
     if (currentProject) {
       autoLoadProjectCatalogs();
+
+      // Auto-populate CatalogLocations on the default document
+      const doc = scenarioStoreApi.getState().document;
+      if (Object.keys(doc.catalogLocations).length === 0) {
+        const currentFilePath = useProjectStore.getState().currentFilePath;
+        const catalogLocations = buildCatalogLocationsFromProject(
+          currentProject.files,
+          currentFilePath ?? '',
+        );
+        if (Object.keys(catalogLocations).length > 0) {
+          scenarioStoreApi.setState({
+            document: { ...doc, catalogLocations },
+          });
+        }
+      }
     }
-  }, [currentProject, autoLoadProjectCatalogs]);
+  }, [currentProject, autoLoadProjectCatalogs, scenarioStoreApi]);
 
   // --- Selection sync ---
   const selectedElementIds = useEditorStore((s) => s.selection.selectedElementIds);
