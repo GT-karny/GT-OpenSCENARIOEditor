@@ -137,4 +137,10 @@ export const openscenario = {
     lessOrEqual: 'Less or equal',
     notEqualTo: 'Not equal to',
   },
+  eventPriority: {
+    override: 'Override',
+    overwrite: 'Overwrite',
+    skip: 'Skip',
+    parallel: 'Parallel',
+  },
 } as const;

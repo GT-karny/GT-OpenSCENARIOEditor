@@ -137,4 +137,10 @@ export const openscenario = {
     lessOrEqual: '以下',
     notEqualTo: '等しくない',
   },
+  eventPriority: {
+    override: 'オーバーライド',
+    overwrite: 'オーバーライト',
+    skip: 'スキップ',
+    parallel: 'パラレル',
+  },
 } as const;
