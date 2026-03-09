@@ -1,13 +1,20 @@
 /**
  * Renders a single traffic signal entity with type-specific geometry and a pole.
  * Dispatches to TrafficLightSignal, StopSignSignal, SpeedLimitSignal, or GenericSignal.
+ * Supports selection and hover visual feedback.
  */
 
-import React from 'react';
+import React, { useState, useCallback } from 'react';
+import { Outlines } from '@react-three/drei';
 import type { OdrSignal } from '@osce/shared';
 import type { WorldCoords } from '../utils/position-resolver.js';
 import type { SignalCategory } from '../utils/signal-geometry.js';
-import { POLE_RADIUS, POLE_COLOR, TRAFFIC_LIGHT, DEFAULT_SIGNAL_HEIGHT } from '../utils/signal-geometry.js';
+import {
+  POLE_RADIUS,
+  POLE_COLOR,
+  TRAFFIC_LIGHT,
+  DEFAULT_SIGNAL_HEIGHT,
+} from '../utils/signal-geometry.js';
 import { TrafficLightSignal } from './signal-types/TrafficLightSignal.js';
 import { StopSignSignal } from './signal-types/StopSignSignal.js';
 import { SpeedLimitSignal } from './signal-types/SpeedLimitSignal.js';
@@ -19,17 +26,40 @@ interface TrafficSignalEntityProps {
   position: WorldCoords;
   category: SignalCategory;
   showLabel: boolean;
+  isSelected?: boolean;
+  onClick?: () => void;
   /** Current active state for traffic lights (PR3) */
   activeState?: string;
 }
 
 export const TrafficSignalEntity: React.FC<TrafficSignalEntityProps> = React.memo(
-  ({ signal, position, category, showLabel, activeState }) => {
+  ({ signal, position, category, showLabel, isSelected, onClick, activeState }) => {
+    const [isHovered, setIsHovered] = useState(false);
     const signalHeight = signal.zOffset ?? DEFAULT_SIGNAL_HEIGHT;
     const poleHeight = signalHeight;
 
     // Signal head vertical offset depends on category
     const headHeight = category === 'trafficLight' ? TRAFFIC_LIGHT.housingHeight : 0;
+
+    const handleClick = useCallback(
+      (e: { stopPropagation: () => void }) => {
+        e.stopPropagation();
+        onClick?.();
+      },
+      [onClick],
+    );
+
+    const handlePointerOver = useCallback(
+      (e: { stopPropagation: () => void }) => {
+        e.stopPropagation();
+        setIsHovered(true);
+      },
+      [],
+    );
+
+    const handlePointerOut = useCallback(() => {
+      setIsHovered(false);
+    }, []);
 
     return (
       <group
@@ -42,29 +72,42 @@ export const TrafficSignalEntity: React.FC<TrafficSignalEntityProps> = React.mem
           <meshStandardMaterial color={POLE_COLOR} roughness={0.8} />
         </mesh>
 
-        {/* Signal head: positioned at top of pole */}
-        <group position={[0, 0, poleHeight]}>
+        {/* Signal head: positioned at top of pole, interactive */}
+        <group
+          position={[0, 0, poleHeight]}
+          onClick={handleClick}
+          onPointerOver={handlePointerOver}
+          onPointerOut={handlePointerOut}
+        >
           {category === 'trafficLight' && (
             <group position={[0, 0, headHeight / 2]}>
               <TrafficLightSignal activeState={activeState} />
+              {isSelected && <Outlines thickness={0.08} color="#FFFF00" />}
+              {!isSelected && isHovered && <Outlines thickness={0.15} color="#44DDFF" />}
             </group>
           )}
 
           {category === 'stopSign' && (
             <group rotation={[Math.PI / 2, 0, 0]}>
               <StopSignSignal />
+              {isSelected && <Outlines thickness={0.08} color="#FFFF00" />}
+              {!isSelected && isHovered && <Outlines thickness={0.15} color="#44DDFF" />}
             </group>
           )}
 
           {category === 'speedLimit' && (
             <group rotation={[Math.PI / 2, 0, 0]}>
               <SpeedLimitSignal value={signal.value} />
+              {isSelected && <Outlines thickness={0.08} color="#FFFF00" />}
+              {!isSelected && isHovered && <Outlines thickness={0.15} color="#44DDFF" />}
             </group>
           )}
 
           {category === 'generic' && (
             <group rotation={[Math.PI / 2, 0, 0]}>
               <GenericSignal typeLabel={signal.type} />
+              {isSelected && <Outlines thickness={0.08} color="#FFFF00" />}
+              {!isSelected && isHovered && <Outlines thickness={0.15} color="#44DDFF" />}
             </group>
           )}
         </group>

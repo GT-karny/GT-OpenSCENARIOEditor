@@ -109,6 +109,10 @@ export interface ScenarioViewerProps {
   routeWaypointCount?: number;
   /** Resolve a catalog reference to a Route definition (for RoutePosition placement) */
   resolveCatalogRoute?: (ref: { catalogName: string; entryName: string }) => Route | null;
+  /** Currently selected traffic signal key (roadId:signalId) */
+  selectedSignalKey?: string | null;
+  /** Callback when user clicks a traffic signal in the viewer */
+  onSignalSelect?: (key: string) => void;
 }
 
 /**
@@ -136,6 +140,8 @@ function ScenarioViewerScene({
   onRouteWaypointAdd,
   onRouteWaypointDragEnd,
   resolveCatalogRoute,
+  selectedSignalKey,
+  onSignalSelect,
 }: {
   scenarioStore: ScenarioViewerProps['scenarioStore'];
   openDriveDocument: OpenDriveDocument | null;
@@ -158,6 +164,8 @@ function ScenarioViewerScene({
   onRouteWaypointAdd?: ScenarioViewerProps['onRouteWaypointAdd'];
   onRouteWaypointDragEnd?: ScenarioViewerProps['onRouteWaypointDragEnd'];
   resolveCatalogRoute?: ScenarioViewerProps['resolveCatalogRoute'];
+  selectedSignalKey?: string | null;
+  onSignalSelect?: (key: string) => void;
 }) {
   const cameraMode = useViewerStore(viewerStore, (s) => s.cameraMode);
   const showGrid = useViewerStore(viewerStore, (s) => s.showGrid);
@@ -307,6 +315,8 @@ function ScenarioViewerScene({
         <TrafficSignalGroup
           openDriveDocument={openDriveDocument}
           showLabels={showEntityLabels}
+          selectedSignalKey={selectedSignalKey}
+          onSignalSelect={onSignalSelect}
         />
       )}
 
@@ -438,6 +448,8 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   routeWarnings,
   routeWaypointCount,
   resolveCatalogRoute,
+  selectedSignalKey,
+  onSignalSelect,
 }) => {
   const viewerStoreRef = useRef<ReturnType<typeof createViewerStore> | null>(null);
   if (!viewerStoreRef.current) {
@@ -622,6 +634,8 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           onRouteWaypointAdd={onRouteWaypointAdd}
           onRouteWaypointDragEnd={onRouteWaypointDragEnd}
           resolveCatalogRoute={resolveCatalogRoute}
+          selectedSignalKey={selectedSignalKey}
+          onSignalSelect={onSignalSelect}
         />
       </ViewerCanvas>
     </div>

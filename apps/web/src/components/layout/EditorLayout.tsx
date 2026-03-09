@@ -87,6 +87,8 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   routeWarnings?: string[];
   routeWaypointCount?: number;
   resolveCatalogRoute?: (ref: { catalogName: string; entryName: string }) => import('@osce/shared').Route | null;
+  selectedSignalKey?: string | null;
+  onSignalSelect?: (key: string) => void;
 }) {
   const simStatus = useSimulationStore((s) => s.status);
   const simFrames = useSimulationStore((s) => s.frames);
@@ -142,6 +144,8 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       routeWarnings={props.routeWarnings}
       routeWaypointCount={props.routeWaypointCount}
       resolveCatalogRoute={props.resolveCatalogRoute}
+      selectedSignalKey={props.selectedSignalKey}
+      onSignalSelect={props.onSignalSelect}
       className="h-full w-full"
     />
   );
@@ -237,6 +241,13 @@ export function EditorLayout() {
 
   const handleEntitySelect = useCallback((entityId: string) => {
     useEditorStore.getState().setSelection({ selectedElementIds: [entityId] });
+    // Entity selection clears signal selection (handled inside setSelection)
+  }, []);
+
+  const selectedSignalKey = useEditorStore((s) => s.selectedSignalKey);
+
+  const handleSignalSelect = useCallback((key: string) => {
+    useEditorStore.getState().setSelectedSignalKey(key);
   }, []);
 
   const handleEntityPositionChange = useCallback(
@@ -545,6 +556,8 @@ export function EditorLayout() {
                     routeWarnings={routeEdit.warnings}
                     routeWaypointCount={routeEdit.editingRoute?.waypoints.length ?? 0}
                     resolveCatalogRoute={resolveCatalogRoute}
+                    selectedSignalKey={selectedSignalKey}
+                    onSignalSelect={handleSignalSelect}
                   />
                 </ErrorBoundary>
                 {waypointContextMenu && (

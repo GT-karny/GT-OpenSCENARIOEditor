@@ -22,10 +22,12 @@ export interface ResolvedSignal {
 interface TrafficSignalGroupProps {
   openDriveDocument: OpenDriveDocument | null;
   showLabels: boolean;
+  selectedSignalKey?: string | null;
+  onSignalSelect?: (key: string) => void;
 }
 
 export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
-  ({ openDriveDocument, showLabels }) => {
+  ({ openDriveDocument, showLabels, selectedSignalKey, onSignalSelect }) => {
     const resolvedSignals = useMemo(() => {
       if (!openDriveDocument) return [];
 
@@ -57,6 +59,8 @@ export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
             position={rs.position}
             category={rs.category}
             showLabel={showLabels}
+            isSelected={rs.key === selectedSignalKey}
+            onClick={() => onSignalSelect?.(rs.key)}
           />
         ))}
       </group>
