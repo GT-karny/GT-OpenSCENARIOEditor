@@ -22,6 +22,8 @@ interface ViewerToolbarProps {
   onToggleRoadIds: () => void;
   showLaneIds: boolean;
   onToggleLaneIds: () => void;
+  showTrafficSignals: boolean;
+  onToggleTrafficSignals: () => void;
   gizmoMode: GizmoMode;
   onGizmoModeChange: (mode: GizmoMode) => void;
   reverseDirection: boolean;
@@ -140,6 +142,8 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = React.memo(
     onToggleRoadIds,
     showLaneIds,
     onToggleLaneIds,
+    showTrafficSignals,
+    onToggleTrafficSignals,
     gizmoMode,
     onGizmoModeChange,
     reverseDirection,
@@ -318,6 +322,13 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = React.memo(
           title="Toggle lane IDs"
         >
           LaneID
+        </button>
+        <button
+          style={showTrafficSignals ? activeButtonStyle : buttonStyle}
+          onClick={onToggleTrafficSignals}
+          title="Toggle traffic signals"
+        >
+          Signals
         </button>
 
         <div style={separatorStyle} />

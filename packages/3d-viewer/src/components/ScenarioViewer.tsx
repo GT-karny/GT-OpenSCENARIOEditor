@@ -35,6 +35,7 @@ import { Minimap } from './Minimap.js';
 import { RouteOverlay } from '../route/RouteOverlay.js';
 import { RouteClickHandler } from '../interaction/RouteClickHandler.js';
 import { RouteEditOverlay } from '../route/RouteEditOverlay.js';
+import { TrafficSignalGroup } from '../signals/TrafficSignalGroup.js';
 import type { ThreeEvent } from '@react-three/fiber';
 
 export interface ScenarioViewerProps {
@@ -163,6 +164,7 @@ function ScenarioViewerScene({
   const showLaneIds = useViewerStore(viewerStore, (s) => s.showLaneIds);
   const showRoadIds = useViewerStore(viewerStore, (s) => s.showRoadIds);
   const showEntityLabels = useViewerStore(viewerStore, (s) => s.showEntityLabels);
+  const showTrafficSignals = useViewerStore(viewerStore, (s) => s.showTrafficSignals);
   const gizmoMode = useViewerStore(viewerStore, (s) => s.gizmoMode);
   const viewerMode = useViewerStore(viewerStore, (s) => s.viewerMode);
   const snapToLane = useViewerStore(viewerStore, (s) => s.snapToLane);
@@ -299,6 +301,14 @@ function ScenarioViewerScene({
         showLaneIds={showLaneIds}
         highlightedLaneRef={highlightedLaneRef}
       />
+
+      {/* Traffic signals from OpenDRIVE */}
+      {showTrafficSignals && (
+        <TrafficSignalGroup
+          openDriveDocument={openDriveDocument}
+          showLabels={showEntityLabels}
+        />
+      )}
 
       {/* Road click handler for Place mode and hover detection */}
       {isEditMode && (hoverActive || clickActive) && (
@@ -463,6 +473,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   const showEntityLabels = useViewerStore(viewerStore, (s) => s.showEntityLabels);
   const showRoadIds = useViewerStore(viewerStore, (s) => s.showRoadIds);
   const showLaneIds = useViewerStore(viewerStore, (s) => s.showLaneIds);
+  const showTrafficSignals = useViewerStore(viewerStore, (s) => s.showTrafficSignals);
   const gizmoMode = useViewerStore(viewerStore, (s) => s.gizmoMode);
   const reverseDirection = useViewerStore(viewerStore, (s) => s.reverseDirection);
   const snapToLane = useViewerStore(viewerStore, (s) => s.snapToLane);
@@ -524,6 +535,8 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
         onToggleRoadIds={() => viewerStore.getState().toggleRoadIds()}
         showLaneIds={showLaneIds}
         onToggleLaneIds={() => viewerStore.getState().toggleLaneIds()}
+        showTrafficSignals={showTrafficSignals}
+        onToggleTrafficSignals={() => viewerStore.getState().toggleTrafficSignals()}
         gizmoMode={gizmoMode}
         onGizmoModeChange={(m) => viewerStore.getState().setGizmoMode(m)}
         reverseDirection={reverseDirection}
