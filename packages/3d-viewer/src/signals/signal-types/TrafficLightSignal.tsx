@@ -1,23 +1,23 @@
 /**
  * Renders a 3-bulb vertical traffic light (red/yellow/green).
- * In PR1, all lights are in "off" state.
- * PR3 will add activeState prop to illuminate the active light.
+ * Supports esmini positional states ("on;off;off") and color name states ("red").
  */
 
 import React from 'react';
 import { TRAFFIC_LIGHT } from '../../utils/signal-geometry.js';
+import { isBulbActive } from '../../utils/parse-traffic-light-state.js';
 
 interface TrafficLightSignalProps {
-  /** Current active state string (e.g., "green", "red", "yellow"). Undefined = all off. */
+  /** Current active state string (e.g., "green", "on;off;off"). Undefined = all off. */
   activeState?: string;
 }
 
-const { housingWidth, housingDepth, housingHeight, bulbRadius, bulbOffsets, bulbColors, housingColor, offEmissiveIntensity, onEmissiveIntensity } = TRAFFIC_LIGHT;
+const { housingWidth, housingDepth, housingHeight, bulbRadius, bulbOffsets, bulbColors, offBulbColors, housingColor, offEmissiveIntensity, onEmissiveIntensity } = TRAFFIC_LIGHT;
 
 const BULB_DEFS = [
-  { offset: bulbOffsets[0], color: bulbColors.red, key: 'red' },
-  { offset: bulbOffsets[1], color: bulbColors.yellow, key: 'yellow' },
-  { offset: bulbOffsets[2], color: bulbColors.green, key: 'green' },
+  { offset: bulbOffsets[0], onColor: bulbColors.red, offColor: offBulbColors.red, key: 'red' },
+  { offset: bulbOffsets[1], onColor: bulbColors.yellow, offColor: offBulbColors.yellow, key: 'yellow' },
+  { offset: bulbOffsets[2], onColor: bulbColors.green, offColor: offBulbColors.green, key: 'green' },
 ] as const;
 
 export const TrafficLightSignal: React.FC<TrafficLightSignalProps> = React.memo(
@@ -31,10 +31,9 @@ export const TrafficLightSignal: React.FC<TrafficLightSignalProps> = React.memo(
         </mesh>
 
         {/* Three bulbs */}
-        {BULB_DEFS.map(({ offset, color, key }) => {
-          const isActive = activeState
-            ? activeState.toLowerCase().includes(key)
-            : false;
+        {BULB_DEFS.map(({ offset, onColor, offColor, key }) => {
+          const isActive = activeState ? isBulbActive(activeState, key) : false;
+          const color = isActive ? onColor : offColor;
 
           return (
             <mesh key={key} position={[housingDepth / 2 + 0.01, 0, offset]}>

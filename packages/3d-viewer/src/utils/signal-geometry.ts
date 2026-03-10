@@ -25,11 +25,17 @@ export const TRAFFIC_LIGHT = {
   bulbColors: {
     red: '#FF0000',
     yellow: '#FFAA00',
-    green: '#00FF00',
+    green: '#00CC44',
+  },
+  /** Desaturated bulb colors used for the off state */
+  offBulbColors: {
+    red: '#4A1010',
+    yellow: '#3A2808',
+    green: '#0A3A0A',
   },
   housingColor: '#222222',
-  offEmissiveIntensity: 0.05,
-  onEmissiveIntensity: 2.0,
+  offEmissiveIntensity: 0.02,
+  onEmissiveIntensity: 1.2,
 };
 
 /** Stop sign dimensions */
