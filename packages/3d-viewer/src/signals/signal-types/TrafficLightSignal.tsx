@@ -1,132 +1,18 @@
 /**
- * Renders a traffic light signal from a SignalDescriptor.
- * Supports variable bulb counts (1, 2, 3), arrow overlays, and pedestrian silhouettes.
+ * Renders a traffic light signal as a 3D box housing with a textured front face.
+ *
+ * All bulbs, overlays (arrows / pedestrian silhouettes), and glow effects
+ * are baked onto a Canvas2D texture by signal-texture.ts and applied to
+ * the front (+Z) face of a BoxGeometry. The remaining five faces use a
+ * solid housing colour, giving the signal realistic depth from any angle.
  */
 
 import React, { useMemo } from 'react';
-import type { SignalDescriptor, BulbDefinition, BulbColor } from '../../utils/signal-catalog.js';
+import * as THREE from 'three';
+import type { SignalDescriptor } from '../../utils/signal-catalog.js';
+import { getSignalTexture } from '../../utils/signal-texture.js';
+import { getSharedBox } from '../../utils/shared-geometries.js';
 import { TRAFFIC_LIGHT } from '../../utils/signal-geometry.js';
-import { isBulbActiveByIndex } from '../../utils/parse-traffic-light-state.js';
-import { getShape } from '../../utils/signal-shapes.js';
-
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const BULB_SPACING = 0.33;
-
-const BULB_COLORS: Record<BulbColor, string> = {
-  red: TRAFFIC_LIGHT.bulbColors.red,
-  yellow: TRAFFIC_LIGHT.bulbColors.yellow,
-  green: TRAFFIC_LIGHT.bulbColors.green,
-};
-
-const OFF_BULB_COLORS: Record<BulbColor, string> = {
-  red: TRAFFIC_LIGHT.offBulbColors.red,
-  yellow: TRAFFIC_LIGHT.offBulbColors.yellow,
-  green: TRAFFIC_LIGHT.offBulbColors.green,
-};
-
-const ON_EMISSIVE = TRAFFIC_LIGHT.onEmissiveIntensity;
-const OFF_EMISSIVE = TRAFFIC_LIGHT.offEmissiveIntensity;
-const HOUSING_COLOR = TRAFFIC_LIGHT.housingColor;
-
-// ---------------------------------------------------------------------------
-// Bulb offset computation
-// ---------------------------------------------------------------------------
-
-function computeBulbOffsets(bulbCount: number): number[] {
-  const offsets: number[] = [];
-  for (let i = 0; i < bulbCount; i++) {
-    offsets.push(((bulbCount - 1) / 2 - i) * BULB_SPACING);
-  }
-  return offsets;
-}
-
-// ---------------------------------------------------------------------------
-// BulbRenderer sub-component
-// ---------------------------------------------------------------------------
-
-interface BulbRendererProps {
-  bulb: BulbDefinition;
-  index: number;
-  offset: number;
-  radius: number;
-  housingDepth: number;
-  activeState?: string;
-}
-
-const BulbRenderer: React.FC<BulbRendererProps> = React.memo(
-  ({ bulb, index, offset, radius, housingDepth, activeState }) => {
-    const isActive = activeState ? isBulbActiveByIndex(activeState, index, bulb.color) : false;
-
-    const onColor = BULB_COLORS[bulb.color];
-    const offColor = OFF_BULB_COLORS[bulb.color];
-    const color = isActive ? onColor : offColor;
-    const emissiveIntensity = isActive ? ON_EMISSIVE : OFF_EMISSIVE;
-
-    const overlayShape = useMemo(() => getShape(bulb.shape), [bulb.shape]);
-    const isPedestrian = bulb.shape === 'pedestrian-stop' || bulb.shape === 'pedestrian-go';
-    const overlayScale = radius * 1.2;
-
-    return (
-      <group position={[housingDepth / 2 + 0.01, 0, offset]}>
-        {/* Base lens (flattened sphere) */}
-        <mesh scale={[0.45, 1, 1]}>
-          <sphereGeometry args={[radius, 16, 12]} />
-          <meshStandardMaterial
-            color={color}
-            emissive={color}
-            emissiveIntensity={emissiveIntensity}
-            roughness={0.3}
-          />
-        </mesh>
-
-        {/* Shape overlay (arrow, silhouette) */}
-        {overlayShape && (
-          <group position={[radius * 0.45 + 0.001, 0, 0]} rotation={[Math.PI / 2, Math.PI / 2, 0]}>
-            <mesh scale={[overlayScale, overlayScale, 1]}>
-              <shapeGeometry args={[overlayShape]} />
-              <meshStandardMaterial
-                color="#111111"
-                emissive="#000000"
-                emissiveIntensity={0}
-                transparent
-                opacity={isActive ? 0.85 : 0.3}
-                depthWrite={false}
-                depthTest={false}
-                side={2} /* DoubleSide */
-              />
-            </mesh>
-
-            {/* Pedestrian head circle */}
-            {isPedestrian && (
-              <mesh position={[0, 0.45 * overlayScale, 0]}>
-                <circleGeometry args={[0.12 * overlayScale, 12]} />
-                <meshStandardMaterial
-                  color="#111111"
-                  emissive="#000000"
-                  emissiveIntensity={0}
-                  transparent
-                  opacity={isActive ? 0.85 : 0.3}
-                  depthWrite={false}
-                  depthTest={false}
-                  side={2}
-                />
-              </mesh>
-            )}
-          </group>
-        )}
-      </group>
-    );
-  },
-);
-
-BulbRenderer.displayName = 'BulbRenderer';
-
-// ---------------------------------------------------------------------------
-// TrafficLightSignal
-// ---------------------------------------------------------------------------
 
 interface TrafficLightSignalProps {
   /** Signal descriptor from the catalog */
@@ -135,32 +21,34 @@ interface TrafficLightSignalProps {
   activeState?: string;
 }
 
+/** Lazily-created singleton material shared by all housing side/back faces. */
+let _housingMat: THREE.MeshBasicMaterial | null = null;
+function getHousingMaterial(): THREE.MeshBasicMaterial {
+  if (!_housingMat) {
+    _housingMat = new THREE.MeshBasicMaterial({ color: TRAFFIC_LIGHT.housingColor });
+  }
+  return _housingMat;
+}
+
 export const TrafficLightSignal: React.FC<TrafficLightSignalProps> = React.memo(
   ({ descriptor, activeState }) => {
-    const { bulbs, housing, bulbRadius } = descriptor;
-    const offsets = useMemo(() => computeBulbOffsets(bulbs.length), [bulbs.length]);
+    const { housing } = descriptor;
+
+    const boxGeo = useMemo(
+      () => getSharedBox(housing.height, housing.width, housing.depth),
+      [housing.width, housing.height, housing.depth],
+    );
+
+    // BoxGeometry material groups: 0=+X, 1=-X, 2=+Y, 3=-Y, 4=+Z(front), 5=-Z(back)
+    const materials = useMemo(() => {
+      const tex = getSignalTexture(descriptor, activeState);
+      const frontMat = new THREE.MeshBasicMaterial({ map: tex });
+      const h = getHousingMaterial();
+      return [h, h, h, h, frontMat, h];
+    }, [descriptor, activeState]);
 
     return (
-      <group>
-        {/* Housing box */}
-        <mesh>
-          <boxGeometry args={[housing.depth, housing.width, housing.height]} />
-          <meshStandardMaterial color={HOUSING_COLOR} roughness={0.9} />
-        </mesh>
-
-        {/* Bulbs */}
-        {bulbs.map((bulb, index) => (
-          <BulbRenderer
-            key={index}
-            bulb={bulb}
-            index={index}
-            offset={offsets[index]}
-            radius={bulbRadius}
-            housingDepth={housing.depth}
-            activeState={activeState}
-          />
-        ))}
-      </group>
+      <mesh rotation={[0, Math.PI / 2, 0]} geometry={boxGeo} material={materials} />
     );
   },
 );

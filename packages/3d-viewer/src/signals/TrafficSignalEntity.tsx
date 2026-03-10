@@ -16,6 +16,8 @@ import {
   DEFAULT_SIGNAL_HEIGHT,
 } from '../utils/signal-geometry.js';
 import { resolveSignalDescriptor } from '../utils/signal-catalog.js';
+import { getSharedCylinder } from '../utils/shared-geometries.js';
+import { getSharedStandardMaterial } from '../utils/shared-materials.js';
 import { TrafficLightSignal } from './signal-types/TrafficLightSignal.js';
 import { StopSignSignal } from './signal-types/StopSignSignal.js';
 import { SpeedLimitSignal } from './signal-types/SpeedLimitSignal.js';
@@ -72,16 +74,23 @@ export const TrafficSignalEntity: React.FC<TrafficSignalEntityProps> = React.mem
       setIsHovered(false);
     }, []);
 
+    // Shared pole geometry & material
+    const poleGeo = useMemo(
+      () => getSharedCylinder(POLE_RADIUS, poleHeight, 8),
+      [poleHeight],
+    );
+    const poleMat = useMemo(
+      () => getSharedStandardMaterial({ color: POLE_COLOR, roughness: 0.8 }),
+      [],
+    );
+
     return (
       <group
         position={[position.x, position.y, position.z - signalHeight]}
         rotation={[position.pitch ?? 0, position.roll ?? 0, position.h]}
       >
         {/* Pole: from ground up to signal head (cylinderGeometry is Y-aligned, rotate to Z-up) */}
-        <mesh position={[0, 0, poleHeight / 2]} rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[POLE_RADIUS, POLE_RADIUS, poleHeight, 8]} />
-          <meshStandardMaterial color={POLE_COLOR} roughness={0.8} />
-        </mesh>
+        <mesh position={[0, 0, poleHeight / 2]} rotation={[Math.PI / 2, 0, 0]} geometry={poleGeo} material={poleMat} />
 
         {/* Signal head: positioned at top of pole, interactive */}
         <group

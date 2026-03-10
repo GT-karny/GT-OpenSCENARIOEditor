@@ -333,3 +333,26 @@ export function getShape(faceShape: BulbFaceShape): THREE.Shape | null {
   }
   return shape;
 }
+
+// ---------------------------------------------------------------------------
+// ShapeGeometry cache — avoids re-triangulating the same Shape per signal
+// ---------------------------------------------------------------------------
+
+const SHAPE_GEOMETRY_CACHE = new Map<BulbFaceShape, THREE.ShapeGeometry>();
+
+/**
+ * Get a cached ShapeGeometry for a given BulbFaceShape.
+ * Returns null for 'circle' or unknown shapes.
+ */
+export function getShapeGeometry(faceShape: BulbFaceShape): THREE.ShapeGeometry | null {
+  if (faceShape === 'circle') return null;
+
+  let geo = SHAPE_GEOMETRY_CACHE.get(faceShape);
+  if (!geo) {
+    const shape = getShape(faceShape);
+    if (!shape) return null;
+    geo = new THREE.ShapeGeometry(shape);
+    SHAPE_GEOMETRY_CACHE.set(faceShape, geo);
+  }
+  return geo;
+}

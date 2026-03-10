@@ -1,34 +1,31 @@
 /**
- * Renders a floating name label above a traffic signal using drei's Html component.
- * Same pattern as EntityLabel.
+ * Renders a floating name label above a traffic signal using drei's Text component.
+ * Rendered directly in WebGL (SDF font) — much lighter than the previous Html/DOM approach.
+ * Billboard wrapping ensures the label always faces the camera.
  */
 
 import React from 'react';
-import { Html } from '@react-three/drei';
+import { Billboard, Text } from '@react-three/drei';
 
 interface SignalLabelProps {
   name: string;
   position: [number, number, number];
 }
 
-const labelStyle: React.CSSProperties = {
-  fontSize: '10px',
-  color: '#BBDDFF',
-  backgroundColor: 'rgba(0, 20, 40, 0.7)',
-  padding: '1px 5px',
-  borderRadius: '3px',
-  border: '1px solid rgba(80, 120, 180, 0.4)',
-  whiteSpace: 'nowrap',
-  pointerEvents: 'none',
-  userSelect: 'none',
-  fontFamily: 'monospace',
-};
-
 export const SignalLabel: React.FC<SignalLabelProps> = React.memo(({ name, position }) => {
   return (
-    <Html position={position} center occlude style={labelStyle}>
-      {name}
-    </Html>
+    <Billboard position={position}>
+      <Text
+        fontSize={0.18}
+        color="#BBDDFF"
+        anchorX="center"
+        anchorY="middle"
+        outlineWidth={0.015}
+        outlineColor="#001428"
+      >
+        {name}
+      </Text>
+    </Billboard>
   );
 });
 
