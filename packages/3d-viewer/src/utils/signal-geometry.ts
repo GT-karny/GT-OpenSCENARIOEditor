@@ -76,15 +76,13 @@ export function classifySignal(signal: OdrSignal): SignalCategory {
   // Dynamic signals are generally traffic lights
   if (dynamic === 'yes') return 'trafficLight';
 
-  // esmini convention: 1000001 = traffic light, 1000002 = pedestrian signal
-  if (type === '1000001' || type === '1000002') return 'trafficLight';
+  // ASAM OpenDRIVE Signal Catalog: all 100xxxx types are traffic signals
+  // Covers 1000001 (standard), 1000002 (pedestrian), 1000008-1000023, etc.
+  if (/^100\d{4}$/.test(type)) return 'trafficLight';
 
   // German StVO type codes
   if (type === '206') return 'stopSign';
   if (type === '274' || type === '278') return 'speedLimit';
-
-  // Country-specific: Japan (type strings may vary)
-  // Extensible — add more mappings here as needed
 
   return 'generic';
 }

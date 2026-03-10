@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isBulbActive } from '../../utils/parse-traffic-light-state.js';
+import { isBulbActive, isBulbActiveByIndex } from '../../utils/parse-traffic-light-state.js';
 
 describe('isBulbActive', () => {
   describe('esmini positional format (semicolon-separated)', () => {
@@ -64,6 +64,61 @@ describe('isBulbActive', () => {
     it('handles case insensitivity', () => {
       expect(isBulbActive('RED', 'red')).toBe(true);
       expect(isBulbActive('Green', 'green')).toBe(true);
+    });
+  });
+});
+
+describe('isBulbActiveByIndex', () => {
+  describe('3-bulb positional', () => {
+    it('checks by index for standard 3-light', () => {
+      expect(isBulbActiveByIndex('on;off;off', 0, 'red')).toBe(true);
+      expect(isBulbActiveByIndex('on;off;off', 1, 'yellow')).toBe(false);
+      expect(isBulbActiveByIndex('on;off;off', 2, 'green')).toBe(false);
+    });
+
+    it('detects green at index 2', () => {
+      expect(isBulbActiveByIndex('off;off;on', 2, 'green')).toBe(true);
+    });
+  });
+
+  describe('2-bulb positional', () => {
+    it('handles pedestrian signal (2 positions)', () => {
+      expect(isBulbActiveByIndex('on;off', 0, 'red')).toBe(true);
+      expect(isBulbActiveByIndex('on;off', 1, 'green')).toBe(false);
+      expect(isBulbActiveByIndex('off;on', 0, 'red')).toBe(false);
+      expect(isBulbActiveByIndex('off;on', 1, 'green')).toBe(true);
+    });
+
+    it('returns false for out-of-bounds index', () => {
+      expect(isBulbActiveByIndex('on;off', 2, 'green')).toBe(false);
+    });
+  });
+
+  describe('1-bulb positional', () => {
+    it('handles single bulb', () => {
+      expect(isBulbActiveByIndex('on', 0, 'red')).toBe(true);
+      expect(isBulbActiveByIndex('off', 0, 'red')).toBe(false);
+    });
+  });
+
+  describe('color name fallback', () => {
+    it('matches against bulb color identity', () => {
+      expect(isBulbActiveByIndex('red', 0, 'red')).toBe(true);
+      expect(isBulbActiveByIndex('red', 1, 'green')).toBe(false);
+      expect(isBulbActiveByIndex('green', 0, 'green')).toBe(true);
+      expect(isBulbActiveByIndex('yellow', 0, 'yellow')).toBe(true);
+    });
+
+    it('is case insensitive', () => {
+      expect(isBulbActiveByIndex('RED', 0, 'red')).toBe(true);
+      expect(isBulbActiveByIndex('Green', 0, 'green')).toBe(true);
+    });
+  });
+
+  describe('whitespace handling', () => {
+    it('trims whitespace in positional format', () => {
+      expect(isBulbActiveByIndex(' on ; off ', 0, 'red')).toBe(true);
+      expect(isBulbActiveByIndex(' on ; off ', 1, 'green')).toBe(false);
     });
   });
 });

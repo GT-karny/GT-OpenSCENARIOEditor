@@ -1,0 +1,183 @@
+/**
+ * Data-driven signal catalog mapping OpenDRIVE (type, subtype) to visual descriptors.
+ *
+ * Based on ASAM OpenDRIVE Signal Base Catalog (country="OpenDRIVE").
+ * Phase 1: 1000001, 1000002, 1000009, 1000011, 1000020/1000008/1000012.
+ */
+
+import type { OdrSignal } from '@osce/shared';
+
+/** Shape rendered on a bulb face */
+export type BulbFaceShape =
+  | 'circle'
+  | 'arrow-left'
+  | 'arrow-right'
+  | 'arrow-up'
+  | 'arrow-up-left'
+  | 'arrow-up-right'
+  | 'arrow-diagonal-left'
+  | 'arrow-diagonal-right'
+  | 'arrow-turn-left'
+  | 'arrow-turn-right'
+  | 'arrow-uturn'
+  | 'arrow-complex'
+  | 'pedestrian-stop'
+  | 'pedestrian-go';
+
+/** Color identity of a single bulb */
+export type BulbColor = 'red' | 'yellow' | 'green';
+
+/** Definition of a single bulb in the signal */
+export interface BulbDefinition {
+  color: BulbColor;
+  shape: BulbFaceShape;
+}
+
+/** Visual descriptor for a traffic signal variant */
+export interface SignalDescriptor {
+  label: string;
+  bulbs: BulbDefinition[];
+  housing: { width: number; depth: number; height: number };
+  bulbRadius: number;
+}
+
+// ---------------------------------------------------------------------------
+// Housing geometry constants
+// ---------------------------------------------------------------------------
+
+const BULB_RADIUS = 0.12;
+const BULB_SPACING = 0.33;
+const HOUSING_PADDING = 0.07;
+const HOUSING_DEPTH = 0.25;
+const HOUSING_WIDTH = 0.4;
+
+export function housingForBulbCount(n: number): SignalDescriptor['housing'] {
+  const height = (n - 1) * BULB_SPACING + 2 * (BULB_RADIUS + HOUSING_PADDING);
+  return { width: HOUSING_WIDTH, depth: HOUSING_DEPTH, height };
+}
+
+// ---------------------------------------------------------------------------
+// Arrow subtype → BulbFaceShape mapping
+// ---------------------------------------------------------------------------
+
+const ARROW_SUBTYPE_MAP: Record<string, BulbFaceShape> = {
+  '-1': 'circle',
+  '-': 'circle',
+  '10': 'arrow-left',
+  '20': 'arrow-right',
+  '30': 'arrow-up',
+  '40': 'arrow-up-left',
+  '50': 'arrow-up-right',
+  '60': 'arrow-turn-left',
+  '70': 'arrow-diagonal-right',
+  '80': 'arrow-uturn', // U-turn left + straight combo
+  '90': 'arrow-uturn',
+  '100': 'arrow-complex',
+};
+
+// ---------------------------------------------------------------------------
+// Catalog builder helpers
+// ---------------------------------------------------------------------------
+
+function desc(
+  label: string,
+  bulbs: BulbDefinition[],
+): SignalDescriptor {
+  return { label, bulbs, housing: housingForBulbCount(bulbs.length), bulbRadius: BULB_RADIUS };
+}
+
+function bulb(color: BulbColor, shape: BulbFaceShape = 'circle'): BulbDefinition {
+  return { color, shape };
+}
+
+// ---------------------------------------------------------------------------
+// Helper to generate single-bulb arrow entries for a given color
+// ---------------------------------------------------------------------------
+
+function singleArrowEntries(
+  type: string,
+  color: BulbColor,
+  colorLabel: string,
+): [string, SignalDescriptor][] {
+  const entries: [string, SignalDescriptor][] = [
+    [type, desc(`${colorLabel} dot`, [bulb(color, 'circle')])],
+  ];
+  for (const [sub, shape] of Object.entries(ARROW_SUBTYPE_MAP)) {
+    if (sub === '-1' || sub === '-') continue;
+    entries.push([
+      `${type}:${sub}`,
+      desc(`${colorLabel} ${shape}`, [bulb(color, shape)]),
+    ]);
+  }
+  return entries;
+}
+
+// ---------------------------------------------------------------------------
+// Signal Catalog
+// ---------------------------------------------------------------------------
+
+export const SIGNAL_CATALOG: ReadonlyMap<string, SignalDescriptor> = new Map<
+  string,
+  SignalDescriptor
+>([
+  // === 1000001: Standard 3-light ===
+  ['1000001', desc('Standard 3-light', [bulb('red'), bulb('yellow'), bulb('green')])],
+
+  // === 1000002: Pedestrian signal ===
+  [
+    '1000002',
+    desc('Pedestrian 2-light', [bulb('red', 'pedestrian-stop'), bulb('green', 'pedestrian-go')]),
+  ],
+  ['1000002:10', desc('Pedestrian red only', [bulb('red', 'pedestrian-stop')])],
+  ['1000002:20', desc('Pedestrian green only', [bulb('green', 'pedestrian-go')])],
+
+  // === 1000009: 2-light combinations ===
+  ['1000009:10', desc('Red-yellow 2-light', [bulb('red'), bulb('yellow')])],
+  ['1000009:20', desc('Yellow-green 2-light', [bulb('yellow'), bulb('green')])],
+  ['1000009:30', desc('Red-green 2-light', [bulb('red'), bulb('green')])],
+
+  // === 1000011: Direction arrow 3-light ===
+  ...(['10', '20', '30', '40', '50'] as const).map((sub): [string, SignalDescriptor] => {
+    const shape = ARROW_SUBTYPE_MAP[sub] ?? 'circle';
+    return [
+      `1000011:${sub}`,
+      desc(`Arrow ${shape} 3-light`, [bulb('red', shape), bulb('yellow', shape), bulb('green', shape)]),
+    ];
+  }),
+
+  // === Single-bulb arrow signals ===
+  ...singleArrowEntries('1000020', 'red', 'Red'),
+  ...singleArrowEntries('1000008', 'yellow', 'Yellow'),
+  ...singleArrowEntries('1000012', 'green', 'Green'),
+]);
+
+// ---------------------------------------------------------------------------
+// Lookup
+// ---------------------------------------------------------------------------
+
+function makeCatalogKey(type: string, subtype?: string): string {
+  if (!subtype || subtype === '-1' || subtype === '-') return type;
+  return `${type}:${subtype}`;
+}
+
+/**
+ * Resolve a SignalDescriptor for the given OpenDRIVE signal.
+ * Returns null if the signal type is not a traffic light in the catalog.
+ */
+export function resolveSignalDescriptor(signal: OdrSignal): SignalDescriptor | null {
+  const type = signal.type ?? '';
+  const subtype = signal.subtype;
+
+  // Try specific type:subtype, then type-only
+  const specificKey = makeCatalogKey(type, subtype);
+  const descriptor = SIGNAL_CATALOG.get(specificKey) ?? SIGNAL_CATALOG.get(type);
+
+  if (descriptor) return descriptor;
+
+  // Fallback: dynamic signals default to standard 3-light
+  if (signal.dynamic === 'yes') {
+    return SIGNAL_CATALOG.get('1000001')!;
+  }
+
+  return null;
+}

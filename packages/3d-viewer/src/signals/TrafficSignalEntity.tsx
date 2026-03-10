@@ -4,7 +4,7 @@
  * Supports selection and hover visual feedback.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Outlines } from '@react-three/drei';
 import type { OdrSignal } from '@osce/shared';
 import type { WorldCoords } from '../utils/position-resolver.js';
@@ -15,6 +15,7 @@ import {
   TRAFFIC_LIGHT,
   DEFAULT_SIGNAL_HEIGHT,
 } from '../utils/signal-geometry.js';
+import { resolveSignalDescriptor } from '../utils/signal-catalog.js';
 import { TrafficLightSignal } from './signal-types/TrafficLightSignal.js';
 import { StopSignSignal } from './signal-types/StopSignSignal.js';
 import { SpeedLimitSignal } from './signal-types/SpeedLimitSignal.js';
@@ -38,8 +39,18 @@ export const TrafficSignalEntity: React.FC<TrafficSignalEntityProps> = React.mem
     const signalHeight = signal.zOffset ?? DEFAULT_SIGNAL_HEIGHT;
     const poleHeight = signalHeight;
 
+    // Resolve descriptor for traffic light signals
+    const descriptor = useMemo(
+      () => (category === 'trafficLight' ? resolveSignalDescriptor(signal) : null),
+      [signal, category],
+    );
+
     // Signal head vertical offset depends on category
-    const headHeight = category === 'trafficLight' ? TRAFFIC_LIGHT.housingHeight : 0;
+    const headHeight = descriptor
+      ? descriptor.housing.height
+      : category === 'trafficLight'
+        ? TRAFFIC_LIGHT.housingHeight
+        : 0;
 
     const handleClick = useCallback(
       (e: { stopPropagation: () => void }) => {
@@ -79,9 +90,9 @@ export const TrafficSignalEntity: React.FC<TrafficSignalEntityProps> = React.mem
           onPointerOver={handlePointerOver}
           onPointerOut={handlePointerOut}
         >
-          {category === 'trafficLight' && (
+          {category === 'trafficLight' && descriptor && (
             <group position={[0, 0, headHeight / 2]}>
-              <TrafficLightSignal activeState={activeState} />
+              <TrafficLightSignal descriptor={descriptor} activeState={activeState} />
               {isSelected && <Outlines thickness={0.08} color="#FFFF00" />}
               {!isSelected && isHovered && <Outlines thickness={0.15} color="#44DDFF" />}
             </group>
