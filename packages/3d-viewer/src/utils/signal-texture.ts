@@ -105,7 +105,7 @@ function drawShapeOnCanvas(
 
 const textureCache = new Map<string, THREE.CanvasTexture>();
 
-function buildCacheKey(desc: SignalDescriptor, activeState?: string): string {
+export function buildCacheKey(desc: SignalDescriptor, activeState?: string): string {
   const bulbKey = desc.bulbs.map((b) => `${b.color}:${b.shape}`).join(',');
   return `${desc.bulbs.length}|${bulbKey}|${desc.bulbRadius}|${desc.housing.width}:${desc.housing.height}|${activeState ?? ''}`;
 }
@@ -180,8 +180,47 @@ export function getSignalTexture(
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
+  // Rotate 90° CCW to align canvas vertical (bulb stack) with box X → world Z (up)
+  texture.center.set(0.5, 0.5);
+  texture.rotation = Math.PI / 2;
   textureCache.set(key, texture);
   return texture;
+}
+
+// ---------------------------------------------------------------------------
+// Material array cache (housing sides + textured front)
+// ---------------------------------------------------------------------------
+
+/** Lazily-created singleton material shared by all housing side/back faces. */
+let _housingMat: THREE.MeshBasicMaterial | null = null;
+function getHousingMaterial(): THREE.MeshBasicMaterial {
+  if (!_housingMat) {
+    _housingMat = new THREE.MeshBasicMaterial({ color: HOUSING_COLOR });
+  }
+  return _housingMat;
+}
+
+const materialArrayCache = new Map<string, THREE.MeshBasicMaterial[]>();
+
+/**
+ * Obtain the 6-element material array for a BoxGeometry signal head.
+ * Order: [+X, -X, +Y, -Y, +Z(front), -Z(back)].
+ * Cached by the same key as getSignalTexture.
+ */
+export function getSignalMaterials(
+  descriptor: SignalDescriptor,
+  activeState?: string,
+): THREE.MeshBasicMaterial[] {
+  const key = buildCacheKey(descriptor, activeState);
+  const cached = materialArrayCache.get(key);
+  if (cached) return cached;
+
+  const tex = getSignalTexture(descriptor, activeState);
+  const frontMat = new THREE.MeshBasicMaterial({ map: tex });
+  const h = getHousingMaterial();
+  const materials = [h, h, h, h, frontMat, h];
+  materialArrayCache.set(key, materials);
+  return materials;
 }
 
 // ---------------------------------------------------------------------------
