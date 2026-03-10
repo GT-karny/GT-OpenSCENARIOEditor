@@ -64,50 +64,66 @@ export function createArrowRightShape(): THREE.Shape {
   ));
 }
 
-/** Upper-left combined arrow (straight + left) */
+/** Upper-left combined arrow (straight + left) — single continuous closed path */
 export function createArrowUpLeftShape(): THREE.Shape {
   const shape = new THREE.Shape();
-  // Main shaft pointing up
-  shape.moveTo(-0.1, -0.45);
-  shape.lineTo(0.1, -0.45);
-  shape.lineTo(0.1, 0.05);
-  // Left branch arrowhead
-  shape.lineTo(0.0, 0.05);
-  shape.lineTo(-0.45, 0.05);
-  shape.lineTo(-0.25, 0.2);
-  shape.lineTo(-0.55, 0.35);
-  shape.lineTo(-0.25, -0.1);
-  shape.lineTo(-0.45, 0.05);
-  // Continue back to shaft top, then up arrowhead
-  shape.moveTo(-0.1, 0.05);
-  shape.lineTo(-0.1, 0.2);
-  shape.lineTo(-0.25, 0.2);
-  shape.lineTo(0, 0.6);
-  shape.lineTo(0.25, 0.2);
+  // Trace the entire outline as one continuous path:
+  // Start bottom-right of shaft, go clockwise
+  shape.moveTo(0.1, -0.45);
+  // Up the right side of the shaft
   shape.lineTo(0.1, 0.2);
-  shape.lineTo(0.1, 0.05);
+  // Right side of upward arrowhead
+  shape.lineTo(0.25, 0.2);
+  // Upward arrowhead tip
+  shape.lineTo(0, 0.6);
+  // Left side of upward arrowhead
+  shape.lineTo(-0.25, 0.2);
+  // Down to junction on left side
+  shape.lineTo(-0.1, 0.2);
+  // Left to left-branch stem
+  shape.lineTo(-0.1, 0.13);
+  // Left branch arrowhead upper edge
+  shape.lineTo(-0.25, 0.2);
+  // Left arrowhead tip
+  shape.lineTo(-0.55, 0.05);
+  // Left branch arrowhead lower edge
+  shape.lineTo(-0.25, -0.1);
+  // Back to shaft left side
+  shape.lineTo(-0.1, -0.03);
+  // Down left side of shaft
+  shape.lineTo(-0.1, -0.45);
   shape.closePath();
   return shape;
 }
 
-/** Upper-right combined arrow (straight + right) */
+/** Upper-right combined arrow (straight + right) — single continuous closed path */
 export function createArrowUpRightShape(): THREE.Shape {
   const shape = new THREE.Shape();
+  // Mirror of upper-left: trace the entire outline as one continuous path
+  // Start bottom-left of shaft, go counter-clockwise
   shape.moveTo(-0.1, -0.45);
-  shape.lineTo(0.1, -0.45);
-  shape.lineTo(0.1, 0.05);
-  shape.lineTo(0.45, 0.05);
-  shape.lineTo(0.25, 0.2);
-  shape.lineTo(0.55, 0.35);
-  shape.lineTo(0.25, -0.1);
-  shape.lineTo(0.45, 0.05);
-  shape.moveTo(0.1, 0.05);
-  shape.lineTo(0.1, 0.2);
-  shape.lineTo(0.25, 0.2);
-  shape.lineTo(0, 0.6);
-  shape.lineTo(-0.25, 0.2);
+  // Up the left side of the shaft
   shape.lineTo(-0.1, 0.2);
-  shape.lineTo(-0.1, -0.45);
+  // Left side of upward arrowhead
+  shape.lineTo(-0.25, 0.2);
+  // Upward arrowhead tip
+  shape.lineTo(0, 0.6);
+  // Right side of upward arrowhead
+  shape.lineTo(0.25, 0.2);
+  // Down to junction on right side
+  shape.lineTo(0.1, 0.2);
+  // Right to right-branch stem
+  shape.lineTo(0.1, 0.13);
+  // Right branch arrowhead upper edge
+  shape.lineTo(0.25, 0.2);
+  // Right arrowhead tip
+  shape.lineTo(0.55, 0.05);
+  // Right branch arrowhead lower edge
+  shape.lineTo(0.25, -0.1);
+  // Back to shaft right side
+  shape.lineTo(0.1, -0.03);
+  // Down right side of shaft
+  shape.lineTo(0.1, -0.45);
   shape.closePath();
   return shape;
 }

@@ -67,7 +67,7 @@ const BulbRenderer: React.FC<BulbRendererProps> = React.memo(
 
     const overlayShape = useMemo(() => getShape(bulb.shape), [bulb.shape]);
     const isPedestrian = bulb.shape === 'pedestrian-stop' || bulb.shape === 'pedestrian-go';
-    const overlayScale = radius * 0.7;
+    const overlayScale = radius * 1.2;
 
     return (
       <group position={[housingDepth / 2 + 0.01, 0, offset]}>
@@ -84,16 +84,17 @@ const BulbRenderer: React.FC<BulbRendererProps> = React.memo(
 
         {/* Shape overlay (arrow, silhouette) */}
         {overlayShape && (
-          <group position={[0.002, 0, 0]} rotation={[0, -Math.PI / 2, 0]}>
+          <group position={[radius + 0.001, 0, 0]} rotation={[Math.PI / 2, Math.PI / 2, 0]}>
             <mesh scale={[overlayScale, overlayScale, 1]}>
               <shapeGeometry args={[overlayShape]} />
               <meshStandardMaterial
-                color={isActive ? '#FFFFFF' : '#333333'}
-                emissive={isActive ? '#FFFFFF' : '#111111'}
-                emissiveIntensity={isActive ? 0.6 : 0.02}
+                color="#111111"
+                emissive="#000000"
+                emissiveIntensity={0}
                 transparent
-                opacity={isActive ? 1.0 : 0.3}
+                opacity={isActive ? 0.85 : 0.3}
                 depthWrite={false}
+                depthTest={false}
                 side={2} /* DoubleSide */
               />
             </mesh>
@@ -103,12 +104,13 @@ const BulbRenderer: React.FC<BulbRendererProps> = React.memo(
               <mesh position={[0, 0.45 * overlayScale, 0]}>
                 <circleGeometry args={[0.12 * overlayScale, 12]} />
                 <meshStandardMaterial
-                  color={isActive ? '#FFFFFF' : '#333333'}
-                  emissive={isActive ? '#FFFFFF' : '#111111'}
-                  emissiveIntensity={isActive ? 0.6 : 0.02}
+                  color="#111111"
+                  emissive="#000000"
+                  emissiveIntensity={0}
                   transparent
-                  opacity={isActive ? 1.0 : 0.3}
+                  opacity={isActive ? 0.85 : 0.3}
                   depthWrite={false}
+                  depthTest={false}
                   side={2}
                 />
               </mesh>

@@ -6,6 +6,8 @@ import {
   createArrowUpShape,
   createArrowLeftShape,
   createArrowRightShape,
+  createArrowUpLeftShape,
+  createArrowUpRightShape,
   createPedestrianStopShape,
   createPedestrianGoShape,
 } from '../../utils/signal-shapes.js';
@@ -27,6 +29,26 @@ describe('arrow shape factories', () => {
     const shape = createArrowRightShape();
     expect(shape).toBeInstanceOf(THREE.Shape);
     expect(shape.getPoints().length).toBeGreaterThan(3);
+  });
+});
+
+describe('combined arrow shapes (single continuous path)', () => {
+  it('createArrowUpLeftShape returns a valid Shape without holes', () => {
+    const shape = createArrowUpLeftShape();
+    expect(shape).toBeInstanceOf(THREE.Shape);
+    expect(shape.getPoints().length).toBeGreaterThan(5);
+    expect(shape.holes).toHaveLength(0);
+    const geo = new THREE.ShapeGeometry(shape);
+    expect(geo.attributes.position.count).toBeGreaterThan(3);
+  });
+
+  it('createArrowUpRightShape returns a valid Shape without holes', () => {
+    const shape = createArrowUpRightShape();
+    expect(shape).toBeInstanceOf(THREE.Shape);
+    expect(shape.getPoints().length).toBeGreaterThan(5);
+    expect(shape.holes).toHaveLength(0);
+    const geo = new THREE.ShapeGeometry(shape);
+    expect(geo.attributes.position.count).toBeGreaterThan(3);
   });
 });
 
