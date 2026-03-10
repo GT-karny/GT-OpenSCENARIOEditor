@@ -225,30 +225,35 @@ export function createArrowComplexShape(): THREE.Shape {
 /** Standing person silhouette (red signal — stop) */
 export function createPedestrianStopShape(): THREE.Shape {
   const shape = new THREE.Shape();
-  // Standing figure — arms at sides, legs together
-  // Body
-  shape.moveTo(-0.1, 0.22);
-  shape.lineTo(-0.1, -0.05);
-  // Left arm
-  shape.lineTo(-0.22, -0.15);
-  shape.lineTo(-0.18, -0.2);
-  shape.lineTo(-0.1, -0.12);
+  // Standing figure — arms at sides, legs slightly apart
+  // Start at left shoulder
+  shape.moveTo(-0.12, 0.22);
+  // Down left side of torso to shoulder
+  shape.lineTo(-0.12, 0.15);
+  // Left arm — from shoulder, angled down and out
+  shape.lineTo(-0.38, -0.04);
+  shape.lineTo(-0.34, -0.10);
+  // Back to torso at armpit level
+  shape.lineTo(-0.12, 0.06);
+  // Down to hip
+  shape.lineTo(-0.10, -0.08);
   // Left leg
-  shape.lineTo(-0.1, -0.2);
-  shape.lineTo(-0.15, -0.55);
-  shape.lineTo(-0.08, -0.55);
-  shape.lineTo(0, -0.25);
+  shape.lineTo(-0.16, -0.55);
+  shape.lineTo(-0.09, -0.55);
+  shape.lineTo(0, -0.18);
   // Right leg
-  shape.lineTo(0.08, -0.55);
-  shape.lineTo(0.15, -0.55);
-  shape.lineTo(0.1, -0.2);
-  // Right arm
-  shape.lineTo(0.1, -0.12);
-  shape.lineTo(0.18, -0.2);
-  shape.lineTo(0.22, -0.15);
-  shape.lineTo(0.1, -0.05);
-  // Close torso
-  shape.lineTo(0.1, 0.22);
+  shape.lineTo(0.09, -0.55);
+  shape.lineTo(0.16, -0.55);
+  shape.lineTo(0.10, -0.08);
+  // Up right side to armpit
+  shape.lineTo(0.12, 0.06);
+  // Right arm — from shoulder, angled down and out
+  shape.lineTo(0.34, -0.10);
+  shape.lineTo(0.38, -0.04);
+  // Back to right shoulder
+  shape.lineTo(0.12, 0.15);
+  // Close at neck
+  shape.lineTo(0.12, 0.22);
   shape.closePath();
   return shape;
 }
@@ -256,29 +261,34 @@ export function createPedestrianStopShape(): THREE.Shape {
 /** Walking person silhouette (green signal — go) */
 export function createPedestrianGoShape(): THREE.Shape {
   const shape = new THREE.Shape();
-  // Walking figure — legs apart in stride, arms swinging
-  // Torso
+  // Walking figure — legs in stride, arms swinging dynamically
+  // Start at left shoulder
   shape.moveTo(-0.06, 0.22);
-  shape.lineTo(-0.08, 0.05);
-  // Left arm forward
-  shape.lineTo(-0.28, -0.1);
-  shape.lineTo(-0.24, -0.15);
-  shape.lineTo(-0.08, -0.02);
+  // Down left side to shoulder
+  shape.lineTo(-0.10, 0.15);
+  // Left arm forward — from shoulder, reaching forward-down
+  shape.lineTo(-0.40, -0.06);
+  shape.lineTo(-0.36, -0.12);
+  // Back to torso at armpit
+  shape.lineTo(-0.10, 0.06);
+  // Down to hip
+  shape.lineTo(-0.08, -0.08);
   // Left leg forward (stride)
-  shape.lineTo(-0.12, -0.15);
   shape.lineTo(-0.25, -0.55);
   shape.lineTo(-0.18, -0.55);
-  shape.lineTo(-0.02, -0.2);
+  shape.lineTo(-0.02, -0.18);
   // Right leg back
-  shape.lineTo(0.1, -0.55);
-  shape.lineTo(0.17, -0.55);
-  shape.lineTo(0.08, -0.15);
-  shape.lineTo(0.08, -0.02);
-  // Right arm back
-  shape.lineTo(0.24, -0.15);
-  shape.lineTo(0.28, -0.1);
-  shape.lineTo(0.08, 0.05);
-  // Close torso
+  shape.lineTo(0.12, -0.55);
+  shape.lineTo(0.19, -0.55);
+  shape.lineTo(0.08, -0.08);
+  // Up right side to armpit
+  shape.lineTo(0.10, 0.06);
+  // Right arm back — from shoulder, reaching back-down
+  shape.lineTo(0.36, -0.12);
+  shape.lineTo(0.40, -0.06);
+  // Back to right shoulder
+  shape.lineTo(0.10, 0.15);
+  // Close at neck
   shape.lineTo(0.06, 0.22);
   shape.closePath();
   return shape;

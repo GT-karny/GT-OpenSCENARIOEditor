@@ -71,8 +71,8 @@ const BulbRenderer: React.FC<BulbRendererProps> = React.memo(
 
     return (
       <group position={[housingDepth / 2 + 0.01, 0, offset]}>
-        {/* Base sphere */}
-        <mesh>
+        {/* Base lens (flattened sphere) */}
+        <mesh scale={[0.45, 1, 1]}>
           <sphereGeometry args={[radius, 16, 12]} />
           <meshStandardMaterial
             color={color}
@@ -84,7 +84,7 @@ const BulbRenderer: React.FC<BulbRendererProps> = React.memo(
 
         {/* Shape overlay (arrow, silhouette) */}
         {overlayShape && (
-          <group position={[radius + 0.001, 0, 0]} rotation={[Math.PI / 2, Math.PI / 2, 0]}>
+          <group position={[radius * 0.45 + 0.001, 0, 0]} rotation={[Math.PI / 2, Math.PI / 2, 0]}>
             <mesh scale={[overlayScale, overlayScale, 1]}>
               <shapeGeometry args={[overlayShape]} />
               <meshStandardMaterial
