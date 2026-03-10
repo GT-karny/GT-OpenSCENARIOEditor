@@ -51,6 +51,11 @@ export interface WasmConditionEvent {
   timestamp: number;
 }
 
+export interface WasmTrafficLightState {
+  id: number;
+  state: string;
+}
+
 export interface WasmOpenScenarioConfig {
   max_loop: number;
   min_time_step: number;
@@ -119,6 +124,7 @@ export type WorkerResponse =
       objects: WasmScenarioObjectState[];
       storyBoardEvents: WasmStoryBoardEvent[];
       conditionEvents: WasmConditionEvent[];
+      trafficLightStates: WasmTrafficLightState[];
       isComplete: boolean;
     }
   | {
@@ -127,7 +133,7 @@ export type WorkerResponse =
     }
   | {
       type: 'batch-completed';
-      frames: Array<{ simulationTime: number; objects: WasmScenarioObjectState[] }>;
+      frames: Array<{ simulationTime: number; objects: WasmScenarioObjectState[]; trafficLightStates: WasmTrafficLightState[] }>;
       storyBoardEvents: WasmStoryBoardEvent[];
       conditionEvents: WasmConditionEvent[];
       duration: number;

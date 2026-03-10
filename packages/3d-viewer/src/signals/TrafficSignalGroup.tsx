@@ -4,7 +4,7 @@
  */
 
 import React, { useMemo } from 'react';
-import type { OpenDriveDocument, OdrSignal, OdrRoad } from '@osce/shared';
+import type { OpenDriveDocument, OdrSignal, OdrRoad, SimulationFrame } from '@osce/shared';
 import type { WorldCoords } from '../utils/position-resolver.js';
 import type { SignalCategory } from '../utils/signal-geometry.js';
 import { classifySignal } from '../utils/signal-geometry.js';
@@ -24,10 +24,21 @@ interface TrafficSignalGroupProps {
   showLabels: boolean;
   selectedSignalKey?: string | null;
   onSignalSelect?: (key: string) => void;
+  currentFrame?: SimulationFrame | null;
 }
 
 export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
-  ({ openDriveDocument, showLabels, selectedSignalKey, onSignalSelect }) => {
+  ({ openDriveDocument, showLabels, selectedSignalKey, onSignalSelect, currentFrame }) => {
+    // Build signal ID → state string map from current simulation frame
+    const signalStateMap = useMemo(() => {
+      const map = new Map<string, string>();
+      if (!currentFrame?.trafficLightStates) return map;
+      for (const tl of currentFrame.trafficLightStates) {
+        map.set(String(tl.signalId), tl.state);
+      }
+      return map;
+    }, [currentFrame?.trafficLightStates]);
+
     const resolvedSignals = useMemo(() => {
       if (!openDriveDocument) return [];
 
@@ -61,6 +72,7 @@ export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
             showLabel={showLabels}
             isSelected={rs.key === selectedSignalKey}
             onClick={() => onSignalSelect?.(rs.key)}
+            activeState={signalStateMap.get(rs.signal.id)}
           />
         ))}
       </group>

@@ -52,6 +52,7 @@ const SAMPLE_SCENARIOS = [
   'lane_change.xosc',
   'highway_merge.xosc',
   'pedestrian.xosc',
+  'traffic_lights.xosc',
 ];
 
 /** .xodr road files referenced by the sample scenarios */
@@ -60,6 +61,7 @@ const SAMPLE_ROADS = [
   'jolengatan.xodr',
   'soderleden.xodr',
   'fabriksgatan.xodr',
+  'fabriksgatan_traffic_lights.xodr',
   'straight_500m.xodr',
 ];
 

@@ -66,8 +66,8 @@ export const TrafficSignalEntity: React.FC<TrafficSignalEntityProps> = React.mem
         position={[position.x, position.y, position.z - signalHeight]}
         rotation={[position.pitch ?? 0, position.roll ?? 0, position.h]}
       >
-        {/* Pole: from ground up to signal head */}
-        <mesh position={[0, 0, poleHeight / 2]}>
+        {/* Pole: from ground up to signal head (cylinderGeometry is Y-aligned, rotate to Z-up) */}
+        <mesh position={[0, 0, poleHeight / 2]} rotation={[Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[POLE_RADIUS, POLE_RADIUS, poleHeight, 8]} />
           <meshStandardMaterial color={POLE_COLOR} roughness={0.8} />
         </mesh>

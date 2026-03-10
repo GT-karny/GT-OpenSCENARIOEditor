@@ -37,9 +37,11 @@ export function resolveSignalPosition(
   // 3. Convert (s, t) to world XY, with z = ground elevation + zOffset
   const worldPos = stToXyz(pose, signal.t, zBase + zOffset);
 
-  // 4. Compute heading: road heading + hOffset, flip if orientation == '-'
+  // 4. Compute heading: signal faces oncoming traffic.
+  //    orientation '+' (default) = applies to +s traffic → face against road direction (+π)
+  //    orientation '-' = applies to -s traffic → face with road direction (no flip)
   let h = pose.hdg + (signal.hOffset ?? 0);
-  if (signal.orientation === '-') {
+  if (signal.orientation !== '-') {
     h += Math.PI;
   }
 

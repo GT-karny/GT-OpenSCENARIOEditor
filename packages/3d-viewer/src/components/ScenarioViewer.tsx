@@ -317,6 +317,7 @@ function ScenarioViewerScene({
           showLabels={showEntityLabels}
           selectedSignalKey={selectedSignalKey}
           onSignalSelect={onSignalSelect}
+          currentFrame={currentFrame}
         />
       )}
 

@@ -48,16 +48,16 @@ describe('resolveSignalPosition', () => {
     expect(result!.x).toBeCloseTo(10, 1); // s=10, straight road at hdg=0
     expect(result!.y).toBeCloseTo(3, 1); // t=3, perpendicular offset
     expect(result!.z).toBeCloseTo(5, 1); // zOffset=5, no elevation
-    expect(result!.h).toBeCloseTo(0, 5); // road heading = 0, no hOffset
+    expect(result!.h).toBeCloseTo(Math.PI, 5); // orientation '+' faces against road dir
   });
 
-  it('flips heading for orientation -', () => {
+  it('keeps heading for orientation -', () => {
     const road = makeStraightRoad(100);
     const signal = makeSignal({ orientation: '-' });
 
     const result = resolveSignalPosition(signal, road);
     expect(result).not.toBeNull();
-    expect(result!.h).toBeCloseTo(Math.PI, 5);
+    expect(result!.h).toBeCloseTo(0, 5); // orientation '-' faces with road dir
   });
 
   it('applies hOffset', () => {
@@ -66,7 +66,7 @@ describe('resolveSignalPosition', () => {
 
     const result = resolveSignalPosition(signal, road);
     expect(result).not.toBeNull();
-    expect(result!.h).toBeCloseTo(Math.PI / 4, 5);
+    expect(result!.h).toBeCloseTo(Math.PI / 4 + Math.PI, 5); // hOffset + π
   });
 
   it('returns null for s out of range', () => {
