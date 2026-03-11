@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import type {
   Trigger,
   Condition,
@@ -7,13 +8,20 @@ import type {
   EntityCondition,
   ValueCondition,
 } from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { ParameterAwareInput } from './ParameterAwareInput';
 import { EnumSelect } from './EnumSelect';
 import { PositionEditor } from './PositionEditor';
 import { defaultEntityConditionByType, defaultValueConditionByType } from '@osce/scenario-engine';
-import { CONDITION_EDGES, RULES, ENTITY_CONDITION_TYPES, VALUE_CONDITION_TYPES } from '../../constants/osc-enum-values';
+import {
+  CONDITION_EDGES,
+  RULES,
+  ENTITY_CONDITION_TYPES,
+  CONDITION_SUBCATEGORIES,
+} from '../../constants/osc-enum-values';
+import { cn } from '@/lib/utils';
 import { GenericConditionEditor } from './conditions/GenericConditionEditor';
 import { SimulationTimeConditionEditor } from './conditions/SimulationTimeConditionEditor';
 import { TimeHeadwayConditionEditor } from './conditions/TimeHeadwayConditionEditor';
@@ -30,6 +38,12 @@ import { StoryboardElementStateConditionEditor } from './conditions/StoryboardEl
 import { TimeToCollisionConditionEditor } from './conditions/TimeToCollisionConditionEditor';
 import { TrafficSignalConditionEditor } from './conditions/TrafficSignalConditionEditor';
 import { TrafficSignalControllerConditionEditor } from './conditions/TrafficSignalControllerConditionEditor';
+import { RelativeDistanceConditionEditor } from './conditions/RelativeDistanceConditionEditor';
+import { EndOfRoadConditionEditor } from './conditions/EndOfRoadConditionEditor';
+import { CollisionConditionEditor } from './conditions/CollisionConditionEditor';
+import { OffroadConditionEditor } from './conditions/OffroadConditionEditor';
+import { RelativeClearanceConditionEditor } from './conditions/RelativeClearanceConditionEditor';
+import { UserDefinedValueConditionEditor } from './conditions/UserDefinedValueConditionEditor';
 
 // Condition types that have dedicated editors (suppress shared rule/position editors)
 const DEDICATED_EDITOR_TYPES = new Set([
@@ -48,7 +62,24 @@ const DEDICATED_EDITOR_TYPES = new Set([
   'variable',
   'trafficSignal',
   'trafficSignalController',
+  'relativeDistance',
+  'endOfRoad',
+  'collision',
+  'offroad',
+  'relativeClearance',
+  'userDefinedValue',
 ]);
+
+function detectSubcategory(type: string): string {
+  for (const sub of CONDITION_SUBCATEGORIES) {
+    if ((sub.types as readonly string[]).includes(type)) return sub.key;
+  }
+  return CONDITION_SUBCATEGORIES[0].key;
+}
+
+function isEntityConditionType(type: string): boolean {
+  return (ENTITY_CONDITION_TYPES as readonly string[]).includes(type);
+}
 
 interface ConditionPropertyEditorProps {
   trigger: Trigger;
@@ -85,24 +116,44 @@ interface ConditionItemProps {
 }
 
 export function ConditionItem({ condition, onUpdateCondition }: ConditionItemProps) {
+  const { t } = useTranslation('openscenario');
+
   const handleConditionEdgeChange = (value: string) => {
     onUpdateCondition(condition.id, {
       conditionEdge: value as Condition['conditionEdge'],
     });
   };
 
-  const handleKindChange = (newKind: string) => {
+  const conditionType = (() => {
+    const inner = condition.condition;
+    if (inner.kind === 'byEntity') return inner.entityCondition.type;
+    return inner.valueCondition.type;
+  })();
+
+  const subcategory = detectSubcategory(conditionType);
+
+  const typeList = useMemo(() => {
+    const sub = CONDITION_SUBCATEGORIES.find((s) => s.key === subcategory);
+    return sub ? ([...sub.types] as string[]) : [];
+  }, [subcategory]);
+
+  const handleConditionTypeChange = (newType: string) => {
+    if (newType === conditionType) return;
     let newConditionBody: ByEntityCondition | ByValueCondition;
-    if (newKind === 'byEntity') {
+    if (isEntityConditionType(newType)) {
+      const existingEntities =
+        condition.condition.kind === 'byEntity'
+          ? condition.condition.triggeringEntities
+          : { triggeringEntitiesRule: 'any' as const, entityRefs: [] as string[] };
       newConditionBody = {
         kind: 'byEntity',
-        triggeringEntities: { triggeringEntitiesRule: 'any', entityRefs: [] },
-        entityCondition: defaultEntityConditionByType('speed'),
+        triggeringEntities: existingEntities,
+        entityCondition: defaultEntityConditionByType(newType as EntityCondition['type']),
       };
     } else {
       newConditionBody = {
         kind: 'byValue',
-        valueCondition: defaultValueConditionByType('simulationTime'),
+        valueCondition: defaultValueConditionByType(newType as ValueCondition['type']),
       };
     }
     onUpdateCondition(condition.id, {
@@ -110,23 +161,12 @@ export function ConditionItem({ condition, onUpdateCondition }: ConditionItemPro
     } as Partial<Condition>);
   };
 
-  const handleConditionTypeChange = (newType: string) => {
-    const inner = condition.condition;
-    let newConditionBody: ByEntityCondition | ByValueCondition;
-    if (inner.kind === 'byEntity') {
-      newConditionBody = {
-        ...inner,
-        entityCondition: defaultEntityConditionByType(newType as EntityCondition['type']),
-      } as ByEntityCondition;
-    } else {
-      newConditionBody = {
-        ...inner,
-        valueCondition: defaultValueConditionByType(newType as ValueCondition['type']),
-      } as ByValueCondition;
+  const handleSubcategoryChange = (newSubKey: string) => {
+    if (newSubKey === subcategory) return;
+    const sub = CONDITION_SUBCATEGORIES.find((s) => s.key === newSubKey);
+    if (sub) {
+      handleConditionTypeChange(sub.types[0]);
     }
-    onUpdateCondition(condition.id, {
-      condition: newConditionBody,
-    } as Partial<Condition>);
   };
 
   const handleRuleChange = (value: string) => {
@@ -156,16 +196,16 @@ export function ConditionItem({ condition, onUpdateCondition }: ConditionItemPro
 
   const handlePositionChange = (newPosition: Position) => {
     const inner = condition.condition;
-    if (inner.kind === 'byEntity') {
-      const entityCondition = inner.entityCondition;
-      if ('position' in entityCondition) {
-        onUpdateCondition(condition.id, {
-          condition: {
-            ...inner,
-            entityCondition: { ...entityCondition, position: newPosition },
-          },
-        } as Partial<Condition>);
-      }
+    if (inner.kind !== 'byEntity') return;
+
+    const entityCondition = inner.entityCondition;
+    if ('position' in entityCondition) {
+      onUpdateCondition(condition.id, {
+        condition: {
+          ...inner,
+          entityCondition: { ...entityCondition, position: newPosition },
+        },
+      } as Partial<Condition>);
     }
   };
 
@@ -190,19 +230,6 @@ export function ConditionItem({ condition, onUpdateCondition }: ConditionItemPro
     }
     return undefined;
   })();
-
-  const conditionKind = condition.condition.kind;
-
-  const conditionType = (() => {
-    const inner = condition.condition;
-    if (inner.kind === 'byEntity') return inner.entityCondition.type;
-    return inner.valueCondition.type;
-  })();
-
-  const typeOptions =
-    conditionKind === 'byEntity'
-      ? ([...ENTITY_CONDITION_TYPES] as string[])
-      : ([...VALUE_CONDITION_TYPES] as string[]);
 
   // Only show generic position editor for conditions without a dedicated editor
   const conditionPosition = DEDICATED_EDITOR_TYPES.has(conditionType)
@@ -255,6 +282,24 @@ export function ConditionItem({ condition, onUpdateCondition }: ConditionItemPro
     if (conditionType === 'trafficSignalController') {
       return <TrafficSignalControllerConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
     }
+    if (conditionType === 'relativeDistance') {
+      return <RelativeDistanceConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
+    }
+    if (conditionType === 'endOfRoad') {
+      return <EndOfRoadConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
+    }
+    if (conditionType === 'collision') {
+      return <CollisionConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
+    }
+    if (conditionType === 'offroad') {
+      return <OffroadConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
+    }
+    if (conditionType === 'relativeClearance') {
+      return <RelativeClearanceConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
+    }
+    if (conditionType === 'userDefinedValue') {
+      return <UserDefinedValueConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
+    }
     return <GenericConditionEditor condition={condition} onUpdate={onUpdateCondition} />;
   };
 
@@ -291,24 +336,53 @@ export function ConditionItem({ condition, onUpdateCondition }: ConditionItemPro
         />
       </div>
 
-      <div className="grid gap-1">
-        <Label className="text-xs">Kind</Label>
-        <EnumSelect
-          value={conditionKind}
-          options={['byEntity', 'byValue']}
-          onValueChange={handleKindChange}
-          className="h-8 text-sm"
-        />
+      {/* Subcategory — SegmentedControl tabs */}
+      <div className="grid gap-1.5">
+        <Label className="text-xs">Category</Label>
+        <div className="flex flex-wrap gap-0.5">
+          {CONDITION_SUBCATEGORIES.map((sub) => (
+            <button
+              key={sub.key}
+              type="button"
+              onClick={() => handleSubcategoryChange(sub.key)}
+              className={cn(
+                'px-2 py-1 text-xs transition-all',
+                subcategory === sub.key
+                  ? 'glass-item selected'
+                  : 'text-muted-foreground hover:text-foreground border border-transparent hover:border-[var(--color-glass-edge-mid)]',
+              )}
+            >
+              {t(`conditionSubcategories.${sub.key}` as never)}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="grid gap-1">
+      {/* Type list — flat buttons with descriptions */}
+      <div className="grid gap-1.5">
         <Label className="text-xs">Type</Label>
-        <EnumSelect
-          value={conditionType}
-          options={typeOptions}
-          onValueChange={handleConditionTypeChange}
-          className="h-8 text-sm"
-        />
+        <div className="mx-4 flex flex-col divide-y divide-border border border-border bg-[var(--color-glass-1)] shadow-[inset_0_2px_6px_rgba(0,0,0,0.4)]">
+          {typeList.map((type) => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => handleConditionTypeChange(type)}
+              className={cn(
+                'px-3 py-1.5 text-left transition-all',
+                conditionType === type
+                  ? 'glass-item selected'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted',
+              )}
+            >
+              <span className={cn('text-xs', conditionType === type && 'font-medium')}>
+                {t(`conditionType.${type}` as never)}
+              </span>
+              <span className="block text-[10px] text-muted-foreground mt-0.5">
+                {t(`conditionDescription.${type}` as never)}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {hasRule && currentRule !== undefined && !DEDICATED_EDITOR_TYPES.has(conditionType) && (

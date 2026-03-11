@@ -213,3 +213,14 @@ export const VALUE_CONDITION_TYPES = [
   'trafficSignalController',
   'userDefinedValue',
 ] as const;
+
+export const CONDITION_SUBCATEGORIES = [
+  { key: 'distance', types: ['distance', 'relativeDistance', 'reachPosition'] },
+  { key: 'time', types: ['timeHeadway', 'timeToCollision', 'simulationTime'] },
+  { key: 'motion', types: ['speed', 'relativeSpeed', 'acceleration'] },
+  { key: 'travel', types: ['standStill', 'traveledDistance', 'endOfRoad'] },
+  { key: 'interaction', types: ['collision', 'offroad', 'relativeClearance'] },
+  { key: 'signal', types: ['trafficSignal', 'trafficSignalController'] },
+  { key: 'storyboard', types: ['storyboardElementState'] },
+  { key: 'data', types: ['parameter', 'variable', 'userDefinedValue'] },
+] as const;
