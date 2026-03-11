@@ -146,6 +146,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       resolveCatalogRoute={props.resolveCatalogRoute}
       selectedSignalKey={props.selectedSignalKey}
       onSignalSelect={props.onSignalSelect}
+      showPerf={false}
       className="h-full w-full"
     />
   );

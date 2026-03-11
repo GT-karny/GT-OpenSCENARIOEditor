@@ -2,9 +2,12 @@
  * Renders a single non-traffic-light signal entity (stop, speed limit, generic).
  * Poles and traffic light heads are handled by InstancedPoles / InstancedTrafficLights.
  * This component is only used for the few non-instanced signal types.
+ *
+ * Hover/click detection is handled externally by SignalHoverHandler via manual
+ * raycasting. The signal key is stored in group.userData.signalKey for lookup.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useMemo } from 'react';
 import { Outlines } from '@react-three/drei';
 import type { OdrSignal } from '@osce/shared';
 import type { WorldCoords } from '../utils/position-resolver.js';
@@ -20,34 +23,17 @@ interface TrafficSignalEntityProps {
   category: SignalCategory;
   showLabel: boolean;
   isSelected?: boolean;
-  onClick?: () => void;
+  isHovered?: boolean;
+  /** Signal key used for manual raycast lookup (stored in userData) */
+  signalKey: string;
 }
 
 export const TrafficSignalEntity: React.FC<TrafficSignalEntityProps> = React.memo(
-  ({ signal, position, category, isSelected, onClick }) => {
-    const [isHovered, setIsHovered] = useState(false);
+  ({ signal, position, category, isSelected, isHovered, signalKey }) => {
     const signalHeight = signal.zOffset ?? DEFAULT_SIGNAL_HEIGHT;
     const poleHeight = signalHeight;
 
-    const handleClick = useCallback(
-      (e: { stopPropagation: () => void }) => {
-        e.stopPropagation();
-        onClick?.();
-      },
-      [onClick],
-    );
-
-    const handlePointerOver = useCallback(
-      (e: { stopPropagation: () => void }) => {
-        e.stopPropagation();
-        setIsHovered(true);
-      },
-      [],
-    );
-
-    const handlePointerOut = useCallback(() => {
-      setIsHovered(false);
-    }, []);
+    const userData = useMemo(() => ({ signalKey }), [signalKey]);
 
     return (
       <group
@@ -55,12 +41,7 @@ export const TrafficSignalEntity: React.FC<TrafficSignalEntityProps> = React.mem
         rotation={[position.pitch ?? 0, position.roll ?? 0, position.h]}
       >
         {/* Signal head: positioned at top of pole (pole is rendered by InstancedPoles) */}
-        <group
-          position={[0, 0, poleHeight]}
-          onClick={handleClick}
-          onPointerOver={handlePointerOver}
-          onPointerOut={handlePointerOut}
-        >
+        <group position={[0, 0, poleHeight]} userData={userData}>
           {category === 'stopSign' && (
             <group rotation={[Math.PI / 2, 0, 0]}>
               <StopSignSignal />

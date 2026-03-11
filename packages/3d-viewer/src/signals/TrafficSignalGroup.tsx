@@ -3,9 +3,13 @@
  *
  * Uses InstancedMesh for poles and traffic light heads to minimize draw calls.
  * Non-traffic-light signals (stop, speed limit, generic) are rendered individually.
+ *
+ * Click detection uses a single manual raycaster (SignalHoverHandler) that only
+ * fires on actual clicks — no per-frame hover raycasting for better performance.
  */
 
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useRef } from 'react';
+import type * as THREE from 'three';
 import type { OpenDriveDocument, OdrSignal, OdrRoad, SimulationFrame } from '@osce/shared';
 import type { WorldCoords } from '../utils/position-resolver.js';
 import type { SignalCategory } from '../utils/signal-geometry.js';
@@ -18,6 +22,7 @@ import { InstancedTrafficLights } from './InstancedTrafficLights.js';
 import { SignalSelectionOverlay } from './SignalSelectionOverlay.js';
 import { TrafficSignalEntity } from './TrafficSignalEntity.js';
 import { SignalLabel } from './SignalLabel.js';
+import { SignalHoverHandler } from './SignalHoverHandler.js';
 
 export interface ResolvedSignal {
   key: string;
@@ -37,7 +42,7 @@ interface TrafficSignalGroupProps {
 
 export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
   ({ openDriveDocument, showLabels, selectedSignalKey, onSignalSelect, currentFrame }) => {
-    const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+    const signalGroupRef = useRef<THREE.Group>(null);
 
     // Build signal ID → state string map from current simulation frame
     const signalStateMap = useMemo(() => {
@@ -92,19 +97,20 @@ export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
       return map;
     }, [resolvedSignals]);
 
-    // The signal to show selection/hover overlay for (traffic lights only)
-    const overlayKey = selectedSignalKey ?? hoveredKey;
-    const overlaySignal = overlayKey ? signalByKey.get(overlayKey) : undefined;
+    // Selection overlay (selected signal only — no hover)
+    const overlaySignal = selectedSignalKey ? signalByKey.get(selectedSignalKey) : undefined;
     const showOverlay = overlaySignal?.category === 'trafficLight';
-
-    const handleHoverChange = useCallback((key: string | null) => {
-      setHoveredKey(key);
-    }, []);
 
     if (resolvedSignals.length === 0) return null;
 
     return (
-      <group rotation={[-Math.PI / 2, 0, 0]}>
+      <group rotation={[-Math.PI / 2, 0, 0]} ref={signalGroupRef}>
+        {/* Click-only handler (no per-frame hover raycasting) */}
+        <SignalHoverHandler
+          signalGroupRef={signalGroupRef}
+          onSignalSelect={onSignalSelect}
+        />
+
         {/* Instanced poles for ALL signals (1 draw call) */}
         <InstancedPoles signals={resolvedSignals} />
 
@@ -113,16 +119,14 @@ export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
           signals={trafficLightSignals}
           stateMap={signalStateMap}
           selectedKey={selectedSignalKey}
-          onSignalSelect={onSignalSelect}
-          onHoverChange={handleHoverChange}
         />
 
-        {/* Selection/hover overlay with Outlines (at most 1 signal) */}
+        {/* Selection overlay with Outlines (at most 1 signal) */}
         {showOverlay && overlaySignal && (
           <SignalSelectionOverlay
             signal={overlaySignal}
             activeState={signalStateMap.get(overlaySignal.signal.id)}
-            isSelected={overlayKey === selectedSignalKey}
+            isSelected
           />
         )}
 
@@ -135,7 +139,8 @@ export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
             category={rs.category}
             showLabel={false}
             isSelected={rs.key === selectedSignalKey}
-            onClick={() => onSignalSelect?.(rs.key)}
+            isHovered={false}
+            signalKey={rs.key}
           />
         ))}
 

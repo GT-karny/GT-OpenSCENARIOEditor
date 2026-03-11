@@ -1,10 +1,12 @@
 /**
  * Renders traffic light signal heads using InstancedMesh, grouped by visual key.
  * Signals with the same descriptor shape + activeState share one InstancedMesh.
- * Supports click and hover detection via R3F instanceId events.
+ *
+ * Hover/click detection is handled externally by SignalHoverHandler via manual
+ * raycasting. Signal keys are stored in mesh.userData.signalKeys for lookup.
  */
 
-import React, { useRef, useEffect, useMemo, useCallback } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import type { ResolvedSignal } from './TrafficSignalGroup.js';
 import type { SignalDescriptor } from '../utils/signal-catalog.js';
@@ -21,8 +23,6 @@ interface InstancedTrafficLightsProps {
   signals: ResolvedSignal[];
   stateMap: Map<string, string>;
   selectedKey?: string | null;
-  onSignalSelect?: (key: string) => void;
-  onHoverChange?: (key: string | null) => void;
 }
 
 interface TrafficLightEntry {
@@ -43,7 +43,7 @@ interface TextureGroup {
 // ---------------------------------------------------------------------------
 
 export const InstancedTrafficLights: React.FC<InstancedTrafficLightsProps> = React.memo(
-  ({ signals, stateMap, onSignalSelect, onHoverChange }) => {
+  ({ signals, stateMap }) => {
     // Build entries with resolved descriptors
     const entries = useMemo(() => {
       const result: TrafficLightEntry[] = [];
@@ -79,12 +79,7 @@ export const InstancedTrafficLights: React.FC<InstancedTrafficLightsProps> = Rea
     return (
       <>
         {groups.map((group) => (
-          <TrafficLightGroup
-            key={group.key}
-            group={group}
-            onSignalSelect={onSignalSelect}
-            onHoverChange={onHoverChange}
-          />
+          <TrafficLightGroup key={group.key} group={group} />
         ))}
       </>
     );
@@ -99,8 +94,6 @@ InstancedTrafficLights.displayName = 'InstancedTrafficLights';
 
 interface TrafficLightGroupProps {
   group: TextureGroup;
-  onSignalSelect?: (key: string) => void;
-  onHoverChange?: (key: string | null) => void;
 }
 
 // Reusable objects for matrix computation
@@ -111,7 +104,7 @@ const _qHeadRot = new THREE.Quaternion().setFromAxisAngle(
 );
 
 const TrafficLightGroup: React.FC<TrafficLightGroupProps> = React.memo(
-  ({ group, onSignalSelect, onHoverChange }) => {
+  ({ group }) => {
     const meshRef = useRef<THREE.InstancedMesh>(null);
     const { descriptor, activeState, entries } = group;
     const { housing } = descriptor;
@@ -169,31 +162,10 @@ const TrafficLightGroup: React.FC<TrafficLightGroupProps> = React.memo(
 
       mesh.instanceMatrix.needsUpdate = true;
       mesh.computeBoundingSphere();
+
+      // Store signal keys in userData for manual raycast lookup by SignalHoverHandler
+      mesh.userData.signalKeys = entries.map((e) => e.rs.key);
     }, [entries, descriptor]);
-
-    const handleClick = useCallback(
-      (e: { stopPropagation: () => void; instanceId?: number }) => {
-        e.stopPropagation();
-        if (e.instanceId != null && onSignalSelect) {
-          onSignalSelect(entries[e.instanceId].rs.key);
-        }
-      },
-      [entries, onSignalSelect],
-    );
-
-    const handlePointerOver = useCallback(
-      (e: { stopPropagation: () => void; instanceId?: number }) => {
-        e.stopPropagation();
-        if (e.instanceId != null && onHoverChange) {
-          onHoverChange(entries[e.instanceId].rs.key);
-        }
-      },
-      [entries, onHoverChange],
-    );
-
-    const handlePointerOut = useCallback(() => {
-      onHoverChange?.(null);
-    }, [onHoverChange]);
 
     if (entries.length === 0) return null;
 
@@ -203,9 +175,6 @@ const TrafficLightGroup: React.FC<TrafficLightGroupProps> = React.memo(
         args={[boxGeo, undefined, entries.length]}
         material={materials}
         frustumCulled={false}
-        onClick={handleClick}
-        onPointerOver={handlePointerOver}
-        onPointerOut={handlePointerOut}
       />
     );
   },

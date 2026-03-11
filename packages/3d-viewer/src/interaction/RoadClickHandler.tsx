@@ -51,24 +51,33 @@ export function RoadClickHandler({
 }: RoadClickHandlerProps) {
   const { camera, gl } = useThree();
 
-  // Track pointer position for NDC conversion
-  const pointerRef = useRef({ x: 0, y: 0 });
+  // Track pointer position (client coordinates — no getBoundingClientRect per event)
+  const pointerClientRef = useRef({ x: 0, y: 0 });
   const pointerDownRef = useRef({ x: 0, y: 0 });
   const lastHoverUpdateRef = useRef(0);
   const lastHoverInfoRef = useRef<{ roadId: string; laneId: number } | null>(null);
+  // Cached canvas rect — updated on resize, not per pointermove
+  const rectRef = useRef<DOMRect | null>(null);
 
-  // Track mouse position
   useEffect(() => {
     const canvas = gl.domElement;
+    rectRef.current = canvas.getBoundingClientRect();
 
     const handlePointerMove = (e: PointerEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      pointerRef.current.x = e.clientX - rect.left;
-      pointerRef.current.y = e.clientY - rect.top;
+      pointerClientRef.current.x = e.clientX;
+      pointerClientRef.current.y = e.clientY;
     };
 
-    canvas.addEventListener('pointermove', handlePointerMove);
-    return () => canvas.removeEventListener('pointermove', handlePointerMove);
+    const handleResize = () => {
+      rectRef.current = canvas.getBoundingClientRect();
+    };
+
+    canvas.addEventListener('pointermove', handlePointerMove, { passive: true });
+    window.addEventListener('resize', handleResize);
+    return () => {
+      canvas.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('resize', handleResize);
+    };
   }, [gl]);
 
   // Hover raycasting (throttled to every 3 frames)
@@ -86,10 +95,10 @@ export function RoadClickHandler({
     lastHoverUpdateRef.current++;
     if (lastHoverUpdateRef.current % 3 !== 0) return;
 
-    const canvas = gl.domElement;
-    const rect = canvas.getBoundingClientRect();
-    const px = pointerRef.current.x;
-    const py = pointerRef.current.y;
+    const rect = rectRef.current;
+    if (!rect) return;
+    const px = pointerClientRef.current.x - rect.left;
+    const py = pointerClientRef.current.y - rect.top;
 
     // Convert to NDC
     pointerNdc.x = (px / rect.width) * 2 - 1;
@@ -147,6 +156,7 @@ export function RoadClickHandler({
         worldY: osceY,
       });
     }
+
   });
 
   // Click detection via DOM events (avoids conflicts with OrbitControls)

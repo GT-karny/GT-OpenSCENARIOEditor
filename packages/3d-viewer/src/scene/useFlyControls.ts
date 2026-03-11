@@ -19,6 +19,11 @@ interface FlyControlsOptions {
   sprintMultiplier?: number;
 }
 
+// Reusable objects — avoid per-frame allocations that cause GC pressure
+const _forward = new THREE.Vector3();
+const _right = new THREE.Vector3();
+const _up = new THREE.Vector3(0, 1, 0);
+
 export function useFlyControls({
   orbitControlsRef,
   moveSpeed = 20,
@@ -72,10 +77,8 @@ export function useFlyControls({
         orbitControlsRef.current.enabled = true;
 
         // Sync OrbitControls target to where the camera is looking
-        const dir = new THREE.Vector3();
-        camera.getWorldDirection(dir);
-        const target = camera.position.clone().add(dir.multiplyScalar(30));
-        orbitControlsRef.current.target.copy(target);
+        camera.getWorldDirection(_forward);
+        orbitControlsRef.current.target.copy(camera.position).addScaledVector(_forward, 30);
         orbitControlsRef.current.update();
       }
 
@@ -121,7 +124,8 @@ export function useFlyControls({
     // Apply mouse look (yaw/pitch)
     const dx = mouseDeltaRef.current.x;
     const dy = mouseDeltaRef.current.y;
-    mouseDeltaRef.current = { x: 0, y: 0 };
+    mouseDeltaRef.current.x = 0;
+    mouseDeltaRef.current.y = 0;
 
     eulerRef.current.y -= dx * lookSensitivity;
     eulerRef.current.x -= dy * lookSensitivity;
@@ -130,20 +134,18 @@ export function useFlyControls({
 
     camera.quaternion.setFromEuler(eulerRef.current);
 
-    // Movement vectors
-    const forward = new THREE.Vector3();
-    camera.getWorldDirection(forward);
-    forward.y = 0;
-    forward.normalize();
+    // Movement vectors (reuse module-level objects to avoid GC pressure)
+    camera.getWorldDirection(_forward);
+    _forward.y = 0;
+    _forward.normalize();
 
-    const right = new THREE.Vector3();
-    right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+    _right.crossVectors(_forward, _up).normalize();
 
     // WASD movement
-    if (keys.has('w')) camera.position.addScaledVector(forward, speed);
-    if (keys.has('s')) camera.position.addScaledVector(forward, -speed);
-    if (keys.has('a')) camera.position.addScaledVector(right, -speed);
-    if (keys.has('d')) camera.position.addScaledVector(right, speed);
+    if (keys.has('w')) camera.position.addScaledVector(_forward, speed);
+    if (keys.has('s')) camera.position.addScaledVector(_forward, -speed);
+    if (keys.has('a')) camera.position.addScaledVector(_right, -speed);
+    if (keys.has('d')) camera.position.addScaledVector(_right, speed);
 
     // E/Q vertical movement
     if (keys.has('e')) camera.position.y += speed;

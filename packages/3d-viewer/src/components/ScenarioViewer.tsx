@@ -113,6 +113,8 @@ export interface ScenarioViewerProps {
   selectedSignalKey?: string | null;
   /** Callback when user clicks a traffic signal in the viewer */
   onSignalSelect?: (key: string) => void;
+  /** Show r3f-perf overlay for performance monitoring */
+  showPerf?: boolean;
 }
 
 /**
@@ -451,6 +453,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   resolveCatalogRoute,
   selectedSignalKey,
   onSignalSelect,
+  showPerf,
 }) => {
   const viewerStoreRef = useRef<ReturnType<typeof createViewerStore> | null>(null);
   if (!viewerStoreRef.current) {
@@ -612,7 +615,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
         />
       )}
 
-      <ViewerCanvas>
+      <ViewerCanvas showPerf={showPerf}>
         <ScenarioViewerScene
           scenarioStore={scenarioStore}
           openDriveDocument={openDriveDocument}

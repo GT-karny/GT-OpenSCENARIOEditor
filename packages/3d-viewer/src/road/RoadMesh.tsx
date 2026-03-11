@@ -4,21 +4,19 @@
  */
 
 import React, { useMemo } from 'react';
-import type { OdrRoad, RoadMeshData, RoadMarkMeshData } from '@osce/shared';
+import type { OdrRoad, RoadMeshData, RoadMarkMeshData, LaneMeshData } from '@osce/shared';
 import { buildRoadMarkMesh, generateSamplePoints } from '@osce/opendrive';
-import { LaneMesh } from './LaneMesh.js';
+import { MergedLaneMesh } from './MergedLaneMesh.js';
 import { RoadMarkLine } from './RoadMarkLine.js';
 
 interface RoadMeshProps {
   road: OdrRoad;
   roadMeshData: RoadMeshData;
   showRoadMarks?: boolean;
-  /** Ref-based lane highlight for hover feedback */
-  highlightedLaneRef?: React.RefObject<{ roadId: string; laneId: number } | null>;
 }
 
 export const RoadMesh: React.FC<RoadMeshProps> = React.memo(
-  ({ road, roadMeshData, showRoadMarks = true, highlightedLaneRef }) => {
+  ({ road, roadMeshData, showRoadMarks = true }) => {
     // Build road mark meshes from lane data
     const roadMarkMeshes = useMemo(() => {
       if (!showRoadMarks) return [];
@@ -90,19 +88,21 @@ export const RoadMesh: React.FC<RoadMeshProps> = React.memo(
       return marks;
     }, [road, showRoadMarks]);
 
+    // Flatten all lane mesh data across sections into a single array per road
+    const allLanes = useMemo(() => {
+      const lanes: LaneMeshData[] = [];
+      for (const section of roadMeshData.laneSections) {
+        for (const lane of section.lanes) {
+          lanes.push(lane);
+        }
+      }
+      return lanes;
+    }, [roadMeshData]);
+
     return (
       <group>
-        {/* Lane surface meshes */}
-        {roadMeshData.laneSections.map((section, sIdx) =>
-          section.lanes.map((lane) => (
-            <LaneMesh
-              key={`s${sIdx}-l${lane.laneId}`}
-              laneMesh={lane}
-              roadId={road.id}
-              highlightedLaneRef={highlightedLaneRef}
-            />
-          )),
-        )}
+        {/* All lanes merged into a single mesh with vertex colors */}
+        <MergedLaneMesh roadId={road.id} lanes={allLanes} />
 
         {/* Road markings */}
         {roadMarkMeshes.map((mark, idx) => (
