@@ -1,9 +1,9 @@
-import type { ScenarioAction, SpeedAction, SpeedTarget, TransitionDynamics } from '@osce/shared';
+import type { ScenarioAction, SpeedAction, SpeedTarget } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefSelect } from '../EntityRefSelect';
 import { EnumSelect } from '../EnumSelect';
-import { DYNAMICS_SHAPES } from '../../../constants/osc-enum-values';
+import { TransitionDynamicsEditor } from '../TransitionDynamicsEditor';
 
 interface SpeedActionEditorProps {
   action: ScenarioAction;
@@ -25,45 +25,6 @@ export function SpeedActionEditor({ action, onUpdate }: SpeedActionEditorProps) 
 
   return (
     <div className="space-y-3">
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Dynamics</p>
-        <div className="grid gap-1">
-          <Label className="text-xs">Shape</Label>
-          <EnumSelect
-            value={inner.dynamics.dynamicsShape}
-            options={DYNAMICS_SHAPES}
-            onValueChange={(v) =>
-              updateInner({ dynamics: { ...inner.dynamics, dynamicsShape: v as TransitionDynamics['dynamicsShape'] } })
-            }
-            className="h-8 text-sm"
-          />
-        </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Dimension</Label>
-          <EnumSelect
-            value={inner.dynamics.dynamicsDimension}
-            options={['distance', 'rate', 'time']}
-            onValueChange={(v) =>
-              updateInner({ dynamics: { ...inner.dynamics, dynamicsDimension: v as TransitionDynamics['dynamicsDimension'] } })
-            }
-            className="h-8 text-sm"
-          />
-        </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Value</Label>
-          <ParameterAwareInput
-            elementId={action.id}
-            fieldName="action.dynamics.value"
-            value={inner.dynamics.value}
-            onValueChange={(v) =>
-              updateInner({ dynamics: { ...inner.dynamics, value: parseFloat(v) || 0 } })
-            }
-            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
-            className="h-8 text-sm"
-          />
-        </div>
-      </div>
-
       <div className="space-y-2">
         <p className="text-xs font-medium text-muted-foreground">Target</p>
         <div className="grid gap-1">
@@ -149,6 +110,14 @@ export function SpeedActionEditor({ action, onUpdate }: SpeedActionEditorProps) 
           </>
         )}
       </div>
+
+      <TransitionDynamicsEditor
+        elementId={action.id}
+        fieldPrefix="action.dynamics"
+        dynamics={inner.dynamics}
+        onUpdate={(dynamics) => updateInner({ dynamics })}
+        unitMap={{ time: 's', distance: 'm', rate: 'm/s²' }}
+      />
     </div>
   );
 }

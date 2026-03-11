@@ -9,6 +9,7 @@ import type {
   PedestrianCategory,
   MiscObjectCategory,
   ConditionEdge,
+  DynamicsDimension,
   DynamicsShape,
   Rule,
   ControllerType,
@@ -88,6 +89,12 @@ export const DYNAMICS_SHAPES: readonly DynamicsShape[] = [
   'linear',
   'sinusoidal',
   'step',
+] as const;
+
+export const DYNAMICS_DIMENSIONS: readonly DynamicsDimension[] = [
+  'time',
+  'distance',
+  'rate',
 ] as const;
 
 export const RULES: readonly Rule[] = [
