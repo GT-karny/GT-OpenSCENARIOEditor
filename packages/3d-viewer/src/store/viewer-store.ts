@@ -33,6 +33,7 @@ export function createViewerStore(preferences?: Partial<EditorPreferences>) {
     showLaneIds: preferences?.showLaneIds ?? false,
     showRoadIds: preferences?.showRoadIds ?? false,
     showEntityLabels: true,
+    showTrafficSignals: true,
     playback: { ...DEFAULT_PLAYBACK },
 
     viewerMode: 'edit' as ViewerMode,
@@ -60,6 +61,7 @@ export function createViewerStore(preferences?: Partial<EditorPreferences>) {
     toggleLaneIds: () => set((s) => ({ showLaneIds: !s.showLaneIds })),
     toggleRoadIds: () => set((s) => ({ showRoadIds: !s.showRoadIds })),
     toggleEntityLabels: () => set((s) => ({ showEntityLabels: !s.showEntityLabels })),
+    toggleTrafficSignals: () => set((s) => ({ showTrafficSignals: !s.showTrafficSignals })),
 
     setPlaybackFrames: (frames: SimulationFrame[]) =>
       set({

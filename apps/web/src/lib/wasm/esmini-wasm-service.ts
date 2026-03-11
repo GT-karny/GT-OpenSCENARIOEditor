@@ -130,6 +130,10 @@ export class EsminiWasmService implements IEsminiService {
         const frame: SimulationFrame = {
           time: msg.simulationTime,
           objects: msg.objects.map(convertObjectState),
+          trafficLightStates: msg.trafficLightStates.map((tl) => ({
+            signalId: tl.id,
+            state: tl.state,
+          })),
         };
         this.frames.push(frame);
 
@@ -168,6 +172,10 @@ export class EsminiWasmService implements IEsminiService {
         const convertedFrames: SimulationFrame[] = msg.frames.map((f) => ({
           time: f.simulationTime,
           objects: f.objects.map(convertObjectState),
+          trafficLightStates: f.trafficLightStates.map((tl) => ({
+            signalId: tl.id,
+            state: tl.state,
+          })),
         }));
         this.frames = convertedFrames;
 

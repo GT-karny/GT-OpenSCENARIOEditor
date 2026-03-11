@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<!--
+  Signal Catalog Showcase
+  A straight road with every Phase 1 signal type placed along it for visual verification.
+  Signal types: 1000001, 1000002, 1000009, 1000011, 1000020, 1000008, 1000012
+-->
+<OpenDRIVE>
+    <header revMajor="1" revMinor="6" name="SignalCatalogShowcase" version="1.00"
+            date="2026-03-10" north="500" south="0" east="500" west="0">
+    </header>
+
+    <!-- Long straight road: 500m, 2 lanes each direction -->
+    <road rule="RHT" length="500.0" id="1" junction="-1">
+        <link/>
+        <type s="0.0" type="town" country="OpenDRIVE"/>
+        <planView>
+            <geometry s="0.0" x="0.0" y="50.0" hdg="0.0" length="500.0">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="0.0" a="0.0" b="0.0" c="0.0" d="0.0"/>
+        </elevationProfile>
+        <lateralProfile/>
+        <lanes>
+            <laneSection s="0.0">
+                <left>
+                    <lane id="2" type="sidewalk" level="false">
+                        <width sOffset="0.0" a="2.0" b="0.0" c="0.0" d="0.0"/>
+                        <height sOffset="0.0" inner="0.12" outer="0.12"/>
+                    </lane>
+                    <lane id="1" type="driving" level="false">
+                        <width sOffset="0.0" a="3.5" b="0.0" c="0.0" d="0.0"/>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" type="driving" level="false">
+                        <roadMark sOffset="0.0" type="solid" weight="standard" color="yellow" width="0.12"/>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <width sOffset="0.0" a="3.5" b="0.0" c="0.0" d="0.0"/>
+                    </lane>
+                    <lane id="-2" type="sidewalk" level="false">
+                        <width sOffset="0.0" a="2.0" b="0.0" c="0.0" d="0.0"/>
+                        <height sOffset="0.0" inner="0.12" outer="0.12"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+
+        <signals>
+            <!-- ============================================================ -->
+            <!-- GROUP 1: Standard 3-light signals (s=20m) -->
+            <!-- ============================================================ -->
+            <signal s="20.0" t="-6.0" id="101" name="Standard_3light"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000001" subtype="-1" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="1.0" width="0.4"/>
+
+            <!-- ============================================================ -->
+            <!-- GROUP 2: Pedestrian signals (s=50m) -->
+            <!-- ============================================================ -->
+            <!-- 1000002 default: 2-light pedestrian (red+green person) -->
+            <signal s="50.0" t="-6.0" id="201" name="Pedestrian_2light"
+                    dynamic="yes" orientation="+" zOffset="3.5"
+                    type="1000002" subtype="-1" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.7" width="0.4"/>
+
+            <!-- 1000002:10 Red-only pedestrian -->
+            <signal s="55.0" t="-6.0" id="202" name="Pedestrian_RedOnly"
+                    dynamic="yes" orientation="+" zOffset="3.5"
+                    type="1000002" subtype="10" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.4" width="0.4"/>
+
+            <!-- 1000002:20 Green-only pedestrian -->
+            <signal s="60.0" t="-6.0" id="203" name="Pedestrian_GreenOnly"
+                    dynamic="yes" orientation="+" zOffset="3.5"
+                    type="1000002" subtype="20" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.4" width="0.4"/>
+
+            <!-- ============================================================ -->
+            <!-- GROUP 3: 2-light combination signals (s=90m) -->
+            <!-- ============================================================ -->
+            <!-- 1000009:10 Red-Yellow -->
+            <signal s="90.0" t="-6.0" id="301" name="2light_RedYellow"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000009" subtype="10" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.7" width="0.4"/>
+
+            <!-- 1000009:20 Yellow-Green -->
+            <signal s="97.0" t="-6.0" id="302" name="2light_YellowGreen"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000009" subtype="20" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.7" width="0.4"/>
+
+            <!-- 1000009:30 Red-Green -->
+            <signal s="104.0" t="-6.0" id="303" name="2light_RedGreen"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000009" subtype="30" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.7" width="0.4"/>
+
+            <!-- ============================================================ -->
+            <!-- GROUP 4: Arrow 3-light signals (s=140m) -->
+            <!-- ============================================================ -->
+            <!-- 1000011:10 Left arrow 3-light -->
+            <signal s="140.0" t="-6.0" id="401" name="Arrow3_Left"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000011" subtype="10" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="1.0" width="0.4"/>
+
+            <!-- 1000011:20 Right arrow 3-light -->
+            <signal s="148.0" t="-6.0" id="402" name="Arrow3_Right"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000011" subtype="20" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="1.0" width="0.4"/>
+
+            <!-- 1000011:30 Straight arrow 3-light -->
+            <signal s="156.0" t="-6.0" id="403" name="Arrow3_Straight"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000011" subtype="30" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="1.0" width="0.4"/>
+
+            <!-- 1000011:40 Diagonal-left arrow 3-light -->
+            <signal s="164.0" t="-6.0" id="404" name="Arrow3_DiagLeft"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000011" subtype="40" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="1.0" width="0.4"/>
+
+            <!-- 1000011:50 Diagonal-right arrow 3-light -->
+            <signal s="172.0" t="-6.0" id="405" name="Arrow3_DiagRight"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000011" subtype="50" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="1.0" width="0.4"/>
+
+            <!-- ============================================================ -->
+            <!-- GROUP 5: Red single-bulb arrows (s=210m) - type 1000020 -->
+            <!-- ============================================================ -->
+            <!-- Dot -->
+            <signal s="210.0" t="-6.0" id="501" name="Red_Dot"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000020" subtype="-1" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.4" width="0.4"/>
+            <!-- Left -->
+            <signal s="216.0" t="-6.0" id="502" name="Red_Left"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000020" subtype="10" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.4" width="0.4"/>
+            <!-- Right -->
+            <signal s="222.0" t="-6.0" id="503" name="Red_Right"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000020" subtype="20" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.4" width="0.4"/>
+            <!-- Up -->
+            <signal s="228.0" t="-6.0" id="504" name="Red_Up"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000020" subtype="30" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.4" width="0.4"/>
+            <!-- Diagonal-left (up+left combo) -->
+            <signal s="234.0" t="-6.0" id="505" name="Red_UpLeft"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000020" subtype="40" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.4" width="0.4"/>
+            <!-- Diagonal-right (up+right combo) -->
+            <signal s="240.0" t="-6.0" id="506" name="Red_UpRight"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000020" subtype="50" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.4" width="0.4"/>
+            <!-- Turn left -->
+            <signal s="246.0" t="-6.0" id="507" name="Red_TurnLeft"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000020" subtype="60" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.4" width="0.4"/>
+            <!-- Diagonal right -->
+            <signal s="252.0" t="-6.0" id="508" name="Red_DiagRight"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000020" subtype="70" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.4" width="0.4"/>
+            <!-- U-turn -->
+            <signal s="258.0" t="-6.0" id="509" name="Red_Uturn"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000020" subtype="90" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.4" width="0.4"/>
+            <!-- Complex -->
+            <signal s="264.0" t="-6.0" id="510" name="Red_Complex"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000020" subtype="100" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.4" width="0.4"/>
+
+            <!-- ============================================================ -->
+            <!-- GROUP 6: Yellow single-bulb arrows (s=300m) - type 1000008 -->
+            <!-- ============================================================ -->
+            <signal s="300.0" t="-6.0" id="601" name="Yellow_Dot"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000008" subtype="-1" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.4" width="0.4"/>
+            <signal s="306.0" t="-6.0" id="602" name="Yellow_Left"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000008" subtype="10" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.4" width="0.4"/>
+            <signal s="312.0" t="-6.0" id="603" name="Yellow_Right"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000008" subtype="20" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.4" width="0.4"/>
+            <signal s="318.0" t="-6.0" id="604" name="Yellow_Up"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000008" subtype="30" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.4" width="0.4"/>
+            <signal s="324.0" t="-6.0" id="605" name="Yellow_TurnLeft"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000008" subtype="60" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.4" width="0.4"/>
+            <signal s="330.0" t="-6.0" id="606" name="Yellow_Uturn"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000008" subtype="90" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.4" width="0.4"/>
+
+            <!-- ============================================================ -->
+            <!-- GROUP 7: Green single-bulb arrows (s=370m) - type 1000012 -->
+            <!-- ============================================================ -->
+            <signal s="370.0" t="-6.0" id="701" name="Green_Dot"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000012" subtype="-1" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.4" width="0.4"/>
+            <signal s="376.0" t="-6.0" id="702" name="Green_Left"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000012" subtype="10" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.4" width="0.4"/>
+            <signal s="382.0" t="-6.0" id="703" name="Green_Right"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000012" subtype="20" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.4" width="0.4"/>
+            <signal s="388.0" t="-6.0" id="704" name="Green_Up"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000012" subtype="30" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.4" width="0.4"/>
+            <signal s="394.0" t="-6.0" id="705" name="Green_TurnLeft"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000012" subtype="60" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.4" width="0.4"/>
+            <signal s="400.0" t="-6.0" id="706" name="Green_Uturn"
+                    dynamic="yes" orientation="+" zOffset="4.0"
+                    type="1000012" subtype="90" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.4" width="0.4"/>
+
+            <!-- ============================================================ -->
+            <!-- Opposite side: same signals facing the other direction (t=+6) -->
+            <!-- Place a few key types on the left side for both-direction view -->
+            <!-- ============================================================ -->
+            <signal s="20.0" t="6.0" id="801" name="Opp_Standard_3light"
+                    dynamic="yes" orientation="-" zOffset="4.0"
+                    type="1000001" subtype="-1" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="1.0" width="0.4"/>
+
+            <signal s="50.0" t="6.0" id="802" name="Opp_Pedestrian_2light"
+                    dynamic="yes" orientation="-" zOffset="3.5"
+                    type="1000002" subtype="-1" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="0.7" width="0.4"/>
+
+            <signal s="140.0" t="6.0" id="803" name="Opp_Arrow3_Left"
+                    dynamic="yes" orientation="-" zOffset="4.0"
+                    type="1000011" subtype="10" country="OpenDRIVE"
+                    hOffset="0.0" pitch="0.0" roll="0.0"
+                    height="1.0" width="0.4"/>
+        </signals>
+    </road>
+</OpenDRIVE>

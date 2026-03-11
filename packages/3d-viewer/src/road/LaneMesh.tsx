@@ -1,25 +1,25 @@
 /**
  * Renders a single lane as a Three.js mesh using BufferGeometry.
  * Converts LaneMeshData (Float32Array vertices + Uint32Array indices) to a Three.js mesh.
- * Supports imperative lane highlighting via ref (no React re-renders).
+ *
+ * Lane highlighting is handled centrally by LaneHighlightManager — this component
+ * registers its mesh ref on mount and unregisters on unmount (no per-instance useFrame).
  */
 
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import * as THREE from 'three';
-import { useFrame } from '@react-three/fiber';
 import type { LaneMeshData } from '@osce/shared';
 import { getLaneColor } from '../utils/lane-type-colors.js';
+import { registerLaneMesh, unregisterLaneMesh } from './LaneHighlightManager.js';
 
 interface LaneMeshProps {
   laneMesh: LaneMeshData;
   /** Road ID this lane belongs to (for highlight matching) */
   roadId?: string;
-  /** Ref-based lane highlight — checked imperatively each frame */
-  highlightedLaneRef?: React.RefObject<{ roadId: string; laneId: number } | null>;
 }
 
 export const LaneMesh: React.FC<LaneMeshProps> = React.memo(
-  ({ laneMesh, roadId, highlightedLaneRef }) => {
+  ({ laneMesh, roadId }) => {
     const meshRef = useRef<THREE.Mesh>(null);
 
     const geometry = useMemo(() => {
@@ -35,20 +35,14 @@ export const LaneMesh: React.FC<LaneMeshProps> = React.memo(
 
     const color = useMemo(() => getLaneColor(laneMesh.laneType), [laneMesh.laneType]);
 
-    // Imperatively update emissive for lane highlight (no React re-renders)
-    useFrame(() => {
-      if (!meshRef.current || !highlightedLaneRef) return;
-      const mat = meshRef.current.material as THREE.MeshStandardMaterial;
-      const hl = highlightedLaneRef.current;
-      const isMatch = hl != null && hl.roadId === roadId && hl.laneId === laneMesh.laneId;
-      if (isMatch) {
-        mat.emissive.set('#3388CC');
-        mat.emissiveIntensity = 0.4;
-      } else if (mat.emissiveIntensity !== 0) {
-        mat.emissive.set('#000000');
-        mat.emissiveIntensity = 0;
-      }
-    });
+    // Register mesh in the centralized highlight registry
+    useEffect(() => {
+      const mesh = meshRef.current;
+      if (!mesh || !roadId) return;
+      const key = `${roadId}:${laneMesh.laneId}`;
+      registerLaneMesh(key, mesh, roadId, laneMesh.laneId);
+      return () => unregisterLaneMesh(key);
+    }, [roadId, laneMesh.laneId]);
 
     return (
       <mesh ref={meshRef} geometry={geometry}>

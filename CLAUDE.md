@@ -3,6 +3,12 @@
 > Project instructions for Claude Code sessions.
 > This file is automatically loaded at the start of every session.
 
+## Language
+
+- Always respond in Japanese (日本語) unless explicitly asked to use another language.
+- Plans, explanations, and status updates must be in Japanese.
+- Code comments, commit messages, and PR descriptions remain in English.
+
 ## Project Overview
 
 OpenSCENARIO v1.2 visual editor for autonomous driving simulation scenarios.

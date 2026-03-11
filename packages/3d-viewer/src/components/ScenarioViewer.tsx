@@ -35,6 +35,7 @@ import { Minimap } from './Minimap.js';
 import { RouteOverlay } from '../route/RouteOverlay.js';
 import { RouteClickHandler } from '../interaction/RouteClickHandler.js';
 import { RouteEditOverlay } from '../route/RouteEditOverlay.js';
+import { TrafficSignalGroup } from '../signals/TrafficSignalGroup.js';
 import type { ThreeEvent } from '@react-three/fiber';
 
 export interface ScenarioViewerProps {
@@ -108,6 +109,12 @@ export interface ScenarioViewerProps {
   routeWaypointCount?: number;
   /** Resolve a catalog reference to a Route definition (for RoutePosition placement) */
   resolveCatalogRoute?: (ref: { catalogName: string; entryName: string }) => Route | null;
+  /** Currently selected traffic signal key (roadId:signalId) */
+  selectedSignalKey?: string | null;
+  /** Callback when user clicks a traffic signal in the viewer */
+  onSignalSelect?: (key: string) => void;
+  /** Show r3f-perf overlay for performance monitoring */
+  showPerf?: boolean;
 }
 
 /**
@@ -135,6 +142,8 @@ function ScenarioViewerScene({
   onRouteWaypointAdd,
   onRouteWaypointDragEnd,
   resolveCatalogRoute,
+  selectedSignalKey,
+  onSignalSelect,
 }: {
   scenarioStore: ScenarioViewerProps['scenarioStore'];
   openDriveDocument: OpenDriveDocument | null;
@@ -157,12 +166,15 @@ function ScenarioViewerScene({
   onRouteWaypointAdd?: ScenarioViewerProps['onRouteWaypointAdd'];
   onRouteWaypointDragEnd?: ScenarioViewerProps['onRouteWaypointDragEnd'];
   resolveCatalogRoute?: ScenarioViewerProps['resolveCatalogRoute'];
+  selectedSignalKey?: string | null;
+  onSignalSelect?: (key: string) => void;
 }) {
   const cameraMode = useViewerStore(viewerStore, (s) => s.cameraMode);
   const showGrid = useViewerStore(viewerStore, (s) => s.showGrid);
   const showLaneIds = useViewerStore(viewerStore, (s) => s.showLaneIds);
   const showRoadIds = useViewerStore(viewerStore, (s) => s.showRoadIds);
   const showEntityLabels = useViewerStore(viewerStore, (s) => s.showEntityLabels);
+  const showTrafficSignals = useViewerStore(viewerStore, (s) => s.showTrafficSignals);
   const gizmoMode = useViewerStore(viewerStore, (s) => s.gizmoMode);
   const viewerMode = useViewerStore(viewerStore, (s) => s.viewerMode);
   const snapToLane = useViewerStore(viewerStore, (s) => s.snapToLane);
@@ -300,6 +312,17 @@ function ScenarioViewerScene({
         highlightedLaneRef={highlightedLaneRef}
       />
 
+      {/* Traffic signals from OpenDRIVE */}
+      {showTrafficSignals && (
+        <TrafficSignalGroup
+          openDriveDocument={openDriveDocument}
+          showLabels={showEntityLabels}
+          selectedSignalKey={selectedSignalKey}
+          onSignalSelect={onSignalSelect}
+          currentFrame={currentFrame}
+        />
+      )}
+
       {/* Road click handler for Place mode and hover detection */}
       {isEditMode && (hoverActive || clickActive) && (
         <RoadClickHandler
@@ -428,6 +451,9 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   routeWarnings,
   routeWaypointCount,
   resolveCatalogRoute,
+  selectedSignalKey,
+  onSignalSelect,
+  showPerf,
 }) => {
   const viewerStoreRef = useRef<ReturnType<typeof createViewerStore> | null>(null);
   if (!viewerStoreRef.current) {
@@ -463,6 +489,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   const showEntityLabels = useViewerStore(viewerStore, (s) => s.showEntityLabels);
   const showRoadIds = useViewerStore(viewerStore, (s) => s.showRoadIds);
   const showLaneIds = useViewerStore(viewerStore, (s) => s.showLaneIds);
+  const showTrafficSignals = useViewerStore(viewerStore, (s) => s.showTrafficSignals);
   const gizmoMode = useViewerStore(viewerStore, (s) => s.gizmoMode);
   const reverseDirection = useViewerStore(viewerStore, (s) => s.reverseDirection);
   const snapToLane = useViewerStore(viewerStore, (s) => s.snapToLane);
@@ -524,6 +551,8 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
         onToggleRoadIds={() => viewerStore.getState().toggleRoadIds()}
         showLaneIds={showLaneIds}
         onToggleLaneIds={() => viewerStore.getState().toggleLaneIds()}
+        showTrafficSignals={showTrafficSignals}
+        onToggleTrafficSignals={() => viewerStore.getState().toggleTrafficSignals()}
         gizmoMode={gizmoMode}
         onGizmoModeChange={(m) => viewerStore.getState().setGizmoMode(m)}
         reverseDirection={reverseDirection}
@@ -586,7 +615,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
         />
       )}
 
-      <ViewerCanvas>
+      <ViewerCanvas showPerf={showPerf}>
         <ScenarioViewerScene
           scenarioStore={scenarioStore}
           openDriveDocument={openDriveDocument}
@@ -609,6 +638,8 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           onRouteWaypointAdd={onRouteWaypointAdd}
           onRouteWaypointDragEnd={onRouteWaypointDragEnd}
           resolveCatalogRoute={resolveCatalogRoute}
+          selectedSignalKey={selectedSignalKey}
+          onSignalSelect={onSignalSelect}
         />
       </ViewerCanvas>
     </div>

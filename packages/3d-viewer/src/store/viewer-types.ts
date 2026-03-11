@@ -33,6 +33,7 @@ export interface ViewerState {
   showLaneIds: boolean;
   showRoadIds: boolean;
   showEntityLabels: boolean;
+  showTrafficSignals: boolean;
   playback: PlaybackState;
 
   /** Top-level viewer interaction mode (edit = full editing, play = view-only) */
@@ -71,6 +72,7 @@ export interface ViewerActions {
   toggleLaneIds: () => void;
   toggleRoadIds: () => void;
   toggleEntityLabels: () => void;
+  toggleTrafficSignals: () => void;
   setPlaybackFrames: (frames: SimulationFrame[]) => void;
   setPlaybackStatus: (status: PlaybackState['status']) => void;
   setPlaybackTime: (time: number) => void;

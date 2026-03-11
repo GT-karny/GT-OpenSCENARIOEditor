@@ -17,6 +17,7 @@ import type {
   WasmScenarioObjectState,
   WasmStoryBoardEvent,
   WasmConditionEvent,
+  WasmTrafficLightState,
   WasmOpenScenarioConfig,
   WasmRMPositionResult,
 } from './types.js';
@@ -63,6 +64,7 @@ interface EsminiScenario {
   getCurrentState(): EsminiVector<WasmScenarioObjectState>;
   popStoryBoardEvents(): EsminiVector<WasmStoryBoardEvent>;
   popConditionEvents(): EsminiVector<WasmConditionEvent>;
+  getTrafficLightStatesOnly(): WasmTrafficLightState[];
   delete(): void;
 }
 
@@ -166,12 +168,19 @@ function executeStep(dt: number) {
   const condVec = scenario.popConditionEvents();
   const conditionEvents = vectorToArray(condVec);
 
+  // emscripten::val returns a plain JS array — no deep clone needed
+  // Guard: older WASM builds may not have this function
+  const trafficLightStates = typeof scenario.getTrafficLightStatesOnly === 'function'
+    ? (scenario.getTrafficLightStatesOnly() as WasmTrafficLightState[])
+    : [];
+
   post({
     type: 'frame',
     simulationTime,
     objects,
     storyBoardEvents,
     conditionEvents,
+    trafficLightStates,
     isComplete,
   });
 
@@ -288,6 +297,7 @@ function handlePlay(speed: number, fps: number) {
   const frames: Array<{
     simulationTime: number;
     objects: WasmScenarioObjectState[];
+    trafficLightStates: WasmTrafficLightState[];
   }> = [];
   const allStoryBoardEvents: WasmStoryBoardEvent[] = [];
   const allConditionEvents: WasmConditionEvent[] = [];
@@ -300,8 +310,11 @@ function handlePlay(speed: number, fps: number) {
     const objects = vectorToArray(scenario.getCurrentState(), cloneObjectState);
     const storyBoardEvents = vectorToArray(scenario.popStoryBoardEvents());
     const conditionEvents = vectorToArray(scenario.popConditionEvents());
+    const trafficLightStates = typeof scenario.getTrafficLightStatesOnly === 'function'
+      ? (scenario.getTrafficLightStatesOnly() as WasmTrafficLightState[])
+      : [];
 
-    frames.push({ simulationTime, objects });
+    frames.push({ simulationTime, objects, trafficLightStates });
     allStoryBoardEvents.push(...storyBoardEvents);
     allConditionEvents.push(...conditionEvents);
 

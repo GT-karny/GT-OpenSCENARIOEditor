@@ -39,6 +39,13 @@ export type { RouteOverlayProps } from './route/RouteOverlay.js';
 export { RouteEditOverlay } from './route/RouteEditOverlay.js';
 export { RouteClickHandler } from './interaction/RouteClickHandler.js';
 
+// Traffic signal rendering
+export { TrafficSignalGroup } from './signals/TrafficSignalGroup.js';
+export type { ResolvedSignal } from './signals/TrafficSignalGroup.js';
+export { classifySignal } from './utils/signal-geometry.js';
+export type { SignalCategory } from './utils/signal-geometry.js';
+export { resolveSignalPosition } from './utils/signal-position-resolver.js';
+
 // Sub-components (for composition)
 export { RoadNetwork } from './road/RoadNetwork.js';
 export { EntityGroup } from './entities/EntityGroup.js';
