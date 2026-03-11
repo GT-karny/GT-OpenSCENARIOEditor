@@ -22,7 +22,7 @@ describe('defaults', () => {
     expect(doc.id).toBeDefined();
     expect(typeof doc.id).toBe('string');
     expect(doc.fileHeader.revMajor).toBe(1);
-    expect(doc.fileHeader.revMinor).toBe(2);
+    expect(doc.fileHeader.revMinor).toBe(3);
     expect(doc.entities).toEqual([]);
     expect(doc.storyboard).toBeDefined();
     expect(doc.storyboard.stories).toEqual([]);

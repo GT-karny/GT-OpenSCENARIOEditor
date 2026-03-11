@@ -114,7 +114,7 @@ export const useProjectStore = create<ProjectState>()(
         const catalogLocations = buildCatalogLocationsXml(currentProject.files, relativePath);
         const emptyXosc = `<?xml version="1.0" encoding="UTF-8"?>
 <OpenSCENARIO>
-  <FileHeader revMajor="1" revMinor="2" date="" description="" author=""/>
+  <FileHeader revMajor="1" revMinor="3" date="" description="" author=""/>
   <ParameterDeclarations/>
   ${catalogLocations}
   <RoadNetwork><LogicFile filepath=""/></RoadNetwork>
