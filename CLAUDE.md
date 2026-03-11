@@ -11,13 +11,15 @@
 
 ## Project Overview
 
-OpenSCENARIO v1.2 visual editor for autonomous driving simulation scenarios.
+OpenSCENARIO visual editor for autonomous driving simulation scenarios.
 Competing with IPG CarMaker and MathWorks RoadRunner — aiming for more modern UI, AI integration, and OSS transparency.
+
+- **Base specification**: OpenSCENARIO v1.3.1 (primary target). Legacy v1.2 support maintained for backward compatibility, but new features and type definitions should follow the v1.3.1 spec.
 
 - **Stack**: React 19, TypeScript, Vite 6, Tailwind CSS 4, shadcn/ui, Three.js, @xyflow/react, Zustand
 - **Monorepo**: pnpm workspaces
 - **Simulation**: esmini WASM runs in-browser via Web Worker; server-based REST/gRPC path also supported
-- **Design**: APEX theme (`@osce/theme-apex`). Final mockup: `apps/web/mockups/design-apex-v4.html`
+- **Design**: APEX theme (`@osce/theme-apex`). Final mockup: `docs/mockups/design-apex-v4.html`
 - **i18n**: English-first (OSS), Japanese secondary. Use `@osce/i18n` package.
 
 ## Architecture
@@ -26,6 +28,7 @@ Competing with IPG CarMaker and MathWorks RoadRunner — aiming for more modern 
 apps/
   web/          — React frontend (port 5173)
   server/       — Fastify backend (port 3001)
+  desktop/      — Electron desktop app
 packages/
   shared/       — Type definitions (IMMUTABLE CONTRACT — do not modify without coordination)
   openscenario/ — .xosc XML parser/serializer
@@ -58,6 +61,8 @@ pnpm typecheck        # TypeScript type checking
 pnpm lint             # ESLint
 pnpm lint:fix         # ESLint with auto-fix
 pnpm format           # Prettier
+pnpm dev:desktop      # Start Electron desktop app (dev mode)
+pnpm build:desktop    # Build all packages + Electron distributable
 pnpm clean            # Remove all dist/ directories
 # Maturity: pnpm maturity:validate | maturity:matrix | maturity:view
 ```
@@ -95,6 +100,12 @@ This project uses Claude Code worktrees for parallel development. When assigning
 - shadcn/ui components (in `apps/web/src/components/ui/`)
 - Tailwind CSS 4 for styling
 
+### Commit Messages
+- Conventional Commits: `type(scope): description`
+- Types: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `chore`
+- Scopes: package or area name (e.g., `property`, `3d-viewer`, `ui`, `shared`)
+- Example: `feat(property): add TransitionDynamics editor with shape icons`
+
 ### Formatting
 - Prettier: single quotes, 100 char width, trailing commas, LF line endings
 
@@ -109,22 +120,23 @@ This project uses Claude Code worktrees for parallel development. When assigning
 
 ### Testing
 - Unit tests: colocated `__tests__/` directories
-- E2E tests: `e2e/` at project root
+- E2E tests: `apps/web/e2e/` (Playwright config at `apps/web/playwright.config.ts`)
 - E2E uses Playwright with dual webServer (backend + frontend)
 - Use `cross-env` for Windows-compatible test scripts
 - Set `USE_GT_SIM=true` to enable E2E tests requiring GT_Sim server
 
 ## Key Reference Files
 
-| File | Purpose |
-|------|---------|
-| `docs/ARCHITECTURE.md` | System design, phase history |
-| `docs/FEATURES.md` | Feature catalog, priority roadmap, XSD coverage |
-| `docs/DEVELOPMENT.md` | Setup, startup modes, troubleshooting |
-| `docs/maturity/` | Capability matrix system |
-| `packages/theme-apex/README.md` | APEX design tokens, CSS classes, components |
-| `Thirdparty/openscenario-v1.2.0/Schema/OpenSCENARIO.xsd` | OpenSCENARIO v1.2 specification |
-| `Thirdparty/esmini-demo_Windows/esmini-demo/resources/xosc/` | Sample .xosc scenarios |
+| File | When to reference |
+|------|-------------------|
+| `docs/ARCHITECTURE.md` | Understanding system design or planning cross-package changes |
+| `docs/FEATURES.md` | Checking feature priority, roadmap, or XSD coverage gaps |
+| `docs/DEVELOPMENT.md` | Setup, startup modes, troubleshooting dev environment |
+| `docs/maturity/` | Evaluating or updating capability matrix |
+| `packages/theme-apex/README.md` | Applying APEX design tokens, CSS classes, or components |
+| `Thirdparty/openscenario-v1.3.1/ASAM_OpenSCENARIO_v1.3.1_Schema/OpenSCENARIO.xsd` | Adding or validating OpenSCENARIO element support (primary) |
+| `Thirdparty/openscenario-v1.2.0/Schema/OpenSCENARIO.xsd` | Legacy v1.2 schema reference (backward compatibility) |
+| `Thirdparty/esmini-demo_Windows/esmini-demo/resources/xosc/` | Testing with sample .xosc scenarios |
 
 ## Environment Variables
 
