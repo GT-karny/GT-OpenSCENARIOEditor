@@ -6,8 +6,8 @@ import type {
   StoryboardElementState,
 } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
 import { EnumSelect } from '../EnumSelect';
+import { StoryboardElementRefSelect } from '../StoryboardElementRefSelect';
 
 const STORYBOARD_ELEMENT_TYPES: readonly StoryboardElementType[] = [
   'story',
@@ -49,9 +49,10 @@ export function StoryboardElementStateConditionEditor({ condition, onUpdate }: S
         <p className="text-xs font-medium text-muted-foreground">Storyboard Element State</p>
         <div className="grid gap-1">
           <Label className="text-[10px]">Storyboard Element Ref</Label>
-          <Input
+          <StoryboardElementRefSelect
             value={cond.storyboardElementRef}
-            onChange={(e) => update({ storyboardElementRef: e.target.value })}
+            onValueChange={(v) => update({ storyboardElementRef: v })}
+            elementType={cond.storyboardElementType}
             className="h-7 text-xs"
           />
         </div>

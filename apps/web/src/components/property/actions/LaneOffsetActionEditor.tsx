@@ -7,8 +7,8 @@ import type {
 } from '@osce/shared';
 import { useState } from 'react';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
 import { EntityRefSelect } from '../EntityRefSelect';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 import { SegmentedControl } from '../SegmentedControl';
 import { SHAPE_PATHS, SHAPE_LABELS } from '../TransitionDynamicsEditor';
 import { DYNAMICS_SHAPES } from '../../../constants/osc-enum-values';
@@ -50,12 +50,12 @@ export function LaneOffsetActionEditor({ action, onUpdate }: LaneOffsetActionEdi
 
   const dynamics = inner.dynamics;
 
-  const updateDynamicsNum = (field: 'maxSpeed' | 'maxLateralAcc', value: string) => {
-    if (value === '') {
+  const updateDynamicsNum = (field: 'maxSpeed' | 'maxLateralAcc', v: string) => {
+    if (v === '') {
       const { [field]: _removed, ...rest } = dynamics;
       updateInner({ dynamics: rest as LaneOffsetDynamics });
     } else {
-      const n = parseFloat(value);
+      const n = parseFloat(v);
       if (!Number.isFinite(n)) return;
       updateInner({ dynamics: { ...dynamics, [field]: n } });
     }
@@ -84,17 +84,18 @@ export function LaneOffsetActionEditor({ action, onUpdate }: LaneOffsetActionEdi
               labels={{ left: 'Left', right: 'Right' }}
               className="shrink-0"
             />
-            <Input
-              type="number"
-              min={0}
+            <ParameterAwareInput
+              elementId={action.id}
+              fieldName="action.target.value"
               value={Math.abs(inner.target.value)}
-              onChange={(e) => {
-                const mag = Math.abs(parseFloat(e.target.value) || 0);
+              onValueChange={(v) => {
+                const mag = Math.abs(parseFloat(v) || 0);
                 const sign = currentDir === 'left' ? 1 : -1;
                 updateInner({
                   target: { ...inner.target, value: mag * sign } as LaneOffsetTarget,
                 });
               }}
+              acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
               className="h-8 text-sm flex-1 min-w-0"
             />
             <SegmentedControl
@@ -132,23 +133,25 @@ export function LaneOffsetActionEditor({ action, onUpdate }: LaneOffsetActionEdi
         <div className="grid grid-cols-2 gap-2">
           <div className="grid gap-1">
             <Label className="text-[10px]">Max Speed (m/s)</Label>
-            <Input
-              type="number"
+            <ParameterAwareInput
+              elementId={action.id}
+              fieldName="action.dynamics.maxSpeed"
               value={dynamics.maxSpeed ?? ''}
               placeholder="—"
-              step="any"
-              onChange={(e) => updateDynamicsNum('maxSpeed', e.target.value)}
+              onValueChange={(v) => updateDynamicsNum('maxSpeed', v)}
+              acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
               className="h-7 text-xs"
             />
           </div>
           <div className="grid gap-1">
             <Label className="text-[10px]">Max Lateral Acc (m/s²)</Label>
-            <Input
-              type="number"
+            <ParameterAwareInput
+              elementId={action.id}
+              fieldName="action.dynamics.maxLateralAcc"
               value={dynamics.maxLateralAcc ?? ''}
               placeholder="—"
-              step="any"
-              onChange={(e) => updateDynamicsNum('maxLateralAcc', e.target.value)}
+              onValueChange={(v) => updateDynamicsNum('maxLateralAcc', v)}
+              acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
               className="h-7 text-xs"
             />
           </div>

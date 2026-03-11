@@ -1,8 +1,8 @@
 import type { EntityInitActions, TeleportAction, SpeedAction, Position } from '@osce/shared';
 import { Label } from '../ui/label';
-import { Input } from '../ui/input';
 import { Plus } from 'lucide-react';
 import { PositionEditor } from './PositionEditor';
+import { ParameterAwareInput } from './ParameterAwareInput';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { createDefaultPosition } from '../../constants/position-defaults';
 
@@ -78,12 +78,13 @@ export function InitPropertyEditorContent({ entityInit }: InitPropertyEditorCont
         {currentSpeed !== null ? (
           <div className="grid gap-2">
             <Label className="text-xs">Absolute Speed (m/s)</Label>
-            <Input
-              type="number"
+            <ParameterAwareInput
+              elementId={speedActionEntry!.id}
+              fieldName="action.target.value"
               value={currentSpeed}
-              onChange={(e) => handleSpeedChange(e.target.value)}
+              onValueChange={(v) => handleSpeedChange(v)}
+              acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
               className="h-8 text-sm"
-              step="any"
             />
           </div>
         ) : speedAction?.target.kind === 'relative' ? (

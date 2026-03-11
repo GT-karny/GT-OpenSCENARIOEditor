@@ -1,8 +1,18 @@
-import { useState } from 'react';
-import type { ScenarioAction, InfrastructureAction, TrafficSignalAction } from '@osce/shared';
+import { useState, useMemo } from 'react';
+import type {
+  ScenarioAction,
+  InfrastructureAction,
+  TrafficSignalAction,
+  TrafficSignalController,
+} from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { cn } from '@/lib/utils';
+import { RefSelect } from '../RefSelect';
+import type { RefSelectItem } from '../RefSelect';
+import { useScenarioStore } from '../../../stores/use-scenario-store';
+
+const EMPTY_SIGNALS: TrafficSignalController[] = [];
 
 interface InfrastructureActionEditorProps {
   action: ScenarioAction;
@@ -22,6 +32,24 @@ export function InfrastructureActionEditor({
 }: InfrastructureActionEditorProps) {
   const inner = action.action as InfrastructureAction;
   const tsa = inner.trafficSignalAction ?? {};
+  const controllers = useScenarioStore((s) => s.document.roadNetwork.trafficSignals ?? EMPTY_SIGNALS);
+
+  const controllerItems: RefSelectItem[] = useMemo(
+    () => controllers.map((c) => ({ name: c.name, description: `${c.phases.length} phase(s)` })),
+    [controllers],
+  );
+
+  const signalItems: RefSelectItem[] = useMemo(() => {
+    const ids = new Set<string>();
+    for (const ctrl of controllers) {
+      for (const phase of ctrl.phases) {
+        for (const state of phase.trafficSignalStates) {
+          ids.add(state.trafficSignalId);
+        }
+      }
+    }
+    return [...ids].sort().map((id) => ({ name: id }));
+  }, [controllers]);
 
   const [mode, setMode] = useState<SignalActionMode>(() => detectMode(tsa));
 
@@ -87,10 +115,12 @@ export function InfrastructureActionEditor({
           </p>
           <div className="grid gap-1">
             <Label className="text-xs">Controller Ref</Label>
-            <Input
+            <RefSelect
               value={tsa.controllerRef ?? ''}
-              placeholder="controller name"
-              onChange={(e) => updateTsa({ controllerRef: e.target.value })}
+              onValueChange={(v) => updateTsa({ controllerRef: v })}
+              items={controllerItems}
+              placeholder="Select controller..."
+              emptyMessage="No controllers defined"
               className="h-8 text-sm"
             />
           </div>
@@ -113,12 +143,14 @@ export function InfrastructureActionEditor({
           </p>
           <div className="grid gap-1">
             <Label className="text-xs">Signal Name</Label>
-            <Input
+            <RefSelect
               value={tsa.stateAction?.name ?? ''}
-              placeholder="signal name"
-              onChange={(e) =>
-                updateTsa({ stateAction: { name: e.target.value, state: tsa.stateAction?.state ?? '' } })
+              onValueChange={(v) =>
+                updateTsa({ stateAction: { name: v, state: tsa.stateAction?.state ?? '' } })
               }
+              items={signalItems}
+              placeholder="Select signal..."
+              emptyMessage="No signals defined"
               className="h-8 text-sm"
             />
           </div>

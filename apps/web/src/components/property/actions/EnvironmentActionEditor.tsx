@@ -1,6 +1,7 @@
 import type { ScenarioAction, EnvironmentAction, Weather } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
 import { SegmentedControl } from '../SegmentedControl';
 
@@ -91,37 +92,41 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
         <div className="grid grid-cols-2 gap-2">
           <div className="grid gap-1">
             <Label className="text-xs">Pressure (Pa)</Label>
-            <Input
-              type="number"
+            <ParameterAwareInput
+              elementId={action.id}
+              fieldName="action.environment.weather.atmosphericPressure"
               value={env.weather.atmosphericPressure ?? ''}
               placeholder="--"
-              onChange={(e) => {
-                const v = parseFloat(e.target.value);
-                if (isNaN(v)) {
+              onValueChange={(v) => {
+                const n = parseFloat(v);
+                if (isNaN(n) || v === '') {
                   const { atmosphericPressure: _, ...rest } = env.weather;
                   updateEnv({ weather: rest });
                 } else {
-                  updateWeather({ atmosphericPressure: v });
+                  updateWeather({ atmosphericPressure: n });
                 }
               }}
+              acceptedTypes={['double']}
               className="h-8 text-sm"
             />
           </div>
           <div className="grid gap-1">
             <Label className="text-xs">Temperature (K)</Label>
-            <Input
-              type="number"
+            <ParameterAwareInput
+              elementId={action.id}
+              fieldName="action.environment.weather.temperature"
               value={env.weather.temperature ?? ''}
               placeholder="--"
-              onChange={(e) => {
-                const v = parseFloat(e.target.value);
-                if (isNaN(v)) {
+              onValueChange={(v) => {
+                const n = parseFloat(v);
+                if (isNaN(n) || v === '') {
                   const { temperature: _, ...rest } = env.weather;
                   updateEnv({ weather: rest });
                 } else {
-                  updateWeather({ temperature: v });
+                  updateWeather({ temperature: n });
                 }
               }}
+              acceptedTypes={['double']}
               className="h-8 text-sm"
             />
           </div>
@@ -136,21 +141,23 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
               return (
               <div key={field} className="grid gap-1">
                 <Label className="text-[10px] capitalize">{field} ({unitMap[field]})</Label>
-                <Input
-                  type="number"
+                <ParameterAwareInput
+                  elementId={action.id}
+                  fieldName={`action.environment.weather.sun.${field}`}
                   value={env.weather.sun?.[field] ?? ''}
                   placeholder="--"
-                  onChange={(e) => {
-                    const v = parseFloat(e.target.value);
-                    if (isNaN(v)) {
+                  onValueChange={(v) => {
+                    const n = parseFloat(v);
+                    if (isNaN(n) || v === '') {
                       if (env.weather.sun) {
                         const { [field]: _, ...rest } = env.weather.sun;
                         updateWeather({ sun: Object.keys(rest).length > 0 ? rest as typeof env.weather.sun : undefined });
                       }
                     } else {
-                      updateWeather({ sun: { intensity: 0, azimuth: 0, elevation: 0, ...env.weather.sun, [field]: v } });
+                      updateWeather({ sun: { intensity: 0, azimuth: 0, elevation: 0, ...env.weather.sun, [field]: n } });
                     }
                   }}
+                  acceptedTypes={['double']}
                   className="h-7 text-xs"
                 />
               </div>
@@ -162,19 +169,21 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
         {/* Fog */}
         <div className="grid gap-1">
           <Label className="text-xs">Fog Visual Range (m)</Label>
-          <Input
-            type="number"
+          <ParameterAwareInput
+            elementId={action.id}
+            fieldName="action.environment.weather.fog.visualRange"
             value={env.weather.fog?.visualRange ?? ''}
             placeholder="--"
-            onChange={(e) => {
-              const v = parseFloat(e.target.value);
-              if (isNaN(v)) {
+            onValueChange={(v) => {
+              const n = parseFloat(v);
+              if (isNaN(n) || v === '') {
                 const { fog: _, ...rest } = env.weather;
                 updateEnv({ weather: rest });
               } else {
-                updateWeather({ fog: { ...env.weather.fog, visualRange: v } });
+                updateWeather({ fog: { ...env.weather.fog, visualRange: n } });
               }
             }}
+            acceptedTypes={['double']}
             className="h-8 text-sm"
           />
         </div>
@@ -194,22 +203,21 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
           />
           <div className="grid gap-1">
             <Label className="text-xs">Intensity (0–1)</Label>
-            <Input
-              type="number"
-              min={0}
-              max={1}
-              step={0.01}
+            <ParameterAwareInput
+              elementId={action.id}
+              fieldName="action.environment.weather.precipitation.precipitationIntensity"
               value={env.weather.precipitation?.precipitationIntensity ?? ''}
               placeholder="--"
-              onChange={(e) => {
-                const v = parseFloat(e.target.value);
+              onValueChange={(v) => {
+                const n = parseFloat(v);
                 updateWeather({
                   precipitation: {
                     precipitationType: env.weather.precipitation?.precipitationType ?? 'dry',
-                    precipitationIntensity: isNaN(v) ? 0 : v,
+                    precipitationIntensity: isNaN(n) ? 0 : n,
                   },
                 });
               }}
+              acceptedTypes={['double']}
               className="h-8 text-sm"
             />
           </div>
@@ -221,37 +229,41 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
           <div className="grid grid-cols-2 gap-1">
             <div className="grid gap-1">
               <Label className="text-xs">Direction (rad)</Label>
-              <Input
-                type="number"
+              <ParameterAwareInput
+                elementId={action.id}
+                fieldName="action.environment.weather.wind.direction"
                 value={env.weather.wind?.direction ?? ''}
                 placeholder="--"
-                onChange={(e) => {
-                  const v = parseFloat(e.target.value);
-                  if (isNaN(v)) {
+                onValueChange={(v) => {
+                  const n = parseFloat(v);
+                  if (isNaN(n) || v === '') {
                     const { wind: _, ...rest } = env.weather;
                     updateEnv({ weather: rest });
                   } else {
-                    updateWeather({ wind: { direction: v, speed: env.weather.wind?.speed ?? 0 } });
+                    updateWeather({ wind: { direction: n, speed: env.weather.wind?.speed ?? 0 } });
                   }
                 }}
+                acceptedTypes={['double']}
                 className="h-8 text-sm"
               />
             </div>
             <div className="grid gap-1">
               <Label className="text-xs">Speed (m/s)</Label>
-              <Input
-                type="number"
+              <ParameterAwareInput
+                elementId={action.id}
+                fieldName="action.environment.weather.wind.speed"
                 value={env.weather.wind?.speed ?? ''}
                 placeholder="--"
-                onChange={(e) => {
-                  const v = parseFloat(e.target.value);
-                  if (isNaN(v)) {
+                onValueChange={(v) => {
+                  const n = parseFloat(v);
+                  if (isNaN(n) || v === '') {
                     const { wind: _, ...rest } = env.weather;
                     updateEnv({ weather: rest });
                   } else {
-                    updateWeather({ wind: { direction: env.weather.wind?.direction ?? 0, speed: v } });
+                    updateWeather({ wind: { direction: env.weather.wind?.direction ?? 0, speed: n } });
                   }
                 }}
+                acceptedTypes={['double']}
                 className="h-8 text-sm"
               />
             </div>
@@ -264,15 +276,16 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
         <p className="text-xs font-medium text-muted-foreground border-b pb-1">Road Condition</p>
         <div className="grid gap-1">
           <Label className="text-xs">Friction Scale Factor</Label>
-          <Input
-            type="number"
-            step={0.01}
+          <ParameterAwareInput
+            elementId={action.id}
+            fieldName="action.environment.roadCondition.frictionScaleFactor"
             value={env.roadCondition.frictionScaleFactor}
-            onChange={(e) =>
+            onValueChange={(v) =>
               updateEnv({
-                roadCondition: { ...env.roadCondition, frictionScaleFactor: parseFloat(e.target.value) || 1 },
+                roadCondition: { ...env.roadCondition, frictionScaleFactor: parseFloat(v) || 1 },
               })
             }
+            acceptedTypes={['double']}
             className="h-8 text-sm"
           />
         </div>

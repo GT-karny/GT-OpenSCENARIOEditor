@@ -1,6 +1,5 @@
 import type { ScenarioAction, LaneChangeAction } from '@osce/shared';
 import { useState } from 'react';
-import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefSelect } from '../EntityRefSelect';
@@ -64,18 +63,18 @@ export function LaneChangeActionEditor({ action, onUpdate }: LaneChangeActionEdi
                 className="h-8 text-sm flex-1 min-w-0"
               />
             ) : (
-              <Input
-                type="number"
-                min={0}
-                step={1}
+              <ParameterAwareInput
+                elementId={action.id}
+                fieldName="action.target.value"
                 value={Math.abs(inner.target.value)}
-                onChange={(e) => {
-                  const mag = Math.abs(parseInt(e.target.value) || 0);
+                onValueChange={(v) => {
+                  const mag = Math.abs(parseInt(v) || 0);
                   const sign = currentDir === 'left' ? 1 : -1;
                   updateInner({
                     target: { ...inner.target, value: mag * sign } as typeof inner.target,
                   });
                 }}
+                acceptedTypes={['int', 'unsignedInt', 'unsignedShort']}
                 className="h-8 text-sm flex-1 min-w-0"
               />
             )}

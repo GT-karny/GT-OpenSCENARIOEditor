@@ -1,7 +1,11 @@
+import { useMemo } from 'react';
 import type { Condition, ByValueCondition, ParameterCondition } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { RuleSegmentedControl } from '../RuleSegmentedControl';
+import { RefSelect } from '../RefSelect';
+import type { RefSelectItem } from '../RefSelect';
+import { useScenarioStore } from '../../../stores/use-scenario-store';
 
 interface ParameterConditionEditorProps {
   condition: Condition;
@@ -11,6 +15,12 @@ interface ParameterConditionEditorProps {
 export function ParameterConditionEditor({ condition, onUpdate }: ParameterConditionEditorProps) {
   const inner = condition.condition as ByValueCondition;
   const cond = inner.valueCondition as ParameterCondition;
+  const parameters = useScenarioStore((s) => s.document.parameterDeclarations);
+
+  const paramItems: RefSelectItem[] = useMemo(
+    () => parameters.map((p) => ({ name: p.name, description: `${p.parameterType} = ${p.value}` })),
+    [parameters],
+  );
 
   const update = (updates: Partial<ParameterCondition>) => {
     onUpdate(condition.id, {
@@ -23,9 +33,12 @@ export function ParameterConditionEditor({ condition, onUpdate }: ParameterCondi
       <p className="text-xs font-medium text-muted-foreground">Parameter Condition</p>
       <div className="grid gap-1">
         <Label className="text-[10px]">Parameter Ref</Label>
-        <Input
+        <RefSelect
           value={cond.parameterRef}
-          onChange={(e) => update({ parameterRef: e.target.value })}
+          onValueChange={(v) => update({ parameterRef: v })}
+          items={paramItems}
+          placeholder="Select parameter..."
+          emptyMessage="No parameters declared"
           className="h-7 text-xs"
         />
       </div>

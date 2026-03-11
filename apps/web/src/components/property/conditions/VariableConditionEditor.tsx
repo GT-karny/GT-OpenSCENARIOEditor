@@ -1,7 +1,11 @@
+import { useMemo } from 'react';
 import type { Condition, ByValueCondition, VariableCondition } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { RuleSegmentedControl } from '../RuleSegmentedControl';
+import { RefSelect } from '../RefSelect';
+import type { RefSelectItem } from '../RefSelect';
+import { useScenarioStore } from '../../../stores/use-scenario-store';
 
 interface VariableConditionEditorProps {
   condition: Condition;
@@ -11,6 +15,12 @@ interface VariableConditionEditorProps {
 export function VariableConditionEditor({ condition, onUpdate }: VariableConditionEditorProps) {
   const inner = condition.condition as ByValueCondition;
   const cond = inner.valueCondition as VariableCondition;
+  const variables = useScenarioStore((s) => s.document.variableDeclarations);
+
+  const varItems: RefSelectItem[] = useMemo(
+    () => variables.map((v) => ({ name: v.name, description: `${v.variableType} = ${v.value}` })),
+    [variables],
+  );
 
   const update = (updates: Partial<VariableCondition>) => {
     onUpdate(condition.id, {
@@ -23,9 +33,12 @@ export function VariableConditionEditor({ condition, onUpdate }: VariableConditi
       <p className="text-xs font-medium text-muted-foreground">Variable Condition</p>
       <div className="grid gap-1">
         <Label className="text-[10px]">Variable Ref</Label>
-        <Input
+        <RefSelect
           value={cond.variableRef}
-          onChange={(e) => update({ variableRef: e.target.value })}
+          onValueChange={(v) => update({ variableRef: v })}
+          items={varItems}
+          placeholder="Select variable..."
+          emptyMessage="No variables declared"
           className="h-7 text-xs"
         />
       </div>

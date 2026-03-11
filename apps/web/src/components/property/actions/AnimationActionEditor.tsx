@@ -1,6 +1,7 @@
 import type { ScenarioAction, AnimationAction } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
 
 interface AnimationActionEditorProps {
@@ -42,19 +43,21 @@ export function AnimationActionEditor({ action, onUpdate }: AnimationActionEdito
 
       <div className="grid gap-1">
         <Label className="text-xs">Animation Duration (s)</Label>
-        <Input
-          type="number"
+        <ParameterAwareInput
+          elementId={action.id}
+          fieldName="action.duration"
           value={inner.duration ?? ''}
           placeholder="--"
-          onChange={(e) => {
-            const v = parseFloat(e.target.value);
-            if (isNaN(v)) {
+          onValueChange={(v) => {
+            const n = parseFloat(v);
+            if (isNaN(n) || v === '') {
               const { duration: _, ...rest } = inner;
               onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
             } else {
-              updateInner({ duration: v });
+              updateInner({ duration: n });
             }
           }}
+          acceptedTypes={['double']}
           className="h-8 text-sm"
         />
       </div>

@@ -147,25 +147,27 @@ export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTraject
             <div className="grid grid-cols-2 gap-2">
               <div className="grid gap-1">
                 <Label className="text-xs">Offset (s)</Label>
-                <Input
-                  type="number"
+                <ParameterAwareInput
+                  elementId={action.id}
+                  fieldName="action.timeReference.timing.offset"
                   value={inner.timeReference.timing.offset}
-                  step="any"
-                  onChange={(e) =>
-                    updateTiming({ offset: parseFloat(e.target.value) || 0 })
+                  onValueChange={(v) =>
+                    updateTiming({ offset: parseFloat(v) || 0 })
                   }
+                  acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
                   className="h-8 text-sm"
                 />
               </div>
               <div className="grid gap-1">
                 <Label className="text-xs">Scale</Label>
-                <Input
-                  type="number"
+                <ParameterAwareInput
+                  elementId={action.id}
+                  fieldName="action.timeReference.timing.scale"
                   value={inner.timeReference.timing.scale}
-                  step="any"
-                  onChange={(e) =>
-                    updateTiming({ scale: parseFloat(e.target.value) || 0 })
+                  onValueChange={(v) =>
+                    updateTiming({ scale: parseFloat(v) || 0 })
                   }
+                  acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
                   className="h-8 text-sm"
                 />
               </div>
@@ -232,95 +234,100 @@ export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTraject
           <div className="space-y-2">
             <div className="grid gap-1">
               <Label className="text-xs">Curvature</Label>
-              <Input
-                type="number"
+              <ParameterAwareInput
+                elementId={action.id}
+                fieldName="action.trajectory.shape.curvature"
                 value={inner.trajectory.shape.curvature}
-                step="any"
-                onChange={(e) =>
+                onValueChange={(v) =>
                   updateTrajectory({
                     shape: {
                       ...inner.trajectory.shape as Extract<TrajectoryShape, { type: 'clothoid' }>,
-                      curvature: parseFloat(e.target.value) || 0,
+                      curvature: parseFloat(v) || 0,
                     },
                   })
                 }
+                acceptedTypes={['double']}
                 className="h-8 text-sm"
               />
             </div>
             <div className="grid gap-1">
               <Label className="text-xs">Curvature Dot</Label>
-              <Input
-                type="number"
+              <ParameterAwareInput
+                elementId={action.id}
+                fieldName="action.trajectory.shape.curvatureDot"
                 value={inner.trajectory.shape.curvatureDot}
-                step="any"
-                onChange={(e) =>
+                onValueChange={(v) =>
                   updateTrajectory({
                     shape: {
                       ...inner.trajectory.shape as Extract<TrajectoryShape, { type: 'clothoid' }>,
-                      curvatureDot: parseFloat(e.target.value) || 0,
+                      curvatureDot: parseFloat(v) || 0,
                     },
                   })
                 }
+                acceptedTypes={['double']}
                 className="h-8 text-sm"
               />
             </div>
             <div className="grid gap-1">
               <Label className="text-xs">Length (m)</Label>
-              <Input
-                type="number"
+              <ParameterAwareInput
+                elementId={action.id}
+                fieldName="action.trajectory.shape.length"
                 value={inner.trajectory.shape.length}
-                step="any"
-                onChange={(e) =>
+                onValueChange={(v) =>
                   updateTrajectory({
                     shape: {
                       ...inner.trajectory.shape as Extract<TrajectoryShape, { type: 'clothoid' }>,
-                      length: parseFloat(e.target.value) || 0,
+                      length: parseFloat(v) || 0,
                     },
                   })
                 }
+                acceptedTypes={['double']}
                 className="h-8 text-sm"
               />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="grid gap-1">
                 <Label className="text-xs">Start Time (s) (optional)</Label>
-                <Input
-                  type="number"
+                <ParameterAwareInput
+                  elementId={action.id}
+                  fieldName="action.trajectory.shape.startTime"
                   value={inner.trajectory.shape.startTime ?? ''}
                   placeholder="--"
-                  step="any"
-                  onChange={(e) => {
+                  onValueChange={(v) => {
                     const clothoid = inner.trajectory.shape as Extract<TrajectoryShape, { type: 'clothoid' }>;
-                    if (e.target.value === '') {
+                    if (v === '') {
                       const { startTime: _, ...rest } = clothoid;
                       updateTrajectory({ shape: { ...rest, type: 'clothoid' } as TrajectoryShape });
                     } else {
                       updateTrajectory({
-                        shape: { ...clothoid, startTime: parseFloat(e.target.value) || 0 },
+                        shape: { ...clothoid, startTime: parseFloat(v) || 0 },
                       });
                     }
                   }}
+                  acceptedTypes={['double']}
                   className="h-8 text-sm"
                 />
               </div>
               <div className="grid gap-1">
                 <Label className="text-xs">Stop Time (s) (optional)</Label>
-                <Input
-                  type="number"
+                <ParameterAwareInput
+                  elementId={action.id}
+                  fieldName="action.trajectory.shape.stopTime"
                   value={inner.trajectory.shape.stopTime ?? ''}
                   placeholder="--"
-                  step="any"
-                  onChange={(e) => {
+                  onValueChange={(v) => {
                     const clothoid = inner.trajectory.shape as Extract<TrajectoryShape, { type: 'clothoid' }>;
-                    if (e.target.value === '') {
+                    if (v === '') {
                       const { stopTime: _, ...rest } = clothoid;
                       updateTrajectory({ shape: { ...rest, type: 'clothoid' } as TrajectoryShape });
                     } else {
                       updateTrajectory({
-                        shape: { ...clothoid, stopTime: parseFloat(e.target.value) || 0 },
+                        shape: { ...clothoid, stopTime: parseFloat(v) || 0 },
                       });
                     }
                   }}
+                  acceptedTypes={['double']}
                   className="h-8 text-sm"
                 />
               </div>
@@ -332,17 +339,19 @@ export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTraject
           <div className="space-y-2">
             <div className="grid gap-1">
               <Label className="text-xs">Order</Label>
-              <Input
-                type="number"
+              <ParameterAwareInput
+                elementId={action.id}
+                fieldName="action.trajectory.shape.order"
                 value={inner.trajectory.shape.order}
-                onChange={(e) =>
+                onValueChange={(v) =>
                   updateTrajectory({
                     shape: {
                       ...inner.trajectory.shape as Extract<TrajectoryShape, { type: 'nurbs' }>,
-                      order: parseInt(e.target.value) || 3,
+                      order: parseInt(v) || 3,
                     },
                   })
                 }
+                acceptedTypes={['int', 'unsignedInt']}
                 className="h-8 text-sm"
               />
             </div>

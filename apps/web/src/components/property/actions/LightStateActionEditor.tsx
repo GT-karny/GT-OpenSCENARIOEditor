@@ -1,6 +1,7 @@
 import type { ScenarioAction, LightStateAction } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
 import { SegmentedControl } from '../SegmentedControl';
 import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
@@ -105,19 +106,21 @@ export function LightStateActionEditor({ action, onUpdate }: LightStateActionEdi
             onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
           }}
         >
-          <Input
-            type="number"
+          <ParameterAwareInput
+            elementId={action.id}
+            fieldName="action.intensity"
             value={inner.intensity ?? ''}
             placeholder="--"
-            onChange={(e) => {
-              const v = parseFloat(e.target.value);
-              if (isNaN(v)) {
+            onValueChange={(v) => {
+              const n = parseFloat(v);
+              if (isNaN(n) || v === '') {
                 const { intensity: _, ...rest } = inner;
                 onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
               } else {
-                updateInner({ intensity: v });
+                updateInner({ intensity: n });
               }
             }}
+            acceptedTypes={['double']}
             className="h-8 text-sm"
           />
         </OptionalFieldWrapper>
@@ -130,19 +133,21 @@ export function LightStateActionEditor({ action, onUpdate }: LightStateActionEdi
             onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
           }}
         >
-          <Input
-            type="number"
+          <ParameterAwareInput
+            elementId={action.id}
+            fieldName="action.transitionTime"
             value={inner.transitionTime ?? ''}
             placeholder="--"
-            onChange={(e) => {
-              const v = parseFloat(e.target.value);
-              if (isNaN(v)) {
+            onValueChange={(v) => {
+              const n = parseFloat(v);
+              if (isNaN(n) || v === '') {
                 const { transitionTime: _, ...rest } = inner;
                 onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
               } else {
-                updateInner({ transitionTime: v });
+                updateInner({ transitionTime: n });
               }
             }}
+            acceptedTypes={['double']}
             className="h-8 text-sm"
           />
         </OptionalFieldWrapper>

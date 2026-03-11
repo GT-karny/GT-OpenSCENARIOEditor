@@ -1,6 +1,15 @@
-import type { ScenarioAction, ActivateControllerAction } from '@osce/shared';
-import { Input } from '../../ui/input';
+import { useMemo } from 'react';
+import type {
+  ScenarioAction,
+  ActivateControllerAction,
+  TrafficSignalController,
+} from '@osce/shared';
 import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
+import { RefSelect } from '../RefSelect';
+import type { RefSelectItem } from '../RefSelect';
+import { useScenarioStore } from '../../../stores/use-scenario-store';
+
+const EMPTY_SIGNALS: TrafficSignalController[] = [];
 
 interface ActivateControllerActionEditorProps {
   action: ScenarioAction;
@@ -9,6 +18,12 @@ interface ActivateControllerActionEditorProps {
 
 export function ActivateControllerActionEditor({ action, onUpdate }: ActivateControllerActionEditorProps) {
   const inner = action.action as ActivateControllerAction;
+  const controllers = useScenarioStore((s) => s.document.roadNetwork.trafficSignals ?? EMPTY_SIGNALS);
+
+  const controllerItems: RefSelectItem[] = useMemo(
+    () => controllers.map((c) => ({ name: c.name, description: `${c.phases.length} phase(s)` })),
+    [controllers],
+  );
 
   const updateInner = (updates: Partial<ActivateControllerAction>) => {
     onUpdate({
@@ -64,19 +79,19 @@ export function ActivateControllerActionEditor({ action, onUpdate }: ActivateCon
           onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
         }}
       >
-        <Input
+        <RefSelect
           value={inner.controllerRef ?? ''}
-          placeholder="--"
-          onChange={(e) => {
-            if (e.target.value === '') {
+          onValueChange={(v) => {
+            if (v === '') {
               const { controllerRef: _, ...rest } = inner;
-              onUpdate({
-                action: { ...rest },
-              } as Partial<ScenarioAction>);
+              onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
             } else {
-              updateInner({ controllerRef: e.target.value });
+              updateInner({ controllerRef: v });
             }
           }}
+          items={controllerItems}
+          placeholder="Select controller..."
+          emptyMessage="No controllers defined"
           className="h-8 text-sm"
         />
       </OptionalFieldWrapper>
