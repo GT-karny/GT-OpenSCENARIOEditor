@@ -1,6 +1,6 @@
 import type { ScenarioAction, ActivateControllerAction } from '@osce/shared';
-import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
+import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
 
 interface ActivateControllerActionEditorProps {
   action: ScenarioAction;
@@ -56,27 +56,30 @@ export function ActivateControllerActionEditor({ action, onUpdate }: ActivateCon
         </div>
       </div>
 
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Controller Reference</p>
-        <div className="grid gap-1">
-          <Label className="text-xs">Controller Ref (optional)</Label>
-          <Input
-            value={inner.controllerRef ?? ''}
-            placeholder="--"
-            onChange={(e) => {
-              if (e.target.value === '') {
-                const { controllerRef: _, ...rest } = inner;
-                onUpdate({
-                  action: { ...rest },
-                } as Partial<ScenarioAction>);
-              } else {
-                updateInner({ controllerRef: e.target.value });
-              }
-            }}
-            className="h-8 text-sm"
-          />
-        </div>
-      </div>
+      <OptionalFieldWrapper
+        label="Controller Ref"
+        hasValue={inner.controllerRef !== undefined}
+        onClear={() => {
+          const { controllerRef: _, ...rest } = inner;
+          onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
+        }}
+      >
+        <Input
+          value={inner.controllerRef ?? ''}
+          placeholder="--"
+          onChange={(e) => {
+            if (e.target.value === '') {
+              const { controllerRef: _, ...rest } = inner;
+              onUpdate({
+                action: { ...rest },
+              } as Partial<ScenarioAction>);
+            } else {
+              updateInner({ controllerRef: e.target.value });
+            }
+          }}
+          className="h-8 text-sm"
+        />
+      </OptionalFieldWrapper>
     </div>
   );
 }

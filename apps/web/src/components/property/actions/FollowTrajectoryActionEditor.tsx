@@ -10,6 +10,7 @@ import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { SegmentedControl } from '../SegmentedControl';
+import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
 
 interface FollowTrajectoryActionEditorProps {
   action: ScenarioAction;
@@ -89,8 +90,14 @@ export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTraject
       </div>
 
       {/* Initial Distance Offset */}
-      <div className="grid gap-1">
-        <Label className="text-xs">Initial Distance Offset (m) (optional)</Label>
+      <OptionalFieldWrapper
+        label="Initial Distance Offset (m)"
+        hasValue={inner.initialDistanceOffset !== undefined}
+        onClear={() => {
+          const { initialDistanceOffset: _, ...rest } = inner;
+          onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
+        }}
+      >
         <ParameterAwareInput
           elementId={action.id}
           fieldName="action.initialDistanceOffset"
@@ -109,7 +116,7 @@ export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTraject
           acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
           className="h-8 text-sm"
         />
-      </div>
+      </OptionalFieldWrapper>
 
       {/* Time Reference */}
       <div className="space-y-2">

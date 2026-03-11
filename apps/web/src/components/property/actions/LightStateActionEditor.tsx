@@ -3,6 +3,7 @@ import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { EnumSelect } from '../EnumSelect';
 import { SegmentedControl } from '../SegmentedControl';
+import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
 
 interface LightStateActionEditorProps {
   action: ScenarioAction;
@@ -96,8 +97,14 @@ export function LightStateActionEditor({ action, onUpdate }: LightStateActionEdi
           />
         </div>
 
-        <div className="grid gap-1">
-          <Label className="text-xs">Luminous Intensity (cd) (optional)</Label>
+        <OptionalFieldWrapper
+          label="Luminous Intensity (cd)"
+          hasValue={inner.intensity !== undefined}
+          onClear={() => {
+            const { intensity: _, ...rest } = inner;
+            onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
+          }}
+        >
           <Input
             type="number"
             value={inner.intensity ?? ''}
@@ -113,10 +120,16 @@ export function LightStateActionEditor({ action, onUpdate }: LightStateActionEdi
             }}
             className="h-8 text-sm"
           />
-        </div>
+        </OptionalFieldWrapper>
 
-        <div className="grid gap-1">
-          <Label className="text-xs">Transition Time (s) (optional)</Label>
+        <OptionalFieldWrapper
+          label="Transition Time (s)"
+          hasValue={inner.transitionTime !== undefined}
+          onClear={() => {
+            const { transitionTime: _, ...rest } = inner;
+            onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
+          }}
+        >
           <Input
             type="number"
             value={inner.transitionTime ?? ''}
@@ -132,7 +145,7 @@ export function LightStateActionEditor({ action, onUpdate }: LightStateActionEdi
             }}
             className="h-8 text-sm"
           />
-        </div>
+        </OptionalFieldWrapper>
       </div>
     </div>
   );

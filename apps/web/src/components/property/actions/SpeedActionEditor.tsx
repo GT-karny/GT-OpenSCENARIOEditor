@@ -28,35 +28,55 @@ export function SpeedActionEditor({ action, onUpdate }: SpeedActionEditorProps) 
       <div className="space-y-2">
         <p className="text-xs font-medium text-muted-foreground">Target</p>
         <div className="grid gap-1">
-          <Label className="text-xs">Kind</Label>
-          <SegmentedControl
-            value={inner.target.kind}
-            options={['absolute', 'relative'] as const}
-            onValueChange={(v) => {
-              if (v === 'absolute') {
-                updateInner({ target: { kind: 'absolute', value: 0 } });
-              } else {
-                updateInner({ target: { kind: 'relative', entityRef: '', value: 0, speedTargetValueType: 'delta', continuous: false } });
-              }
-            }}
-            labels={{ absolute: 'Absolute', relative: 'Relative' }}
-          />
-        </div>
-        {inner.target.kind === 'absolute' && (
-          <div className="grid gap-1">
-            <Label className="text-xs">Speed (m/s)</Label>
+          <Label className="text-xs">
+            {inner.target.kind === 'absolute'
+              ? 'Speed (m/s)'
+              : relTarget?.speedTargetValueType === 'factor'
+                ? 'Speed Factor (×)'
+                : 'Speed Delta (m/s)'}
+          </Label>
+          <div className="flex gap-1">
             <ParameterAwareInput
               elementId={action.id}
               fieldName="action.target.value"
               value={inner.target.value}
-              onValueChange={(v) =>
-                updateInner({ target: { kind: 'absolute', value: parseFloat(v) || 0 } })
-              }
+              onValueChange={(v) => {
+                if (inner.target.kind === 'absolute') {
+                  updateInner({ target: { kind: 'absolute', value: parseFloat(v) || 0 } });
+                } else if (relTarget) {
+                  updateInner({ target: { ...relTarget, value: parseFloat(v) || 0 } });
+                }
+              }}
               acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
-              className="h-8 text-sm"
+              className="h-8 text-sm flex-1 min-w-0"
             />
+            <SegmentedControl
+              value={inner.target.kind}
+              options={['absolute', 'relative'] as const}
+              onValueChange={(v) => {
+                if (v === 'absolute') {
+                  updateInner({ target: { kind: 'absolute', value: inner.target.value } });
+                } else {
+                  updateInner({ target: { kind: 'relative', entityRef: '', value: inner.target.value, speedTargetValueType: 'delta', continuous: false } });
+                }
+              }}
+              labels={{ absolute: 'Absolute', relative: 'Relative' }}
+              className="shrink-0"
+            />
+            {relTarget !== null && (
+              <SegmentedControl
+                value={relTarget.speedTargetValueType}
+                options={['delta', 'factor'] as const}
+                onValueChange={(v) =>
+                  updateInner({
+                    target: { ...relTarget, speedTargetValueType: v },
+                  })
+                }
+                className="shrink-0"
+              />
+            )}
           </div>
-        )}
+        </div>
         {relTarget !== null && (
           <>
             <div className="grid gap-1">
@@ -67,31 +87,6 @@ export function SpeedActionEditor({ action, onUpdate }: SpeedActionEditorProps) 
                   updateInner({ target: { ...relTarget, entityRef: v } })
                 }
               />
-            </div>
-            <div className="grid gap-1">
-              <Label className="text-xs">Value</Label>
-              <div className="flex gap-1">
-                <ParameterAwareInput
-                  elementId={action.id}
-                  fieldName="action.target.value"
-                  value={relTarget.value}
-                  onValueChange={(v) =>
-                    updateInner({ target: { ...relTarget, value: parseFloat(v) || 0 } })
-                  }
-                  acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
-                  className="h-8 text-sm flex-1 min-w-0"
-                />
-                <SegmentedControl
-                  value={relTarget.speedTargetValueType}
-                  options={['delta', 'factor'] as const}
-                  onValueChange={(v) =>
-                    updateInner({
-                      target: { ...relTarget, speedTargetValueType: v },
-                    })
-                  }
-                  className="shrink-0"
-                />
-              </div>
             </div>
             <label className="flex items-center gap-2 text-xs">
               <input

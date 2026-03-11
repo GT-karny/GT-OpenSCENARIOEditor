@@ -5,14 +5,18 @@ import type {
   CoordinateSystem,
   LongitudinalDisplacement,
 } from '@osce/shared';
-import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefSelect } from '../EntityRefSelect';
-import { EnumSelect } from '../EnumSelect';
 import { SegmentedControl } from '../SegmentedControl';
+import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
+import { EnumSelect } from '../EnumSelect';
+import { Label } from '../../ui/label';
 
 const LONGITUDINAL_DISPLACEMENTS = ['any', 'trailingReferencedEntity', 'leadingReferencedEntity'] as const;
 const COORDINATE_SYSTEMS = ['', 'entity', 'lane', 'road', 'trajectory'] as const;
+const DISTANCE_MODES = ['distance', 'timeGap'] as const;
+
+type DistanceMode = 'distance' | 'timeGap';
 
 interface LongitudinalDistanceActionEditorProps {
   action: ScenarioAction;
@@ -29,6 +33,20 @@ export function LongitudinalDistanceActionEditor({ action, onUpdate }: Longitudi
   };
 
   const dynamics = inner.dynamics ?? {};
+  const hasDynamics = inner.dynamics !== undefined && Object.keys(inner.dynamics).length > 0;
+
+  const distanceMode: DistanceMode =
+    inner.timeGap !== undefined ? 'timeGap' : 'distance';
+
+  const handleDistanceModeChange = (mode: DistanceMode) => {
+    if (mode === 'distance') {
+      const { timeGap: _t, ...rest } = inner;
+      onUpdate({ action: { ...rest, distance: inner.distance ?? 0 } } as Partial<ScenarioAction>);
+    } else {
+      const { distance: _d, ...rest } = inner;
+      onUpdate({ action: { ...rest, timeGap: inner.timeGap ?? 0 } } as Partial<ScenarioAction>);
+    }
+  };
 
   const updateDynamics = (field: keyof DynamicConstraints, value: string) => {
     if (value === '') {
@@ -48,6 +66,11 @@ export function LongitudinalDistanceActionEditor({ action, onUpdate }: Longitudi
     }
   };
 
+  const clearDynamics = () => {
+    const { dynamics: _d, ...rest } = inner;
+    onUpdate({ action: rest } as Partial<ScenarioAction>);
+  };
+
   return (
     <div className="space-y-3">
       <div className="space-y-2">
@@ -61,44 +84,31 @@ export function LongitudinalDistanceActionEditor({ action, onUpdate }: Longitudi
         </div>
       </div>
 
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Distance</p>
-        <div className="grid gap-1">
-          <Label className="text-xs">Distance (m) (optional)</Label>
+      <div className="grid gap-1">
+        <Label className="text-xs">
+          {distanceMode === 'distance' ? 'Distance (m)' : 'Time Gap (s)'}
+        </Label>
+        <div className="flex gap-1">
           <ParameterAwareInput
             elementId={action.id}
-            fieldName="action.distance"
-            value={inner.distance ?? ''}
-            placeholder="—"
+            fieldName={distanceMode === 'distance' ? 'action.distance' : 'action.timeGap'}
+            value={distanceMode === 'distance' ? (inner.distance ?? 0) : (inner.timeGap ?? 0)}
             onValueChange={(v) => {
-              if (v === '') {
-                const { distance: _d, ...rest } = inner;
-                updateInner(rest as LongitudinalDistanceAction);
-              } else {
+              if (distanceMode === 'distance') {
                 updateInner({ distance: parseFloat(v) || 0 });
-              }
-            }}
-            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
-            className="h-8 text-sm"
-          />
-        </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Time Gap (s) (optional)</Label>
-          <ParameterAwareInput
-            elementId={action.id}
-            fieldName="action.timeGap"
-            value={inner.timeGap ?? ''}
-            placeholder="—"
-            onValueChange={(v) => {
-              if (v === '') {
-                const { timeGap: _t, ...rest } = inner;
-                updateInner(rest as LongitudinalDistanceAction);
               } else {
                 updateInner({ timeGap: parseFloat(v) || 0 });
               }
             }}
             acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
-            className="h-8 text-sm"
+            className="h-8 text-sm flex-1 min-w-0"
+          />
+          <SegmentedControl
+            value={distanceMode}
+            options={DISTANCE_MODES}
+            onValueChange={handleDistanceModeChange}
+            labels={{ distance: 'Distance', timeGap: 'Time Gap' }}
+            className="shrink-0"
           />
         </div>
       </div>
@@ -123,8 +133,14 @@ export function LongitudinalDistanceActionEditor({ action, onUpdate }: Longitudi
             Continuous
           </label>
         </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Coordinate System (optional)</Label>
+        <OptionalFieldWrapper
+          label="Coordinate System"
+          hasValue={inner.coordinateSystem !== undefined}
+          onClear={() => {
+            const { coordinateSystem: _cs, ...rest } = inner;
+            onUpdate({ action: rest } as Partial<ScenarioAction>);
+          }}
+        >
           <SegmentedControl
             value={inner.coordinateSystem ?? ''}
             options={COORDINATE_SYSTEMS}
@@ -138,9 +154,15 @@ export function LongitudinalDistanceActionEditor({ action, onUpdate }: Longitudi
             }}
             labels={{ '': '—', entity: 'Entity', lane: 'Lane', road: 'Road', trajectory: 'Traj' }}
           />
-        </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Displacement (optional)</Label>
+        </OptionalFieldWrapper>
+        <OptionalFieldWrapper
+          label="Displacement"
+          hasValue={inner.displacement !== undefined}
+          onClear={() => {
+            const { displacement: _dp, ...rest } = inner;
+            onUpdate({ action: rest } as Partial<ScenarioAction>);
+          }}
+        >
           <EnumSelect
             value={inner.displacement ?? ''}
             options={['', ...LONGITUDINAL_DISPLACEMENTS]}
@@ -154,11 +176,14 @@ export function LongitudinalDistanceActionEditor({ action, onUpdate }: Longitudi
             }}
             className="h-8 text-sm"
           />
-        </div>
+        </OptionalFieldWrapper>
       </div>
 
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Dynamic Constraints</p>
+      <OptionalFieldWrapper
+        label="Dynamic Constraints"
+        hasValue={hasDynamics}
+        onClear={clearDynamics}
+      >
         <div className="grid grid-cols-3 gap-2">
           <div className="grid gap-1">
             <Label className="text-[10px]">Max Accel (m/s²)</Label>
@@ -197,7 +222,7 @@ export function LongitudinalDistanceActionEditor({ action, onUpdate }: Longitudi
             />
           </div>
         </div>
-      </div>
+      </OptionalFieldWrapper>
     </div>
   );
 }

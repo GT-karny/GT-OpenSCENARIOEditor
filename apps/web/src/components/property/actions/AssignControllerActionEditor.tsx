@@ -1,7 +1,7 @@
 import type { ScenarioAction, AssignControllerAction, Property } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
-import { EnumSelect } from '../EnumSelect';
+import { SegmentedControl } from '../SegmentedControl';
 
 type SourceMode = 'inline' | 'catalog';
 
@@ -112,11 +112,11 @@ export function AssignControllerActionEditor({ action, onUpdate }: AssignControl
         <p className="text-xs font-medium text-muted-foreground">Controller Source</p>
         <div className="grid gap-1">
           <Label className="text-xs">Source</Label>
-          <EnumSelect
+          <SegmentedControl
             value={sourceMode}
-            options={['inline', 'catalog']}
+            options={['inline', 'catalog'] as const}
             onValueChange={handleSourceModeChange}
-            className="h-8 text-sm"
+            labels={{ inline: 'Inline', catalog: 'Catalog' }}
           />
         </div>
 
