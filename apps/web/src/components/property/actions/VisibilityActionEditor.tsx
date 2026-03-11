@@ -1,18 +1,17 @@
 import type { ScenarioAction, VisibilityAction } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
+import { EntityRefSelect } from '../EntityRefSelect';
 
 interface VisibilityActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
-export function VisibilityActionEditor({ action }: VisibilityActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function VisibilityActionEditor({ action, onUpdate }: VisibilityActionEditorProps) {
   const inner = action.action as VisibilityAction;
 
   const updateInner = (updates: Partial<VisibilityAction>) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate({
       action: { ...inner, ...updates },
     } as Partial<ScenarioAction>);
   };
@@ -51,20 +50,20 @@ export function VisibilityActionEditor({ action }: VisibilityActionEditorProps) 
 
       <div className="grid gap-1">
         <Label className="text-xs">Entity Ref (optional)</Label>
-        <Input
+        <EntityRefSelect
           value={inner.entityRef ?? ''}
-          placeholder="--"
-          onChange={(e) => {
-            if (e.target.value === '') {
+          onValueChange={(v) => {
+            if (v === '') {
               const { entityRef: _, ...rest } = inner;
-              storeApi.getState().updateAction(action.id, {
+              onUpdate({
                 action: { ...rest },
               } as Partial<ScenarioAction>);
             } else {
-              updateInner({ entityRef: e.target.value });
+              updateInner({ entityRef: v });
             }
           }}
-          className="h-8 text-sm"
+          allowEmpty
+          placeholder="--"
         />
       </div>
     </div>

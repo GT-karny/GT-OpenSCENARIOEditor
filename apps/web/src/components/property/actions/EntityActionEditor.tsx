@@ -1,12 +1,12 @@
 import type { ScenarioAction, EntityAction, Position } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
 import { EnumSelect } from '../EnumSelect';
+import { EntityRefSelect } from '../EntityRefSelect';
 import { PositionEditor } from '../PositionEditor';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 interface EntityActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
 const DEFAULT_WORLD_POSITION: Position = {
@@ -19,12 +19,11 @@ const DEFAULT_WORLD_POSITION: Position = {
   r: 0,
 };
 
-export function EntityActionEditor({ action }: EntityActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function EntityActionEditor({ action, onUpdate }: EntityActionEditorProps) {
   const inner = action.action as EntityAction;
 
   const updateInner = (updates: Partial<EntityAction>) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate({
       action: { ...inner, ...updates },
     } as Partial<ScenarioAction>);
   };
@@ -33,11 +32,9 @@ export function EntityActionEditor({ action }: EntityActionEditorProps) {
     <div className="space-y-3">
       <div className="grid gap-1">
         <Label className="text-xs">Entity Ref</Label>
-        <Input
+        <EntityRefSelect
           value={inner.entityRef}
-          placeholder="entity name"
-          onChange={(e) => updateInner({ entityRef: e.target.value })}
-          className="h-8 text-sm"
+          onValueChange={(v) => updateInner({ entityRef: v })}
         />
       </div>
 
@@ -52,7 +49,7 @@ export function EntityActionEditor({ action }: EntityActionEditorProps) {
               updateInner({ actionType, position: inner.position ?? DEFAULT_WORLD_POSITION });
             } else {
               const { position: _, ...rest } = inner;
-              storeApi.getState().updateAction(action.id, {
+              onUpdate({
                 action: { ...rest, actionType },
               } as Partial<ScenarioAction>);
             }

@@ -9,8 +9,12 @@ import type {
   PedestrianCategory,
   MiscObjectCategory,
   ConditionEdge,
+  DynamicsDimension,
   DynamicsShape,
   Rule,
+  ControllerType,
+  ParameterType,
+  RouteStrategy,
 } from '@osce/shared';
 import type { EventPriority } from '@osce/shared';
 
@@ -53,6 +57,26 @@ export const MISC_OBJECT_CATEGORIES: readonly MiscObjectCategory[] = [
   'wind',
 ] as const;
 
+export const CONTROLLER_TYPES: readonly ControllerType[] = [
+  'lateral',
+  'longitudinal',
+  'lighting',
+  'animation',
+  'movement',
+  'appearance',
+  'all',
+] as const;
+
+export const PARAMETER_TYPES: readonly ParameterType[] = [
+  'string',
+  'double',
+  'int',
+  'boolean',
+  'dateTime',
+  'unsignedInt',
+  'unsignedShort',
+] as const;
+
 export const CONDITION_EDGES: readonly ConditionEdge[] = [
   'falling',
   'none',
@@ -65,6 +89,12 @@ export const DYNAMICS_SHAPES: readonly DynamicsShape[] = [
   'linear',
   'sinusoidal',
   'step',
+] as const;
+
+export const DYNAMICS_DIMENSIONS: readonly DynamicsDimension[] = [
+  'time',
+  'distance',
+  'rate',
 ] as const;
 
 export const RULES: readonly Rule[] = [
@@ -81,6 +111,13 @@ export const EVENT_PRIORITIES: readonly EventPriority[] = [
   'overwrite',
   'skip',
   'parallel',
+] as const;
+
+export const ROUTE_STRATEGIES: readonly RouteStrategy[] = [
+  'fastest',
+  'leastIntersections',
+  'random',
+  'shortest',
 ] as const;
 
 export const PRIVATE_ACTION_TYPES = [
@@ -115,6 +152,48 @@ export const GLOBAL_ACTION_TYPES = [
   'trafficAction',
 ] as const;
 
+export const PRIVATE_ACTION_SUBCATEGORIES = [
+  {
+    key: 'longitudinal',
+    types: ['speedAction', 'longitudinalDistanceAction', 'speedProfileAction'],
+  },
+  {
+    key: 'lateral',
+    types: ['laneChangeAction', 'laneOffsetAction', 'lateralDistanceAction'],
+  },
+  {
+    key: 'routing',
+    types: [
+      'teleportAction',
+      'acquirePositionAction',
+      'routingAction',
+      'followTrajectoryAction',
+      'synchronizeAction',
+    ],
+  },
+  {
+    key: 'controller',
+    types: ['assignControllerAction', 'activateControllerAction', 'overrideControllerAction'],
+  },
+  {
+    key: 'appearance',
+    types: ['visibilityAction', 'animationAction', 'lightStateAction', 'appearanceAction'],
+  },
+  {
+    key: 'trailer',
+    types: ['connectTrailerAction', 'disconnectTrailerAction'],
+  },
+] as const;
+
+export const GLOBAL_ACTION_ORDER = [
+  'environmentAction',
+  'entityAction',
+  'trafficAction',
+  'infrastructureAction',
+  'parameterAction',
+  'variableAction',
+] as const;
+
 export const ENTITY_CONDITION_TYPES = [
   'distance',
   'relativeDistance',
@@ -140,4 +219,15 @@ export const VALUE_CONDITION_TYPES = [
   'trafficSignal',
   'trafficSignalController',
   'userDefinedValue',
+] as const;
+
+export const CONDITION_SUBCATEGORIES = [
+  { key: 'distance', types: ['distance', 'relativeDistance', 'reachPosition'] },
+  { key: 'time', types: ['timeHeadway', 'timeToCollision', 'simulationTime'] },
+  { key: 'motion', types: ['speed', 'relativeSpeed', 'acceleration'] },
+  { key: 'travel', types: ['standStill', 'traveledDistance', 'endOfRoad'] },
+  { key: 'interaction', types: ['collision', 'offroad', 'relativeClearance'] },
+  { key: 'signal', types: ['trafficSignal', 'trafficSignalController'] },
+  { key: 'storyboard', types: ['storyboardElementState'] },
+  { key: 'data', types: ['parameter', 'variable', 'userDefinedValue'] },
 ] as const;

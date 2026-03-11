@@ -12,7 +12,7 @@ export function initI18n(lng: SupportedLanguage = 'en') {
     lng,
     fallbackLng: 'en',
     defaultNS,
-    ns: ['common', 'actions', 'useCases', 'openscenario', 'errors', 'tooltips'],
+    ns: ['common', 'actions', 'useCases', 'openscenario', 'errors', 'tooltips', 'composer'],
     interpolation: {
       escapeValue: false, // React already escapes
     },

@@ -12,7 +12,12 @@
  *   client.dispose();
  */
 
-import type { WorkerRequest, WorkerResponse, WasmRMPositionResult } from './types.js';
+import type {
+  WorkerRequest,
+  WorkerResponse,
+  WasmRMPositionResult,
+  WasmRMPathPoint,
+} from './types.js';
 
 type PendingResolve<T> = {
   resolve: (value: T) => void;
@@ -28,6 +33,7 @@ export class RoadManagerClient {
   private worker: Worker;
   private pendingPosition = new Map<string, PendingResolve<WasmRMPositionResult>>();
   private pendingScalar = new Map<string, PendingResolve<number>>();
+  private pendingPath = new Map<string, PendingResolve<WasmRMPathPoint[]>>();
   private loadResolve: PendingResolve<void> | null = null;
   private disposed = false;
   private boundHandler: (event: MessageEvent<WorkerResponse>) => void;
@@ -63,6 +69,14 @@ export class RoadManagerClient {
         }
         break;
       }
+      case 'rm-path': {
+        const pending = this.pendingPath.get(msg.requestId);
+        if (pending) {
+          this.pendingPath.delete(msg.requestId);
+          pending.resolve(msg.points);
+        }
+        break;
+      }
       case 'rm-error': {
         const error = new Error(msg.message);
         if (msg.requestId) {
@@ -76,6 +90,12 @@ export class RoadManagerClient {
           if (scalarPending) {
             this.pendingScalar.delete(msg.requestId);
             scalarPending.reject(error);
+            break;
+          }
+          const pathPending = this.pendingPath.get(msg.requestId);
+          if (pathPending) {
+            this.pendingPath.delete(msg.requestId);
+            pathPending.reject(error);
             break;
           }
         }
@@ -173,6 +193,36 @@ export class RoadManagerClient {
     });
   }
 
+  /**
+   * Calculate a route path between two lane positions.
+   * Returns an array of world-coordinate points along the calculated route.
+   */
+  async calculatePath(
+    startRoadId: number,
+    startLaneId: number,
+    startS: number,
+    endRoadId: number,
+    endLaneId: number,
+    endS: number,
+    sampleInterval = 2.0,
+  ): Promise<WasmRMPathPoint[]> {
+    const requestId = nextRequestId();
+    return new Promise<WasmRMPathPoint[]>((resolve, reject) => {
+      this.pendingPath.set(requestId, { resolve, reject });
+      this.post({
+        type: 'rm-calculate-path',
+        startRoadId,
+        startLaneId,
+        startS,
+        endRoadId,
+        endLaneId,
+        endS,
+        sampleInterval,
+        requestId,
+      });
+    });
+  }
+
   /** Clean up event listener. Call when no longer needed. */
   dispose() {
     this.disposed = true;
@@ -182,10 +232,12 @@ export class RoadManagerClient {
     const error = new Error('RoadManagerClient disposed');
     for (const pending of this.pendingPosition.values()) pending.reject(error);
     for (const pending of this.pendingScalar.values()) pending.reject(error);
+    for (const pending of this.pendingPath.values()) pending.reject(error);
     if (this.loadResolve) this.loadResolve.reject(error);
 
     this.pendingPosition.clear();
     this.pendingScalar.clear();
+    this.pendingPath.clear();
     this.loadResolve = null;
   }
 }

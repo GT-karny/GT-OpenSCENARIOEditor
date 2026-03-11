@@ -19,6 +19,7 @@ import type {
 } from '@osce/shared';
 import { ensureArray } from '../utils/ensure-array.js';
 import { generateId } from '../utils/uuid.js';
+import { parseParameterDeclarations } from './parse-parameters.js';
 import { numAttr, strAttr, optNumAttr, optStrAttr, boolAttr, pushBindingFieldPrefix, popBindingFieldPrefix } from '../utils/xml-helpers.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -179,11 +180,12 @@ function parseRouteRef(raw: any): RouteRef {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseRoute(raw: any): Route {
+export function parseRoute(raw: any): Route {
   return {
     id: generateId(),
     name: strAttr(raw, 'name'),
     closed: boolAttr(raw, 'closed'),
+    parameterDeclarations: parseParameterDeclarations(raw.ParameterDeclarations),
     waypoints: ensureArray(raw?.Waypoint).map(parseWaypoint),
   };
 }
@@ -199,24 +201,27 @@ function parseWaypoint(raw: any): Waypoint {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseInRoutePosition(raw: any): InRoutePosition {
   if (!raw) return {};
+
+  // XSD element names: FromCurrentEntity, FromRoadCoordinates, FromLaneCoordinates
+  const fromCurrent = raw.FromCurrentEntity;
+  const fromRoad = raw.FromRoadCoordinates;
+  const fromLane = raw.FromLaneCoordinates;
+
   return {
-    fromCurrentEntity: raw.FromCurrentEntity
-      ? { entityRef: strAttr(raw.FromCurrentEntity, 'entityRef') }
+    fromCurrentEntity: fromCurrent
+      ? { entityRef: strAttr(fromCurrent, 'entityRef') }
       : undefined,
-    positionOfCurrentEntity: raw.PositionOfCurrentEntity
-      ? { entityRef: strAttr(raw.PositionOfCurrentEntity, 'entityRef') }
-      : undefined,
-    positionInRoadCoordinates: raw.PositionInRoadCoordinates
+    positionInRoadCoordinates: fromRoad
       ? {
-          pathS: numAttr(raw.PositionInRoadCoordinates, 'pathS'),
-          t: numAttr(raw.PositionInRoadCoordinates, 't'),
+          pathS: numAttr(fromRoad, 'pathS'),
+          t: numAttr(fromRoad, 't'),
         }
       : undefined,
-    positionInLaneCoordinates: raw.PositionInLaneCoordinates
+    positionInLaneCoordinates: fromLane
       ? {
-          pathS: numAttr(raw.PositionInLaneCoordinates, 'pathS'),
-          laneId: strAttr(raw.PositionInLaneCoordinates, 'laneId'),
-          laneOffset: optNumAttr(raw.PositionInLaneCoordinates, 'laneOffset'),
+          pathS: numAttr(fromLane, 'pathS'),
+          laneId: strAttr(fromLane, 'laneId'),
+          laneOffset: optNumAttr(fromLane, 'laneOffset'),
         }
       : undefined,
   };

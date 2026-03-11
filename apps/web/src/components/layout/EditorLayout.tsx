@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useRef, useEffect, memo } from 'react';
+import { useStore } from 'zustand';
 import { SceneComposerView } from '../scene-composer/SceneComposerView';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import type { ImperativePanelHandle } from 'react-resizable-panels';
@@ -18,6 +19,8 @@ import { ValidationPanel } from '../panels/ValidationPanel';
 import { SimulationTimeline } from '../panels/SimulationTimeline';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { NodeEditorContextMenu } from '../node-editor/NodeEditorContextMenu';
+import { WaypointContextMenu } from '../route/WaypointContextMenu';
+import type { WaypointContextMenuPosition } from '../route/WaypointContextMenu';
 import type { ContextMenuPosition } from '../node-editor/NodeEditorContextMenu';
 import { DeleteConfirmationDialog } from '../node-editor/DeleteConfirmationDialog';
 import { ParameterDialog } from '../template/ParameterDialog';
@@ -30,6 +33,9 @@ import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
 import { useProjectStore } from '../../stores/project-store';
 import { useSimulationStore } from '../../stores/simulation-store';
+import { useRouteEdit } from '../../hooks/use-route-edit';
+import { useRoadManagerClient } from '../../hooks/use-road-manager-client';
+import { useCatalogStore } from '../../stores/catalog-store';
 import { useTemplateDrop } from '../../hooks/use-template-drop';
 import { useElementDelete } from '../../hooks/use-element-delete';
 import { useElementAdd } from '../../hooks/use-element-add';
@@ -37,6 +43,7 @@ import { getDirectChildCount } from '../../lib/count-descendants';
 import { useFileOperations } from '../../hooks/use-file-operations';
 import { useProjectFileOperations } from '../../hooks/use-project-file-operations';
 import { buildFullPathToIdMap } from '../../lib/fullpath-mapping';
+import { buildCatalogLocationsFromProject } from '../../lib/catalog-location-utils';
 
 function ResizeHandle() {
   return (
@@ -58,11 +65,30 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   scenarioStore: ReturnType<typeof import('../../stores/use-scenario-store').useScenarioStoreApi>;
   openDriveDocument: import('@osce/shared').OpenDriveDocument | null;
   selectedEntityId: string | null;
+  hoveredEntityName: string | null;
   onEntitySelect: (entityId: string) => void;
   onEntityFocus: (entityId: string) => void;
   onEntityPositionChange?: (entityName: string, x: number, y: number, z: number, h: number, forceWorldPosition?: boolean) => void;
   onViewerModeChange?: (mode: ViewerMode) => void;
   preferences: { showGrid3D: boolean; showLaneIds: boolean; showRoadIds: boolean };
+  focusEntityId?: string | null;
+  // Route editing props
+  routeEditActive?: boolean;
+  routeWaypoints?: Array<{ x: number; y: number; z: number; h: number }>;
+  routePathSegments?: Array<Array<{ x: number; y: number; z: number }>>;
+  routeSelectedWaypointIndex?: number | null;
+  onRouteWaypointClick?: (index: number) => void;
+  onRouteWaypointContextMenu?: (index: number, event: unknown) => void;
+  onRouteLineClick?: (segmentIndex: number, event: unknown) => void;
+  onRouteWaypointAdd?: (worldX: number, worldY: number, worldZ: number, heading: number, roadId: string, laneId: string, s: number, offset: number) => void;
+  onRouteWaypointDragEnd?: (index: number, worldX: number, worldY: number, worldZ: number, heading: number, roadId: string, laneId: string, s: number, offset: number) => void;
+  onRouteEditSave?: () => void;
+  onRouteEditCancel?: () => void;
+  routeWarnings?: string[];
+  routeWaypointCount?: number;
+  resolveCatalogRoute?: (ref: { catalogName: string; entryName: string }) => import('@osce/shared').Route | null;
+  selectedSignalKey?: string | null;
+  onSignalSelect?: (key: string) => void;
 }) {
   const simStatus = useSimulationStore((s) => s.status);
   const simFrames = useSimulationStore((s) => s.frames);
@@ -95,6 +121,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       scenarioStore={props.scenarioStore}
       openDriveDocument={props.openDriveDocument}
       selectedEntityId={props.selectedEntityId}
+      hoveredEntityName={props.hoveredEntityName}
       onEntitySelect={props.onEntitySelect}
       onEntityFocus={props.onEntityFocus}
       onEntityPositionChange={props.onEntityPositionChange}
@@ -102,6 +129,24 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       currentFrame={currentFrame}
       simulationStatus={simStatus}
       preferences={props.preferences}
+      focusEntityId={props.focusEntityId}
+      routeEditActive={props.routeEditActive}
+      routeWaypoints={props.routeWaypoints}
+      routePathSegments={props.routePathSegments}
+      routeSelectedWaypointIndex={props.routeSelectedWaypointIndex}
+      onRouteWaypointClick={props.onRouteWaypointClick}
+      onRouteWaypointContextMenu={props.onRouteWaypointContextMenu}
+      onRouteLineClick={props.onRouteLineClick}
+      onRouteWaypointAdd={props.onRouteWaypointAdd}
+      onRouteWaypointDragEnd={props.onRouteWaypointDragEnd}
+      onRouteEditSave={props.onRouteEditSave}
+      onRouteEditCancel={props.onRouteEditCancel}
+      routeWarnings={props.routeWarnings}
+      routeWaypointCount={props.routeWaypointCount}
+      resolveCatalogRoute={props.resolveCatalogRoute}
+      selectedSignalKey={props.selectedSignalKey}
+      onSignalSelect={props.onSignalSelect}
+      showPerf={false}
       className="h-full w-full"
     />
   );
@@ -137,15 +182,55 @@ export function EditorLayout() {
   useEffect(() => {
     if (currentProject) {
       autoLoadProjectCatalogs();
+
+      // Auto-populate CatalogLocations on the default document
+      const doc = scenarioStoreApi.getState().document;
+      if (Object.keys(doc.catalogLocations).length === 0) {
+        const currentFilePath = useProjectStore.getState().currentFilePath;
+        const catalogLocations = buildCatalogLocationsFromProject(
+          currentProject.files,
+          currentFilePath ?? '',
+        );
+        if (Object.keys(catalogLocations).length > 0) {
+          scenarioStoreApi.setState({
+            document: { ...doc, catalogLocations },
+          });
+        }
+      }
     }
-  }, [currentProject, autoLoadProjectCatalogs]);
+  }, [currentProject, autoLoadProjectCatalogs, scenarioStoreApi]);
 
   // --- Selection sync ---
   const selectedElementIds = useEditorStore((s) => s.selection.selectedElementIds);
+  const hoveredElementId = useEditorStore((s) => s.selection.hoveredElementId);
   const roadNetwork = useEditorStore((s) => s.roadNetwork);
   const preferences = useEditorStore((s) => s.preferences);
   const focusNodeId = useEditorStore((s) => s.focusNodeId);
+  const focusEntityId = useEditorStore((s) => s.focusEntityId);
   const selectedEntityId = selectedElementIds.length === 1 ? selectedElementIds[0] : null;
+
+  // Resolve ManeuverGroup selection → first actor entity ID for 3D highlighting
+  const scenarioEntities = useStore(scenarioStoreApi, (s) => s.document.entities);
+  const storyboardStories = useStore(scenarioStoreApi, (s) => s.document.storyboard.stories);
+  const viewerSelectedEntityId = useMemo(() => {
+    if (!selectedEntityId) return null;
+    // Direct entity match — use as-is
+    if (scenarioEntities.some((e) => e.id === selectedEntityId)) return selectedEntityId;
+    // Try ManeuverGroup → resolve to first actor's entity ID
+    for (const story of storyboardStories) {
+      for (const act of story.acts) {
+        for (const group of act.maneuverGroups) {
+          if (group.id === selectedEntityId) {
+            const firstActorName = group.actors.entityRefs[0];
+            if (firstActorName) {
+              return scenarioEntities.find((e) => e.name === firstActorName)?.id ?? null;
+            }
+          }
+        }
+      }
+    }
+    return selectedEntityId;
+  }, [selectedEntityId, scenarioEntities, storyboardStories]);
 
   const handleSelectionChange = useCallback((ids: string[]) => {
     useEditorStore.getState().setSelection({ selectedElementIds: ids });
@@ -157,6 +242,13 @@ export function EditorLayout() {
 
   const handleEntitySelect = useCallback((entityId: string) => {
     useEditorStore.getState().setSelection({ selectedElementIds: [entityId] });
+    // Entity selection clears signal selection (handled inside setSelection)
+  }, []);
+
+  const selectedSignalKey = useEditorStore((s) => s.selectedSignalKey);
+
+  const handleSignalSelect = useCallback((key: string) => {
+    useEditorStore.getState().setSelectedSignalKey(key);
   }, []);
 
   const handleEntityPositionChange = useCallback(
@@ -209,6 +301,140 @@ export function EditorLayout() {
       .map((path) => map.get(path))
       .filter((id): id is string => id !== undefined);
   }, [activeElements, scenarioStoreApi]);
+
+  // --- Route editing ---
+  const roadManagerClient = useRoadManagerClient();
+  const routeEdit = useRouteEdit(roadNetwork, roadManagerClient);
+  const updateCatalogEntry = useCatalogStore((s) => s.updateEntry);
+  const catalogResolveReference = useCatalogStore((s) => s.resolveReference);
+
+  const resolveCatalogRoute = useCallback(
+    (ref: { catalogName: string; entryName: string }) => {
+      const resolved = catalogResolveReference({
+        kind: 'catalogReference',
+        catalogName: ref.catalogName,
+        entryName: ref.entryName,
+        parameterAssignments: [],
+      });
+      if (resolved && resolved.catalogType === 'route') {
+        return resolved.definition as import('@osce/shared').Route;
+      }
+      return null;
+    },
+    [catalogResolveReference],
+  );
+
+  const handleRouteWaypointAdd = useCallback(
+    (
+      _worldX: number, _worldY: number, _worldZ: number, _heading: number,
+      roadId: string, laneId: string, s: number, _offset: number,
+    ) => {
+      // Route waypoints always snap to lane center (no lateral offset)
+      routeEdit.addWaypoint({
+        type: 'lanePosition',
+        roadId,
+        laneId,
+        s: Math.round(s * 100) / 100,
+      });
+    },
+    [routeEdit],
+  );
+
+  const handleRouteWaypointClick = useCallback(
+    (index: number) => {
+      routeEdit.selectWaypoint(index);
+    },
+    [routeEdit],
+  );
+
+  // --- Waypoint context menu ---
+  const [waypointContextMenu, setWaypointContextMenu] =
+    useState<WaypointContextMenuPosition | null>(null);
+
+  const handleRouteWaypointContextMenu = useCallback(
+    (index: number, event: unknown) => {
+      const nativeEvent = (event as { nativeEvent?: MouseEvent })?.nativeEvent;
+      if (!nativeEvent) return;
+      nativeEvent.preventDefault();
+      setWaypointContextMenu({
+        x: nativeEvent.clientX,
+        y: nativeEvent.clientY,
+        waypointIndex: index,
+      });
+    },
+    [],
+  );
+
+  const handleRouteWaypointDragEnd = useCallback(
+    (
+      index: number,
+      _worldX: number, _worldY: number, _worldZ: number, _heading: number,
+      roadId: string, laneId: string, s: number, _offset: number,
+    ) => {
+      // Route waypoints always snap to lane center (no lateral offset)
+      routeEdit.updateWaypointPosition(index, {
+        type: 'lanePosition',
+        roadId,
+        laneId,
+        s: Math.round(s * 100) / 100,
+      });
+    },
+    [routeEdit],
+  );
+
+  const handleRouteLineClick = useCallback(
+    (segmentIndex: number, event: unknown) => {
+      if (!routeEdit.editingRoute || !roadNetwork) return;
+
+      // Extract click position from ThreeEvent
+      const threeEvent = event as { point?: { x: number; y: number; z: number } };
+      if (threeEvent?.point) {
+        // ThreeEvent point is in Three.js world coords (inside rotation group)
+        // Convert to OpenDRIVE: odrX = point.x, odrY = -point.z
+        const odrX = threeEvent.point.x;
+        const odrY = -threeEvent.point.z;
+        const lane = worldToLane(roadNetwork, odrX, odrY, 20);
+        if (lane) {
+          routeEdit.insertWaypoint(segmentIndex, {
+            type: 'lanePosition',
+            roadId: lane.roadId,
+            laneId: String(lane.laneId),
+            s: Math.round(lane.s * 100) / 100,
+            offset: Math.abs(lane.offset) > 0.01
+              ? Math.round(lane.offset * 100) / 100
+              : undefined,
+          });
+          return;
+        }
+      }
+
+      // Fallback: duplicate segment start position
+      const wp = routeEdit.editingRoute.waypoints[segmentIndex];
+      if (!wp) return;
+      routeEdit.insertWaypoint(segmentIndex, wp.position);
+    },
+    [routeEdit, roadNetwork],
+  );
+
+  const handleRouteEditSave = useCallback(() => {
+    routeEdit.saveRoute(
+      // For action source: update via scenario store
+      (actionId, updates) => {
+        scenarioStoreApi.getState().updateAction(actionId, updates);
+      },
+      // For catalog source: update via catalog store
+      (catalogName, entryIndex, route) => {
+        updateCatalogEntry(catalogName, entryIndex, {
+          catalogType: 'route',
+          definition: route,
+        });
+      },
+    );
+  }, [routeEdit, scenarioStoreApi, updateCatalogEntry]);
+
+  const handleRouteEditCancel = useCallback(() => {
+    routeEdit.cancelRoute();
+  }, [routeEdit]);
 
   // --- Drag & Drop ---
   const {
@@ -302,9 +528,13 @@ export function EditorLayout() {
                   <SimulationViewerBridge
                     scenarioStore={scenarioStoreApi}
                     openDriveDocument={roadNetwork}
-                    selectedEntityId={selectedEntityId}
+                    selectedEntityId={viewerSelectedEntityId}
+                    hoveredEntityName={hoveredElementId}
                     onEntitySelect={handleEntitySelect}
-                    onEntityFocus={handleEntitySelect}
+                    onEntityFocus={(entityId) => {
+                      handleEntitySelect(entityId);
+                      useEditorStore.getState().setFocusEntityId(null);
+                    }}
                     onEntityPositionChange={handleEntityPositionChange}
                     onViewerModeChange={setViewerMode}
                     preferences={{
@@ -312,8 +542,39 @@ export function EditorLayout() {
                       showLaneIds: preferences.showLaneIds,
                       showRoadIds: preferences.showRoadIds,
                     }}
+                    focusEntityId={focusEntityId}
+                    routeEditActive={routeEdit.active}
+                    routeWaypoints={routeEdit.waypointWorldPositions}
+                    routePathSegments={routeEdit.pathSegments}
+                    routeSelectedWaypointIndex={routeEdit.selectedWaypointIndex}
+                    onRouteWaypointClick={handleRouteWaypointClick}
+                    onRouteWaypointContextMenu={handleRouteWaypointContextMenu}
+                    onRouteLineClick={handleRouteLineClick}
+                    onRouteWaypointAdd={handleRouteWaypointAdd}
+                    onRouteWaypointDragEnd={handleRouteWaypointDragEnd}
+                    onRouteEditSave={handleRouteEditSave}
+                    onRouteEditCancel={handleRouteEditCancel}
+                    routeWarnings={routeEdit.warnings}
+                    routeWaypointCount={routeEdit.editingRoute?.waypoints.length ?? 0}
+                    resolveCatalogRoute={resolveCatalogRoute}
+                    selectedSignalKey={selectedSignalKey}
+                    onSignalSelect={handleSignalSelect}
                   />
                 </ErrorBoundary>
+                {waypointContextMenu && (
+                  <WaypointContextMenu
+                    position={waypointContextMenu}
+                    onSelect={() => {
+                      routeEdit.selectWaypoint(waypointContextMenu.waypointIndex);
+                      setWaypointContextMenu(null);
+                    }}
+                    onDelete={() => {
+                      routeEdit.removeWaypoint(waypointContextMenu.waypointIndex);
+                      setWaypointContextMenu(null);
+                    }}
+                    onClose={() => setWaypointContextMenu(null)}
+                  />
+                )}
               </div>
             </Panel>
 

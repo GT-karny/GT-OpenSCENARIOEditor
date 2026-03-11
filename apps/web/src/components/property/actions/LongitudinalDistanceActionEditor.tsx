@@ -5,29 +5,48 @@ import type {
   CoordinateSystem,
   LongitudinalDisplacement,
 } from '@osce/shared';
-import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
+import { EntityRefSelect } from '../EntityRefSelect';
+import { SegmentedControl } from '../SegmentedControl';
+import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
 import { EnumSelect } from '../EnumSelect';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
+import { Label } from '../../ui/label';
 
 const LONGITUDINAL_DISPLACEMENTS = ['any', 'trailingReferencedEntity', 'leadingReferencedEntity'] as const;
-const COORDINATE_SYSTEMS = ['entity', 'lane', 'road', 'trajectory'] as const;
+const COORDINATE_SYSTEMS = ['', 'entity', 'lane', 'road', 'trajectory'] as const;
+const DISTANCE_MODES = ['distance', 'timeGap'] as const;
+
+type DistanceMode = 'distance' | 'timeGap';
 
 interface LongitudinalDistanceActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
-export function LongitudinalDistanceActionEditor({ action }: LongitudinalDistanceActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function LongitudinalDistanceActionEditor({ action, onUpdate }: LongitudinalDistanceActionEditorProps) {
   const inner = action.action as LongitudinalDistanceAction;
 
   const updateInner = (updates: Partial<LongitudinalDistanceAction>) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate({
       action: { ...inner, ...updates },
     } as Partial<ScenarioAction>);
   };
 
   const dynamics = inner.dynamics ?? {};
+  const hasDynamics = inner.dynamics !== undefined && Object.keys(inner.dynamics).length > 0;
+
+  const distanceMode: DistanceMode =
+    inner.timeGap !== undefined ? 'timeGap' : 'distance';
+
+  const handleDistanceModeChange = (mode: DistanceMode) => {
+    if (mode === 'distance') {
+      const { timeGap: _t, ...rest } = inner;
+      onUpdate({ action: { ...rest, distance: inner.distance ?? 0 } } as Partial<ScenarioAction>);
+    } else {
+      const { distance: _d, ...rest } = inner;
+      onUpdate({ action: { ...rest, timeGap: inner.timeGap ?? 0 } } as Partial<ScenarioAction>);
+    }
+  };
 
   const updateDynamics = (field: keyof DynamicConstraints, value: string) => {
     if (value === '') {
@@ -47,156 +66,163 @@ export function LongitudinalDistanceActionEditor({ action }: LongitudinalDistanc
     }
   };
 
+  const clearDynamics = () => {
+    const { dynamics: _d, ...rest } = inner;
+    onUpdate({ action: rest } as Partial<ScenarioAction>);
+  };
+
   return (
     <div className="space-y-3">
       <div className="space-y-2">
         <p className="text-xs font-medium text-muted-foreground">Reference</p>
         <div className="grid gap-1">
           <Label className="text-xs">Entity Ref</Label>
-          <ParameterAwareInput
+          <EntityRefSelect
             value={inner.entityRef}
             onValueChange={(v) => updateInner({ entityRef: v })}
-            acceptedTypes={['string']}
-            className="h-8 text-sm"
           />
         </div>
       </div>
 
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Distance</p>
-        <div className="grid gap-1">
-          <Label className="text-xs">Distance (m) (optional)</Label>
+      <div className="grid gap-1">
+        <Label className="text-xs">
+          {distanceMode === 'distance' ? 'Distance (m)' : 'Time Gap (s)'}
+        </Label>
+        <div className="flex gap-1">
           <ParameterAwareInput
             elementId={action.id}
-            fieldName="action.distance"
-            value={inner.distance ?? ''}
-            placeholder="—"
+            fieldName={distanceMode === 'distance' ? 'action.distance' : 'action.timeGap'}
+            value={distanceMode === 'distance' ? (inner.distance ?? 0) : (inner.timeGap ?? 0)}
             onValueChange={(v) => {
-              if (v === '') {
-                const { distance: _d, ...rest } = inner;
-                updateInner(rest as LongitudinalDistanceAction);
-              } else {
+              if (distanceMode === 'distance') {
                 updateInner({ distance: parseFloat(v) || 0 });
-              }
-            }}
-            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
-            className="h-8 text-sm"
-          />
-        </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Time Gap (s) (optional)</Label>
-          <ParameterAwareInput
-            elementId={action.id}
-            fieldName="action.timeGap"
-            value={inner.timeGap ?? ''}
-            placeholder="—"
-            onValueChange={(v) => {
-              if (v === '') {
-                const { timeGap: _t, ...rest } = inner;
-                updateInner(rest as LongitudinalDistanceAction);
               } else {
                 updateInner({ timeGap: parseFloat(v) || 0 });
               }
             }}
             acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
-            className="h-8 text-sm"
+            className="h-8 text-sm flex-1 min-w-0"
+          />
+          <SegmentedControl
+            value={distanceMode}
+            options={DISTANCE_MODES}
+            onValueChange={handleDistanceModeChange}
+            labels={{ distance: 'Distance', timeGap: 'Time Gap' }}
+            className="shrink-0"
           />
         </div>
       </div>
 
       <div className="space-y-2">
         <p className="text-xs font-medium text-muted-foreground">Options</p>
-        <div className="grid gap-1">
-          <Label className="text-xs">Freespace</Label>
-          <EnumSelect
-            value={String(inner.freespace)}
-            options={['false', 'true']}
-            onValueChange={(v) => updateInner({ freespace: v === 'true' })}
-            className="h-8 text-sm"
-          />
+        <div className="flex gap-4">
+          <label className="flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={inner.freespace}
+              onChange={(e) => updateInner({ freespace: e.target.checked })}
+            />
+            Freespace
+          </label>
+          <label className="flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={inner.continuous}
+              onChange={(e) => updateInner({ continuous: e.target.checked })}
+            />
+            Continuous
+          </label>
         </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Continuous</Label>
-          <EnumSelect
-            value={String(inner.continuous)}
-            options={['false', 'true']}
-            onValueChange={(v) => updateInner({ continuous: v === 'true' })}
-            className="h-8 text-sm"
-          />
-        </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Coordinate System (optional)</Label>
-          <EnumSelect
+        <OptionalFieldWrapper
+          label="Coordinate System"
+          hasValue={inner.coordinateSystem !== undefined}
+          onClear={() => {
+            const { coordinateSystem: _cs, ...rest } = inner;
+            onUpdate({ action: rest } as Partial<ScenarioAction>);
+          }}
+        >
+          <SegmentedControl
             value={inner.coordinateSystem ?? ''}
-            options={['', ...COORDINATE_SYSTEMS]}
+            options={COORDINATE_SYSTEMS}
             onValueChange={(v) => {
               if (v === '') {
                 const { coordinateSystem: _cs, ...rest } = inner;
-                updateInner(rest as LongitudinalDistanceAction);
+                onUpdate({ action: rest } as Partial<ScenarioAction>);
               } else {
                 updateInner({ coordinateSystem: v as CoordinateSystem });
               }
             }}
-            className="h-8 text-sm"
+            labels={{ '': '—', entity: 'Entity', lane: 'Lane', road: 'Road', trajectory: 'Traj' }}
           />
-        </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Displacement (optional)</Label>
+        </OptionalFieldWrapper>
+        <OptionalFieldWrapper
+          label="Displacement"
+          hasValue={inner.displacement !== undefined}
+          onClear={() => {
+            const { displacement: _dp, ...rest } = inner;
+            onUpdate({ action: rest } as Partial<ScenarioAction>);
+          }}
+        >
           <EnumSelect
             value={inner.displacement ?? ''}
             options={['', ...LONGITUDINAL_DISPLACEMENTS]}
             onValueChange={(v) => {
               if (v === '') {
                 const { displacement: _dp, ...rest } = inner;
-                updateInner(rest as LongitudinalDistanceAction);
+                onUpdate({ action: rest } as Partial<ScenarioAction>);
               } else {
                 updateInner({ displacement: v as LongitudinalDisplacement });
               }
             }}
             className="h-8 text-sm"
           />
-        </div>
+        </OptionalFieldWrapper>
       </div>
 
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Dynamic Constraints</p>
-        <div className="grid gap-1">
-          <Label className="text-xs">Max Acceleration (optional)</Label>
-          <ParameterAwareInput
-            elementId={action.id}
-            fieldName="action.dynamics.maxAcceleration"
-            value={dynamics.maxAcceleration ?? ''}
-            placeholder="—"
-            onValueChange={(v) => updateDynamics('maxAcceleration', v)}
-            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
-            className="h-8 text-sm"
-          />
+      <OptionalFieldWrapper
+        label="Dynamic Constraints"
+        hasValue={hasDynamics}
+        onClear={clearDynamics}
+      >
+        <div className="grid grid-cols-3 gap-2">
+          <div className="grid gap-1">
+            <Label className="text-[10px]">Max Accel (m/s²)</Label>
+            <ParameterAwareInput
+              elementId={action.id}
+              fieldName="action.dynamics.maxAcceleration"
+              value={dynamics.maxAcceleration ?? ''}
+              placeholder="—"
+              onValueChange={(v) => updateDynamics('maxAcceleration', v)}
+              acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
+              className="h-7 text-xs"
+            />
+          </div>
+          <div className="grid gap-1">
+            <Label className="text-[10px]">Max Decel (m/s²)</Label>
+            <ParameterAwareInput
+              elementId={action.id}
+              fieldName="action.dynamics.maxDeceleration"
+              value={dynamics.maxDeceleration ?? ''}
+              placeholder="—"
+              onValueChange={(v) => updateDynamics('maxDeceleration', v)}
+              acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
+              className="h-7 text-xs"
+            />
+          </div>
+          <div className="grid gap-1">
+            <Label className="text-[10px]">Max Speed (m/s)</Label>
+            <ParameterAwareInput
+              elementId={action.id}
+              fieldName="action.dynamics.maxSpeed"
+              value={dynamics.maxSpeed ?? ''}
+              placeholder="—"
+              onValueChange={(v) => updateDynamics('maxSpeed', v)}
+              acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
+              className="h-7 text-xs"
+            />
+          </div>
         </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Max Deceleration (optional)</Label>
-          <ParameterAwareInput
-            elementId={action.id}
-            fieldName="action.dynamics.maxDeceleration"
-            value={dynamics.maxDeceleration ?? ''}
-            placeholder="—"
-            onValueChange={(v) => updateDynamics('maxDeceleration', v)}
-            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
-            className="h-8 text-sm"
-          />
-        </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Max Speed (optional)</Label>
-          <ParameterAwareInput
-            elementId={action.id}
-            fieldName="action.dynamics.maxSpeed"
-            value={dynamics.maxSpeed ?? ''}
-            placeholder="—"
-            onValueChange={(v) => updateDynamics('maxSpeed', v)}
-            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
-            className="h-8 text-sm"
-          />
-        </div>
-      </div>
+      </OptionalFieldWrapper>
     </div>
   );
 }

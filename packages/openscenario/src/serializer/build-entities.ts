@@ -186,9 +186,14 @@ function buildObjectController(oc: ObjectController): any {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildControllerDefinition(c: ControllerDefinition): any {
-  return {
-    ...buildAttrs({ name: c.name }),
-    Properties: buildProperties(c.properties),
+export function buildControllerDefinition(c: ControllerDefinition): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result: any = {
+    ...buildAttrs({ name: c.name, controllerType: c.controllerType }),
   };
+  if (c.parameterDeclarations && c.parameterDeclarations.length > 0) {
+    result.ParameterDeclarations = buildParameterDeclarations(c.parameterDeclarations);
+  }
+  result.Properties = buildProperties(c.properties);
+  return result;
 }

@@ -44,6 +44,22 @@ export interface EditorState {
   // SaveAs dialog
   showSaveAs: boolean;
   setShowSaveAs: (show: boolean) => void;
+
+  // Entity property tab persistence
+  entityPropertyTab: 'definition' | 'initialState';
+  setEntityPropertyTab: (tab: 'definition' | 'initialState') => void;
+
+  // Focus entity in 3D viewer (from panel double-click)
+  focusEntityId: string | null;
+  setFocusEntityId: (id: string | null) => void;
+
+  // Signal selection (OpenDRIVE signal, separate from scenario element selection)
+  selectedSignalKey: string | null;
+  setSelectedSignalKey: (key: string | null) => void;
+
+  // Active Act tab in Scene Composer
+  activeActId: string | null;
+  setActiveActId: (id: string | null) => void;
 }
 
 const defaultPreferences: EditorPreferences = {
@@ -54,6 +70,10 @@ const defaultPreferences: EditorPreferences = {
   showGrid3D: true,
   showLaneIds: false,
   showRoadIds: false,
+  compatibilityProfile: {
+    oscVersion: '1.3',
+    simulator: 'any',
+  },
 };
 
 const defaultPanelVisibility: Record<EditorPanel, boolean> = {
@@ -75,10 +95,16 @@ export const useEditorStore = create<EditorState>()(
       setSelection: (sel) =>
         set((state) => ({
           selection: { ...state.selection, ...sel },
+          // Clear signal selection when scenario element is selected
+          selectedSignalKey:
+            sel.selectedElementIds && sel.selectedElementIds.length > 0
+              ? null
+              : state.selectedSignalKey,
         })),
       clearSelection: () =>
         set({
           selection: { selectedElementIds: [], hoveredElementId: null, focusedPanelId: null },
+          selectedSignalKey: null,
         }),
 
       // Preferences
@@ -120,13 +146,48 @@ export const useEditorStore = create<EditorState>()(
       // SaveAs dialog
       showSaveAs: false,
       setShowSaveAs: (show) => set({ showSaveAs: show }),
+
+      // Entity property tab persistence
+      entityPropertyTab: 'definition',
+      setEntityPropertyTab: (tab) => set({ entityPropertyTab: tab }),
+
+      // Focus entity in 3D viewer
+      focusEntityId: null,
+      setFocusEntityId: (id) => set({ focusEntityId: id }),
+
+      // Signal selection
+      selectedSignalKey: null,
+      setSelectedSignalKey: (key) =>
+        set({
+          selectedSignalKey: key,
+          // Clear entity selection when signal is selected
+          ...(key
+            ? { selection: { selectedElementIds: [], hoveredElementId: null, focusedPanelId: null } }
+            : {}),
+        }),
+
+      // Active Act tab
+      activeActId: null,
+      setActiveActId: (id) => set({ activeActId: id }),
     }),
     {
       name: 'osce-editor-preferences',
       partialize: (state) => ({
         preferences: state.preferences,
         panelVisibility: state.panelVisibility,
+        entityPropertyTab: state.entityPropertyTab,
       }),
+      merge: (persisted, current) => {
+        const p = persisted as Partial<EditorState>;
+        return {
+          ...current,
+          ...(p ?? {}),
+          preferences: {
+            ...defaultPreferences,
+            ...(p?.preferences ?? {}),
+          },
+        };
+      },
     },
   ),
 );

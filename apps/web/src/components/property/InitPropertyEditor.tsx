@@ -1,16 +1,17 @@
 import type { EntityInitActions, TeleportAction, SpeedAction, Position } from '@osce/shared';
 import { Label } from '../ui/label';
-import { Input } from '../ui/input';
 import { Plus } from 'lucide-react';
 import { PositionEditor } from './PositionEditor';
+import { ParameterAwareInput } from './ParameterAwareInput';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { createDefaultPosition } from '../../constants/position-defaults';
 
-interface InitPropertyEditorProps {
+interface InitPropertyEditorContentProps {
   entityInit: EntityInitActions;
 }
 
-export function InitPropertyEditor({ entityInit }: InitPropertyEditorProps) {
+/** Reusable content for editing entity initial state (position + speed). */
+export function InitPropertyEditorContent({ entityInit }: InitPropertyEditorContentProps) {
   const storeApi = useScenarioStoreApi();
   const { entityRef, privateActions } = entityInit;
 
@@ -50,13 +51,7 @@ export function InitPropertyEditor({ entityInit }: InitPropertyEditorProps) {
   };
 
   return (
-    <div className="flex flex-col gap-5 p-1">
-      {/* Entity name */}
-      <div className="pb-2 border-b">
-        <p className="text-sm font-medium">{entityRef}</p>
-        <p className="text-xs text-muted-foreground">Initial State</p>
-      </div>
-
+    <div className="flex flex-col gap-5">
       {/* Position section */}
       <section className="space-y-2">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -83,12 +78,13 @@ export function InitPropertyEditor({ entityInit }: InitPropertyEditorProps) {
         {currentSpeed !== null ? (
           <div className="grid gap-2">
             <Label className="text-xs">Absolute Speed (m/s)</Label>
-            <Input
-              type="number"
+            <ParameterAwareInput
+              elementId={speedActionEntry!.id}
+              fieldName="action.target.value"
               value={currentSpeed}
-              onChange={(e) => handleSpeedChange(e.target.value)}
+              onValueChange={(v) => handleSpeedChange(v)}
+              acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
               className="h-8 text-sm"
-              step="any"
             />
           </div>
         ) : speedAction?.target.kind === 'relative' ? (

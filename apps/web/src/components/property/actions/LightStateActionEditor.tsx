@@ -1,11 +1,14 @@
 import type { ScenarioAction, LightStateAction } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
+import { SegmentedControl } from '../SegmentedControl';
+import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
 
 interface LightStateActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
 const VEHICLE_LIGHT_TYPES = [
@@ -24,12 +27,11 @@ const VEHICLE_LIGHT_TYPES = [
   'specialPurposeLights',
 ] as const;
 
-export function LightStateActionEditor({ action }: LightStateActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function LightStateActionEditor({ action, onUpdate }: LightStateActionEditorProps) {
   const inner = action.action as LightStateAction;
 
   const updateInner = (updates: Partial<LightStateAction>) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate({
       action: { ...inner, ...updates },
     } as Partial<ScenarioAction>);
   };
@@ -45,9 +47,9 @@ export function LightStateActionEditor({ action }: LightStateActionEditorProps) 
         <p className="text-xs font-medium text-muted-foreground">Light Type</p>
         <div className="grid gap-1">
           <Label className="text-xs">Category</Label>
-          <EnumSelect
+          <SegmentedControl
             value={lightCategory}
-            options={['vehicleLight', 'userDefinedLight']}
+            options={['vehicleLight', 'userDefinedLight'] as const}
             onValueChange={(v) => {
               if (v === 'vehicleLight') {
                 updateInner({ lightType: `vehicleLight:${VEHICLE_LIGHT_TYPES[0]}` });
@@ -55,7 +57,7 @@ export function LightStateActionEditor({ action }: LightStateActionEditorProps) 
                 updateInner({ lightType: '' });
               }
             }}
-            className="h-8 text-sm"
+            labels={{ vehicleLight: 'Vehicle', userDefinedLight: 'User Defined' }}
           />
         </div>
 
@@ -88,51 +90,67 @@ export function LightStateActionEditor({ action }: LightStateActionEditorProps) 
         <p className="text-xs font-medium text-muted-foreground">Light State</p>
         <div className="grid gap-1">
           <Label className="text-xs">Mode</Label>
-          <EnumSelect
+          <SegmentedControl
             value={inner.mode}
-            options={['on', 'off', 'flashing']}
+            options={['on', 'off', 'flashing'] as const}
             onValueChange={(v) => updateInner({ mode: v as LightStateAction['mode'] })}
-            className="h-8 text-sm"
+            labels={{ on: 'On', off: 'Off', flashing: 'Flashing' }}
           />
         </div>
 
-        <div className="grid gap-1">
-          <Label className="text-xs">Luminous Intensity (optional)</Label>
-          <Input
-            type="number"
+        <OptionalFieldWrapper
+          label="Luminous Intensity (cd)"
+          hasValue={inner.intensity !== undefined}
+          onClear={() => {
+            const { intensity: _, ...rest } = inner;
+            onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
+          }}
+        >
+          <ParameterAwareInput
+            elementId={action.id}
+            fieldName="action.intensity"
             value={inner.intensity ?? ''}
             placeholder="--"
-            onChange={(e) => {
-              const v = parseFloat(e.target.value);
-              if (isNaN(v)) {
+            onValueChange={(v) => {
+              const n = parseFloat(v);
+              if (isNaN(n) || v === '') {
                 const { intensity: _, ...rest } = inner;
-                storeApi.getState().updateAction(action.id, { action: { ...rest } } as Partial<ScenarioAction>);
+                onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
               } else {
-                updateInner({ intensity: v });
+                updateInner({ intensity: n });
               }
             }}
+            acceptedTypes={['double']}
             className="h-8 text-sm"
           />
-        </div>
+        </OptionalFieldWrapper>
 
-        <div className="grid gap-1">
-          <Label className="text-xs">Transition Time (s, optional)</Label>
-          <Input
-            type="number"
+        <OptionalFieldWrapper
+          label="Transition Time (s)"
+          hasValue={inner.transitionTime !== undefined}
+          onClear={() => {
+            const { transitionTime: _, ...rest } = inner;
+            onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
+          }}
+        >
+          <ParameterAwareInput
+            elementId={action.id}
+            fieldName="action.transitionTime"
             value={inner.transitionTime ?? ''}
             placeholder="--"
-            onChange={(e) => {
-              const v = parseFloat(e.target.value);
-              if (isNaN(v)) {
+            onValueChange={(v) => {
+              const n = parseFloat(v);
+              if (isNaN(n) || v === '') {
                 const { transitionTime: _, ...rest } = inner;
-                storeApi.getState().updateAction(action.id, { action: { ...rest } } as Partial<ScenarioAction>);
+                onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
               } else {
-                updateInner({ transitionTime: v });
+                updateInner({ transitionTime: n });
               }
             }}
+            acceptedTypes={['double']}
             className="h-8 text-sm"
           />
-        </div>
+        </OptionalFieldWrapper>
       </div>
     </div>
   );

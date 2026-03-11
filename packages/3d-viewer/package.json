@@ -6,7 +6,10 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "import": "./dist/index.js", "types": "./dist/index.d.ts" }
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
   },
   "scripts": {
     "build": "tsc --project tsconfig.json",
@@ -15,12 +18,12 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@osce/shared": "workspace:*",
     "@osce/opendrive": "workspace:*",
     "@osce/scenario-engine": "workspace:*",
-    "three": "^0.172.0",
-    "@react-three/fiber": "^9.0.0",
+    "@osce/shared": "workspace:*",
     "@react-three/drei": "^9.0.0",
+    "@react-three/fiber": "^9.0.0",
+    "three": "^0.172.0",
     "zustand": "^5.0.0"
   },
   "peerDependencies": {

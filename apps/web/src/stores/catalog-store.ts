@@ -3,22 +3,22 @@ import type {
   CatalogDocument,
   CatalogEntry,
   CatalogReference,
-  VehicleDefinition,
-  PedestrianDefinition,
-  MiscObjectDefinition,
   ParameterDeclaration,
 } from '@osce/shared';
 import { parseCatalogXml } from '@osce/openscenario';
 
 export interface ResolvedCatalogEntry {
   catalogType: CatalogEntry['catalogType'];
-  definition: VehicleDefinition | PedestrianDefinition | MiscObjectDefinition;
+  definition: CatalogEntry['definition'];
   parameterDeclarations: ParameterDeclaration[];
 }
 
 export interface CatalogState {
   /** Loaded catalog documents keyed by catalogName */
   catalogs: Map<string, CatalogDocument>;
+
+  /** Raw XML strings keyed by catalogName, used for lossless simulation */
+  rawXmls: Map<string, string>;
 
   /** Whether the catalog editor modal is open */
   editorOpen: boolean;
@@ -58,6 +58,7 @@ export interface CatalogState {
 
 export const useCatalogStore = create<CatalogState>((set, get) => ({
   catalogs: new Map(),
+  rawXmls: new Map(),
   editorOpen: false,
   selectedCatalogName: null,
   selectedEntryIndex: null,
@@ -71,7 +72,9 @@ export const useCatalogStore = create<CatalogState>((set, get) => ({
     set((state) => {
       const catalogs = new Map(state.catalogs);
       catalogs.set(doc.catalogName, doc);
-      return { catalogs };
+      const rawXmls = new Map(state.rawXmls);
+      rawXmls.set(doc.catalogName, xml);
+      return { catalogs, rawXmls };
     });
     return doc;
   },
@@ -80,7 +83,9 @@ export const useCatalogStore = create<CatalogState>((set, get) => ({
     set((state) => {
       const catalogs = new Map(state.catalogs);
       catalogs.delete(catalogName);
-      const updates: Partial<CatalogState> = { catalogs };
+      const rawXmls = new Map(state.rawXmls);
+      rawXmls.delete(catalogName);
+      const updates: Partial<CatalogState> = { catalogs, rawXmls };
       if (state.selectedCatalogName === catalogName) {
         updates.selectedCatalogName = null;
         updates.selectedEntryIndex = null;
@@ -101,7 +106,9 @@ export const useCatalogStore = create<CatalogState>((set, get) => ({
         ...doc,
         entries: [...doc.entries, entry],
       });
-      return { catalogs, selectedEntryIndex: doc.entries.length };
+      const rawXmls = new Map(state.rawXmls);
+      rawXmls.delete(catalogName);
+      return { catalogs, rawXmls, selectedEntryIndex: doc.entries.length };
     });
   },
 
@@ -113,7 +120,9 @@ export const useCatalogStore = create<CatalogState>((set, get) => ({
       const entries = [...doc.entries];
       entries[index] = entry;
       catalogs.set(catalogName, { ...doc, entries });
-      return { catalogs };
+      const rawXmls = new Map(state.rawXmls);
+      rawXmls.delete(catalogName);
+      return { catalogs, rawXmls };
     });
   },
 
@@ -124,7 +133,9 @@ export const useCatalogStore = create<CatalogState>((set, get) => ({
       if (!doc || index < 0 || index >= doc.entries.length) return state;
       const entries = doc.entries.filter((_, i) => i !== index);
       catalogs.set(catalogName, { ...doc, entries });
-      const updates: Partial<CatalogState> = { catalogs };
+      const rawXmls = new Map(state.rawXmls);
+      rawXmls.delete(catalogName);
+      const updates: Partial<CatalogState> = { catalogs, rawXmls };
       if (state.selectedEntryIndex === index) {
         updates.selectedEntryIndex = entries.length > 0 ? Math.min(index, entries.length - 1) : null;
       } else if (state.selectedEntryIndex !== null && state.selectedEntryIndex > index) {
@@ -150,7 +161,9 @@ export const useCatalogStore = create<CatalogState>((set, get) => ({
       const entries = [...doc.entries];
       entries.splice(index + 1, 0, cloned);
       catalogs.set(catalogName, { ...doc, entries });
-      return { catalogs, selectedEntryIndex: index + 1 };
+      const rawXmls = new Map(state.rawXmls);
+      rawXmls.delete(catalogName);
+      return { catalogs, rawXmls, selectedEntryIndex: index + 1 };
     });
   },
 
@@ -162,8 +175,11 @@ export const useCatalogStore = create<CatalogState>((set, get) => ({
       if (!doc) return state;
       catalogs.delete(oldName);
       catalogs.set(newName, { ...doc, catalogName: newName });
+      const rawXmls = new Map(state.rawXmls);
+      rawXmls.delete(oldName);
       return {
         catalogs,
+        rawXmls,
         selectedCatalogName: state.selectedCatalogName === oldName ? newName : state.selectedCatalogName,
       };
     });
@@ -177,7 +193,8 @@ export const useCatalogStore = create<CatalogState>((set, get) => ({
     return {
       catalogType: entry.catalogType,
       definition: entry.definition,
-      parameterDeclarations: entry.definition.parameterDeclarations ?? [],
+      parameterDeclarations:
+        'parameterDeclarations' in entry.definition ? (entry.definition.parameterDeclarations ?? []) : [],
     };
   },
 

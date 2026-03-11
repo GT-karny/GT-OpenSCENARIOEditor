@@ -6,9 +6,8 @@ import type {
   StoryboardElementState,
 } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
 import { EnumSelect } from '../EnumSelect';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
+import { StoryboardElementRefSelect } from '../StoryboardElementRefSelect';
 
 const STORYBOARD_ELEMENT_TYPES: readonly StoryboardElementType[] = [
   'story',
@@ -31,15 +30,15 @@ const STORYBOARD_ELEMENT_STATES: readonly StoryboardElementState[] = [
 
 interface StoryboardElementStateConditionEditorProps {
   condition: Condition;
+  onUpdate: (conditionId: string, partial: Partial<Condition>) => void;
 }
 
-export function StoryboardElementStateConditionEditor({ condition }: StoryboardElementStateConditionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function StoryboardElementStateConditionEditor({ condition, onUpdate }: StoryboardElementStateConditionEditorProps) {
   const inner = condition.condition as ByValueCondition;
   const cond = inner.valueCondition as StoryboardElementStateCondition;
 
   const update = (updates: Partial<StoryboardElementStateCondition>) => {
-    storeApi.getState().updateCondition(condition.id, {
+    onUpdate(condition.id, {
       condition: { ...inner, valueCondition: { ...cond, ...updates } },
     } as Partial<Condition>);
   };
@@ -49,29 +48,30 @@ export function StoryboardElementStateConditionEditor({ condition }: StoryboardE
       <div className="space-y-2">
         <p className="text-xs font-medium text-muted-foreground">Storyboard Element State</p>
         <div className="grid gap-1">
-          <Label className="text-xs">Storyboard Element Ref</Label>
-          <Input
+          <Label className="text-[10px]">Storyboard Element Ref</Label>
+          <StoryboardElementRefSelect
             value={cond.storyboardElementRef}
-            onChange={(e) => update({ storyboardElementRef: e.target.value })}
-            className="h-8 text-sm"
+            onValueChange={(v) => update({ storyboardElementRef: v })}
+            elementType={cond.storyboardElementType}
+            className="h-7 text-xs"
           />
         </div>
         <div className="grid gap-1">
-          <Label className="text-xs">Storyboard Element Type</Label>
+          <Label className="text-[10px]">Storyboard Element Type</Label>
           <EnumSelect
             value={cond.storyboardElementType}
             options={STORYBOARD_ELEMENT_TYPES}
             onValueChange={(v) => update({ storyboardElementType: v as StoryboardElementType })}
-            className="h-8 text-sm"
+            className="h-7 text-xs"
           />
         </div>
         <div className="grid gap-1">
-          <Label className="text-xs">State</Label>
+          <Label className="text-[10px]">State</Label>
           <EnumSelect
             value={cond.state}
             options={STORYBOARD_ELEMENT_STATES}
             onValueChange={(v) => update({ state: v as StoryboardElementState })}
-            className="h-8 text-sm"
+            className="h-7 text-xs"
           />
         </div>
       </div>

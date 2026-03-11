@@ -27,11 +27,13 @@ extraResources:
       - "xosc/lane_change.xosc"
       - "xosc/highway_merge.xosc"
       - "xosc/pedestrian.xosc"
+      - "xosc/traffic_lights.xosc"
       # Referenced roads
       - "xodr/e6mini.xodr"
       - "xodr/jolengatan.xodr"
       - "xodr/soderleden.xodr"
       - "xodr/fabriksgatan.xodr"
+      - "xodr/fabriksgatan_traffic_lights.xodr"
       - "xodr/straight_500m.xodr"
       # Catalog files used by the seeded samples
       - "xosc/Catalogs/Vehicles/VehicleCatalog.xosc"

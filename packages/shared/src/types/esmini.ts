@@ -20,9 +20,15 @@ export interface SimulationRequest {
   config?: Partial<EsminiConfig>;
 }
 
+export interface TrafficLightFrameState {
+  signalId: number;
+  state: string;
+}
+
 export interface SimulationFrame {
   time: number;
   objects: SimulationObjectState[];
+  trafficLightStates?: TrafficLightFrameState[];
 }
 
 export interface SimulationObjectState {

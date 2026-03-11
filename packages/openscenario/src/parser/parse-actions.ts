@@ -56,6 +56,7 @@ import type {
   LongitudinalDisplacement,
 } from '@osce/shared';
 import { parsePosition } from './parse-positions.js';
+import { parseParameterDeclarations } from './parse-parameters.js';
 import { ensureArray } from '../utils/ensure-array.js';
 import {
   numAttr,
@@ -661,6 +662,11 @@ function parseAssignRouteAction(raw: any): RoutingAction {
       closed: boolAttr(raw.Route, 'closed'),
       waypoints: ensureArray(raw.Route.Waypoint).map(parseRouteWaypoint),
     };
+  } else if (raw.CatalogReference) {
+    result.catalogReference = {
+      catalogName: strAttr(raw.CatalogReference, 'catalogName'),
+      entryName: strAttr(raw.CatalogReference, 'entryName'),
+    };
   }
 
   return result;
@@ -704,11 +710,12 @@ function parseFollowTrajectoryAction(raw: any): FollowTrajectoryAction {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseTrajectory(raw: any): Trajectory {
+export function parseTrajectory(raw: any): Trajectory {
   if (!raw) throw new Error('Trajectory element is missing');
   return {
     name: strAttr(raw, 'name'),
     closed: boolAttr(raw, 'closed'),
+    parameterDeclarations: parseParameterDeclarations(raw.ParameterDeclarations),
     shape: parseTrajectoryShape(raw.Shape),
   };
 }
@@ -941,10 +948,11 @@ function parseEnvironmentAction(raw: any): EnvironmentAction {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseEnvironment(raw: any): Environment {
+export function parseEnvironment(raw: any): Environment {
   if (!raw) throw new Error('Environment element is missing');
   return {
     name: strAttr(raw, 'name'),
+    parameterDeclarations: parseParameterDeclarations(raw.ParameterDeclarations),
     timeOfDay: parseTimeOfDay(raw.TimeOfDay),
     weather: parseWeather(raw.Weather),
     roadCondition: parseRoadCondition(raw.RoadCondition),

@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, forwardRef } from 'react';
 import { Input } from '../ui/input';
 import { useScenarioStore, useScenarioStoreApi } from '../../stores/use-scenario-store';
+import { PARAMETER_DND_TYPE } from '../parameter/ParameterListItem';
 import { cn } from '@/lib/utils';
 
 interface ParameterAwareInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value'> {
@@ -37,6 +38,8 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
     const [filter, setFilter] = useState('');
     const [dollarIndex, setDollarIndex] = useState(-1);
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const [isDragOver, setIsDragOver] = useState(false);
+    const [localEditValue, setLocalEditValue] = useState<string | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
     // Filter by name prefix and optionally by accepted parameter types
@@ -46,8 +49,14 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
     });
 
     // Determine display value: binding overrides the actual value for numeric fields
-    const displayValue = binding ?? String(value);
+    const displayValue = localEditValue ?? binding ?? String(value);
     const isBound = binding !== null;
+
+    // Resolve the parameter's current value for the badge shown on bound fields
+    const activeRef = binding ?? localEditValue;
+    const resolvedParam = activeRef
+      ? parameters.find((p) => `$${p.name}` === activeRef)
+      : null;
 
     const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
       const val = e.target.value;
@@ -58,7 +67,14 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
         storeApi.getState().removeParameterBinding(elementId, fieldName);
       }
 
-      onValueChange(val);
+      // For numeric fields: don't propagate $-prefixed values to parent
+      // (parent would parseFloat them to NaN/0)
+      if (elementId && fieldName && val.startsWith('$')) {
+        setLocalEditValue(val);
+      } else {
+        setLocalEditValue(null);
+        onValueChange(val);
+      }
 
       // Find the $ token being typed at the cursor position
       const beforeCursor = val.substring(0, pos);
@@ -87,6 +103,7 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
       if (elementId && fieldName) {
         // Numeric field: set binding instead of changing the value
         storeApi.getState().setParameterBinding(elementId, fieldName, replacement);
+        setLocalEditValue(null);
       } else {
         // Text field: insert $ParamName into the text value
         const currentVal = String(value);
@@ -123,26 +140,79 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
       }
     }, [showSuggestions, filtered, selectedIndex, handleSelect, props]);
 
+    const handleFocus = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+      if (elementId && fieldName) {
+        e.target.select();
+      }
+      props.onFocus?.(e);
+    }, [elementId, fieldName, props]);
+
     const handleBlur = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
       // Delay to allow click on suggestion
       setTimeout(() => setShowSuggestions(false), 150);
+      setLocalEditValue(null);
       props.onBlur?.(e);
     }, [props]);
 
+    const handleDropDragOver = useCallback((e: React.DragEvent) => {
+      if (e.dataTransfer.types.includes(PARAMETER_DND_TYPE)) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        setIsDragOver(true);
+      }
+    }, []);
+
+    const handleDropDragLeave = useCallback(() => {
+      setIsDragOver(false);
+    }, []);
+
+    const handleDropParam = useCallback(
+      (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragOver(false);
+        const paramName = e.dataTransfer.getData(PARAMETER_DND_TYPE);
+        if (!paramName) return;
+
+        const replacement = `$${paramName}`;
+        if (elementId && fieldName) {
+          // Numeric field: set binding
+          storeApi.getState().setParameterBinding(elementId, fieldName, replacement);
+          setLocalEditValue(null);
+        } else {
+          // Text field: replace entire value
+          onValueChange(replacement);
+        }
+      },
+      [elementId, fieldName, storeApi, onValueChange],
+    );
+
     return (
-      <div className="relative">
+      <div
+        className="relative"
+        onDragOver={handleDropDragOver}
+        onDragLeave={handleDropDragLeave}
+        onDrop={handleDropParam}
+      >
         <Input
           ref={inputRef}
           value={displayValue}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
+          onFocus={handleFocus}
           onBlur={handleBlur}
           className={cn(
             className,
+            resolvedParam && 'pr-16',
             isBound && 'text-[var(--color-accent-1)] font-medium',
+            isDragOver && 'ring-2 ring-[var(--color-accent-1)] border-[var(--color-accent-1)]',
           )}
           {...props}
         />
+        {resolvedParam && (
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[var(--color-text-tertiary)] pointer-events-none select-none tabular-nums">
+            = {resolvedParam.value}
+          </span>
+        )}
         {showSuggestions && filtered.length > 0 && (
           <div className="absolute z-50 top-full left-0 mt-1 w-full max-h-32 overflow-auto rounded border border-[var(--color-border-glass)] bg-[var(--color-bg-deep)] shadow-md">
             {filtered.map((p, i) => (

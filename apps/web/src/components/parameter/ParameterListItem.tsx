@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import type { ParameterDeclaration, ParameterType } from '@osce/shared';
-import { Trash2, Variable } from 'lucide-react';
+import { GripVertical, Trash2, Variable } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { EnumSelect } from '../property/EnumSelect';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
+import { cn } from '@/lib/utils';
 
 const PARAMETER_TYPES: readonly ParameterType[] = [
   'string', 'double', 'int', 'boolean', 'dateTime', 'unsignedInt', 'unsignedShort',
@@ -15,12 +16,28 @@ interface ParameterListItemProps {
   onDelete: () => void;
 }
 
+export const PARAMETER_DND_TYPE = 'application/osce-parameter-ref';
+
 export function ParameterListItem({ parameter, onDelete }: ParameterListItemProps) {
   const storeApi = useScenarioStoreApi();
   const [editingName, setEditingName] = useState(false);
   const [editingValue, setEditingValue] = useState(false);
   const [tempName, setTempName] = useState(parameter.name);
   const [tempValue, setTempValue] = useState(parameter.value);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDragStart = useCallback(
+    (e: React.DragEvent) => {
+      e.dataTransfer.setData(PARAMETER_DND_TYPE, parameter.name);
+      e.dataTransfer.effectAllowed = 'copy';
+      setIsDragging(true);
+    },
+    [parameter.name],
+  );
+
+  const handleDragEnd = useCallback(() => {
+    setIsDragging(false);
+  }, []);
 
   const commitName = () => {
     const trimmed = tempName.trim();
@@ -42,7 +59,16 @@ export function ParameterListItem({ parameter, onDelete }: ParameterListItemProp
   };
 
   return (
-    <div className="glass-item flex items-center gap-3 mx-3 my-1 px-3 py-3 group">
+    <div
+      className={cn(
+        'glass-item flex items-center gap-3 mx-3 my-1 px-3 py-3 group',
+        isDragging && 'opacity-50',
+      )}
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <GripVertical className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-50 cursor-grab" />
       <Variable className="h-4 w-4 shrink-0 text-muted-foreground" />
       <div className="flex-1 min-w-0">
         {/* Name */}

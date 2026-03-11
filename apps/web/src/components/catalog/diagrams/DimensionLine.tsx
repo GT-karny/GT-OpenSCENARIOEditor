@@ -90,7 +90,7 @@ export function DimensionLine({
       data-highlight-key={highlightKey}
       onMouseEnter={() => onHighlight?.(highlightKey ?? null)}
       onMouseLeave={() => onHighlight?.(null)}
-      style={{ cursor: 'default' }}
+      className="cursor-default"
     >
       {/* Extension lines */}
       {offset > 0 && (

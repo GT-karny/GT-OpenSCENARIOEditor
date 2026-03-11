@@ -15,6 +15,7 @@ export type {
   CameraMode,
   ViewerMode,
   GizmoMode,
+  MinimapSize,
   HoverLaneInfo,
   PlaybackState,
 } from './store/viewer-types.js';
@@ -22,13 +23,28 @@ export type {
 // Utility functions (for consumers who want to build custom viewers)
 export { getLaneColor } from './utils/lane-type-colors.js';
 export { resolvePositionToWorld } from './utils/position-resolver.js';
-export type { WorldCoords } from './utils/position-resolver.js';
+export type { WorldCoords, PositionResolveOptions } from './utils/position-resolver.js';
 export { getEntityGeometry, getEntityColor } from './utils/entity-geometry.js';
 export type { EntityGeometryParams } from './utils/entity-geometry.js';
+export { roadCoordsToWorld } from './utils/road-projection.js';
+export type { RoadProjectionResult } from './utils/road-projection.js';
 
 // Scenario data bridge hooks
 export { useScenarioEntities } from './scenario/useScenarioEntities.js';
 export { useEntityPositions, extractEntityPositions } from './scenario/useEntityPositions.js';
+
+// Route visualization & interaction
+export { RouteOverlay } from './route/RouteOverlay.js';
+export type { RouteOverlayProps } from './route/RouteOverlay.js';
+export { RouteEditOverlay } from './route/RouteEditOverlay.js';
+export { RouteClickHandler } from './interaction/RouteClickHandler.js';
+
+// Traffic signal rendering
+export { TrafficSignalGroup } from './signals/TrafficSignalGroup.js';
+export type { ResolvedSignal } from './signals/TrafficSignalGroup.js';
+export { classifySignal } from './utils/signal-geometry.js';
+export type { SignalCategory } from './utils/signal-geometry.js';
+export { resolveSignalPosition } from './utils/signal-position-resolver.js';
 
 // Sub-components (for composition)
 export { RoadNetwork } from './road/RoadNetwork.js';

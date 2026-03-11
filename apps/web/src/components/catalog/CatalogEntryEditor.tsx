@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from '@osce/i18n';
 import { useCatalogStore } from '../../stores/catalog-store';
 import { Input } from '../ui/input';
@@ -7,15 +8,26 @@ import {
   VEHICLE_CATEGORIES,
   PEDESTRIAN_CATEGORIES,
   MISC_OBJECT_CATEGORIES,
+  CONTROLLER_TYPES,
 } from '../../constants/osc-enum-values';
 import type {
   CatalogEntry,
   VehicleDefinition,
   PedestrianDefinition,
   MiscObjectDefinition,
+  ControllerDefinition,
+  ControllerType,
+  Maneuver,
+  Route,
 } from '@osce/shared';
+import { cn } from '@/lib/utils';
+import { ParameterDeclarationsEditor } from './ParameterDeclarationsEditor';
+import { PropertiesEditor } from './PropertiesEditor';
 import { EntityDiagramPanel, useDiagramHighlight } from './diagrams';
 import type { HighlightKey } from './diagrams';
+import { ManeuverFields } from './ManeuverFields';
+import { ManeuverEventPanel } from './ManeuverEventPanel';
+import { RouteFields } from './RouteFields';
 
 interface HighlightProps {
   highlighted: HighlightKey;
@@ -51,6 +63,9 @@ export function CatalogEntryEditor() {
   const catalogs = useCatalogStore((s) => s.catalogs);
   const updateEntry = useCatalogStore((s) => s.updateEntry);
   const { highlighted, setHighlighted } = useDiagramHighlight();
+  const [maneuverEventIndex, setManeuverEventIndex] = useState<number | null>(null);
+  const [maneuverActionIndex, setManeuverActionIndex] = useState<number | null>(null);
+  const [maneuverTab, setManeuverTab] = useState<'event' | 'action'>('event');
 
   const doc = selectedCatalogName ? catalogs.get(selectedCatalogName) : null;
   const entry = doc && selectedEntryIndex !== null ? doc.entries[selectedEntryIndex] : null;
@@ -86,69 +101,131 @@ export function CatalogEntryEditor() {
             onChange={(e) =>
               handleUpdate({ ...entry, definition: { ...def, name: e.target.value } } as CatalogEntry)
             }
-            className="h-7 text-xs"
+            className={cn('h-7 text-xs', !def.name.trim() && 'border-destructive')}
           />
+          {!def.name.trim() && (
+            <p className="text-[10px] text-destructive">{t('catalog.emptyNameError')}</p>
+          )}
+          {doc && isDuplicateName(def.name, selectedEntryIndex!, doc.entries) && (
+            <p className="text-[10px] text-yellow-500">{t('catalog.duplicateNameWarning')}</p>
+          )}
         </div>
 
-        {def.kind === 'vehicle' && (
+        {entry.catalogType === 'vehicle' && (
           <VehicleFields
             entry={entry as { catalogType: 'vehicle'; definition: VehicleDefinition }}
             onUpdate={handleUpdate}
             {...hlProps}
           />
         )}
-        {def.kind === 'pedestrian' && (
+        {entry.catalogType === 'pedestrian' && (
           <PedestrianFields
             entry={entry as { catalogType: 'pedestrian'; definition: PedestrianDefinition }}
             onUpdate={handleUpdate}
           />
         )}
-        {def.kind === 'miscObject' && (
+        {entry.catalogType === 'miscObject' && (
           <MiscObjectFields
             entry={entry as { catalogType: 'miscObject'; definition: MiscObjectDefinition }}
             onUpdate={handleUpdate}
           />
         )}
+        {entry.catalogType === 'controller' && (
+          <ControllerFields
+            entry={entry as { catalogType: 'controller'; definition: ControllerDefinition }}
+            onUpdate={handleUpdate}
+          />
+        )}
+        {entry.catalogType === 'route' && (
+          <RouteFields
+            entry={entry as { catalogType: 'route'; definition: Route }}
+            onUpdate={handleUpdate}
+          />
+        )}
+        {entry.catalogType === 'maneuver' && (
+          <ManeuverFields
+            entry={entry as { catalogType: 'maneuver'; definition: Maneuver }}
+            onUpdate={handleUpdate}
+            selectedEventIndex={maneuverEventIndex}
+            onSelectEvent={setManeuverEventIndex}
+            onSelectAction={(eventIdx, actionIdx) => {
+              setManeuverEventIndex(eventIdx);
+              setManeuverActionIndex(actionIdx);
+              setManeuverTab('action');
+            }}
+          />
+        )}
 
-        {/* BoundingBox */}
-        <BoundingBoxEditor entry={entry} onUpdate={handleUpdate} {...hlProps} />
+        {/* BoundingBox (only for entity types) */}
+        {hasEntityShape(entry) && (
+          <BoundingBoxEditor entry={entry} onUpdate={handleUpdate} {...hlProps} />
+        )}
 
-        {/* Parameter Declarations */}
-        {def.parameterDeclarations.length > 0 && (
-          <div className="space-y-1">
-            <p className="text-[10px] font-medium text-muted-foreground">{t('labels.parameters')}</p>
-            {def.parameterDeclarations.map((pd, i) => (
-              <div key={i} className="grid grid-cols-3 gap-1 text-[10px]">
-                <span className="text-muted-foreground truncate">{pd.name}</span>
-                <span className="text-muted-foreground">{pd.parameterType}</span>
-                <span>{pd.value}</span>
-              </div>
-            ))}
-          </div>
+        {/* Parameter Declarations (maneuver handles its own) */}
+        {entry.catalogType !== 'maneuver' && hasParameterDeclarations(def) && (
+          <ParameterDeclarationsEditor
+            parameters={getParameterDeclarations(def)}
+            onChange={(params) =>
+              handleUpdate({
+                ...entry,
+                definition: { ...def, parameterDeclarations: params },
+              } as CatalogEntry)
+            }
+          />
         )}
 
         {/* Properties */}
-        {def.properties.length > 0 && (
-          <div className="space-y-1">
-            <p className="text-[10px] font-medium text-muted-foreground">Properties</p>
-            {def.properties.map((p, i) => (
-              <div key={i} className="grid grid-cols-2 gap-1 text-[10px]">
-                <span className="text-muted-foreground truncate">{p.name}</span>
-                <span>{p.value}</span>
-              </div>
-            ))}
-          </div>
+        {hasProperties(def) && (
+          <PropertiesEditor
+            properties={def.properties}
+            onChange={(props) =>
+              handleUpdate({
+                ...entry,
+                definition: { ...def, properties: props },
+              } as CatalogEntry)
+            }
+          />
         )}
       </div>
 
-      {/* Right: Diagram */}
-      <div className="flex-1 min-w-0 p-2 bg-[var(--color-bg-void,#050311)]">
-        <EntityDiagramPanel
-          definition={def as VehicleDefinition | PedestrianDefinition | MiscObjectDefinition}
-          highlighted={highlighted}
-          onHighlight={setHighlighted}
-        />
-      </div>
+      {/* Right panel */}
+      {hasEntityShape(entry) ? (
+        <div className="flex-1 min-w-0 p-2 bg-[var(--color-bg-void,#050311)]">
+          <EntityDiagramPanel
+            definition={def as VehicleDefinition | PedestrianDefinition | MiscObjectDefinition}
+            highlighted={highlighted}
+            onHighlight={setHighlighted}
+          />
+        </div>
+      ) : entry.catalogType === 'maneuver' ? (
+        <div className="flex-1 min-w-0 overflow-auto bg-[var(--color-bg-void,#050311)]">
+          <ManeuverEventPanel
+            maneuver={def as Maneuver}
+            selectedEventIndex={maneuverEventIndex}
+            selectedActionIndex={maneuverActionIndex}
+            activeTab={maneuverTab}
+            onTabChange={setManeuverTab}
+            onManeuverChange={(updated) =>
+              handleUpdate({ ...entry, definition: updated } as CatalogEntry)
+            }
+            onSelectAction={setManeuverActionIndex}
+          />
+        </div>
+      ) : entry.catalogType === 'route' ? (
+        <div className="flex-1 min-w-0 p-4 bg-[var(--color-bg-void,#050311)] flex items-center justify-center">
+          <p className="text-xs text-muted-foreground text-center max-w-48">
+            {`Route catalog entry with ${(def as Route).waypoints.length} waypoint${(def as Route).waypoints.length !== 1 ? 's' : ''}`}
+          </p>
+        </div>
+      ) : (
+        <div className="flex-1 min-w-0 p-4 bg-[var(--color-bg-void,#050311)] flex items-center justify-center">
+          <p className="text-xs text-muted-foreground text-center max-w-48">
+            {entry.catalogType === 'controller'
+              ? t('catalog.controllerPlaceholder')
+              : `${entry.catalogType.charAt(0).toUpperCase() + entry.catalogType.slice(1)} catalog entry`}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -384,7 +461,76 @@ function MiscObjectFields({
   );
 }
 
-// --- BoundingBox editor (shared across all types) ---
+// --- Controller-specific fields ---
+
+function ControllerFields({
+  entry,
+  onUpdate,
+}: {
+  entry: { catalogType: 'controller'; definition: ControllerDefinition };
+  onUpdate: (e: CatalogEntry) => void;
+}) {
+  const { t } = useTranslation('common');
+  const def = entry.definition;
+
+  const update = (partial: Partial<ControllerDefinition>) =>
+    onUpdate({ ...entry, definition: { ...def, ...partial } });
+
+  return (
+    <>
+      {/* Controller Type */}
+      <div className="grid gap-1">
+        <Label className="text-xs">{t('catalog.controllerType')}</Label>
+        <EnumSelect
+          value={def.controllerType ?? ''}
+          options={['', ...CONTROLLER_TYPES]}
+          onValueChange={(v) =>
+            update({ controllerType: (v || undefined) as ControllerType | undefined })
+          }
+          className="h-7 text-xs"
+        />
+      </div>
+    </>
+  );
+}
+
+// --- Type guards for catalog entry features ---
+
+/** Entity types that have boundingBox */
+function hasEntityShape(entry: CatalogEntry): entry is
+  | { catalogType: 'vehicle'; definition: VehicleDefinition }
+  | { catalogType: 'pedestrian'; definition: PedestrianDefinition }
+  | { catalogType: 'miscObject'; definition: MiscObjectDefinition } {
+  return entry.catalogType === 'vehicle' || entry.catalogType === 'pedestrian' || entry.catalogType === 'miscObject';
+}
+
+/** Check if definition type supports parameterDeclarations */
+function hasParameterDeclarations(def: CatalogEntry['definition']): boolean {
+  return 'parameterDeclarations' in def;
+}
+
+/** Safely get parameterDeclarations from any definition type */
+function getParameterDeclarations(def: CatalogEntry['definition']) {
+  return ('parameterDeclarations' in def && def.parameterDeclarations) ? def.parameterDeclarations : [];
+}
+
+/** Check if entry name is duplicated within the same catalog */
+function isDuplicateName(name: string, currentIndex: number, entries: CatalogEntry[]): boolean {
+  if (!name.trim()) return false;
+  return entries.some((e, i) => i !== currentIndex && e.definition.name === name);
+}
+
+/** Check if definition has properties */
+function hasProperties(def: CatalogEntry['definition']): def is { properties: { name: string; value: string }[] } & CatalogEntry['definition'] {
+  return 'properties' in def && Array.isArray(def.properties);
+}
+
+// --- BoundingBox editor (shared across entity types) ---
+
+type EntityCatalogEntry =
+  | { catalogType: 'vehicle'; definition: VehicleDefinition }
+  | { catalogType: 'pedestrian'; definition: PedestrianDefinition }
+  | { catalogType: 'miscObject'; definition: MiscObjectDefinition };
 
 function BoundingBoxEditor({
   entry,
@@ -392,7 +538,7 @@ function BoundingBoxEditor({
   highlighted,
   onHighlight,
 }: {
-  entry: CatalogEntry;
+  entry: EntityCatalogEntry;
   onUpdate: (e: CatalogEntry) => void;
 } & HighlightProps) {
   const bb = entry.definition.boundingBox;

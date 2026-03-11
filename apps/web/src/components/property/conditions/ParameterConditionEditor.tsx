@@ -1,52 +1,59 @@
+import { useMemo } from 'react';
 import type { Condition, ByValueCondition, ParameterCondition } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
-import { EnumSelect } from '../EnumSelect';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
-import { RULES } from '../../../constants/osc-enum-values';
+import { RuleSegmentedControl } from '../RuleSegmentedControl';
+import { RefSelect } from '../RefSelect';
+import type { RefSelectItem } from '../RefSelect';
+import { useScenarioStore } from '../../../stores/use-scenario-store';
 
 interface ParameterConditionEditorProps {
   condition: Condition;
+  onUpdate: (conditionId: string, partial: Partial<Condition>) => void;
 }
 
-export function ParameterConditionEditor({ condition }: ParameterConditionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function ParameterConditionEditor({ condition, onUpdate }: ParameterConditionEditorProps) {
   const inner = condition.condition as ByValueCondition;
   const cond = inner.valueCondition as ParameterCondition;
+  const parameters = useScenarioStore((s) => s.document.parameterDeclarations);
+
+  const paramItems: RefSelectItem[] = useMemo(
+    () => parameters.map((p) => ({ name: p.name, description: `${p.parameterType} = ${p.value}` })),
+    [parameters],
+  );
 
   const update = (updates: Partial<ParameterCondition>) => {
-    storeApi.getState().updateCondition(condition.id, {
+    onUpdate(condition.id, {
       condition: { ...inner, valueCondition: { ...cond, ...updates } },
     } as Partial<Condition>);
   };
 
   return (
-    <div className="space-y-3">
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Parameter Condition</p>
-        <div className="grid gap-1">
-          <Label className="text-xs">Parameter Ref</Label>
-          <Input
-            value={cond.parameterRef}
-            onChange={(e) => update({ parameterRef: e.target.value })}
-            className="h-8 text-sm"
-          />
-        </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Value</Label>
+    <div className="space-y-2">
+      <p className="text-xs font-medium text-muted-foreground">Parameter Condition</p>
+      <div className="grid gap-1">
+        <Label className="text-[10px]">Parameter Ref</Label>
+        <RefSelect
+          value={cond.parameterRef}
+          onValueChange={(v) => update({ parameterRef: v })}
+          items={paramItems}
+          placeholder="Select parameter..."
+          emptyMessage="No parameters declared"
+          className="h-7 text-xs"
+        />
+      </div>
+      <div className="grid gap-1">
+        <Label className="text-[10px]">Value</Label>
+        <div className="flex gap-1">
           <Input
             value={cond.value}
             onChange={(e) => update({ value: e.target.value })}
-            className="h-8 text-sm"
+            className="h-7 text-xs flex-1 min-w-0"
           />
-        </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Rule</Label>
-          <EnumSelect
+          <RuleSegmentedControl
             value={cond.rule}
-            options={RULES}
-            onValueChange={(v) => update({ rule: v as ParameterCondition['rule'] })}
-            className="h-8 text-sm"
+            onValueChange={(v) => update({ rule: v })}
+            className="shrink-0"
           />
         </div>
       </div>

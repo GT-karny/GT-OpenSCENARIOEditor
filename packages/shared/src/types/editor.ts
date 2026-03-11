@@ -27,6 +27,26 @@ export type EditorPanel =
   | 'templates'
   | 'simulation';
 
+/** Supported OpenSCENARIO versions */
+export type OscVersion = '1.2' | '1.3';
+
+/** Known simulator targets */
+export type SimulatorTarget = 'esmini' | 'gt_sim' | 'any';
+
+/** User-selected compatibility constraints */
+export interface CompatibilityProfile {
+  oscVersion: OscVersion;
+  simulator: SimulatorTarget;
+}
+
+/** Result of a feature gate check */
+export interface FeatureGateResult {
+  allowed: boolean;
+  reason?: string;
+  reasonKey?: string;
+  minVersion?: OscVersion;
+}
+
 export interface EditorPreferences {
   language: 'en' | 'ja';
   theme: 'light' | 'dark' | 'system';
@@ -35,4 +55,5 @@ export interface EditorPreferences {
   showGrid3D: boolean;
   showLaneIds: boolean;
   showRoadIds: boolean;
+  compatibilityProfile: CompatibilityProfile;
 }

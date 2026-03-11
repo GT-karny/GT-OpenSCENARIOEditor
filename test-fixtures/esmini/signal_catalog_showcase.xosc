@@ -1,0 +1,511 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenSCENARIO>
+  <FileHeader revMajor="1" revMinor="2" date="2026-03-10T00:00:00"
+              description="Signal Catalog Showcase — cycles all Phase 1 signal types through their states"
+              author="claude"/>
+
+  <ParameterDeclarations>
+    <!-- 3-bulb states -->
+    <ParameterDeclaration name="Green3" parameterType="string" value="off;off;on"/>
+    <ParameterDeclaration name="Yellow3" parameterType="string" value="off;on;off"/>
+    <ParameterDeclaration name="Red3" parameterType="string" value="on;off;off"/>
+    <!-- 2-bulb states -->
+    <ParameterDeclaration name="First2" parameterType="string" value="on;off"/>
+    <ParameterDeclaration name="Second2" parameterType="string" value="off;on"/>
+    <!-- 1-bulb states -->
+    <ParameterDeclaration name="BulbOn" parameterType="string" value="on"/>
+    <ParameterDeclaration name="BulbOff" parameterType="string" value="off"/>
+  </ParameterDeclarations>
+
+  <CatalogLocations>
+    <VehicleCatalog>
+      <Directory path="../xosc/Catalogs/Vehicles"/>
+    </VehicleCatalog>
+  </CatalogLocations>
+
+  <RoadNetwork>
+    <LogicFile filepath="../xodr/signal_catalog_showcase.xodr"/>
+  </RoadNetwork>
+
+  <Entities>
+    <ScenarioObject name="Ego">
+      <CatalogReference catalogName="VehicleCatalog" entryName="car_white"/>
+    </ScenarioObject>
+  </Entities>
+
+  <Storyboard>
+    <Init>
+      <Actions>
+        <!-- ======== Ego: drive slowly along the road ======== -->
+        <Private entityRef="Ego">
+          <PrivateAction>
+            <TeleportAction>
+              <Position>
+                <LanePosition roadId="1" laneId="-1" offset="0" s="5"/>
+              </Position>
+            </TeleportAction>
+          </PrivateAction>
+          <PrivateAction>
+            <LongitudinalAction>
+              <SpeedAction>
+                <SpeedActionDynamics dynamicsShape="step" dynamicsDimension="time" value="0.0"/>
+                <SpeedActionTarget>
+                  <AbsoluteTargetSpeed value="8.0"/>
+                </SpeedActionTarget>
+              </SpeedAction>
+            </LongitudinalAction>
+          </PrivateAction>
+        </Private>
+
+        <!-- ======== Phase 0 (t=0): Initialize all signals ======== -->
+
+        <!-- GROUP 1: Standard 3-light → Green -->
+        <GlobalAction>
+          <InfrastructureAction>
+            <TrafficSignalAction>
+              <TrafficSignalStateAction name="101" state="$Green3"/>
+            </TrafficSignalAction>
+          </InfrastructureAction>
+        </GlobalAction>
+        <GlobalAction>
+          <InfrastructureAction>
+            <TrafficSignalAction>
+              <TrafficSignalStateAction name="801" state="$Green3"/>
+            </TrafficSignalAction>
+          </InfrastructureAction>
+        </GlobalAction>
+
+        <!-- GROUP 2: Pedestrian → Red -->
+        <GlobalAction>
+          <InfrastructureAction>
+            <TrafficSignalAction>
+              <TrafficSignalStateAction name="201" state="$First2"/>
+            </TrafficSignalAction>
+          </InfrastructureAction>
+        </GlobalAction>
+        <GlobalAction>
+          <InfrastructureAction>
+            <TrafficSignalAction>
+              <TrafficSignalStateAction name="202" state="$BulbOn"/>
+            </TrafficSignalAction>
+          </InfrastructureAction>
+        </GlobalAction>
+        <GlobalAction>
+          <InfrastructureAction>
+            <TrafficSignalAction>
+              <TrafficSignalStateAction name="203" state="$BulbOff"/>
+            </TrafficSignalAction>
+          </InfrastructureAction>
+        </GlobalAction>
+        <GlobalAction>
+          <InfrastructureAction>
+            <TrafficSignalAction>
+              <TrafficSignalStateAction name="802" state="$First2"/>
+            </TrafficSignalAction>
+          </InfrastructureAction>
+        </GlobalAction>
+
+        <!-- GROUP 3: 2-light combos → First on -->
+        <GlobalAction>
+          <InfrastructureAction>
+            <TrafficSignalAction>
+              <TrafficSignalStateAction name="301" state="$First2"/>
+            </TrafficSignalAction>
+          </InfrastructureAction>
+        </GlobalAction>
+        <GlobalAction>
+          <InfrastructureAction>
+            <TrafficSignalAction>
+              <TrafficSignalStateAction name="302" state="$First2"/>
+            </TrafficSignalAction>
+          </InfrastructureAction>
+        </GlobalAction>
+        <GlobalAction>
+          <InfrastructureAction>
+            <TrafficSignalAction>
+              <TrafficSignalStateAction name="303" state="$First2"/>
+            </TrafficSignalAction>
+          </InfrastructureAction>
+        </GlobalAction>
+
+        <!-- GROUP 4: Arrow 3-light → Green -->
+        <GlobalAction>
+          <InfrastructureAction>
+            <TrafficSignalAction>
+              <TrafficSignalStateAction name="401" state="$Green3"/>
+            </TrafficSignalAction>
+          </InfrastructureAction>
+        </GlobalAction>
+        <GlobalAction>
+          <InfrastructureAction>
+            <TrafficSignalAction>
+              <TrafficSignalStateAction name="402" state="$Green3"/>
+            </TrafficSignalAction>
+          </InfrastructureAction>
+        </GlobalAction>
+        <GlobalAction>
+          <InfrastructureAction>
+            <TrafficSignalAction>
+              <TrafficSignalStateAction name="403" state="$Green3"/>
+            </TrafficSignalAction>
+          </InfrastructureAction>
+        </GlobalAction>
+        <GlobalAction>
+          <InfrastructureAction>
+            <TrafficSignalAction>
+              <TrafficSignalStateAction name="404" state="$Green3"/>
+            </TrafficSignalAction>
+          </InfrastructureAction>
+        </GlobalAction>
+        <GlobalAction>
+          <InfrastructureAction>
+            <TrafficSignalAction>
+              <TrafficSignalStateAction name="405" state="$Green3"/>
+            </TrafficSignalAction>
+          </InfrastructureAction>
+        </GlobalAction>
+        <GlobalAction>
+          <InfrastructureAction>
+            <TrafficSignalAction>
+              <TrafficSignalStateAction name="803" state="$Green3"/>
+            </TrafficSignalAction>
+          </InfrastructureAction>
+        </GlobalAction>
+
+        <!-- GROUP 5: Red single-bulb → On -->
+        <GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="501" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction>
+        <GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="502" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction>
+        <GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="503" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction>
+        <GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="504" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction>
+        <GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="505" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction>
+        <GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="506" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction>
+        <GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="507" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction>
+        <GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="508" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction>
+        <GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="509" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction>
+        <GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="510" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction>
+
+        <!-- GROUP 6: Yellow single-bulb → On -->
+        <GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="601" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction>
+        <GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="602" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction>
+        <GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="603" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction>
+        <GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="604" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction>
+        <GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="605" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction>
+        <GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="606" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction>
+
+        <!-- GROUP 7: Green single-bulb → On -->
+        <GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="701" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction>
+        <GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="702" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction>
+        <GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="703" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction>
+        <GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="704" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction>
+        <GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="705" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction>
+        <GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="706" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction>
+      </Actions>
+    </Init>
+
+    <Story name="SignalShowcase">
+      <!-- ================================================================ -->
+      <!-- ACT: Cycle all signals through their states                      -->
+      <!-- Timeline: 0→5s green, 5→8s yellow, 8→18s red, 18→21s yellow,   -->
+      <!--           21s→ green again. Single-bulb: toggle every 5s.        -->
+      <!-- ================================================================ -->
+      <Act name="SignalCycleAct">
+        <ManeuverGroup maximumExecutionCount="1" name="SignalCycleMG">
+          <Actors selectTriggeringEntities="false">
+            <EntityRef entityRef="Ego"/>
+          </Actors>
+
+          <!-- ======== PHASE 1 (t=5s): 3-light → Yellow, single-bulb → Off ======== -->
+          <Maneuver name="Phase1_Maneuver">
+            <Event name="Phase1_3LightYellow" priority="override" maximumExecutionCount="1">
+              <Action name="P1_101"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="101" state="$Yellow3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_801"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="801" state="$Yellow3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_401"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="401" state="$Yellow3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_402"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="402" state="$Yellow3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_403"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="403" state="$Yellow3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_404"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="404" state="$Yellow3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_405"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="405" state="$Yellow3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_803"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="803" state="$Yellow3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition name="T5" delay="0" conditionEdge="none">
+                    <ByValueCondition><SimulationTimeCondition value="5.0" rule="greaterThan"/></ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+
+            <Event name="Phase1_SingleOff" priority="override" maximumExecutionCount="1">
+              <!-- Red singles off -->
+              <Action name="P1_501"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="501" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_502"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="502" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_503"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="503" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_504"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="504" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_505"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="505" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_506"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="506" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_507"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="507" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_508"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="508" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_509"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="509" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_510"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="510" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <!-- Yellow singles off -->
+              <Action name="P1_601"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="601" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_602"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="602" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_603"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="603" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_604"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="604" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_605"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="605" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_606"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="606" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <!-- Green singles off -->
+              <Action name="P1_701"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="701" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_702"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="702" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_703"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="703" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_704"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="704" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_705"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="705" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P1_706"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="706" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition name="T5b" delay="0" conditionEdge="none">
+                    <ByValueCondition><SimulationTimeCondition value="5.0" rule="greaterThan"/></ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+          </Maneuver>
+
+          <!-- ======== PHASE 2 (t=8s): 3-light → Red, pedestrian → Green, 2-light → swap ======== -->
+          <Maneuver name="Phase2_Maneuver">
+            <Event name="Phase2_3LightRed" priority="override" maximumExecutionCount="1">
+              <Action name="P2_101"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="101" state="$Red3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P2_801"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="801" state="$Red3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P2_401"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="401" state="$Red3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P2_402"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="402" state="$Red3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P2_403"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="403" state="$Red3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P2_404"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="404" state="$Red3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P2_405"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="405" state="$Red3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P2_803"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="803" state="$Red3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition name="T8" delay="0" conditionEdge="none">
+                    <ByValueCondition><SimulationTimeCondition value="8.0" rule="greaterThan"/></ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+
+            <Event name="Phase2_PedGreen" priority="override" maximumExecutionCount="1">
+              <Action name="P2_201"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="201" state="$Second2"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P2_202"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="202" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P2_203"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="203" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P2_802"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="802" state="$Second2"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition name="T8b" delay="0" conditionEdge="none">
+                    <ByValueCondition><SimulationTimeCondition value="8.0" rule="greaterThan"/></ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+
+            <Event name="Phase2_2LightSwap" priority="override" maximumExecutionCount="1">
+              <Action name="P2_301"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="301" state="$Second2"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P2_302"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="302" state="$Second2"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P2_303"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="303" state="$Second2"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition name="T8c" delay="0" conditionEdge="none">
+                    <ByValueCondition><SimulationTimeCondition value="8.0" rule="greaterThan"/></ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+          </Maneuver>
+
+          <!-- ======== PHASE 3 (t=10s): Single-bulb → On again ======== -->
+          <Maneuver name="Phase3_Maneuver">
+            <Event name="Phase3_SingleOn" priority="override" maximumExecutionCount="1">
+              <Action name="P3_501"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="501" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P3_502"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="502" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P3_503"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="503" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P3_504"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="504" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P3_505"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="505" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P3_506"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="506" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P3_507"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="507" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P3_508"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="508" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P3_509"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="509" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P3_510"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="510" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P3_601"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="601" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P3_602"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="602" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P3_603"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="603" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P3_604"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="604" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P3_605"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="605" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P3_606"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="606" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P3_701"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="701" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P3_702"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="702" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P3_703"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="703" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P3_704"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="704" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P3_705"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="705" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P3_706"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="706" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition name="T10" delay="0" conditionEdge="none">
+                    <ByValueCondition><SimulationTimeCondition value="10.0" rule="greaterThan"/></ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+          </Maneuver>
+
+          <!-- ======== PHASE 4 (t=15s): Single-bulb → Off again ======== -->
+          <Maneuver name="Phase4_Maneuver">
+            <Event name="Phase4_SingleOff" priority="override" maximumExecutionCount="1">
+              <Action name="P4_501"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="501" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P4_502"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="502" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P4_503"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="503" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P4_504"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="504" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P4_505"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="505" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P4_506"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="506" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P4_507"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="507" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P4_508"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="508" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P4_509"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="509" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P4_510"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="510" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P4_601"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="601" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P4_602"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="602" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P4_603"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="603" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P4_604"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="604" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P4_605"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="605" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P4_606"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="606" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P4_701"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="701" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P4_702"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="702" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P4_703"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="703" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P4_704"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="704" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P4_705"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="705" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P4_706"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="706" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition name="T15" delay="0" conditionEdge="none">
+                    <ByValueCondition><SimulationTimeCondition value="15.0" rule="greaterThan"/></ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+          </Maneuver>
+
+          <!-- ======== PHASE 5 (t=18s): 3-light → Yellow, ped → Red, 2-light → swap back ======== -->
+          <Maneuver name="Phase5_Maneuver">
+            <Event name="Phase5_3LightYellow" priority="override" maximumExecutionCount="1">
+              <Action name="P5_101"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="101" state="$Yellow3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P5_801"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="801" state="$Yellow3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P5_401"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="401" state="$Yellow3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P5_402"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="402" state="$Yellow3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P5_403"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="403" state="$Yellow3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P5_404"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="404" state="$Yellow3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P5_405"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="405" state="$Yellow3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P5_803"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="803" state="$Yellow3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition name="T18" delay="0" conditionEdge="none">
+                    <ByValueCondition><SimulationTimeCondition value="18.0" rule="greaterThan"/></ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+
+            <Event name="Phase5_PedRed" priority="override" maximumExecutionCount="1">
+              <Action name="P5_201"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="201" state="$First2"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P5_202"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="202" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P5_203"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="203" state="$BulbOff"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P5_802"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="802" state="$First2"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition name="T18b" delay="0" conditionEdge="none">
+                    <ByValueCondition><SimulationTimeCondition value="18.0" rule="greaterThan"/></ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+
+            <Event name="Phase5_2LightSwap" priority="override" maximumExecutionCount="1">
+              <Action name="P5_301"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="301" state="$First2"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P5_302"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="302" state="$First2"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P5_303"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="303" state="$First2"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition name="T18c" delay="0" conditionEdge="none">
+                    <ByValueCondition><SimulationTimeCondition value="18.0" rule="greaterThan"/></ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+          </Maneuver>
+
+          <!-- ======== PHASE 6 (t=21s): 3-light → Green again, single-bulb → On ======== -->
+          <Maneuver name="Phase6_Maneuver">
+            <Event name="Phase6_3LightGreen" priority="override" maximumExecutionCount="1">
+              <Action name="P6_101"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="101" state="$Green3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_801"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="801" state="$Green3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_401"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="401" state="$Green3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_402"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="402" state="$Green3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_403"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="403" state="$Green3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_404"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="404" state="$Green3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_405"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="405" state="$Green3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_803"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="803" state="$Green3"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition name="T21" delay="0" conditionEdge="none">
+                    <ByValueCondition><SimulationTimeCondition value="21.0" rule="greaterThan"/></ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+
+            <Event name="Phase6_SingleOn" priority="override" maximumExecutionCount="1">
+              <Action name="P6_501"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="501" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_502"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="502" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_503"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="503" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_504"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="504" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_505"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="505" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_506"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="506" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_507"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="507" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_508"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="508" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_509"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="509" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_510"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="510" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_601"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="601" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_602"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="602" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_603"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="603" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_604"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="604" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_605"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="605" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_606"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="606" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_701"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="701" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_702"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="702" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_703"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="703" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_704"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="704" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_705"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="705" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <Action name="P6_706"><GlobalAction><InfrastructureAction><TrafficSignalAction><TrafficSignalStateAction name="706" state="$BulbOn"/></TrafficSignalAction></InfrastructureAction></GlobalAction></Action>
+              <StartTrigger>
+                <ConditionGroup>
+                  <Condition name="T21b" delay="0" conditionEdge="none">
+                    <ByValueCondition><SimulationTimeCondition value="21.0" rule="greaterThan"/></ByValueCondition>
+                  </Condition>
+                </ConditionGroup>
+              </StartTrigger>
+            </Event>
+          </Maneuver>
+        </ManeuverGroup>
+
+        <StartTrigger>
+          <ConditionGroup>
+            <Condition name="ActStart" delay="0" conditionEdge="none">
+              <ByValueCondition><SimulationTimeCondition value="0" rule="greaterThan"/></ByValueCondition>
+            </Condition>
+          </ConditionGroup>
+        </StartTrigger>
+      </Act>
+    </Story>
+
+    <StopTrigger>
+      <ConditionGroup>
+        <Condition name="StopCondition" delay="0" conditionEdge="rising">
+          <ByValueCondition><SimulationTimeCondition value="60" rule="greaterThan"/></ByValueCondition>
+        </Condition>
+      </ConditionGroup>
+    </StopTrigger>
+  </Storyboard>
+</OpenSCENARIO>

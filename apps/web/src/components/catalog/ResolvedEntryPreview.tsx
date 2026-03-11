@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from '@osce/i18n';
-import type { CatalogReference } from '@osce/shared';
+import type { CatalogReference, VehicleDefinition, PedestrianDefinition, MiscObjectDefinition, Route } from '@osce/shared';
 import { useCatalogStore, type ResolvedCatalogEntry } from '../../stores/catalog-store';
 import { applyParameterAssignments } from '@osce/openscenario';
 import { ChevronDown, ChevronRight } from 'lucide-react';
@@ -24,9 +24,18 @@ export function ResolvedEntryPreview({ catalogRef }: ResolvedEntryPreviewProps) 
     );
   }
 
-  const effectiveDef = catalogRef.parameterAssignments.length > 0
-    ? applyParameterAssignments(resolved.definition, catalogRef.parameterAssignments)
-    : resolved.definition;
+  const isEntityType =
+    resolved.catalogType === 'vehicle' ||
+    resolved.catalogType === 'pedestrian' ||
+    resolved.catalogType === 'miscObject';
+
+  const effectiveDef =
+    isEntityType && catalogRef.parameterAssignments.length > 0
+      ? applyParameterAssignments(
+          resolved.definition as VehicleDefinition | PedestrianDefinition | MiscObjectDefinition,
+          catalogRef.parameterAssignments,
+        )
+      : resolved.definition;
 
   return (
     <div className="space-y-1">
@@ -41,30 +50,48 @@ export function ResolvedEntryPreview({ catalogRef }: ResolvedEntryPreviewProps) 
       {expanded && (
         <div className="pl-4 space-y-1 text-xs">
           <Row label={t('labels.name')} value={effectiveDef.name} />
-          {effectiveDef.kind === 'vehicle' && (
-            <>
-              <Row label={t('labels.category')} value={effectiveDef.vehicleCategory} />
-              <Row label="Max Speed" value={String(effectiveDef.performance.maxSpeed)} />
-              <Row label="Max Accel" value={String(effectiveDef.performance.maxAcceleration)} />
-              <Row label="Max Decel" value={String(effectiveDef.performance.maxDeceleration)} />
-            </>
-          )}
-          {effectiveDef.kind === 'pedestrian' && (
-            <>
-              <Row label={t('labels.category')} value={effectiveDef.pedestrianCategory} />
-              <Row label="Mass" value={String(effectiveDef.mass)} />
-            </>
-          )}
-          {effectiveDef.kind === 'miscObject' && (
-            <>
-              <Row label={t('labels.category')} value={effectiveDef.miscObjectCategory} />
-              <Row label="Mass" value={String(effectiveDef.mass)} />
-            </>
-          )}
-          <Row
-            label="BoundingBox"
-            value={`${effectiveDef.boundingBox.dimensions.width}×${effectiveDef.boundingBox.dimensions.length}×${effectiveDef.boundingBox.dimensions.height}`}
-          />
+          <Row label="Type" value={resolved.catalogType} />
+          {resolved.catalogType === 'vehicle' && (() => {
+            const vDef = effectiveDef as VehicleDefinition;
+            return (
+              <>
+                <Row label={t('labels.category')} value={vDef.vehicleCategory} />
+                <Row label="Max Speed" value={String(vDef.performance.maxSpeed)} />
+                <Row label="Max Accel" value={String(vDef.performance.maxAcceleration)} />
+                <Row label="Max Decel" value={String(vDef.performance.maxDeceleration)} />
+                <Row label="BoundingBox" value={`${vDef.boundingBox.dimensions.width}×${vDef.boundingBox.dimensions.length}×${vDef.boundingBox.dimensions.height}`} />
+              </>
+            );
+          })()}
+          {resolved.catalogType === 'pedestrian' && (() => {
+            const pDef = effectiveDef as PedestrianDefinition;
+            return (
+              <>
+                <Row label={t('labels.category')} value={pDef.pedestrianCategory} />
+                <Row label="Mass" value={String(pDef.mass)} />
+                <Row label="BoundingBox" value={`${pDef.boundingBox.dimensions.width}×${pDef.boundingBox.dimensions.length}×${pDef.boundingBox.dimensions.height}`} />
+              </>
+            );
+          })()}
+          {resolved.catalogType === 'miscObject' && (() => {
+            const mDef = effectiveDef as MiscObjectDefinition;
+            return (
+              <>
+                <Row label={t('labels.category')} value={mDef.miscObjectCategory} />
+                <Row label="Mass" value={String(mDef.mass)} />
+                <Row label="BoundingBox" value={`${mDef.boundingBox.dimensions.width}×${mDef.boundingBox.dimensions.length}×${mDef.boundingBox.dimensions.height}`} />
+              </>
+            );
+          })()}
+          {resolved.catalogType === 'route' && (() => {
+            const rDef = effectiveDef as Route;
+            return (
+              <>
+                <Row label="Closed" value={rDef.closed ? 'Yes' : 'No'} />
+                <Row label="Waypoints" value={String(rDef.waypoints.length)} />
+              </>
+            );
+          })()}
         </div>
       )}
     </div>

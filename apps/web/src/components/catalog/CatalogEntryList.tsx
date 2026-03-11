@@ -1,24 +1,35 @@
 import { useTranslation } from '@osce/i18n';
 import { useCatalogStore } from '../../stores/catalog-store';
 import { cn } from '@/lib/utils';
-import { Car, User, Box, Plus, Copy, Trash2 } from 'lucide-react';
-import type { CatalogEntry, VehicleDefinition, PedestrianDefinition, MiscObjectDefinition } from '@osce/shared';
+import { Car, User, Box, Plus, Copy, Trash2, Gamepad2, Cloud, GitBranch, Spline, Route } from 'lucide-react';
+import type { CatalogEntry, VehicleDefinition, PedestrianDefinition, MiscObjectDefinition, ControllerDefinition } from '@osce/shared';
 
 function entryIcon(entry: CatalogEntry) {
   switch (entry.catalogType) {
     case 'vehicle': return <Car className="h-3.5 w-3.5 shrink-0" />;
     case 'pedestrian': return <User className="h-3.5 w-3.5 shrink-0" />;
     case 'miscObject': return <Box className="h-3.5 w-3.5 shrink-0" />;
+    case 'controller': return <Gamepad2 className="h-3.5 w-3.5 shrink-0" />;
+    case 'environment': return <Cloud className="h-3.5 w-3.5 shrink-0" />;
+    case 'maneuver': return <GitBranch className="h-3.5 w-3.5 shrink-0" />;
+    case 'trajectory': return <Spline className="h-3.5 w-3.5 shrink-0" />;
+    case 'route': return <Route className="h-3.5 w-3.5 shrink-0" />;
   }
 }
 
 function entrySubtitle(entry: CatalogEntry): string {
-  const def = entry.definition;
-  switch (def.kind) {
-    case 'vehicle': return (def as VehicleDefinition).vehicleCategory;
-    case 'pedestrian': return (def as PedestrianDefinition).pedestrianCategory;
-    case 'miscObject': return (def as MiscObjectDefinition).miscObjectCategory;
-    default: return '';
+  switch (entry.catalogType) {
+    case 'vehicle': return (entry.definition as VehicleDefinition).vehicleCategory;
+    case 'pedestrian': return (entry.definition as PedestrianDefinition).pedestrianCategory;
+    case 'miscObject': return (entry.definition as MiscObjectDefinition).miscObjectCategory;
+    case 'controller': return (entry.definition as ControllerDefinition).controllerType ?? 'controller';
+    case 'environment': return 'environment';
+    case 'maneuver': return 'maneuver';
+    case 'trajectory': return 'trajectory';
+    case 'route': {
+      const route = entry.definition as import('@osce/shared').Route;
+      return `${route.waypoints.length} waypoint${route.waypoints.length !== 1 ? 's' : ''}`;
+    }
   }
 }
 
@@ -45,12 +56,32 @@ export function CatalogEntryList() {
   }
 
   const handleAddEntry = () => {
-    const newEntry: CatalogEntry = doc.catalogType === 'pedestrian'
+    const count = doc.entries.length + 1;
+    const newEntry: CatalogEntry = doc.catalogType === 'maneuver'
+      ? {
+          catalogType: 'maneuver',
+          definition: {
+            id: crypto.randomUUID(),
+            name: `new_maneuver_${count}`,
+            parameterDeclarations: [],
+            events: [],
+          },
+        }
+      : doc.catalogType === 'controller'
+      ? {
+          catalogType: 'controller',
+          definition: {
+            kind: 'controller',
+            name: `new_controller_${count}`,
+            properties: [],
+          },
+        }
+      : doc.catalogType === 'pedestrian'
       ? {
           catalogType: 'pedestrian',
           definition: {
             kind: 'pedestrian',
-            name: `new_pedestrian_${doc.entries.length + 1}`,
+            name: `new_pedestrian_${count}`,
             pedestrianCategory: 'pedestrian',
             mass: 80,
             model: '',
@@ -59,12 +90,22 @@ export function CatalogEntryList() {
             properties: [],
           },
         }
+      : doc.catalogType === 'route'
+      ? {
+          catalogType: 'route',
+          definition: {
+            id: `route_${Date.now()}`,
+            name: `new_route_${count}`,
+            closed: false,
+            waypoints: [],
+          },
+        }
       : doc.catalogType === 'miscObject'
         ? {
             catalogType: 'miscObject',
             definition: {
               kind: 'miscObject',
-              name: `new_object_${doc.entries.length + 1}`,
+              name: `new_object_${count}`,
               miscObjectCategory: 'none',
               mass: 0,
               parameterDeclarations: [],
@@ -76,7 +117,7 @@ export function CatalogEntryList() {
             catalogType: 'vehicle',
             definition: {
               kind: 'vehicle',
-              name: `new_vehicle_${doc.entries.length + 1}`,
+              name: `new_vehicle_${count}`,
               vehicleCategory: 'car',
               parameterDeclarations: [],
               performance: { maxSpeed: 69, maxAcceleration: 5, maxDeceleration: 10 },

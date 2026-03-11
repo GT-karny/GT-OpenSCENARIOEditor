@@ -36,7 +36,7 @@ import { AddStoryCommand, RemoveStoryCommand } from '../commands/story-commands.
 import { AddActCommand, RemoveActCommand } from '../commands/act-commands.js';
 import { AddManeuverGroupCommand, RemoveManeuverGroupCommand } from '../commands/maneuver-group-commands.js';
 import { AddManeuverCommand, RemoveManeuverCommand } from '../commands/maneuver-commands.js';
-import { AddEventCommand, RemoveEventCommand } from '../commands/event-commands.js';
+import { AddEventCommand, RemoveEventCommand, ReorderEventCommand } from '../commands/event-commands.js';
 import { AddActionCommand, RemoveActionCommand } from '../commands/action-commands.js';
 import {
   SetStartTriggerCommand,
@@ -79,6 +79,9 @@ export interface ScenarioStore extends ScenarioState, IScenarioService {
   updateEvent(eventId: string, updates: Partial<ScenarioEvent>): void;
   updateAction(actionId: string, updates: Partial<ScenarioAction>): void;
   updateCondition(conditionId: string, updates: Partial<Condition>): void;
+
+  // Reorder operations
+  reorderEvent(eventId: string, newIndex: number): void;
 
   // Scenario-level property updates
   updateFileHeader(updates: Partial<FileHeader>): void;
@@ -283,6 +286,12 @@ export function createScenarioStore() {
 
       updateEvent: (eventId: string, updates: Partial<ScenarioEvent>): void => {
         const cmd = new UpdateEventCommand(eventId, updates, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
+      reorderEvent: (eventId: string, newIndex: number): void => {
+        const cmd = new ReorderEventCommand(eventId, newIndex, getDoc, setDoc);
         commandHistory.execute(cmd);
         syncUndoRedo();
       },

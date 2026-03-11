@@ -7,12 +7,14 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useStore } from 'zustand';
 import type * as THREE from 'three';
+import { Vector3 } from 'three';
 import type {
   OpenDriveDocument,
   SimulationFrame,
   SimulationStatus,
   EditorPreferences,
   ScenarioDocument,
+  Route,
 } from '@osce/shared';
 import { createViewerStore, useViewerStore } from '../store/viewer-store.js';
 import type { HoverLaneInfo, ViewerMode } from '../store/viewer-types.js';
@@ -29,6 +31,12 @@ import { useScenarioEntities } from '../scenario/useScenarioEntities.js';
 import { useEntityPositions } from '../scenario/useEntityPositions.js';
 import { SimulationOverlay } from '../scenario/SimulationOverlay.js';
 import { useCameraFollow } from '../scene/useCameraFollow.js';
+import { Minimap } from './Minimap.js';
+import { RouteOverlay } from '../route/RouteOverlay.js';
+import { RouteClickHandler } from '../interaction/RouteClickHandler.js';
+import { RouteEditOverlay } from '../route/RouteEditOverlay.js';
+import { TrafficSignalGroup } from '../signals/TrafficSignalGroup.js';
+import type { ThreeEvent } from '@react-three/fiber';
 
 export interface ScenarioViewerProps {
   /** The scenario engine Zustand store (vanilla) */
@@ -37,6 +45,8 @@ export interface ScenarioViewerProps {
   openDriveDocument: OpenDriveDocument | null;
   /** Currently selected entity ID (controlled externally) */
   selectedEntityId?: string | null;
+  /** Entity name to highlight on hover (from composer card) */
+  hoveredEntityName?: string | null;
   /** Callback when user clicks an entity in the viewer */
   onEntitySelect?: (entityId: string) => void;
   /** Callback when user double-clicks an entity (request focus) */
@@ -62,6 +72,49 @@ export interface ScenarioViewerProps {
   onViewerModeChange?: (mode: ViewerMode) => void;
   /** CSS style for the container */
   style?: React.CSSProperties;
+  /** Entity ID to focus camera on (from external panel double-click) */
+  focusEntityId?: string | null;
+  /** Whether route editing mode is active */
+  routeEditActive?: boolean;
+  /** Waypoints in OpenDRIVE coordinates */
+  routeWaypoints?: Array<{ x: number; y: number; z: number; h: number }>;
+  /** Path segments (interpolated points between waypoints) */
+  routePathSegments?: Array<Array<{ x: number; y: number; z: number }>>;
+  /** Currently selected waypoint index */
+  routeSelectedWaypointIndex?: number | null;
+  /** Callback when user clicks a waypoint marker */
+  onRouteWaypointClick?: (index: number) => void;
+  /** Callback when user right-clicks a waypoint marker */
+  onRouteWaypointContextMenu?: (index: number, event: ThreeEvent<MouseEvent>) => void;
+  /** Callback when user clicks a route line segment */
+  onRouteLineClick?: (segmentIndex: number, event: ThreeEvent<MouseEvent>) => void;
+  /** Callback when user clicks road surface to add a waypoint */
+  onRouteWaypointAdd?: (
+    worldX: number, worldY: number, worldZ: number, heading: number,
+    roadId: string, laneId: string, s: number, offset: number,
+  ) => void;
+  /** Callback when user drags a waypoint to a new position */
+  onRouteWaypointDragEnd?: (
+    index: number,
+    worldX: number, worldY: number, worldZ: number, heading: number,
+    roadId: string, laneId: string, s: number, offset: number,
+  ) => void;
+  /** Callback to save and exit route editing */
+  onRouteEditSave?: () => void;
+  /** Callback to cancel route editing */
+  onRouteEditCancel?: () => void;
+  /** Warnings from route validation */
+  routeWarnings?: string[];
+  /** Number of waypoints in the editing route */
+  routeWaypointCount?: number;
+  /** Resolve a catalog reference to a Route definition (for RoutePosition placement) */
+  resolveCatalogRoute?: (ref: { catalogName: string; entryName: string }) => Route | null;
+  /** Currently selected traffic signal key (roadId:signalId) */
+  selectedSignalKey?: string | null;
+  /** Callback when user clicks a traffic signal in the viewer */
+  onSignalSelect?: (key: string) => void;
+  /** Show r3f-perf overlay for performance monitoring */
+  showPerf?: boolean;
 }
 
 /**
@@ -71,26 +124,57 @@ function ScenarioViewerScene({
   scenarioStore,
   openDriveDocument,
   selectedEntityId,
+  hoveredEntityName,
   onEntitySelect,
   onEntityFocus,
   onEntityPositionChange,
   currentFrame,
   viewerStore,
+  focusEntityId,
+  cameraStateRef,
+  routeEditActive,
+  routeWaypoints,
+  routePathSegments,
+  routeSelectedWaypointIndex,
+  onRouteWaypointClick,
+  onRouteWaypointContextMenu,
+  onRouteLineClick,
+  onRouteWaypointAdd,
+  onRouteWaypointDragEnd,
+  resolveCatalogRoute,
+  selectedSignalKey,
+  onSignalSelect,
 }: {
   scenarioStore: ScenarioViewerProps['scenarioStore'];
   openDriveDocument: OpenDriveDocument | null;
   selectedEntityId: string | null;
+  hoveredEntityName?: string | null;
   onEntitySelect: (entityId: string) => void;
   onEntityFocus: (entityId: string) => void;
   onEntityPositionChange?: ScenarioViewerProps['onEntityPositionChange'];
   currentFrame?: SimulationFrame | null;
   viewerStore: ReturnType<typeof createViewerStore>;
+  focusEntityId?: string | null;
+  cameraStateRef?: React.RefObject<{ position: THREE.Vector3; target: THREE.Vector3 }>;
+  routeEditActive?: boolean;
+  routeWaypoints?: Array<{ x: number; y: number; z: number; h: number }>;
+  routePathSegments?: Array<Array<{ x: number; y: number; z: number }>>;
+  routeSelectedWaypointIndex?: number | null;
+  onRouteWaypointClick?: (index: number) => void;
+  onRouteWaypointContextMenu?: (index: number, event: ThreeEvent<MouseEvent>) => void;
+  onRouteLineClick?: (segmentIndex: number, event: ThreeEvent<MouseEvent>) => void;
+  onRouteWaypointAdd?: ScenarioViewerProps['onRouteWaypointAdd'];
+  onRouteWaypointDragEnd?: ScenarioViewerProps['onRouteWaypointDragEnd'];
+  resolveCatalogRoute?: ScenarioViewerProps['resolveCatalogRoute'];
+  selectedSignalKey?: string | null;
+  onSignalSelect?: (key: string) => void;
 }) {
   const cameraMode = useViewerStore(viewerStore, (s) => s.cameraMode);
   const showGrid = useViewerStore(viewerStore, (s) => s.showGrid);
   const showLaneIds = useViewerStore(viewerStore, (s) => s.showLaneIds);
   const showRoadIds = useViewerStore(viewerStore, (s) => s.showRoadIds);
   const showEntityLabels = useViewerStore(viewerStore, (s) => s.showEntityLabels);
+  const showTrafficSignals = useViewerStore(viewerStore, (s) => s.showTrafficSignals);
   const gizmoMode = useViewerStore(viewerStore, (s) => s.gizmoMode);
   const viewerMode = useViewerStore(viewerStore, (s) => s.viewerMode);
   const snapToLane = useViewerStore(viewerStore, (s) => s.snapToLane);
@@ -98,8 +182,13 @@ function ScenarioViewerScene({
   const followTargetEntity = useViewerStore(viewerStore, (s) => s.followTargetEntity);
   const flySpeed = useViewerStore(viewerStore, (s) => s.flySpeed);
 
+  const resolveOptions = useMemo(
+    () => (resolveCatalogRoute ? { resolveCatalogRoute } : undefined),
+    [resolveCatalogRoute],
+  );
+
   const entities = useScenarioEntities(scenarioStore);
-  const entityPositions = useEntityPositions(scenarioStore, openDriveDocument);
+  const entityPositions = useEntityPositions(scenarioStore, openDriveDocument, resolveOptions);
 
   const isSimulating = currentFrame != null;
   const isEditMode = viewerMode === 'edit';
@@ -184,6 +273,27 @@ function ScenarioViewerScene({
     [viewerStore],
   );
 
+  // React to external focus request (from panel double-click)
+  const prevFocusEntityIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (focusEntityId && focusEntityId !== prevFocusEntityIdRef.current) {
+      handleEntityFocus(focusEntityId);
+      prevFocusEntityIdRef.current = focusEntityId;
+    }
+    if (!focusEntityId) {
+      prevFocusEntityIdRef.current = null;
+    }
+  }, [focusEntityId, handleEntityFocus]);
+
+  // React to focusWorldPosition from viewer store (minimap click)
+  const focusWorldPosition = useViewerStore(viewerStore, (s) => s.focusWorldPosition);
+  useEffect(() => {
+    if (focusWorldPosition) {
+      setFocusTarget(focusWorldPosition);
+      viewerStore.getState().setFocusWorldPosition(null);
+    }
+  }, [focusWorldPosition, viewerStore]);
+
   // Determine if hover/click should be active
   const hoverActive = isEditMode && (gizmoMode === 'place' || gizmoMode === 'translate');
   const clickActive = isEditMode && gizmoMode === 'place';
@@ -191,7 +301,7 @@ function ScenarioViewerScene({
   return (
     <>
       <SceneEnvironment showGrid={showGrid} />
-      <CameraController ref={cameraRef} mode={cameraMode} focusTarget={focusTarget} flySpeed={flySpeed} />
+      <CameraController ref={cameraRef} mode={cameraMode} focusTarget={focusTarget} flySpeed={flySpeed} cameraStateRef={cameraStateRef} />
 
       <RoadNetwork
         ref={roadGroupRef}
@@ -201,6 +311,17 @@ function ScenarioViewerScene({
         showLaneIds={showLaneIds}
         highlightedLaneRef={highlightedLaneRef}
       />
+
+      {/* Traffic signals from OpenDRIVE */}
+      {showTrafficSignals && (
+        <TrafficSignalGroup
+          openDriveDocument={openDriveDocument}
+          showLabels={showEntityLabels}
+          selectedSignalKey={selectedSignalKey}
+          onSignalSelect={onSignalSelect}
+          currentFrame={currentFrame}
+        />
+      )}
 
       {/* Road click handler for Place mode and hover detection */}
       {isEditMode && (hoverActive || clickActive) && (
@@ -218,12 +339,39 @@ function ScenarioViewerScene({
         />
       )}
 
+      {/* Route overlay (inside rotation group to match OpenDRIVE coords) */}
+      {routeEditActive && routeWaypoints && routeWaypoints.length > 0 && (
+        <group rotation={[-Math.PI / 2, 0, 0]}>
+          <RouteOverlay
+            waypoints={routeWaypoints}
+            pathSegments={routePathSegments ?? []}
+            selectedWaypointIndex={routeSelectedWaypointIndex ?? null}
+            onWaypointClick={onRouteWaypointClick}
+            onWaypointContextMenu={onRouteWaypointContextMenu}
+            onLineClick={onRouteLineClick}
+            openDriveDocument={openDriveDocument}
+            orbitControlsRef={cameraRef.current?.orbitControls}
+            onWaypointDragEnd={onRouteWaypointDragEnd}
+          />
+        </group>
+      )}
+
+      {/* Route click handler for waypoint placement (route edit mode only) */}
+      {routeEditActive && onRouteWaypointAdd && (
+        <RouteClickHandler
+          roadGroupRef={roadGroupRef}
+          openDriveDocument={openDriveDocument}
+          onWaypointAdd={onRouteWaypointAdd}
+        />
+      )}
+
       {/* Show init positions when not simulating */}
       {!showSimulation && (
         <EntityGroup
           entities={entities}
           entityPositions={entityPositions}
           selectedEntityId={selectedEntityId}
+          hoveredEntityName={hoveredEntityName}
           onEntitySelect={onEntitySelect}
           onEntityFocus={handleEntityFocus}
           showLabels={showEntityLabels}
@@ -233,6 +381,7 @@ function ScenarioViewerScene({
           openDriveDocument={openDriveDocument}
           snapToLane={snapToLane}
           selectedEntityRoadPosition={selectedEntityRoadPosition}
+          routeOpacity={routeEditActive ? 0.3 : undefined}
         />
       )}
 
@@ -277,6 +426,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   scenarioStore,
   openDriveDocument,
   selectedEntityId = null,
+  hoveredEntityName,
   onEntitySelect,
   onEntityFocus,
   onEntityPositionChange,
@@ -286,12 +436,33 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   onViewerModeChange,
   className,
   style,
+  focusEntityId,
+  routeEditActive,
+  routeWaypoints,
+  routePathSegments,
+  routeSelectedWaypointIndex,
+  onRouteWaypointClick,
+  onRouteWaypointContextMenu,
+  onRouteLineClick,
+  onRouteWaypointAdd,
+  onRouteWaypointDragEnd,
+  onRouteEditSave,
+  onRouteEditCancel,
+  routeWarnings,
+  routeWaypointCount,
+  resolveCatalogRoute,
+  selectedSignalKey,
+  onSignalSelect,
+  showPerf,
 }) => {
   const viewerStoreRef = useRef<ReturnType<typeof createViewerStore> | null>(null);
   if (!viewerStoreRef.current) {
     viewerStoreRef.current = createViewerStore(preferences);
   }
   const viewerStore = viewerStoreRef.current;
+
+  // Camera state ref for minimap (written each frame by CameraController)
+  const cameraStateRef = useRef({ position: new Vector3(), target: new Vector3() });
 
   // Auto-switch to play mode when simulation starts
   useEffect(() => {
@@ -318,6 +489,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   const showEntityLabels = useViewerStore(viewerStore, (s) => s.showEntityLabels);
   const showRoadIds = useViewerStore(viewerStore, (s) => s.showRoadIds);
   const showLaneIds = useViewerStore(viewerStore, (s) => s.showLaneIds);
+  const showTrafficSignals = useViewerStore(viewerStore, (s) => s.showTrafficSignals);
   const gizmoMode = useViewerStore(viewerStore, (s) => s.gizmoMode);
   const reverseDirection = useViewerStore(viewerStore, (s) => s.reverseDirection);
   const snapToLane = useViewerStore(viewerStore, (s) => s.snapToLane);
@@ -326,6 +498,21 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   const flySpeed = useViewerStore(viewerStore, (s) => s.flySpeed);
 
   const hoverLaneInfo = useViewerStore(viewerStore, (s) => s.hoverLaneInfo);
+  const showMinimap = useViewerStore(viewerStore, (s) => s.showMinimap);
+  const minimapSize = useViewerStore(viewerStore, (s) => s.minimapSize);
+
+  // Entity positions for minimap
+  const entityPositions = useEntityPositions(scenarioStore, openDriveDocument);
+
+  // Minimap click handler
+  const handleMinimapClick = useCallback(
+    (worldX: number, worldY: number) => {
+      // worldX, worldY are in OpenDRIVE coords
+      // Convert to Three.js coords: (x, 0, -y)
+      viewerStore.getState().setFocusWorldPosition([worldX, 0, -worldY]);
+    },
+    [viewerStore],
+  );
 
   // Notify parent of viewer mode changes
   useEffect(() => {
@@ -364,6 +551,8 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
         onToggleRoadIds={() => viewerStore.getState().toggleRoadIds()}
         showLaneIds={showLaneIds}
         onToggleLaneIds={() => viewerStore.getState().toggleLaneIds()}
+        showTrafficSignals={showTrafficSignals}
+        onToggleTrafficSignals={() => viewerStore.getState().toggleTrafficSignals()}
         gizmoMode={gizmoMode}
         onGizmoModeChange={(m) => viewerStore.getState().setGizmoMode(m)}
         reverseDirection={reverseDirection}
@@ -373,6 +562,10 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
         followTargetEntity={followTargetEntity}
         onFollowTargetChange={(name) => viewerStore.getState().setFollowTarget(name)}
         entities={entities}
+        showMinimap={showMinimap}
+        onToggleMinimap={() => viewerStore.getState().toggleMinimap()}
+        minimapSize={minimapSize}
+        onCycleMinimapSize={() => viewerStore.getState().cycleMinimapSize()}
       />
 
       {/* Placement overlay (shown in Place mode with hover info) */}
@@ -392,21 +585,61 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           step={0.1}
           value={flySpeed}
           onChange={(e) => viewerStore.getState().setFlySpeed(Number(e.target.value))}
-          style={{ width: 80, cursor: 'pointer' }}
+          className="cursor-pointer"
+          style={{ width: 80 }}
         />
         <span style={{ minWidth: 30, textAlign: 'right' }}>{flySpeed.toFixed(1)}x</span>
       </div>
 
-      <ViewerCanvas>
+      {/* Route edit overlay (bottom-center, shown during route editing) */}
+      {routeEditActive && onRouteEditSave && onRouteEditCancel && (
+        <RouteEditOverlay
+          waypointCount={routeWaypointCount ?? 0}
+          warnings={routeWarnings ?? []}
+          onSave={onRouteEditSave}
+          onCancel={onRouteEditCancel}
+        />
+      )}
+
+      {/* Minimap overlay (bottom-right) */}
+      {showMinimap && (
+        <Minimap
+          openDriveDocument={openDriveDocument}
+          entityPositions={entityPositions}
+          entities={entities}
+          selectedEntityId={selectedEntityId ?? null}
+          cameraStateRef={cameraStateRef}
+          size={minimapSize}
+          onClickPosition={handleMinimapClick}
+          currentFrame={currentFrameProp}
+        />
+      )}
+
+      <ViewerCanvas showPerf={showPerf}>
         <ScenarioViewerScene
           scenarioStore={scenarioStore}
           openDriveDocument={openDriveDocument}
           selectedEntityId={selectedEntityId ?? null}
+          hoveredEntityName={hoveredEntityName}
           onEntitySelect={handleEntitySelect}
           onEntityFocus={handleEntityFocus}
           onEntityPositionChange={onEntityPositionChange}
           currentFrame={currentFrameProp}
           viewerStore={viewerStore}
+          focusEntityId={focusEntityId}
+          cameraStateRef={cameraStateRef}
+          routeEditActive={routeEditActive}
+          routeWaypoints={routeWaypoints}
+          routePathSegments={routePathSegments}
+          routeSelectedWaypointIndex={routeSelectedWaypointIndex}
+          onRouteWaypointClick={onRouteWaypointClick}
+          onRouteWaypointContextMenu={onRouteWaypointContextMenu}
+          onRouteLineClick={onRouteLineClick}
+          onRouteWaypointAdd={onRouteWaypointAdd}
+          onRouteWaypointDragEnd={onRouteWaypointDragEnd}
+          resolveCatalogRoute={resolveCatalogRoute}
+          selectedSignalKey={selectedSignalKey}
+          onSignalSelect={onSignalSelect}
         />
       </ViewerCanvas>
     </div>

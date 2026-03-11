@@ -7,6 +7,7 @@ import type { SimulationFrame } from '@osce/shared';
 export type CameraMode = 'orbit' | 'topDown';
 export type ViewerMode = 'edit' | 'play';
 export type GizmoMode = 'translate' | 'rotate' | 'place' | 'off';
+export type MinimapSize = 'small' | 'medium' | 'large';
 
 export interface PlaybackState {
   status: 'idle' | 'playing' | 'paused';
@@ -32,6 +33,7 @@ export interface ViewerState {
   showLaneIds: boolean;
   showRoadIds: boolean;
   showEntityLabels: boolean;
+  showTrafficSignals: boolean;
   playback: PlaybackState;
 
   /** Top-level viewer interaction mode (edit = full editing, play = view-only) */
@@ -53,6 +55,14 @@ export interface ViewerState {
 
   /** Fly controls speed multiplier (1.0 = default, range 0.1–5.0) */
   flySpeed: number;
+
+  /** Minimap visibility */
+  showMinimap: boolean;
+  /** Minimap size preset */
+  minimapSize: MinimapSize;
+
+  /** World position to focus camera on (from minimap click). Consumed once and reset to null. */
+  focusWorldPosition: [number, number, number] | null;
 }
 
 export interface ViewerActions {
@@ -62,6 +72,7 @@ export interface ViewerActions {
   toggleLaneIds: () => void;
   toggleRoadIds: () => void;
   toggleEntityLabels: () => void;
+  toggleTrafficSignals: () => void;
   setPlaybackFrames: (frames: SimulationFrame[]) => void;
   setPlaybackStatus: (status: PlaybackState['status']) => void;
   setPlaybackTime: (time: number) => void;
@@ -74,6 +85,10 @@ export interface ViewerActions {
 
   setFollowTarget: (entityName: string | null) => void;
   setFlySpeed: (speed: number) => void;
+
+  toggleMinimap: () => void;
+  cycleMinimapSize: () => void;
+  setFocusWorldPosition: (pos: [number, number, number] | null) => void;
 }
 
 export type ViewerStore = ViewerState & ViewerActions;

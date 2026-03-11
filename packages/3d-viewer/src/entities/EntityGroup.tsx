@@ -5,8 +5,9 @@
  * For road-coordinate translate mode, uses RoadGizmo instead of TransformControls.
  */
 
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import type * as THREE from 'three';
+import { Mesh, MeshStandardMaterial, MeshBasicMaterial } from 'three';
 import type { ScenarioEntity, OpenDriveDocument } from '@osce/shared';
 import type { WorldCoords } from '../utils/position-resolver.js';
 import type { GizmoMode } from '../store/viewer-types.js';
@@ -20,6 +21,8 @@ interface EntityGroupProps {
   entities: ScenarioEntity[];
   entityPositions: Map<string, WorldCoords>;
   selectedEntityId: string | null;
+  /** Entity name to highlight on hover (from composer card) */
+  hoveredEntityName?: string | null;
   onEntitySelect: (entityId: string) => void;
   onEntityFocus?: (entityId: string) => void;
   showLabels: boolean;
@@ -32,6 +35,8 @@ interface EntityGroupProps {
   snapToLane?: boolean;
   /** Current road position of the selected entity (for road-coordinate gizmo) */
   selectedEntityRoadPosition?: { roadId: string; laneId: number; s: number } | null;
+  /** Opacity override for entities (used during route editing to fade entities) */
+  routeOpacity?: number;
 }
 
 function isEgoEntity(entity: ScenarioEntity, index: number): boolean {
@@ -132,6 +137,7 @@ export const EntityGroup: React.FC<EntityGroupProps> = React.memo(
     entities,
     entityPositions,
     selectedEntityId,
+    hoveredEntityName,
     onEntitySelect,
     onEntityFocus,
     showLabels,
@@ -141,7 +147,9 @@ export const EntityGroup: React.FC<EntityGroupProps> = React.memo(
     openDriveDocument,
     snapToLane,
     selectedEntityRoadPosition,
+    routeOpacity,
   }) => {
+    const entityGroupRef = useRef<THREE.Group>(null);
     const selectedGroupRef = useRef<THREE.Group>(null);
     const [selectedGroup, setSelectedGroup] = useState<THREE.Group | null>(null);
 
@@ -160,6 +168,24 @@ export const EntityGroup: React.FC<EntityGroupProps> = React.memo(
       [selectedEntity, onEntityPositionChange],
     );
 
+    // Apply opacity override to all entity meshes when routeOpacity is set
+    useEffect(() => {
+      const group = entityGroupRef.current;
+      if (!group) return;
+
+      const applyOpacity = routeOpacity != null && routeOpacity < 1;
+      group.traverse((child) => {
+        if (child instanceof Mesh) {
+          const mat = child.material;
+          if (mat instanceof MeshStandardMaterial || mat instanceof MeshBasicMaterial) {
+            mat.transparent = applyOpacity ? true : mat.transparent;
+            mat.opacity = applyOpacity ? routeOpacity : 1;
+            mat.needsUpdate = true;
+          }
+        }
+      });
+    }, [routeOpacity, entities, entityPositions]);
+
     // Determine if road-coordinate gizmo should be used
     const useRoadGizmo =
       gizmoMode === 'translate' &&
@@ -173,12 +199,13 @@ export const EntityGroup: React.FC<EntityGroupProps> = React.memo(
 
     return (
       <>
-        <group rotation={[-Math.PI / 2, 0, 0]}>
+        <group ref={entityGroupRef} rotation={[-Math.PI / 2, 0, 0]}>
           {entities.map((entity, idx) => {
             const position = entityPositions.get(entity.name);
             if (!position) return null;
 
             const isSelected = entity.id === selectedEntityId;
+            const isHovered = !isSelected && entity.name === hoveredEntityName;
             const isEgo = isEgoEntity(entity, idx);
 
             if (isSelected && (gizmoMode === 'translate' || gizmoMode === 'rotate')) {
@@ -214,6 +241,7 @@ export const EntityGroup: React.FC<EntityGroupProps> = React.memo(
               entity,
               position,
               isSelected,
+              isHovered,
               showLabel: showLabels,
               onClick: () => onEntitySelect(entity.id),
               onDoubleClick: () => onEntityFocus?.(entity.id),

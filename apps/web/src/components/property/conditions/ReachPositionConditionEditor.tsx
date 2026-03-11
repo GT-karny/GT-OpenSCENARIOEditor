@@ -1,20 +1,19 @@
 import type { Condition, ByEntityCondition, ReachPositionCondition } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 import { PositionEditor } from '../PositionEditor';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 interface ReachPositionConditionEditorProps {
   condition: Condition;
+  onUpdate: (conditionId: string, partial: Partial<Condition>) => void;
 }
 
-export function ReachPositionConditionEditor({ condition }: ReachPositionConditionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function ReachPositionConditionEditor({ condition, onUpdate }: ReachPositionConditionEditorProps) {
   const inner = condition.condition as ByEntityCondition;
   const cond = inner.entityCondition as ReachPositionCondition;
 
   const update = (updates: Partial<ReachPositionCondition>) => {
-    storeApi.getState().updateCondition(condition.id, {
+    onUpdate(condition.id, {
       condition: { ...inner, entityCondition: { ...cond, ...updates } },
     } as Partial<Condition>);
   };
@@ -24,12 +23,14 @@ export function ReachPositionConditionEditor({ condition }: ReachPositionConditi
       <div className="space-y-2">
         <p className="text-xs font-medium text-muted-foreground">Reach Position</p>
         <div className="grid gap-1">
-          <Label className="text-xs">Tolerance (m)</Label>
-          <Input
-            type="number"
+          <Label className="text-[10px]">Tolerance (m)</Label>
+          <ParameterAwareInput
+            elementId={condition.id}
+            fieldName="tolerance"
             value={cond.tolerance}
-            onChange={(e) => update({ tolerance: parseFloat(e.target.value) || 0 })}
-            className="h-8 text-sm"
+            onValueChange={(v) => update({ tolerance: parseFloat(v) || 0 })}
+            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
+            className="h-7 text-xs"
           />
         </div>
       </div>

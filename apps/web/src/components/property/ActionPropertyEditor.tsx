@@ -1,12 +1,15 @@
+import { useMemo } from 'react';
 import type { ScenarioAction } from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
+import { Car, Globe, Lock, Wrench } from 'lucide-react';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
-import { EnumSelect } from './EnumSelect';
-import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { defaultActionByType } from '@osce/scenario-engine';
 import {
   PRIVATE_ACTION_TYPES,
   GLOBAL_ACTION_TYPES,
+  PRIVATE_ACTION_SUBCATEGORIES,
+  GLOBAL_ACTION_ORDER,
 } from '../../constants/osc-enum-values';
 import { SpeedActionEditor } from './actions/SpeedActionEditor';
 import { LaneChangeActionEditor } from './actions/LaneChangeActionEditor';
@@ -27,7 +30,10 @@ import { OverrideControllerActionEditor } from './actions/OverrideControllerActi
 import { EntityActionEditor } from './actions/EntityActionEditor';
 import { EnvironmentActionEditor } from './actions/EnvironmentActionEditor';
 import { TrafficActionEditor } from './actions/TrafficActionEditor';
+import { InfrastructureActionEditor } from './actions/InfrastructureActionEditor';
 import { GenericActionEditor } from './actions/GenericActionEditor';
+import { useFeatureGate } from '../../hooks/use-feature-gate';
+import { cn } from '@/lib/utils';
 
 type ActionCategory = 'private' | 'global' | 'userDefined';
 
@@ -37,10 +43,20 @@ function detectCategory(type: string): ActionCategory {
   return 'userDefined';
 }
 
-const POSITION_BASED_TYPES = [
-  'teleportAction',
-  'synchronizeAction',
+function detectSubcategory(type: string): string {
+  for (const sub of PRIVATE_ACTION_SUBCATEGORIES) {
+    if ((sub.types as readonly string[]).includes(type)) return sub.key;
+  }
+  return PRIVATE_ACTION_SUBCATEGORIES[0].key;
+}
+
+const CATEGORY_SEGMENTS = [
+  { key: 'private' as const, icon: Car },
+  { key: 'global' as const, icon: Globe },
+  { key: 'userDefined' as const, icon: Wrench },
 ] as const;
+
+const POSITION_BASED_TYPES = ['teleportAction', 'synchronizeAction'] as const;
 
 const PHASE5_TYPES = [
   'visibilityAction',
@@ -52,38 +68,56 @@ const PHASE5_TYPES = [
   'entityAction',
   'environmentAction',
   'trafficAction',
+  'infrastructureAction',
 ] as const;
 
 interface ActionPropertyEditorProps {
   action: ScenarioAction;
+  onUpdate: (actionId: string, partial: Partial<ScenarioAction>) => void;
 }
 
-export function ActionPropertyEditor({ action }: ActionPropertyEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function ActionPropertyEditor({ action, onUpdate }: ActionPropertyEditorProps) {
+  const { t } = useTranslation('openscenario');
+  const { checkAction } = useFeatureGate();
   const actionType = action.action.type;
   const category = detectCategory(actionType);
+  const subcategory = category === 'private' ? detectSubcategory(actionType) : null;
 
-  const typeOptions =
-    category === 'private'
-      ? [...PRIVATE_ACTION_TYPES]
-      : category === 'global'
-        ? [...GLOBAL_ACTION_TYPES]
-        : ['userDefinedAction'];
+  const typeList = useMemo(() => {
+    if (category === 'private' && subcategory) {
+      const sub = PRIVATE_ACTION_SUBCATEGORIES.find((s) => s.key === subcategory);
+      return sub ? [...sub.types] : [];
+    }
+    if (category === 'global') return [...GLOBAL_ACTION_ORDER];
+    return ['userDefinedAction'];
+  }, [category, subcategory]);
 
-  const handleCategoryChange = (newCategory: string) => {
+  const handleCategoryChange = (newCategory: ActionCategory) => {
+    if (newCategory === category) return;
     const firstType =
       newCategory === 'private'
-        ? PRIVATE_ACTION_TYPES[0]
+        ? PRIVATE_ACTION_SUBCATEGORIES[0].types[0]
         : newCategory === 'global'
-          ? GLOBAL_ACTION_TYPES[0]
+          ? GLOBAL_ACTION_ORDER[0]
           : 'userDefinedAction';
-    storeApi.getState().updateAction(action.id, {
+    onUpdate(action.id, {
       action: defaultActionByType(firstType),
     } as Partial<ScenarioAction>);
   };
 
+  const handleSubcategoryChange = (newSubKey: string) => {
+    if (newSubKey === subcategory) return;
+    const sub = PRIVATE_ACTION_SUBCATEGORIES.find((s) => s.key === newSubKey);
+    if (sub) {
+      onUpdate(action.id, {
+        action: defaultActionByType(sub.types[0]),
+      } as Partial<ScenarioAction>);
+    }
+  };
+
   const handleTypeChange = (newType: string) => {
-    storeApi.getState().updateAction(action.id, {
+    if (newType === actionType) return;
+    onUpdate(action.id, {
       action: defaultActionByType(newType),
     } as Partial<ScenarioAction>);
   };
@@ -92,7 +126,9 @@ export function ActionPropertyEditor({ action }: ActionPropertyEditorProps) {
     <div className="space-y-4">
       <div className="pb-2 border-b">
         <p className="text-sm font-medium">{action.name}</p>
-        <p className="text-xs text-muted-foreground">{actionType}</p>
+        <p className="text-xs text-muted-foreground">
+          {t(`actionTypes.${actionType}` as never)}
+        </p>
       </div>
 
       <div className="grid gap-2">
@@ -100,48 +136,169 @@ export function ActionPropertyEditor({ action }: ActionPropertyEditorProps) {
         <Input value={action.name} readOnly className="h-8 text-sm bg-muted" />
       </div>
 
-      <div className="grid gap-2">
+      {/* Category — Segmented Control */}
+      <div className="grid gap-1.5">
         <Label className="text-xs">Category</Label>
-        <EnumSelect
-          value={category}
-          options={['private', 'global', 'userDefined']}
-          onValueChange={handleCategoryChange}
-          className="h-8 text-sm"
-        />
+        <div className="flex gap-0.5 p-0.5 bg-muted">
+          {CATEGORY_SEGMENTS.map(({ key, icon: Icon }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => handleCategoryChange(key)}
+              className={cn(
+                'flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium transition-all',
+                category === key
+                  ? 'glass-item selected'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-[var(--color-glass-hover)]',
+              )}
+            >
+              <Icon className="size-3.5" />
+              {t(`actionCategories.${key}` as never)}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="grid gap-2">
-        <Label className="text-xs">Type</Label>
-        <EnumSelect
-          value={actionType}
-          options={typeOptions}
-          onValueChange={handleTypeChange}
-          className="h-8 text-sm"
-        />
-      </div>
+      {/* Subcategory Tabs — Private only */}
+      {category === 'private' && (
+        <div className="grid gap-1.5">
+          <Label className="text-xs">Subcategory</Label>
+          <div className="flex flex-wrap gap-0.5">
+            {PRIVATE_ACTION_SUBCATEGORIES.map((sub) => (
+              <button
+                key={sub.key}
+                type="button"
+                onClick={() => handleSubcategoryChange(sub.key)}
+                className={cn(
+                  'px-2 py-1 text-xs transition-all',
+                  subcategory === sub.key
+                    ? 'glass-item selected'
+                    : 'text-muted-foreground hover:text-foreground border border-transparent hover:border-[var(--color-glass-edge-mid)]',
+                )}
+              >
+                {t(`actionSubcategories.${sub.key}` as never)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
+      {/* Type list */}
+      {category !== 'userDefined' && (
+        <div className="grid gap-1.5">
+          <Label className="text-xs">Type</Label>
+          <div className="mx-4 flex flex-col divide-y divide-border border border-border bg-[var(--color-glass-1)] shadow-[inset_0_2px_6px_rgba(0,0,0,0.4)]">
+            {typeList.map((type) => {
+              const gate = checkAction(type);
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => gate.allowed && handleTypeChange(type)}
+                  disabled={!gate.allowed}
+                  title={
+                    gate.allowed
+                      ? undefined
+                      : gate.reason
+                  }
+                  className={cn(
+                    'px-3 py-1.5 text-left text-xs transition-all flex items-center justify-between',
+                    actionType === type
+                      ? 'glass-item selected font-medium'
+                      : gate.allowed
+                        ? 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                        : 'text-muted-foreground/40 cursor-not-allowed',
+                  )}
+                >
+                  <span>{t(`actionTypes.${type}` as never)}</span>
+                  {!gate.allowed && <Lock className="size-3 text-muted-foreground/40" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Type-specific editor */}
       <div className="pt-1 border-t">
-        {actionType === 'speedAction' && <SpeedActionEditor action={action} />}
-        {actionType === 'laneChangeAction' && <LaneChangeActionEditor action={action} />}
-        {actionType === 'longitudinalDistanceAction' && <LongitudinalDistanceActionEditor action={action} />}
-        {actionType === 'laneOffsetAction' && <LaneOffsetActionEditor action={action} />}
-        {actionType === 'acquirePositionAction' && <AcquirePositionActionEditor action={action} />}
-        {actionType === 'activateControllerAction' && <ActivateControllerActionEditor action={action} />}
-        {actionType === 'assignControllerAction' && <AssignControllerActionEditor action={action} />}
-        {actionType === 'followTrajectoryAction' && <FollowTrajectoryActionEditor action={action} />}
-        {actionType === 'routingAction' && <RoutingActionEditor action={action} />}
-        {(POSITION_BASED_TYPES as readonly string[]).includes(actionType) && (
-          <TeleportActionEditor action={action} />
+        {actionType === 'speedAction' && (
+          <SpeedActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
         )}
-        {actionType === 'visibilityAction' && <VisibilityActionEditor action={action} />}
-        {actionType === 'connectTrailerAction' && <ConnectTrailerActionEditor action={action} />}
-        {actionType === 'disconnectTrailerAction' && <DisconnectTrailerActionEditor action={action} />}
-        {actionType === 'animationAction' && <AnimationActionEditor action={action} />}
-        {actionType === 'lightStateAction' && <LightStateActionEditor action={action} />}
-        {actionType === 'overrideControllerAction' && <OverrideControllerActionEditor action={action} />}
-        {actionType === 'entityAction' && <EntityActionEditor action={action} />}
-        {actionType === 'environmentAction' && <EnvironmentActionEditor action={action} />}
-        {actionType === 'trafficAction' && <TrafficActionEditor action={action} />}
+        {actionType === 'laneChangeAction' && (
+          <LaneChangeActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
+        )}
+        {actionType === 'longitudinalDistanceAction' && (
+          <LongitudinalDistanceActionEditor
+            action={action}
+            onUpdate={(p) => onUpdate(action.id, p)}
+          />
+        )}
+        {actionType === 'laneOffsetAction' && (
+          <LaneOffsetActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
+        )}
+        {actionType === 'acquirePositionAction' && (
+          <AcquirePositionActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
+        )}
+        {actionType === 'activateControllerAction' && (
+          <ActivateControllerActionEditor
+            action={action}
+            onUpdate={(p) => onUpdate(action.id, p)}
+          />
+        )}
+        {actionType === 'assignControllerAction' && (
+          <AssignControllerActionEditor
+            action={action}
+            onUpdate={(p) => onUpdate(action.id, p)}
+          />
+        )}
+        {actionType === 'followTrajectoryAction' && (
+          <FollowTrajectoryActionEditor
+            action={action}
+            onUpdate={(p) => onUpdate(action.id, p)}
+          />
+        )}
+        {actionType === 'routingAction' && (
+          <RoutingActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
+        )}
+        {(POSITION_BASED_TYPES as readonly string[]).includes(actionType) && (
+          <TeleportActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
+        )}
+        {actionType === 'visibilityAction' && (
+          <VisibilityActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
+        )}
+        {actionType === 'connectTrailerAction' && (
+          <ConnectTrailerActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
+        )}
+        {actionType === 'disconnectTrailerAction' && (
+          <DisconnectTrailerActionEditor
+            action={action}
+            onUpdate={(p) => onUpdate(action.id, p)}
+          />
+        )}
+        {actionType === 'animationAction' && (
+          <AnimationActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
+        )}
+        {actionType === 'lightStateAction' && (
+          <LightStateActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
+        )}
+        {actionType === 'overrideControllerAction' && (
+          <OverrideControllerActionEditor
+            action={action}
+            onUpdate={(p) => onUpdate(action.id, p)}
+          />
+        )}
+        {actionType === 'entityAction' && (
+          <EntityActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
+        )}
+        {actionType === 'environmentAction' && (
+          <EnvironmentActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
+        )}
+        {actionType === 'trafficAction' && (
+          <TrafficActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
+        )}
+        {actionType === 'infrastructureAction' && (
+          <InfrastructureActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
+        )}
         {actionType !== 'speedAction' &&
           actionType !== 'laneChangeAction' &&
           actionType !== 'longitudinalDistanceAction' &&
@@ -153,7 +310,7 @@ export function ActionPropertyEditor({ action }: ActionPropertyEditorProps) {
           actionType !== 'routingAction' &&
           !(POSITION_BASED_TYPES as readonly string[]).includes(actionType) &&
           !(PHASE5_TYPES as readonly string[]).includes(actionType) && (
-            <GenericActionEditor action={action} />
+            <GenericActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
           )}
       </div>
     </div>

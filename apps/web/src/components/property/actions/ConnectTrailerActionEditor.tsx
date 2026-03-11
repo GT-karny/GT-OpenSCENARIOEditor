@@ -1,18 +1,17 @@
 import type { ScenarioAction, ConnectTrailerAction } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
+import { EntityRefSelect } from '../EntityRefSelect';
 
 interface ConnectTrailerActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
-export function ConnectTrailerActionEditor({ action }: ConnectTrailerActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function ConnectTrailerActionEditor({ action, onUpdate }: ConnectTrailerActionEditorProps) {
   const inner = action.action as ConnectTrailerAction;
 
   const updateInner = (updates: Partial<ConnectTrailerAction>) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate({
       action: { ...inner, ...updates },
     } as Partial<ScenarioAction>);
   };
@@ -21,11 +20,9 @@ export function ConnectTrailerActionEditor({ action }: ConnectTrailerActionEdito
     <div className="space-y-3">
       <div className="grid gap-1">
         <Label className="text-xs">Trailer Entity Ref</Label>
-        <Input
+        <EntityRefSelect
           value={inner.trailerRef}
-          placeholder="trailer entity name"
-          onChange={(e) => updateInner({ trailerRef: e.target.value })}
-          className="h-8 text-sm"
+          onValueChange={(v) => updateInner({ trailerRef: v })}
         />
       </div>
     </div>

@@ -43,7 +43,7 @@ export function createDefaultDocument(): ScenarioDocument {
 export function createDefaultFileHeader(): FileHeader {
   return {
     revMajor: 1,
-    revMinor: 2,
+    revMinor: 3,
     date: new Date().toISOString().split('T')[0],
     description: '',
     author: '',

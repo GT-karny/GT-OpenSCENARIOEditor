@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <defs>
+    <filter id="g" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="b"/>
+      <feFlood flood-color="#D0C6F2" flood-opacity="0.6" result="c"/>
+      <feComposite in="c" in2="b" operator="in" result="s"/>
+      <feMerge><feMergeNode in="s"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- Top line -->
+  <line x1="16" y1="2" x2="16" y2="13"
+    stroke="white" stroke-width="1.5" opacity="0.85" filter="url(#g)"/>
+  <!-- Bottom line -->
+  <line x1="16" y1="19" x2="16" y2="30"
+    stroke="white" stroke-width="1.5" opacity="0.85" filter="url(#g)"/>
+  <!-- Left line -->
+  <line x1="2" y1="16" x2="13" y2="16"
+    stroke="white" stroke-width="1.5" opacity="0.85" filter="url(#g)"/>
+  <!-- Right line -->
+  <line x1="19" y1="16" x2="30" y2="16"
+    stroke="white" stroke-width="1.5" opacity="0.85" filter="url(#g)"/>
+  <!-- Center dot -->
+  <rect x="14.5" y="14.5" width="3" height="3"
+    fill="#D0C6F2" opacity="0.9"/>
+</svg>

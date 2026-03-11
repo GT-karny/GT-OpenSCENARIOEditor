@@ -191,17 +191,29 @@ export function useProjectFileOperations() {
       const catalogFiles = project.files.filter(
         (f) => f.type === 'xosc' && isCatalogPath(f.relativePath),
       );
+      console.warn(
+        '[autoLoadProjectCatalogs] Found catalog files:',
+        catalogFiles.map((f) => f.relativePath),
+      );
       if (catalogFiles.length === 0) return;
 
       const results = await Promise.allSettled(
         catalogFiles.map(async (f) => {
           const content = await api.readProjectFile(project.meta.id, f.relativePath);
-          useCatalogStore.getState().loadCatalog(content, f.relativePath);
+          const doc = useCatalogStore.getState().loadCatalog(content, f.relativePath);
+          console.warn(
+            `[autoLoadProjectCatalogs] Loaded catalog "${doc.catalogName}" from ${f.relativePath}`,
+          );
         }),
       );
 
       for (let i = 0; i < results.length; i++) {
-        if (results[i].status === 'rejected') {
+        const r = results[i];
+        if (r.status === 'rejected') {
+          console.error(
+            `[autoLoadProjectCatalogs] Failed to load ${catalogFiles[i].relativePath}:`,
+            r.reason,
+          );
           toast.warning(t('warnings.catalogLoadFailed', { path: catalogFiles[i].relativePath }));
         }
       }

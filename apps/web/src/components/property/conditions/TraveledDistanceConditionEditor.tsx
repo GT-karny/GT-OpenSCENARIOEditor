@@ -1,19 +1,18 @@
 import type { Condition, ByEntityCondition, TraveledDistanceCondition } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 interface TraveledDistanceConditionEditorProps {
   condition: Condition;
+  onUpdate: (conditionId: string, partial: Partial<Condition>) => void;
 }
 
-export function TraveledDistanceConditionEditor({ condition }: TraveledDistanceConditionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function TraveledDistanceConditionEditor({ condition, onUpdate }: TraveledDistanceConditionEditorProps) {
   const inner = condition.condition as ByEntityCondition;
   const cond = inner.entityCondition as TraveledDistanceCondition;
 
   const update = (updates: Partial<TraveledDistanceCondition>) => {
-    storeApi.getState().updateCondition(condition.id, {
+    onUpdate(condition.id, {
       condition: { ...inner, entityCondition: { ...cond, ...updates } },
     } as Partial<Condition>);
   };
@@ -23,14 +22,14 @@ export function TraveledDistanceConditionEditor({ condition }: TraveledDistanceC
       <div className="space-y-2">
         <p className="text-xs font-medium text-muted-foreground">Traveled Distance</p>
         <div className="grid gap-1">
-          <Label className="text-xs">Value (m)</Label>
+          <Label className="text-[10px]">Value (m)</Label>
           <ParameterAwareInput
             elementId={condition.id}
             fieldName="value"
             value={cond.value}
             onValueChange={(v) => update({ value: parseFloat(v) || 0 })}
             acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
-            className="h-8 text-sm"
+            className="h-7 text-xs"
           />
         </div>
       </div>

@@ -1,13 +1,17 @@
+import { useState, useCallback } from 'react';
 import type { ScenarioEntity } from '@osce/shared';
-import { Trash2 } from 'lucide-react';
+import { GripVertical, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { EntityIcon } from './EntityIcon';
 import { cn } from '@/lib/utils';
+
+export const ENTITY_DND_TYPE = 'application/osce-entity-ref';
 
 interface EntityListItemProps {
   entity: ScenarioEntity;
   selected: boolean;
   onSelect: () => void;
+  onDoubleClick?: () => void;
   onDelete: () => void;
 }
 
@@ -26,16 +30,35 @@ function getEntityCategory(entity: ScenarioEntity): string | undefined {
   }
 }
 
-export function EntityListItem({ entity, selected, onSelect, onDelete }: EntityListItemProps) {
+export function EntityListItem({ entity, selected, onSelect, onDoubleClick, onDelete }: EntityListItemProps) {
   const category = getEntityCategory(entity);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDragStart = useCallback(
+    (e: React.DragEvent) => {
+      e.dataTransfer.setData(ENTITY_DND_TYPE, entity.name);
+      e.dataTransfer.effectAllowed = 'copy';
+      setIsDragging(true);
+    },
+    [entity.name],
+  );
+
+  const handleDragEnd = useCallback(() => {
+    setIsDragging(false);
+  }, []);
 
   return (
     <div
       className={cn(
         'glass-item flex items-center gap-3 mx-3 my-1 px-3 py-3 cursor-pointer group',
         selected && 'selected',
+        isDragging && 'opacity-50',
       )}
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
       onClick={onSelect}
+      onDoubleClick={onDoubleClick}
     >
       {/* Selected indicator — left accent bar */}
       {selected && (
@@ -47,6 +70,7 @@ export function EntityListItem({ entity, selected, onSelect, onDelete }: EntityL
           }}
         />
       )}
+      <GripVertical className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-50 cursor-grab" />
       <EntityIcon type={entity.type} className="h-4 w-4 shrink-0 text-muted-foreground" />
       <div className="flex-1 min-w-0">
         <p className="text-[12px] font-medium truncate">{entity.name}</p>

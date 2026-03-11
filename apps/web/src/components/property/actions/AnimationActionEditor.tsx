@@ -1,21 +1,21 @@
 import type { ScenarioAction, AnimationAction } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 interface AnimationActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
 const ANIMATION_TYPES = ['componentAnimation', 'pedestrianAnimation', 'animationFile', 'userDefinedAnimation'] as const;
 
-export function AnimationActionEditor({ action }: AnimationActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function AnimationActionEditor({ action, onUpdate }: AnimationActionEditorProps) {
   const inner = action.action as AnimationAction;
 
   const updateInner = (updates: Partial<AnimationAction>) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate({
       action: { ...inner, ...updates },
     } as Partial<ScenarioAction>);
   };
@@ -43,19 +43,21 @@ export function AnimationActionEditor({ action }: AnimationActionEditorProps) {
 
       <div className="grid gap-1">
         <Label className="text-xs">Animation Duration (s)</Label>
-        <Input
-          type="number"
+        <ParameterAwareInput
+          elementId={action.id}
+          fieldName="action.duration"
           value={inner.duration ?? ''}
           placeholder="--"
-          onChange={(e) => {
-            const v = parseFloat(e.target.value);
-            if (isNaN(v)) {
+          onValueChange={(v) => {
+            const n = parseFloat(v);
+            if (isNaN(n) || v === '') {
               const { duration: _, ...rest } = inner;
-              storeApi.getState().updateAction(action.id, { action: { ...rest } } as Partial<ScenarioAction>);
+              onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
             } else {
-              updateInner({ duration: v });
+              updateInner({ duration: n });
             }
           }}
+          acceptedTypes={['double']}
           className="h-8 text-sm"
         />
       </div>

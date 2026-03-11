@@ -17,6 +17,7 @@ import type {
   WasmScenarioObjectState,
   WasmStoryBoardEvent,
   WasmConditionEvent,
+  WasmTrafficLightState,
   WasmOpenScenarioConfig,
   WasmRMPositionResult,
 } from './types.js';
@@ -41,6 +42,11 @@ interface EsminiModule {
     getLaneWidth(roadId: number, laneId: number, s: number): number;
     getNumberOfRoads(): number;
     getNumberOfLanes(roadId: number, s: number): number;
+    calculatePath(
+      startRoadId: number, startLaneId: number, startS: number,
+      endRoadId: number, endLaneId: number, endS: number,
+      sampleInterval: number,
+    ): unknown[];
   };
 }
 
@@ -58,6 +64,7 @@ interface EsminiScenario {
   getCurrentState(): EsminiVector<WasmScenarioObjectState>;
   popStoryBoardEvents(): EsminiVector<WasmStoryBoardEvent>;
   popConditionEvents(): EsminiVector<WasmConditionEvent>;
+  getTrafficLightStatesOnly(): WasmTrafficLightState[];
   delete(): void;
 }
 
@@ -161,12 +168,19 @@ function executeStep(dt: number) {
   const condVec = scenario.popConditionEvents();
   const conditionEvents = vectorToArray(condVec);
 
+  // emscripten::val returns a plain JS array — no deep clone needed
+  // Guard: older WASM builds may not have this function
+  const trafficLightStates = typeof scenario.getTrafficLightStatesOnly === 'function'
+    ? (scenario.getTrafficLightStatesOnly() as WasmTrafficLightState[])
+    : [];
+
   post({
     type: 'frame',
     simulationTime,
     objects,
     storyBoardEvents,
     conditionEvents,
+    trafficLightStates,
     isComplete,
   });
 
@@ -283,6 +297,7 @@ function handlePlay(speed: number, fps: number) {
   const frames: Array<{
     simulationTime: number;
     objects: WasmScenarioObjectState[];
+    trafficLightStates: WasmTrafficLightState[];
   }> = [];
   const allStoryBoardEvents: WasmStoryBoardEvent[] = [];
   const allConditionEvents: WasmConditionEvent[] = [];
@@ -295,8 +310,11 @@ function handlePlay(speed: number, fps: number) {
     const objects = vectorToArray(scenario.getCurrentState(), cloneObjectState);
     const storyBoardEvents = vectorToArray(scenario.popStoryBoardEvents());
     const conditionEvents = vectorToArray(scenario.popConditionEvents());
+    const trafficLightStates = typeof scenario.getTrafficLightStatesOnly === 'function'
+      ? (scenario.getTrafficLightStatesOnly() as WasmTrafficLightState[])
+      : [];
 
-    frames.push({ simulationTime, objects });
+    frames.push({ simulationTime, objects, trafficLightStates });
     allStoryBoardEvents.push(...storyBoardEvents);
     allConditionEvents.push(...conditionEvents);
 
@@ -377,6 +395,37 @@ async function handleRmScalar(
   }
 }
 
+async function handleRmPath(
+  requestId: string,
+  startRoadId: number, startLaneId: number, startS: number,
+  endRoadId: number, endLaneId: number, endS: number,
+  sampleInterval: number,
+) {
+  try {
+    const mod = await loadModule();
+    const rawPoints = mod.RoadManagerJS.calculatePath(
+      startRoadId, startLaneId, startS,
+      endRoadId, endLaneId, endS,
+      sampleInterval,
+    );
+    // Convert embind result to plain JS array
+    const points = Array.isArray(rawPoints)
+      ? (rawPoints as Record<string, number>[]).map((p) => ({
+          x: p.x,
+          y: p.y,
+          z: p.z,
+          h: p.h,
+          road_id: p.road_id,
+          lane_id: p.lane_id,
+          s: p.s,
+        }))
+      : [];
+    post({ type: 'rm-path', requestId, points });
+  } catch (err) {
+    post({ type: 'rm-error', requestId, message: err instanceof Error ? err.message : String(err) });
+  }
+}
+
 self.onmessage = (event: MessageEvent<WorkerRequest>) => {
   const msg = event.data;
 
@@ -449,6 +498,14 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
     case 'rm-lane-count':
       handleRmScalar(msg.requestId, (mod) =>
         mod.RoadManagerJS.getNumberOfLanes(msg.roadId, msg.s),
+      );
+      break;
+    case 'rm-calculate-path':
+      handleRmPath(
+        msg.requestId,
+        msg.startRoadId, msg.startLaneId, msg.startS,
+        msg.endRoadId, msg.endLaneId, msg.endS,
+        msg.sampleInterval,
       );
       break;
   }

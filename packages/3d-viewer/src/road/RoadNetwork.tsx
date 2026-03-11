@@ -15,6 +15,7 @@ import type { JunctionSurfaceData } from '@osce/opendrive';
 import { RoadMesh } from './RoadMesh.js';
 import { RoadLabels } from './RoadLabels.js';
 import { JunctionMesh } from './JunctionMesh.js';
+import { LaneHighlightManager } from './LaneHighlightManager.js';
 
 interface RoadNetworkProps {
   odrDocument: OpenDriveDocument | null;
@@ -66,7 +67,6 @@ export const RoadNetwork = forwardRef<THREE.Group, RoadNetworkProps>(
             road={road}
             roadMeshData={meshData}
             showRoadMarks={showRoadMarks}
-            highlightedLaneRef={highlightedLaneRef}
           />
         ))}
         {/* Junction surface fills (rendered behind roads via polygonOffset) */}
@@ -78,6 +78,7 @@ export const RoadNetwork = forwardRef<THREE.Group, RoadNetworkProps>(
           showRoadIds={showRoadIds}
           showLaneIds={showLaneIds}
         />
+        <LaneHighlightManager highlightedLaneRef={highlightedLaneRef} />
       </group>
     );
   },

@@ -1,16 +1,16 @@
-import type { ScenarioAction, SpeedAction, SpeedTarget, TransitionDynamics } from '@osce/shared';
+import type { ScenarioAction, SpeedAction, SpeedTarget } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
-import { EnumSelect } from '../EnumSelect';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
-import { DYNAMICS_SHAPES } from '../../../constants/osc-enum-values';
+import { EntityRefSelect } from '../EntityRefSelect';
+import { SegmentedControl } from '../SegmentedControl';
+import { TransitionDynamicsEditor } from '../TransitionDynamicsEditor';
 
 interface SpeedActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
-export function SpeedActionEditor({ action }: SpeedActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function SpeedActionEditor({ action, onUpdate }: SpeedActionEditorProps) {
   const inner = action.action as SpeedAction;
   const relTarget =
     inner.target.kind === 'relative'
@@ -18,7 +18,7 @@ export function SpeedActionEditor({ action }: SpeedActionEditorProps) {
       : null;
 
   const updateInner = (updates: Partial<SpeedAction>) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate({
       action: { ...inner, ...updates },
     } as Partial<ScenarioAction>);
   };
@@ -26,131 +26,91 @@ export function SpeedActionEditor({ action }: SpeedActionEditorProps) {
   return (
     <div className="space-y-3">
       <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Dynamics</p>
-        <div className="grid gap-1">
-          <Label className="text-xs">Shape</Label>
-          <EnumSelect
-            value={inner.dynamics.dynamicsShape}
-            options={DYNAMICS_SHAPES}
-            onValueChange={(v) =>
-              updateInner({ dynamics: { ...inner.dynamics, dynamicsShape: v as TransitionDynamics['dynamicsShape'] } })
-            }
-            className="h-8 text-sm"
-          />
-        </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Dimension</Label>
-          <EnumSelect
-            value={inner.dynamics.dynamicsDimension}
-            options={['distance', 'rate', 'time']}
-            onValueChange={(v) =>
-              updateInner({ dynamics: { ...inner.dynamics, dynamicsDimension: v as TransitionDynamics['dynamicsDimension'] } })
-            }
-            className="h-8 text-sm"
-          />
-        </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Value</Label>
-          <ParameterAwareInput
-            elementId={action.id}
-            fieldName="action.dynamics.value"
-            value={inner.dynamics.value}
-            onValueChange={(v) =>
-              updateInner({ dynamics: { ...inner.dynamics, value: parseFloat(v) || 0 } })
-            }
-            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
-            className="h-8 text-sm"
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
         <p className="text-xs font-medium text-muted-foreground">Target</p>
         <div className="grid gap-1">
-          <Label className="text-xs">Kind</Label>
-          <EnumSelect
-            value={inner.target.kind}
-            options={['absolute', 'relative']}
-            onValueChange={(v) => {
-              if (v === 'absolute') {
-                updateInner({ target: { kind: 'absolute', value: 0 } });
-              } else {
-                updateInner({ target: { kind: 'relative', entityRef: '', value: 0, speedTargetValueType: 'delta', continuous: false } });
-              }
-            }}
-            className="h-8 text-sm"
-          />
-        </div>
-        {inner.target.kind === 'absolute' && (
-          <div className="grid gap-1">
-            <Label className="text-xs">Speed (m/s)</Label>
+          <Label className="text-xs">
+            {inner.target.kind === 'absolute'
+              ? 'Speed (m/s)'
+              : relTarget?.speedTargetValueType === 'factor'
+                ? 'Speed Factor (×)'
+                : 'Speed Delta (m/s)'}
+          </Label>
+          <div className="flex gap-1">
             <ParameterAwareInput
               elementId={action.id}
               fieldName="action.target.value"
               value={inner.target.value}
-              onValueChange={(v) =>
-                updateInner({ target: { kind: 'absolute', value: parseFloat(v) || 0 } })
-              }
+              onValueChange={(v) => {
+                if (inner.target.kind === 'absolute') {
+                  updateInner({ target: { kind: 'absolute', value: parseFloat(v) || 0 } });
+                } else if (relTarget) {
+                  updateInner({ target: { ...relTarget, value: parseFloat(v) || 0 } });
+                }
+              }}
               acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
-              className="h-8 text-sm"
+              className="h-8 text-sm flex-1 min-w-0"
             />
+            <SegmentedControl
+              value={inner.target.kind}
+              options={['absolute', 'relative'] as const}
+              onValueChange={(v) => {
+                if (v === 'absolute') {
+                  updateInner({ target: { kind: 'absolute', value: inner.target.value } });
+                } else {
+                  updateInner({ target: { kind: 'relative', entityRef: '', value: inner.target.value, speedTargetValueType: 'delta', continuous: false } });
+                }
+              }}
+              labels={{ absolute: 'Absolute', relative: 'Relative' }}
+              className="shrink-0"
+            />
+            {relTarget !== null && (
+              <SegmentedControl
+                value={relTarget.speedTargetValueType}
+                options={['delta', 'factor'] as const}
+                onValueChange={(v) =>
+                  updateInner({
+                    target: { ...relTarget, speedTargetValueType: v },
+                  })
+                }
+                className="shrink-0"
+              />
+            )}
           </div>
-        )}
+        </div>
         {relTarget !== null && (
           <>
             <div className="grid gap-1">
               <Label className="text-xs">Entity Ref</Label>
-              <ParameterAwareInput
+              <EntityRefSelect
                 value={relTarget.entityRef}
                 onValueChange={(v) =>
                   updateInner({ target: { ...relTarget, entityRef: v } })
                 }
-                acceptedTypes={['string']}
-                className="h-8 text-sm"
               />
             </div>
-            <div className="grid gap-1">
-              <Label className="text-xs">Value</Label>
-              <ParameterAwareInput
-                elementId={action.id}
-                fieldName="action.target.value"
-                value={relTarget.value}
-                onValueChange={(v) =>
-                  updateInner({ target: { ...relTarget, value: parseFloat(v) || 0 } })
-                }
-                acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
-                className="h-8 text-sm"
-              />
-            </div>
-            <div className="grid gap-1">
-              <Label className="text-xs">Value Type</Label>
-              <EnumSelect
-                value={relTarget.speedTargetValueType}
-                options={['delta', 'factor']}
-                onValueChange={(v) =>
+            <label className="flex items-center gap-2 text-xs">
+              <input
+                type="checkbox"
+                checked={relTarget.continuous}
+                onChange={(e) =>
                   updateInner({
-                    target: { ...relTarget, speedTargetValueType: v as 'delta' | 'factor' },
+                    target: { ...relTarget, continuous: e.target.checked },
                   })
                 }
-                className="h-8 text-sm"
               />
-            </div>
-            <div className="grid gap-1">
-              <Label className="text-xs">Continuous</Label>
-              <EnumSelect
-                value={String(relTarget.continuous)}
-                options={['false', 'true']}
-                onValueChange={(v) =>
-                  updateInner({
-                    target: { ...relTarget, continuous: v === 'true' },
-                  })
-                }
-                className="h-8 text-sm"
-              />
-            </div>
+              Continuous
+            </label>
           </>
         )}
       </div>
+
+      <TransitionDynamicsEditor
+        elementId={action.id}
+        fieldPrefix="action.dynamics"
+        dynamics={inner.dynamics}
+        onUpdate={(dynamics) => updateInner({ dynamics })}
+        unitMap={{ time: 's', distance: 'm', rate: 'm/s²' }}
+      />
     </div>
   );
 }

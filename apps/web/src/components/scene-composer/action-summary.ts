@@ -1,5 +1,8 @@
 import type { ScenarioAction } from '@osce/shared';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type TranslateFunc = (...args: any[]) => string;
+
 /** Returns a short human-readable label for an Action. */
 export function getActionSummary(action: ScenarioAction): string {
   const a = action.action;
@@ -20,8 +23,8 @@ export function getActionSummary(action: ScenarioAction): string {
     // --- Private: Lateral ---
     case 'laneChangeAction': {
       const t = a.target;
-      if (t.kind === 'absolute') return `Lane → ${t.value}`;
-      return `Lane ${t.value > 0 ? '+' : ''}${t.value} (rel ${t.entityRef})`;
+      if (t.kind === 'absolute') return `LaneChange → ${t.value}`;
+      return `LaneChange ${t.value > 0 ? '+' : ''}${t.value} (rel ${t.entityRef})`;
     }
     case 'laneOffsetAction': {
       const t = a.target;
@@ -124,4 +127,12 @@ export function getActionTypeLabel(action: ScenarioAction): string {
     userDefinedAction: 'User Defined',
   };
   return typeLabels[action.action.type] ?? action.action.type;
+}
+
+/** Returns a short i18n-aware label for an action type (for collapsed-state tags). */
+export function getActionShortLabel(action: ScenarioAction, t: TranslateFunc): string {
+  const key = `composer:action.${action.action.type}`;
+  const result = t(key);
+  // Fall back to English type label if i18n key not found
+  return result === key ? getActionTypeLabel(action) : result;
 }

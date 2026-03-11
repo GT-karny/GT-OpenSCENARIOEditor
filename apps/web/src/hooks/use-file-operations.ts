@@ -1,11 +1,13 @@
 import { useCallback } from 'react';
 import { XoscParser, XoscSerializer } from '@osce/openscenario';
 import { XodrParser } from '@osce/opendrive';
+import type { CatalogLocations } from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
 import { toast } from 'sonner';
 import { useScenarioStoreApi } from '../stores/use-scenario-store';
 import { useEditorStore } from '../stores/editor-store';
 import { useProjectStore } from '../stores/project-store';
+import { useCatalogStore } from '../stores/catalog-store';
 import { buildCatalogLocationsFromProject } from '../lib/catalog-location-utils';
 import * as api from '../lib/project-api';
 
@@ -28,7 +30,7 @@ declare global {
 async function readFileFromDisk(
   accept: string,
   extensions: string[],
-): Promise<{ text: string; name: string }> {
+): Promise<{ text: string; name: string; filePath?: string }> {
   // Electron: use native dialog + Node.js fs
   if (window.electronAPI?.isElectron) {
     const result = await window.electronAPI.showOpenDialog({
@@ -42,7 +44,7 @@ async function readFileFromDisk(
     const text = await window.electronAPI.readFile(filePath);
     const name = filePath.split(/[/\\]/).pop() ?? 'file';
     window.electronAPI.addRecentFile(filePath);
-    return { text, name };
+    return { text, name, filePath };
   }
 
   // Try File System Access API first (Chromium)
@@ -124,6 +126,48 @@ async function writeFileToDisk(
   URL.revokeObjectURL(url);
 }
 
+function resolvePath(base: string, relative: string): string {
+  const parts = `${base}/${relative}`.split(/[/\\]/);
+  const resolved: string[] = [];
+  for (const p of parts) {
+    if (p === '..') resolved.pop();
+    else if (p !== '.' && p !== '') resolved.push(p);
+  }
+  return resolved.join('/');
+}
+
+async function autoLoadCatalogs(
+  xoscFilePath: string,
+  catalogLocations: CatalogLocations,
+): Promise<void> {
+  const electronApi = window.electronAPI;
+  if (!electronApi) return;
+
+  const xoscDir = xoscFilePath.replace(/[/\\][^/\\]+$/, '');
+
+  for (const loc of Object.values(catalogLocations)) {
+    if (!loc?.directory) continue;
+
+    const catalogDir = resolvePath(xoscDir, loc.directory);
+
+    try {
+      const files = await electronApi.readDir(catalogDir);
+      const xoscFiles = files.filter((f) => f.endsWith('.xosc'));
+
+      for (const fileName of xoscFiles) {
+        try {
+          const xml = await electronApi.readFile(`${catalogDir}/${fileName}`);
+          useCatalogStore.getState().loadCatalog(xml, `${catalogDir}/${fileName}`);
+        } catch {
+          console.warn(`[autoLoadCatalogs] Failed to read: ${catalogDir}/${fileName}`);
+        }
+      }
+    } catch {
+      console.warn(`[autoLoadCatalogs] Failed to read directory: ${catalogDir}`);
+    }
+  }
+}
+
 export function useFileOperations() {
   const storeApi = useScenarioStoreApi();
   const { t } = useTranslation('common');
@@ -158,7 +202,7 @@ export function useFileOperations() {
 
   const openXosc = useCallback(async () => {
     try {
-      const { text, name } = await readFileFromDisk('OpenSCENARIO', ['.xosc']);
+      const { text, name, filePath } = await readFileFromDisk('OpenSCENARIO', ['.xosc']);
       const parser = new XoscParser();
       const doc = parser.parse(text);
 
@@ -168,6 +212,11 @@ export function useFileOperations() {
       setCurrentFileName(name);
       setDirty(false);
       setValidationResult(null);
+
+      // Electron: auto-load catalogs from CatalogLocations
+      if (filePath && window.electronAPI?.isElectron) {
+        await autoLoadCatalogs(filePath, doc.catalogLocations);
+      }
     } catch {
       // User cancelled the file picker
     }

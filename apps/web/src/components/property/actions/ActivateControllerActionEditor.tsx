@@ -1,18 +1,32 @@
-import type { ScenarioAction, ActivateControllerAction } from '@osce/shared';
-import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
+import { useMemo } from 'react';
+import type {
+  ScenarioAction,
+  ActivateControllerAction,
+  TrafficSignalController,
+} from '@osce/shared';
+import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
+import { RefSelect } from '../RefSelect';
+import type { RefSelectItem } from '../RefSelect';
+import { useScenarioStore } from '../../../stores/use-scenario-store';
+
+const EMPTY_SIGNALS: TrafficSignalController[] = [];
 
 interface ActivateControllerActionEditorProps {
   action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
-export function ActivateControllerActionEditor({ action }: ActivateControllerActionEditorProps) {
-  const storeApi = useScenarioStoreApi();
+export function ActivateControllerActionEditor({ action, onUpdate }: ActivateControllerActionEditorProps) {
   const inner = action.action as ActivateControllerAction;
+  const controllers = useScenarioStore((s) => s.document.roadNetwork.trafficSignals ?? EMPTY_SIGNALS);
+
+  const controllerItems: RefSelectItem[] = useMemo(
+    () => controllers.map((c) => ({ name: c.name, description: `${c.phases.length} phase(s)` })),
+    [controllers],
+  );
 
   const updateInner = (updates: Partial<ActivateControllerAction>) => {
-    storeApi.getState().updateAction(action.id, {
+    onUpdate({
       action: { ...inner, ...updates },
     } as Partial<ScenarioAction>);
   };
@@ -57,27 +71,30 @@ export function ActivateControllerActionEditor({ action }: ActivateControllerAct
         </div>
       </div>
 
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Controller Reference</p>
-        <div className="grid gap-1">
-          <Label className="text-xs">Controller Ref (optional)</Label>
-          <Input
-            value={inner.controllerRef ?? ''}
-            placeholder="--"
-            onChange={(e) => {
-              if (e.target.value === '') {
-                const { controllerRef: _, ...rest } = inner;
-                storeApi.getState().updateAction(action.id, {
-                  action: { ...rest },
-                } as Partial<ScenarioAction>);
-              } else {
-                updateInner({ controllerRef: e.target.value });
-              }
-            }}
-            className="h-8 text-sm"
-          />
-        </div>
-      </div>
+      <OptionalFieldWrapper
+        label="Controller Ref"
+        hasValue={inner.controllerRef !== undefined}
+        onClear={() => {
+          const { controllerRef: _, ...rest } = inner;
+          onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
+        }}
+      >
+        <RefSelect
+          value={inner.controllerRef ?? ''}
+          onValueChange={(v) => {
+            if (v === '') {
+              const { controllerRef: _, ...rest } = inner;
+              onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
+            } else {
+              updateInner({ controllerRef: v });
+            }
+          }}
+          items={controllerItems}
+          placeholder="Select controller..."
+          emptyMessage="No controllers defined"
+          className="h-8 text-sm"
+        />
+      </OptionalFieldWrapper>
     </div>
   );
 }

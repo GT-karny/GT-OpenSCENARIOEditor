@@ -4,14 +4,23 @@
 
 import React from 'react';
 import { Canvas } from '@react-three/fiber';
+import { Stats } from '@react-three/drei';
+import { GLInfo } from './GLInfo.js';
 
 interface ViewerCanvasProps {
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
+  /** Show performance overlay (FPS + draw calls + triangles) */
+  showPerf?: boolean;
 }
 
-export const ViewerCanvas: React.FC<ViewerCanvasProps> = ({ children, className, style }) => {
+export const ViewerCanvas: React.FC<ViewerCanvasProps> = ({
+  children,
+  className,
+  style,
+  showPerf = false,
+}) => {
   return (
     <Canvas
       camera={{
@@ -25,6 +34,12 @@ export const ViewerCanvas: React.FC<ViewerCanvasProps> = ({ children, className,
       gl={{ antialias: true }}
       shadows
     >
+      {showPerf && (
+        <>
+          <Stats className="perf-stats" />
+          <GLInfo />
+        </>
+      )}
       {children}
     </Canvas>
   );
