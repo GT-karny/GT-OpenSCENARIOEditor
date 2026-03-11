@@ -1,4 +1,3 @@
-import { useTranslation } from '@osce/i18n';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
 import { ValidationIssueList } from '../validation/ValidationIssueList';
@@ -8,15 +7,13 @@ import { Button } from '../ui/button';
 import { CheckCircle } from 'lucide-react';
 
 export function ValidationPanel() {
-  const { t } = useTranslation('common');
   const result = useEditorStore((s) => s.validationResult);
   const { runValidation } = useValidation();
 
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-3 py-2 border-b">
-        <h3 className="text-xs font-semibold">{t('panels.validation')}</h3>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ml-auto">
           {result && (
             <Badge data-testid="validation-summary" variant={result.valid ? 'secondary' : 'destructive'} className="text-[10px]">
               {result.errors.length}E / {result.warnings.length}W

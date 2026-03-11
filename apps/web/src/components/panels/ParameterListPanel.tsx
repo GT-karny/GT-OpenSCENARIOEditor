@@ -20,7 +20,7 @@ export function ParameterListPanel() {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-3 py-2 border-b">
-        <h3 className="text-xs font-semibold">{t('panels.parameters')}</h3>
+        <div className="flex-1" />
         <Button variant="ghost" size="icon" className="h-6 w-6" aria-label="Add parameter" onClick={() => setAddDialogOpen(true)}>
           <Plus className="h-3.5 w-3.5" />
         </Button>
