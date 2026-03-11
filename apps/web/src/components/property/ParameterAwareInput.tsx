@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, forwardRef } from 'react';
 import { Input } from '../ui/input';
 import { useScenarioStore, useScenarioStoreApi } from '../../stores/use-scenario-store';
+import { PARAMETER_DND_TYPE } from '../parameter/ParameterListItem';
 import { cn } from '@/lib/utils';
 
 interface ParameterAwareInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value'> {
@@ -37,6 +38,7 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
     const [filter, setFilter] = useState('');
     const [dollarIndex, setDollarIndex] = useState(-1);
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const [isDragOver, setIsDragOver] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
     // Filter by name prefix and optionally by accepted parameter types
@@ -129,8 +131,44 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
       props.onBlur?.(e);
     }, [props]);
 
+    const handleDropDragOver = useCallback((e: React.DragEvent) => {
+      if (e.dataTransfer.types.includes(PARAMETER_DND_TYPE)) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        setIsDragOver(true);
+      }
+    }, []);
+
+    const handleDropDragLeave = useCallback(() => {
+      setIsDragOver(false);
+    }, []);
+
+    const handleDropParam = useCallback(
+      (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragOver(false);
+        const paramName = e.dataTransfer.getData(PARAMETER_DND_TYPE);
+        if (!paramName) return;
+
+        const replacement = `$${paramName}`;
+        if (elementId && fieldName) {
+          // Numeric field: set binding
+          storeApi.getState().setParameterBinding(elementId, fieldName, replacement);
+        } else {
+          // Text field: replace entire value
+          onValueChange(replacement);
+        }
+      },
+      [elementId, fieldName, storeApi, onValueChange],
+    );
+
     return (
-      <div className="relative">
+      <div
+        className="relative"
+        onDragOver={handleDropDragOver}
+        onDragLeave={handleDropDragLeave}
+        onDrop={handleDropParam}
+      >
         <Input
           ref={inputRef}
           value={displayValue}
@@ -140,6 +178,7 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
           className={cn(
             className,
             isBound && 'text-[var(--color-accent-1)] font-medium',
+            isDragOver && 'ring-2 ring-[var(--color-accent-1)] border-[var(--color-accent-1)]',
           )}
           {...props}
         />

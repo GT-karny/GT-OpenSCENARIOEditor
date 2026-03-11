@@ -3,6 +3,8 @@ import type { EntityType } from '@osce/shared';
 import { ChevronDown, Check } from 'lucide-react';
 import { useScenarioStore } from '../../stores/use-scenario-store';
 import { EntityIcon } from '../entity/EntityIcon';
+import { ENTITY_DND_TYPE } from '../entity/EntityListItem';
+import { PARAMETER_DND_TYPE } from '../parameter/ParameterListItem';
 import { cn } from '@/lib/utils';
 
 interface EntityRefSelectProps {
@@ -37,6 +39,8 @@ export function EntityRefSelect({
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  const [isDragOver, setIsDragOver] = useState(false);
+
   const isParamRef = value.startsWith('$');
   const matchingEntity = entities.find((e) => e.name === value);
 
@@ -65,25 +69,36 @@ export function EntityRefSelect({
     return groups;
   }, [filteredEntities]);
 
+  // Filtered string parameters (shown in both modes)
+  const filteredParams = useMemo(() => {
+    if (parameterMode) {
+      const fragment = search.substring(1).toLowerCase();
+      return parameters.filter((p) => {
+        if (p.parameterType !== 'string') return false;
+        return p.name.toLowerCase().startsWith(fragment);
+      });
+    }
+    // In entity mode, filter params by search too
+    const stringParams = parameters.filter((p) => p.parameterType === 'string');
+    if (!search) return stringParams;
+    const lower = search.toLowerCase();
+    return stringParams.filter((p) => p.name.toLowerCase().includes(lower));
+  }, [parameterMode, search, parameters]);
+
   // Flat list for keyboard navigation
   const flatItems = useMemo(() => {
-    const items: { type: 'empty' | 'entity' | 'param-entry' | 'param'; name: string }[] = [];
+    const items: { type: 'empty' | 'entity' | 'param'; name: string }[] = [];
     if (!parameterMode) {
       if (allowEmpty) items.push({ type: 'empty', name: '' });
       for (const g of grouped) {
         for (const e of g.items) items.push({ type: 'entity', name: e.name });
       }
-      items.push({ type: 'param-entry', name: '$' });
+      for (const p of filteredParams) items.push({ type: 'param', name: p.name });
     } else {
-      const fragment = search.substring(1).toLowerCase();
-      const filtered = parameters.filter((p) => {
-        if (!['string'].some((t) => t === p.parameterType)) return false;
-        return p.name.toLowerCase().startsWith(fragment);
-      });
-      for (const p of filtered) items.push({ type: 'param', name: p.name });
+      for (const p of filteredParams) items.push({ type: 'param', name: p.name });
     }
     return items;
-  }, [parameterMode, allowEmpty, grouped, search, parameters]);
+  }, [parameterMode, allowEmpty, grouped, filteredParams]);
 
   // Clamp selectedIndex
   useEffect(() => {
@@ -99,6 +114,38 @@ export function EntityRefSelect({
       setSearch('');
     }
   }, [open]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    if (
+      e.dataTransfer.types.includes(PARAMETER_DND_TYPE) ||
+      e.dataTransfer.types.includes(ENTITY_DND_TYPE)
+    ) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      setIsDragOver(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback(() => {
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragOver(false);
+      const paramName = e.dataTransfer.getData(PARAMETER_DND_TYPE);
+      if (paramName) {
+        onValueChange(`$${paramName}`);
+        return;
+      }
+      const entityName = e.dataTransfer.getData(ENTITY_DND_TYPE);
+      if (entityName) {
+        onValueChange(entityName);
+      }
+    },
+    [onValueChange],
+  );
 
   const handleSelect = useCallback(
     (name: string) => {
@@ -135,7 +182,6 @@ export function EntityRefSelect({
         if (!item) return;
         if (item.type === 'entity') handleSelect(item.name);
         else if (item.type === 'empty') handleSelect('');
-        else if (item.type === 'param-entry') setSearch('$');
         else if (item.type === 'param') handleSelect(`$${item.name}`);
       } else if (e.key === 'Escape') {
         e.preventDefault();
@@ -173,10 +219,14 @@ export function EntityRefSelect({
         type="button"
         onClick={() => setOpen(!open)}
         onKeyDown={handleKeyDown}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
         className={cn(
           'flex h-8 w-full items-center gap-1.5 border border-input bg-transparent px-2 text-sm text-left',
           'hover:bg-[var(--color-glass-1)] transition-colors',
           isParamRef && 'text-[var(--color-accent-1)] font-medium',
+          isDragOver && 'ring-2 ring-[var(--color-accent-1)] border-[var(--color-accent-1)]',
           className,
         )}
       >
@@ -203,7 +253,7 @@ export function EntityRefSelect({
           </div>
 
           {parameterMode ? (
-            // Parameter suggestions
+            // Parameter-only mode (triggered by typing $)
             <>
               {flatItems.length === 0 ? (
                 <p className="px-2 py-2 text-[11px] text-muted-foreground italic">
@@ -242,7 +292,7 @@ export function EntityRefSelect({
               )}
             </>
           ) : (
-            // Entity list
+            // Entity list + inline parameters
             <>
               {allowEmpty && (() => {
                 const idx = flatIdx++;
@@ -265,64 +315,77 @@ export function EntityRefSelect({
                 );
               })()}
 
-              {grouped.length === 0 && !allowEmpty ? (
+              {grouped.length === 0 && filteredParams.length === 0 && !allowEmpty ? (
                 <p className="px-2 py-2 text-[11px] text-muted-foreground italic">
-                  {search ? 'No matching entities' : 'No entities defined'}
+                  {search ? 'No matching entities or parameters' : 'No entities defined'}
                 </p>
               ) : (
-                grouped.map((group) => (
-                  <div key={group.type}>
-                    <div className="px-2 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                      {group.label}
+                <>
+                  {grouped.map((group) => (
+                    <div key={group.type}>
+                      <div className="px-2 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                        {group.label}
+                      </div>
+                      {group.items.map((entity) => {
+                        const idx = flatIdx++;
+                        return (
+                          <button
+                            key={entity.id}
+                            type="button"
+                            className={cn(
+                              'w-full px-2 py-1 text-left text-xs flex items-center gap-2 hover:bg-[var(--color-glass-1)]',
+                              idx === selectedIndex && 'bg-[var(--color-glass-1)]',
+                            )}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              handleSelect(entity.name);
+                            }}
+                          >
+                            <EntityIcon type={entity.type} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            <span>{entity.name}</span>
+                            {entity.name === value && <Check className="h-3 w-3 ml-auto" />}
+                          </button>
+                        );
+                      })}
                     </div>
-                    {group.items.map((entity) => {
-                      const idx = flatIdx++;
-                      return (
-                        <button
-                          key={entity.id}
-                          type="button"
-                          className={cn(
-                            'w-full px-2 py-1 text-left text-xs flex items-center gap-2 hover:bg-[var(--color-glass-1)]',
-                            idx === selectedIndex && 'bg-[var(--color-glass-1)]',
-                          )}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            handleSelect(entity.name);
-                          }}
-                        >
-                          <EntityIcon type={entity.type} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                          <span>{entity.name}</span>
-                          {entity.name === value && <Check className="h-3 w-3 ml-auto" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                ))
-              )}
+                  ))}
 
-              {/* Parameter entry point */}
-              <div className="border-t border-[var(--color-glass-edge)]">
-                {(() => {
-                  const idx = flatIdx++;
-                  return (
-                    <button
-                      type="button"
-                      className={cn(
-                        'w-full px-2 py-1.5 text-left text-xs flex items-center gap-2 hover:bg-[var(--color-glass-1)]',
-                        idx === selectedIndex && 'bg-[var(--color-glass-1)]',
-                      )}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        setSearch('$');
-                        searchInputRef.current?.focus();
-                      }}
-                    >
-                      <span className="font-medium text-[var(--color-accent-1)]">$</span>
-                      <span className="text-muted-foreground">Use parameter reference...</span>
-                    </button>
-                  );
-                })()}
-              </div>
+                  {/* Inline parameter section */}
+                  {filteredParams.length > 0 && (
+                    <div className={cn(grouped.length > 0 && 'border-t border-[var(--color-glass-edge)]')}>
+                      <div className="px-2 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                        Parameters
+                      </div>
+                      {filteredParams.map((param) => {
+                        const idx = flatIdx++;
+                        return (
+                          <button
+                            key={param.id}
+                            type="button"
+                            className={cn(
+                              'w-full px-2 py-1 text-left text-xs flex items-center gap-2 hover:bg-[var(--color-glass-1)]',
+                              idx === selectedIndex && 'bg-[var(--color-glass-1)]',
+                            )}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              handleSelect(`$${param.name}`);
+                            }}
+                          >
+                            <span className="font-medium text-[var(--color-accent-1)]">${param.name}</span>
+                            <span className="text-[var(--color-text-tertiary)] text-[10px]">
+                              {param.parameterType}
+                            </span>
+                            <span className="text-[var(--color-text-tertiary)] text-[10px] ml-auto">
+                              = {param.value}
+                            </span>
+                            {value === `$${param.name}` && <Check className="h-3 w-3 shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
             </>
           )}
         </div>
