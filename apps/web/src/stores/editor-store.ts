@@ -66,6 +66,10 @@ const defaultPreferences: EditorPreferences = {
   showGrid3D: true,
   showLaneIds: false,
   showRoadIds: false,
+  compatibilityProfile: {
+    oscVersion: '1.3',
+    simulator: 'any',
+  },
 };
 
 const defaultPanelVisibility: Record<EditorPanel, boolean> = {
@@ -165,6 +169,17 @@ export const useEditorStore = create<EditorState>()(
         panelVisibility: state.panelVisibility,
         entityPropertyTab: state.entityPropertyTab,
       }),
+      merge: (persisted, current) => {
+        const p = persisted as Partial<EditorState>;
+        return {
+          ...current,
+          ...(p ?? {}),
+          preferences: {
+            ...defaultPreferences,
+            ...(p?.preferences ?? {}),
+          },
+        };
+      },
     },
   ),
 );

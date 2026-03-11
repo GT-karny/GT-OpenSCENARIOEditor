@@ -230,4 +230,8 @@ export const common = {
     xodrLoadFailed: 'Failed to load road network: {{path}}',
     catalogLoadFailed: 'Failed to load catalog: {{path}}',
   },
+  featureGate: {
+    versionRequired: 'Requires OpenSCENARIO v{{version}}',
+    simulatorUnsupported: 'Not supported by {{simulator}}',
+  },
 } as const;

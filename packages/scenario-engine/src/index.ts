@@ -54,3 +54,11 @@ export { deepReplaceParamRef, replaceInBindings, escapeRegex } from './operation
 
 // Component Engine
 export { applyUseCaseComponent, reconcileComponent } from './components/component-engine.js';
+
+// Compatibility / Feature Gating
+export {
+  checkFeatureGate,
+  ACTION_FEATURE_REGISTRY,
+  CONDITION_FEATURE_REGISTRY,
+} from './compatibility/feature-registry.js';
+export type { FeatureEntry } from './compatibility/feature-registry.js';

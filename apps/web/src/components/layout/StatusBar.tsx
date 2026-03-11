@@ -53,6 +53,7 @@ export function StatusBar() {
   const currentFileName = useEditorStore((s) => s.currentFileName);
   const isDirty = useEditorStore((s) => s.isDirty);
   const simStatus = useSimulationStore((s) => s.status);
+  const compatibilityProfile = useEditorStore((s) => s.preferences.compatibilityProfile);
 
   const dot = getStatusDot(simStatus);
   const statusLabel = useStatusLabel(simStatus);
@@ -92,7 +93,10 @@ export function StatusBar() {
           </span>
         )}
         {!currentFileName && <span>Untitled{isDirty ? ' *' : ''}</span>}
-        <span>OpenSCENARIO v1.2</span>
+        <span>
+          OpenSCENARIO v{compatibilityProfile.oscVersion}
+          {compatibilityProfile.simulator !== 'any' && ` · ${compatibilityProfile.simulator}`}
+        </span>
       </div>
     </div>
   );

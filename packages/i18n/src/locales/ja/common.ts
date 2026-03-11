@@ -229,4 +229,8 @@ export const common = {
     xodrLoadFailed: 'ロードネットワークの読み込みに失敗しました: {{path}}',
     catalogLoadFailed: 'カタログの読み込みに失敗しました: {{path}}',
   },
+  featureGate: {
+    versionRequired: 'OpenSCENARIO v{{version}} が必要です',
+    simulatorUnsupported: '{{simulator}} では対応していません',
+  },
 } as const;

@@ -10,7 +10,6 @@ import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { EntityRefSelect } from '../EntityRefSelect';
 import { SegmentedControl } from '../SegmentedControl';
-import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
 import { SHAPE_PATHS, SHAPE_LABELS } from '../TransitionDynamicsEditor';
 import { DYNAMICS_SHAPES } from '../../../constants/osc-enum-values';
 
@@ -50,15 +49,6 @@ export function LaneOffsetActionEditor({ action, onUpdate }: LaneOffsetActionEdi
   const currentDir = isRight ? 'right' : inner.target.value > 0 ? 'left' : dir;
 
   const dynamics = inner.dynamics;
-
-  const updateDynamicsShape = (v: string) => {
-    if (v === '') {
-      const { dynamicsShape: _ds, ...rest } = dynamics;
-      updateInner({ dynamics: rest as LaneOffsetDynamics });
-    } else {
-      updateInner({ dynamics: { ...dynamics, dynamicsShape: v as DynamicsShape } });
-    }
-  };
 
   const updateDynamicsNum = (field: 'maxSpeed' | 'maxLateralAcc', value: string) => {
     if (value === '') {

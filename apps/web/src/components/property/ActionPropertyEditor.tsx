@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { ScenarioAction } from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
-import { Car, Globe, Wrench } from 'lucide-react';
+import { Car, Globe, Lock, Wrench } from 'lucide-react';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { defaultActionByType } from '@osce/scenario-engine';
@@ -32,6 +32,7 @@ import { EnvironmentActionEditor } from './actions/EnvironmentActionEditor';
 import { TrafficActionEditor } from './actions/TrafficActionEditor';
 import { InfrastructureActionEditor } from './actions/InfrastructureActionEditor';
 import { GenericActionEditor } from './actions/GenericActionEditor';
+import { useFeatureGate } from '../../hooks/use-feature-gate';
 import { cn } from '@/lib/utils';
 
 type ActionCategory = 'private' | 'global' | 'userDefined';
@@ -77,6 +78,7 @@ interface ActionPropertyEditorProps {
 
 export function ActionPropertyEditor({ action, onUpdate }: ActionPropertyEditorProps) {
   const { t } = useTranslation('openscenario');
+  const { checkAction } = useFeatureGate();
   const actionType = action.action.type;
   const category = detectCategory(actionType);
   const subcategory = category === 'private' ? detectSubcategory(actionType) : null;
@@ -186,21 +188,33 @@ export function ActionPropertyEditor({ action, onUpdate }: ActionPropertyEditorP
         <div className="grid gap-1.5">
           <Label className="text-xs">Type</Label>
           <div className="mx-4 flex flex-col divide-y divide-border border border-border bg-[var(--color-glass-1)] shadow-[inset_0_2px_6px_rgba(0,0,0,0.4)]">
-            {typeList.map((type) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => handleTypeChange(type)}
-                className={cn(
-                  'px-3 py-1.5 text-left text-xs transition-all',
-                  actionType === type
-                    ? 'glass-item selected font-medium'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted',
-                )}
-              >
-                {t(`actionTypes.${type}` as never)}
-              </button>
-            ))}
+            {typeList.map((type) => {
+              const gate = checkAction(type);
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => gate.allowed && handleTypeChange(type)}
+                  disabled={!gate.allowed}
+                  title={
+                    gate.allowed
+                      ? undefined
+                      : gate.reason
+                  }
+                  className={cn(
+                    'px-3 py-1.5 text-left text-xs transition-all flex items-center justify-between',
+                    actionType === type
+                      ? 'glass-item selected font-medium'
+                      : gate.allowed
+                        ? 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                        : 'text-muted-foreground/40 cursor-not-allowed',
+                  )}
+                >
+                  <span>{t(`actionTypes.${type}` as never)}</span>
+                  {!gate.allowed && <Lock className="size-3 text-muted-foreground/40" />}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

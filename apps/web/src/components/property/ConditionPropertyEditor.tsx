@@ -21,6 +21,8 @@ import {
   ENTITY_CONDITION_TYPES,
   CONDITION_SUBCATEGORIES,
 } from '../../constants/osc-enum-values';
+import { Lock } from 'lucide-react';
+import { useFeatureGate } from '../../hooks/use-feature-gate';
 import { cn } from '@/lib/utils';
 import { GenericConditionEditor } from './conditions/GenericConditionEditor';
 import { SimulationTimeConditionEditor } from './conditions/SimulationTimeConditionEditor';
@@ -117,6 +119,7 @@ interface ConditionItemProps {
 
 export function ConditionItem({ condition, onUpdateCondition }: ConditionItemProps) {
   const { t } = useTranslation('openscenario');
+  const { checkCondition } = useFeatureGate();
 
   const handleConditionEdgeChange = (value: string) => {
     onUpdateCondition(condition.id, {
@@ -362,26 +365,34 @@ export function ConditionItem({ condition, onUpdateCondition }: ConditionItemPro
       <div className="grid gap-1.5">
         <Label className="text-xs">Type</Label>
         <div className="mx-4 flex flex-col divide-y divide-border border border-border bg-[var(--color-glass-1)] shadow-[inset_0_2px_6px_rgba(0,0,0,0.4)]">
-          {typeList.map((type) => (
-            <button
-              key={type}
-              type="button"
-              onClick={() => handleConditionTypeChange(type)}
-              className={cn(
-                'px-3 py-1.5 text-left transition-all',
-                conditionType === type
-                  ? 'glass-item selected'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted',
-              )}
-            >
-              <span className={cn('text-xs', conditionType === type && 'font-medium')}>
-                {t(`conditionType.${type}` as never)}
-              </span>
-              <span className="block text-[10px] text-muted-foreground mt-0.5">
-                {t(`conditionDescription.${type}` as never)}
-              </span>
-            </button>
-          ))}
+          {typeList.map((type) => {
+            const gate = checkCondition(type);
+            return (
+              <button
+                key={type}
+                type="button"
+                onClick={() => gate.allowed && handleConditionTypeChange(type)}
+                disabled={!gate.allowed}
+                title={gate.allowed ? undefined : gate.reason}
+                className={cn(
+                  'px-3 py-1.5 text-left transition-all',
+                  conditionType === type
+                    ? 'glass-item selected'
+                    : gate.allowed
+                      ? 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      : 'text-muted-foreground/40 cursor-not-allowed',
+                )}
+              >
+                <span className={cn('text-xs flex items-center justify-between', conditionType === type && 'font-medium')}>
+                  <span>{t(`conditionType.${type}` as never)}</span>
+                  {!gate.allowed && <Lock className="size-3 text-muted-foreground/40" />}
+                </span>
+                <span className="block text-[10px] text-muted-foreground mt-0.5">
+                  {t(`conditionDescription.${type}` as never)}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
