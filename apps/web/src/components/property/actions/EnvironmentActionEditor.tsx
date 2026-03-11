@@ -2,6 +2,7 @@ import type { ScenarioAction, EnvironmentAction, Weather } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { EnumSelect } from '../EnumSelect';
+import { SegmentedControl } from '../SegmentedControl';
 
 interface EnvironmentActionEditorProps {
   action: ScenarioAction;
@@ -130,9 +131,11 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
         <div className="space-y-1">
           <p className="text-xs text-muted-foreground">Sun</p>
           <div className="grid grid-cols-3 gap-1">
-            {(['intensity', 'azimuth', 'elevation'] as const).map((field) => (
+            {(['intensity', 'azimuth', 'elevation'] as const).map((field) => {
+              const unitMap = { intensity: 'W/m²', azimuth: 'rad', elevation: 'rad' } as const;
+              return (
               <div key={field} className="grid gap-1">
-                <Label className="text-xs capitalize">{field}</Label>
+                <Label className="text-[10px] capitalize">{field} ({unitMap[field]})</Label>
                 <Input
                   type="number"
                   value={env.weather.sun?.[field] ?? ''}
@@ -151,7 +154,8 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
                   className="h-7 text-xs"
                 />
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -178,41 +182,36 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
         {/* Precipitation */}
         <div className="space-y-1">
           <p className="text-xs text-muted-foreground">Precipitation</p>
-          <div className="grid grid-cols-2 gap-1">
-            <div className="grid gap-1">
-              <Label className="text-xs">Type</Label>
-              <EnumSelect
-                value={env.weather.precipitation?.precipitationType ?? 'dry'}
-                options={[...PRECIPITATION_TYPES]}
-                onValueChange={(v) =>
-                  updateWeather({
-                    precipitation: { precipitationType: v, precipitationIntensity: env.weather.precipitation?.precipitationIntensity ?? 0 },
-                  })
-                }
-                className="h-8 text-sm"
-              />
-            </div>
-            <div className="grid gap-1">
-              <Label className="text-xs">Intensity (0–1)</Label>
-              <Input
-                type="number"
-                min={0}
-                max={1}
-                step={0.01}
-                value={env.weather.precipitation?.precipitationIntensity ?? ''}
-                placeholder="--"
-                onChange={(e) => {
-                  const v = parseFloat(e.target.value);
-                  updateWeather({
-                    precipitation: {
-                      precipitationType: env.weather.precipitation?.precipitationType ?? 'dry',
-                      precipitationIntensity: isNaN(v) ? 0 : v,
-                    },
-                  });
-                }}
-                className="h-8 text-sm"
-              />
-            </div>
+          <SegmentedControl
+            value={env.weather.precipitation?.precipitationType ?? 'dry'}
+            options={PRECIPITATION_TYPES}
+            onValueChange={(v) =>
+              updateWeather({
+                precipitation: { precipitationType: v, precipitationIntensity: env.weather.precipitation?.precipitationIntensity ?? 0 },
+              })
+            }
+            labels={{ dry: 'Dry', rain: 'Rain', snow: 'Snow' }}
+          />
+          <div className="grid gap-1">
+            <Label className="text-xs">Intensity (0–1)</Label>
+            <Input
+              type="number"
+              min={0}
+              max={1}
+              step={0.01}
+              value={env.weather.precipitation?.precipitationIntensity ?? ''}
+              placeholder="--"
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                updateWeather({
+                  precipitation: {
+                    precipitationType: env.weather.precipitation?.precipitationType ?? 'dry',
+                    precipitationIntensity: isNaN(v) ? 0 : v,
+                  },
+                });
+              }}
+              className="h-8 text-sm"
+            />
           </div>
         </div>
 

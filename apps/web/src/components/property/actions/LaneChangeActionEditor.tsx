@@ -2,7 +2,7 @@ import type { ScenarioAction, LaneChangeAction } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefSelect } from '../EntityRefSelect';
-import { EnumSelect } from '../EnumSelect';
+import { SegmentedControl } from '../SegmentedControl';
 import { TransitionDynamicsEditor } from '../TransitionDynamicsEditor';
 
 interface LaneChangeActionEditorProps {
@@ -25,9 +25,9 @@ export function LaneChangeActionEditor({ action, onUpdate }: LaneChangeActionEdi
         <p className="text-xs font-medium text-muted-foreground">Target</p>
         <div className="grid gap-1">
           <Label className="text-xs">Kind</Label>
-          <EnumSelect
+          <SegmentedControl
             value={inner.target.kind}
-            options={['absolute', 'relative']}
+            options={['absolute', 'relative'] as const}
             onValueChange={(v) => {
               if (v === 'absolute') {
                 updateInner({ target: { kind: 'absolute', value: 0 } });
@@ -35,7 +35,7 @@ export function LaneChangeActionEditor({ action, onUpdate }: LaneChangeActionEdi
                 updateInner({ target: { kind: 'relative', entityRef: '', value: 0 } });
               }
             }}
-            className="h-8 text-sm"
+            labels={{ absolute: 'Absolute', relative: 'Relative' }}
           />
         </div>
         {inner.target.kind === 'absolute' && (
@@ -84,7 +84,7 @@ export function LaneChangeActionEditor({ action, onUpdate }: LaneChangeActionEdi
       <div className="space-y-2">
         <p className="text-xs font-medium text-muted-foreground">Options</p>
         <div className="grid gap-1">
-          <Label className="text-xs">Target Lane Offset (optional)</Label>
+          <Label className="text-xs">Target Lane Offset (m) (optional)</Label>
           <ParameterAwareInput
             elementId={action.id}
             fieldName="action.targetLaneOffset"

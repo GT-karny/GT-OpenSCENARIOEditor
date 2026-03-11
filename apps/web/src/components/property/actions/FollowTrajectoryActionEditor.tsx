@@ -9,7 +9,7 @@ import type { FollowingMode } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { ParameterAwareInput } from '../ParameterAwareInput';
-import { EnumSelect } from '../EnumSelect';
+import { SegmentedControl } from '../SegmentedControl';
 
 interface FollowTrajectoryActionEditorProps {
   action: ScenarioAction;
@@ -80,17 +80,17 @@ export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTraject
       {/* Following Mode */}
       <div className="space-y-2">
         <p className="text-xs font-medium text-muted-foreground">Following Mode</p>
-        <EnumSelect
+        <SegmentedControl
           value={inner.followingMode}
-          options={['position', 'follow']}
+          options={['position', 'follow'] as const}
           onValueChange={(v) => updateInner({ followingMode: v as FollowingMode })}
-          className="h-8 text-sm"
+          labels={{ position: 'Position', follow: 'Follow' }}
         />
       </div>
 
       {/* Initial Distance Offset */}
       <div className="grid gap-1">
-        <Label className="text-xs">Initial Distance Offset (optional)</Label>
+        <Label className="text-xs">Initial Distance Offset (m) (optional)</Label>
         <ParameterAwareInput
           elementId={action.id}
           fieldName="action.initialDistanceOffset"
@@ -116,11 +116,11 @@ export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTraject
         <p className="text-xs font-medium text-muted-foreground">Time Reference</p>
         <div className="grid gap-1">
           <Label className="text-xs">Mode</Label>
-          <EnumSelect
+          <SegmentedControl
             value={timeRefMode}
-            options={['none', 'timing']}
+            options={['none', 'timing'] as const}
             onValueChange={handleTimeRefChange}
-            className="h-8 text-sm"
+            labels={{ none: 'None', timing: 'Timing' }}
           />
         </div>
 
@@ -128,38 +128,40 @@ export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTraject
           <>
             <div className="grid gap-1">
               <Label className="text-xs">Domain</Label>
-              <EnumSelect
+              <SegmentedControl
                 value={inner.timeReference.timing.domainAbsoluteRelative}
-                options={['absolute', 'relative']}
+                options={['absolute', 'relative'] as const}
                 onValueChange={(v) =>
                   updateTiming({ domainAbsoluteRelative: v as 'absolute' | 'relative' })
                 }
-                className="h-8 text-sm"
+                labels={{ absolute: 'Absolute', relative: 'Relative' }}
               />
             </div>
-            <div className="grid gap-1">
-              <Label className="text-xs">Offset</Label>
-              <Input
-                type="number"
-                value={inner.timeReference.timing.offset}
-                step="any"
-                onChange={(e) =>
-                  updateTiming({ offset: parseFloat(e.target.value) || 0 })
-                }
-                className="h-8 text-sm"
-              />
-            </div>
-            <div className="grid gap-1">
-              <Label className="text-xs">Scale</Label>
-              <Input
-                type="number"
-                value={inner.timeReference.timing.scale}
-                step="any"
-                onChange={(e) =>
-                  updateTiming({ scale: parseFloat(e.target.value) || 0 })
-                }
-                className="h-8 text-sm"
-              />
+            <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-1">
+                <Label className="text-xs">Offset (s)</Label>
+                <Input
+                  type="number"
+                  value={inner.timeReference.timing.offset}
+                  step="any"
+                  onChange={(e) =>
+                    updateTiming({ offset: parseFloat(e.target.value) || 0 })
+                  }
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="grid gap-1">
+                <Label className="text-xs">Scale</Label>
+                <Input
+                  type="number"
+                  value={inner.timeReference.timing.scale}
+                  step="any"
+                  onChange={(e) =>
+                    updateTiming({ scale: parseFloat(e.target.value) || 0 })
+                  }
+                  className="h-8 text-sm"
+                />
+              </div>
             </div>
           </>
         )}
@@ -187,11 +189,11 @@ export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTraject
 
         <div className="grid gap-1">
           <Label className="text-xs">Shape Type</Label>
-          <EnumSelect
+          <SegmentedControl
             value={shapeType}
-            options={['polyline', 'clothoid', 'nurbs']}
+            options={['polyline', 'clothoid', 'nurbs'] as const}
             onValueChange={handleShapeTypeChange}
-            className="h-8 text-sm"
+            labels={{ polyline: 'Polyline', clothoid: 'Clothoid', nurbs: 'NURBS' }}
           />
         </div>
 
@@ -256,7 +258,7 @@ export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTraject
               />
             </div>
             <div className="grid gap-1">
-              <Label className="text-xs">Length</Label>
+              <Label className="text-xs">Length (m)</Label>
               <Input
                 type="number"
                 value={inner.trajectory.shape.length}
@@ -272,47 +274,49 @@ export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTraject
                 className="h-8 text-sm"
               />
             </div>
-            <div className="grid gap-1">
-              <Label className="text-xs">Start Time (optional)</Label>
-              <Input
-                type="number"
-                value={inner.trajectory.shape.startTime ?? ''}
-                placeholder="--"
-                step="any"
-                onChange={(e) => {
-                  const clothoid = inner.trajectory.shape as Extract<TrajectoryShape, { type: 'clothoid' }>;
-                  if (e.target.value === '') {
-                    const { startTime: _, ...rest } = clothoid;
-                    updateTrajectory({ shape: { ...rest, type: 'clothoid' } as TrajectoryShape });
-                  } else {
-                    updateTrajectory({
-                      shape: { ...clothoid, startTime: parseFloat(e.target.value) || 0 },
-                    });
-                  }
-                }}
-                className="h-8 text-sm"
-              />
-            </div>
-            <div className="grid gap-1">
-              <Label className="text-xs">Stop Time (optional)</Label>
-              <Input
-                type="number"
-                value={inner.trajectory.shape.stopTime ?? ''}
-                placeholder="--"
-                step="any"
-                onChange={(e) => {
-                  const clothoid = inner.trajectory.shape as Extract<TrajectoryShape, { type: 'clothoid' }>;
-                  if (e.target.value === '') {
-                    const { stopTime: _, ...rest } = clothoid;
-                    updateTrajectory({ shape: { ...rest, type: 'clothoid' } as TrajectoryShape });
-                  } else {
-                    updateTrajectory({
-                      shape: { ...clothoid, stopTime: parseFloat(e.target.value) || 0 },
-                    });
-                  }
-                }}
-                className="h-8 text-sm"
-              />
+            <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-1">
+                <Label className="text-xs">Start Time (s) (optional)</Label>
+                <Input
+                  type="number"
+                  value={inner.trajectory.shape.startTime ?? ''}
+                  placeholder="--"
+                  step="any"
+                  onChange={(e) => {
+                    const clothoid = inner.trajectory.shape as Extract<TrajectoryShape, { type: 'clothoid' }>;
+                    if (e.target.value === '') {
+                      const { startTime: _, ...rest } = clothoid;
+                      updateTrajectory({ shape: { ...rest, type: 'clothoid' } as TrajectoryShape });
+                    } else {
+                      updateTrajectory({
+                        shape: { ...clothoid, startTime: parseFloat(e.target.value) || 0 },
+                      });
+                    }
+                  }}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="grid gap-1">
+                <Label className="text-xs">Stop Time (s) (optional)</Label>
+                <Input
+                  type="number"
+                  value={inner.trajectory.shape.stopTime ?? ''}
+                  placeholder="--"
+                  step="any"
+                  onChange={(e) => {
+                    const clothoid = inner.trajectory.shape as Extract<TrajectoryShape, { type: 'clothoid' }>;
+                    if (e.target.value === '') {
+                      const { stopTime: _, ...rest } = clothoid;
+                      updateTrajectory({ shape: { ...rest, type: 'clothoid' } as TrajectoryShape });
+                    } else {
+                      updateTrajectory({
+                        shape: { ...clothoid, stopTime: parseFloat(e.target.value) || 0 },
+                      });
+                    }
+                  }}
+                  className="h-8 text-sm"
+                />
+              </div>
             </div>
           </div>
         )}

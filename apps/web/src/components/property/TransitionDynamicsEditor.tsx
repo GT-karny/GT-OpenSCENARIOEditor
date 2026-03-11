@@ -7,14 +7,14 @@ import { DYNAMICS_DIMENSIONS, DYNAMICS_SHAPES } from '../../constants/osc-enum-v
 /*  SVG curve paths for each DynamicsShape (viewBox 0 0 16 16)        */
 /* ------------------------------------------------------------------ */
 
-const SHAPE_PATHS: Record<DynamicsShape, string> = {
+export const SHAPE_PATHS: Record<DynamicsShape, string> = {
   linear: 'M2,14 L14,2',
   cubic: 'M2,14 C2,6 14,10 14,2',
   sinusoidal: 'M2,14 C6,14 6,2 8,2 C10,2 10,14 14,2',
   step: 'M2,14 H8 V2 H14',
 };
 
-const SHAPE_LABELS: Record<DynamicsShape, string> = {
+export const SHAPE_LABELS: Record<DynamicsShape, string> = {
   linear: 'Linear',
   cubic: 'Cubic',
   sinusoidal: 'Sinusoidal',

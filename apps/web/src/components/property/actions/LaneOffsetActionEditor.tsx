@@ -7,8 +7,26 @@ import type {
 } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
-import { EnumSelect } from '../EnumSelect';
 import { EntityRefSelect } from '../EntityRefSelect';
+import { SegmentedControl } from '../SegmentedControl';
+import { SHAPE_PATHS, SHAPE_LABELS } from '../TransitionDynamicsEditor';
+import { DYNAMICS_SHAPES } from '../../../constants/osc-enum-values';
+
+const SHAPE_OPTIONS = ['', ...DYNAMICS_SHAPES] as const;
+
+function shapeIcon(shape: DynamicsShape) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">
+      <path
+        d={SHAPE_PATHS[shape]}
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 interface LaneOffsetActionEditorProps {
   action: ScenarioAction;
@@ -50,48 +68,52 @@ export function LaneOffsetActionEditor({ action, onUpdate }: LaneOffsetActionEdi
     <div className="space-y-3">
       <div className="space-y-2">
         <p className="text-xs font-medium text-muted-foreground">Options</p>
-        <div className="grid gap-1">
-          <Label className="text-xs">Continuous</Label>
-          <EnumSelect
-            value={String(inner.continuous)}
-            options={['false', 'true']}
-            onValueChange={(v) => updateInner({ continuous: v === 'true' })}
-            className="h-8 text-sm"
+        <label className="flex items-center gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={inner.continuous}
+            onChange={(e) => updateInner({ continuous: e.target.checked })}
           />
-        </div>
+          Continuous
+        </label>
       </div>
 
       <div className="space-y-2">
         <p className="text-xs font-medium text-muted-foreground">Dynamics</p>
-        <div className="grid gap-1">
-          <Label className="text-xs">Max Speed (optional)</Label>
-          <Input
-            type="number"
-            value={dynamics.maxSpeed ?? ''}
-            placeholder="—"
-            step="any"
-            onChange={(e) => updateDynamicsNum('maxSpeed', e.target.value)}
-            className="h-8 text-sm"
-          />
+        <div className="grid grid-cols-2 gap-2">
+          <div className="grid gap-1">
+            <Label className="text-[10px]">Max Speed (m/s)</Label>
+            <Input
+              type="number"
+              value={dynamics.maxSpeed ?? ''}
+              placeholder="—"
+              step="any"
+              onChange={(e) => updateDynamicsNum('maxSpeed', e.target.value)}
+              className="h-7 text-xs"
+            />
+          </div>
+          <div className="grid gap-1">
+            <Label className="text-[10px]">Max Lateral Acc (m/s²)</Label>
+            <Input
+              type="number"
+              value={dynamics.maxLateralAcc ?? ''}
+              placeholder="—"
+              step="any"
+              onChange={(e) => updateDynamicsNum('maxLateralAcc', e.target.value)}
+              className="h-7 text-xs"
+            />
+          </div>
         </div>
         <div className="grid gap-1">
-          <Label className="text-xs">Max Lateral Acc (optional)</Label>
-          <Input
-            type="number"
-            value={dynamics.maxLateralAcc ?? ''}
-            placeholder="—"
-            step="any"
-            onChange={(e) => updateDynamicsNum('maxLateralAcc', e.target.value)}
-            className="h-8 text-sm"
-          />
-        </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Dynamics Shape (optional)</Label>
-          <EnumSelect
+          <Label className="text-xs">Shape (optional)</Label>
+          <SegmentedControl
             value={dynamics.dynamicsShape ?? ''}
-            options={['', 'cubic', 'linear', 'sinusoidal', 'step']}
+            options={SHAPE_OPTIONS}
             onValueChange={updateDynamicsShape}
-            className="h-8 text-sm"
+            labels={{ '': '—', ...SHAPE_LABELS }}
+            icons={Object.fromEntries(
+              DYNAMICS_SHAPES.map((s) => [s, shapeIcon(s)]),
+            ) as Record<string, React.ReactNode>}
           />
         </div>
       </div>
@@ -100,9 +122,9 @@ export function LaneOffsetActionEditor({ action, onUpdate }: LaneOffsetActionEdi
         <p className="text-xs font-medium text-muted-foreground">Target</p>
         <div className="grid gap-1">
           <Label className="text-xs">Kind</Label>
-          <EnumSelect
+          <SegmentedControl
             value={inner.target.kind}
-            options={['absolute', 'relative']}
+            options={['absolute', 'relative'] as const}
             onValueChange={(v) => {
               if (v === 'absolute') {
                 updateInner({ target: { kind: 'absolute', value: 0 } });
@@ -110,7 +132,7 @@ export function LaneOffsetActionEditor({ action, onUpdate }: LaneOffsetActionEdi
                 updateInner({ target: { kind: 'relative', entityRef: '', value: 0 } });
               }
             }}
-            className="h-8 text-sm"
+            labels={{ absolute: 'Absolute', relative: 'Relative' }}
           />
         </div>
         <div className="grid gap-1">

@@ -2,7 +2,7 @@ import type { ScenarioAction, SpeedAction, SpeedTarget } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefSelect } from '../EntityRefSelect';
-import { EnumSelect } from '../EnumSelect';
+import { SegmentedControl } from '../SegmentedControl';
 import { TransitionDynamicsEditor } from '../TransitionDynamicsEditor';
 
 interface SpeedActionEditorProps {
@@ -29,9 +29,9 @@ export function SpeedActionEditor({ action, onUpdate }: SpeedActionEditorProps) 
         <p className="text-xs font-medium text-muted-foreground">Target</p>
         <div className="grid gap-1">
           <Label className="text-xs">Kind</Label>
-          <EnumSelect
+          <SegmentedControl
             value={inner.target.kind}
-            options={['absolute', 'relative']}
+            options={['absolute', 'relative'] as const}
             onValueChange={(v) => {
               if (v === 'absolute') {
                 updateInner({ target: { kind: 'absolute', value: 0 } });
@@ -39,7 +39,7 @@ export function SpeedActionEditor({ action, onUpdate }: SpeedActionEditorProps) 
                 updateInner({ target: { kind: 'relative', entityRef: '', value: 0, speedTargetValueType: 'delta', continuous: false } });
               }
             }}
-            className="h-8 text-sm"
+            labels={{ absolute: 'Absolute', relative: 'Relative' }}
           />
         </div>
         {inner.target.kind === 'absolute' && (
@@ -70,43 +70,41 @@ export function SpeedActionEditor({ action, onUpdate }: SpeedActionEditorProps) 
             </div>
             <div className="grid gap-1">
               <Label className="text-xs">Value</Label>
-              <ParameterAwareInput
-                elementId={action.id}
-                fieldName="action.target.value"
-                value={relTarget.value}
-                onValueChange={(v) =>
-                  updateInner({ target: { ...relTarget, value: parseFloat(v) || 0 } })
-                }
-                acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
-                className="h-8 text-sm"
-              />
+              <div className="flex gap-1">
+                <ParameterAwareInput
+                  elementId={action.id}
+                  fieldName="action.target.value"
+                  value={relTarget.value}
+                  onValueChange={(v) =>
+                    updateInner({ target: { ...relTarget, value: parseFloat(v) || 0 } })
+                  }
+                  acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
+                  className="h-8 text-sm flex-1 min-w-0"
+                />
+                <SegmentedControl
+                  value={relTarget.speedTargetValueType}
+                  options={['delta', 'factor'] as const}
+                  onValueChange={(v) =>
+                    updateInner({
+                      target: { ...relTarget, speedTargetValueType: v },
+                    })
+                  }
+                  className="shrink-0"
+                />
+              </div>
             </div>
-            <div className="grid gap-1">
-              <Label className="text-xs">Value Type</Label>
-              <EnumSelect
-                value={relTarget.speedTargetValueType}
-                options={['delta', 'factor']}
-                onValueChange={(v) =>
+            <label className="flex items-center gap-2 text-xs">
+              <input
+                type="checkbox"
+                checked={relTarget.continuous}
+                onChange={(e) =>
                   updateInner({
-                    target: { ...relTarget, speedTargetValueType: v as 'delta' | 'factor' },
+                    target: { ...relTarget, continuous: e.target.checked },
                   })
                 }
-                className="h-8 text-sm"
               />
-            </div>
-            <div className="grid gap-1">
-              <Label className="text-xs">Continuous</Label>
-              <EnumSelect
-                value={String(relTarget.continuous)}
-                options={['false', 'true']}
-                onValueChange={(v) =>
-                  updateInner({
-                    target: { ...relTarget, continuous: v === 'true' },
-                  })
-                }
-                className="h-8 text-sm"
-              />
-            </div>
+              Continuous
+            </label>
           </>
         )}
       </div>

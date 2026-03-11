@@ -2,6 +2,7 @@ import type { ScenarioAction, LightStateAction } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { EnumSelect } from '../EnumSelect';
+import { SegmentedControl } from '../SegmentedControl';
 
 interface LightStateActionEditorProps {
   action: ScenarioAction;
@@ -44,9 +45,9 @@ export function LightStateActionEditor({ action, onUpdate }: LightStateActionEdi
         <p className="text-xs font-medium text-muted-foreground">Light Type</p>
         <div className="grid gap-1">
           <Label className="text-xs">Category</Label>
-          <EnumSelect
+          <SegmentedControl
             value={lightCategory}
-            options={['vehicleLight', 'userDefinedLight']}
+            options={['vehicleLight', 'userDefinedLight'] as const}
             onValueChange={(v) => {
               if (v === 'vehicleLight') {
                 updateInner({ lightType: `vehicleLight:${VEHICLE_LIGHT_TYPES[0]}` });
@@ -54,7 +55,7 @@ export function LightStateActionEditor({ action, onUpdate }: LightStateActionEdi
                 updateInner({ lightType: '' });
               }
             }}
-            className="h-8 text-sm"
+            labels={{ vehicleLight: 'Vehicle', userDefinedLight: 'User Defined' }}
           />
         </div>
 
@@ -87,16 +88,16 @@ export function LightStateActionEditor({ action, onUpdate }: LightStateActionEdi
         <p className="text-xs font-medium text-muted-foreground">Light State</p>
         <div className="grid gap-1">
           <Label className="text-xs">Mode</Label>
-          <EnumSelect
+          <SegmentedControl
             value={inner.mode}
-            options={['on', 'off', 'flashing']}
+            options={['on', 'off', 'flashing'] as const}
             onValueChange={(v) => updateInner({ mode: v as LightStateAction['mode'] })}
-            className="h-8 text-sm"
+            labels={{ on: 'On', off: 'Off', flashing: 'Flashing' }}
           />
         </div>
 
         <div className="grid gap-1">
-          <Label className="text-xs">Luminous Intensity (optional)</Label>
+          <Label className="text-xs">Luminous Intensity (cd) (optional)</Label>
           <Input
             type="number"
             value={inner.intensity ?? ''}
@@ -115,7 +116,7 @@ export function LightStateActionEditor({ action, onUpdate }: LightStateActionEdi
         </div>
 
         <div className="grid gap-1">
-          <Label className="text-xs">Transition Time (s, optional)</Label>
+          <Label className="text-xs">Transition Time (s) (optional)</Label>
           <Input
             type="number"
             value={inner.transitionTime ?? ''}
