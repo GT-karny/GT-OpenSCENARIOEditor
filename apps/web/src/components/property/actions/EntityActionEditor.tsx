@@ -1,7 +1,7 @@
 import type { ScenarioAction, EntityAction, Position } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
 import { EnumSelect } from '../EnumSelect';
+import { EntityRefSelect } from '../EntityRefSelect';
 import { PositionEditor } from '../PositionEditor';
 
 interface EntityActionEditorProps {
@@ -32,11 +32,9 @@ export function EntityActionEditor({ action, onUpdate }: EntityActionEditorProps
     <div className="space-y-3">
       <div className="grid gap-1">
         <Label className="text-xs">Entity Ref</Label>
-        <Input
+        <EntityRefSelect
           value={inner.entityRef}
-          placeholder="entity name"
-          onChange={(e) => updateInner({ entityRef: e.target.value })}
-          className="h-8 text-sm"
+          onValueChange={(v) => updateInner({ entityRef: v })}
         />
       </div>
 

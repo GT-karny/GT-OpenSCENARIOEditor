@@ -1,7 +1,7 @@
 import type { Condition, ByEntityCondition, RelativeClearanceCondition } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
 import { ParameterAwareInput } from '../ParameterAwareInput';
+import { EntityRefMultiSelect } from '../EntityRefMultiSelect';
 
 interface RelativeClearanceConditionEditorProps {
   condition: Condition;
@@ -50,18 +50,10 @@ export function RelativeClearanceConditionEditor({
           </Label>
         </div>
         <div className="grid gap-1">
-          <Label className="text-xs">Entity Refs (comma-separated)</Label>
-          <Input
-            value={cond.entityRefs.join(', ')}
-            onChange={(e) =>
-              update({
-                entityRefs: e.target.value
-                  .split(',')
-                  .map((s) => s.trim())
-                  .filter(Boolean),
-              })
-            }
-            className="h-8 text-sm"
+          <Label className="text-xs">Entity Refs</Label>
+          <EntityRefMultiSelect
+            value={cond.entityRefs}
+            onValueChange={(refs) => update({ entityRefs: refs })}
           />
         </div>
         <div className="grid gap-1">

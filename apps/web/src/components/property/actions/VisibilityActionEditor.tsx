@@ -1,6 +1,6 @@
 import type { ScenarioAction, VisibilityAction } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
+import { EntityRefSelect } from '../EntityRefSelect';
 
 interface VisibilityActionEditorProps {
   action: ScenarioAction;
@@ -50,20 +50,20 @@ export function VisibilityActionEditor({ action, onUpdate }: VisibilityActionEdi
 
       <div className="grid gap-1">
         <Label className="text-xs">Entity Ref (optional)</Label>
-        <Input
+        <EntityRefSelect
           value={inner.entityRef ?? ''}
-          placeholder="--"
-          onChange={(e) => {
-            if (e.target.value === '') {
+          onValueChange={(v) => {
+            if (v === '') {
               const { entityRef: _, ...rest } = inner;
               onUpdate({
                 action: { ...rest },
               } as Partial<ScenarioAction>);
             } else {
-              updateInner({ entityRef: e.target.value });
+              updateInner({ entityRef: v });
             }
           }}
-          className="h-8 text-sm"
+          allowEmpty
+          placeholder="--"
         />
       </div>
     </div>

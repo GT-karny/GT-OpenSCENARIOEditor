@@ -1,6 +1,7 @@
 import type { ScenarioAction, SpeedAction, SpeedTarget, TransitionDynamics } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
+import { EntityRefSelect } from '../EntityRefSelect';
 import { EnumSelect } from '../EnumSelect';
 import { DYNAMICS_SHAPES } from '../../../constants/osc-enum-values';
 
@@ -99,13 +100,11 @@ export function SpeedActionEditor({ action, onUpdate }: SpeedActionEditorProps) 
           <>
             <div className="grid gap-1">
               <Label className="text-xs">Entity Ref</Label>
-              <ParameterAwareInput
+              <EntityRefSelect
                 value={relTarget.entityRef}
                 onValueChange={(v) =>
                   updateInner({ target: { ...relTarget, entityRef: v } })
                 }
-                acceptedTypes={['string']}
-                className="h-8 text-sm"
               />
             </div>
             <div className="grid gap-1">

@@ -1,6 +1,7 @@
 import type { Condition, ByEntityCondition, RelativeSpeedCondition, DirectionalDimension } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
+import { EntityRefSelect } from '../EntityRefSelect';
 import { EnumSelect } from '../EnumSelect';
 import { RULES } from '../../../constants/osc-enum-values';
 
@@ -27,13 +28,9 @@ export function RelativeSpeedConditionEditor({ condition, onUpdate }: RelativeSp
         <p className="text-xs font-medium text-muted-foreground">Relative Speed</p>
         <div className="grid gap-1">
           <Label className="text-xs">Entity Ref</Label>
-          <ParameterAwareInput
-            elementId={condition.id}
-            fieldName="entityRef"
+          <EntityRefSelect
             value={cond.entityRef}
             onValueChange={(v) => update({ entityRef: v })}
-            acceptedTypes={['string']}
-            className="h-8 text-sm"
           />
         </div>
         <div className="grid gap-1">

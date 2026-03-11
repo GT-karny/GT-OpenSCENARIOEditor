@@ -7,6 +7,7 @@ import type {
 } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
+import { EntityRefSelect } from '../EntityRefSelect';
 import { EnumSelect } from '../EnumSelect';
 
 const LONGITUDINAL_DISPLACEMENTS = ['any', 'trailingReferencedEntity', 'leadingReferencedEntity'] as const;
@@ -52,11 +53,9 @@ export function LongitudinalDistanceActionEditor({ action, onUpdate }: Longitudi
         <p className="text-xs font-medium text-muted-foreground">Reference</p>
         <div className="grid gap-1">
           <Label className="text-xs">Entity Ref</Label>
-          <ParameterAwareInput
+          <EntityRefSelect
             value={inner.entityRef}
             onValueChange={(v) => updateInner({ entityRef: v })}
-            acceptedTypes={['string']}
-            className="h-8 text-sm"
           />
         </div>
       </div>

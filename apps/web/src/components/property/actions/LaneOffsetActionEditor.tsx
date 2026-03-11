@@ -8,6 +8,7 @@ import type {
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { EnumSelect } from '../EnumSelect';
+import { EntityRefSelect } from '../EntityRefSelect';
 
 interface LaneOffsetActionEditorProps {
   action: ScenarioAction;
@@ -128,14 +129,13 @@ export function LaneOffsetActionEditor({ action, onUpdate }: LaneOffsetActionEdi
         {inner.target.kind === 'relative' && (
           <div className="grid gap-1">
             <Label className="text-xs">Entity Ref</Label>
-            <Input
+            <EntityRefSelect
               value={inner.target.entityRef}
-              onChange={(e) =>
+              onValueChange={(v) =>
                 updateInner({
-                  target: { ...inner.target, entityRef: e.target.value } as LaneOffsetTarget,
+                  target: { ...inner.target, entityRef: v } as LaneOffsetTarget,
                 })
               }
-              className="h-8 text-sm"
             />
           </div>
         )}

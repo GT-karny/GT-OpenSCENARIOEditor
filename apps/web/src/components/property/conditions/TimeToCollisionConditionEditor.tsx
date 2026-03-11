@@ -9,6 +9,7 @@ import type {
 } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
+import { EntityRefSelect } from '../EntityRefSelect';
 import { EnumSelect } from '../EnumSelect';
 import { PositionEditor } from '../PositionEditor';
 import { RULES } from '../../../constants/osc-enum-values';
@@ -100,13 +101,9 @@ export function TimeToCollisionConditionEditor({ condition, onUpdate }: TimeToCo
         {cond.target.kind === 'entity' && (
           <div className="grid gap-1">
             <Label className="text-xs">Target Entity Ref</Label>
-            <ParameterAwareInput
-              elementId={condition.id}
-              fieldName="targetEntityRef"
+            <EntityRefSelect
               value={(cond.target as Extract<TimeToCollisionTarget, { kind: 'entity' }>).entityRef}
-              onValueChange={(v) => handleEntityRefChange(v)}
-              acceptedTypes={['string']}
-              className="h-8 text-sm"
+              onValueChange={handleEntityRefChange}
             />
           </div>
         )}

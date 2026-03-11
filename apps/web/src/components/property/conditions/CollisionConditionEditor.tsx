@@ -6,6 +6,7 @@ import type {
 } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
+import { EntityRefSelect } from '../EntityRefSelect';
 import { EnumSelect } from '../EnumSelect';
 
 const TARGET_KINDS = ['entity', 'objectType'] as const;
@@ -53,13 +54,9 @@ export function CollisionConditionEditor({
         {cond.target.kind === 'entity' && (
           <div className="grid gap-1">
             <Label className="text-xs">Entity Ref</Label>
-            <ParameterAwareInput
-              elementId={condition.id}
-              fieldName="entityRef"
+            <EntityRefSelect
               value={cond.target.entityRef}
               onValueChange={(v) => updateTarget({ kind: 'entity', entityRef: v })}
-              acceptedTypes={['string']}
-              className="h-8 text-sm"
             />
           </div>
         )}

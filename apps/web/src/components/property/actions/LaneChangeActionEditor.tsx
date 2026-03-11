@@ -1,6 +1,7 @@
 import type { ScenarioAction, LaneChangeAction, TransitionDynamics } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
+import { EntityRefSelect } from '../EntityRefSelect';
 import { EnumSelect } from '../EnumSelect';
 import { DYNAMICS_SHAPES } from '../../../constants/osc-enum-values';
 
@@ -95,13 +96,11 @@ export function LaneChangeActionEditor({ action, onUpdate }: LaneChangeActionEdi
           <>
             <div className="grid gap-1">
               <Label className="text-xs">Entity Ref</Label>
-              <ParameterAwareInput
+              <EntityRefSelect
                 value={inner.target.entityRef}
                 onValueChange={(v) =>
                   updateInner({ target: { ...inner.target, entityRef: v } as typeof inner.target })
                 }
-                acceptedTypes={['string']}
-                className="h-8 text-sm"
               />
             </div>
             <div className="grid gap-1">
