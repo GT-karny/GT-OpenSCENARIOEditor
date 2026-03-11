@@ -1,8 +1,9 @@
 import type { Condition, ByEntityCondition, SpeedCondition, DirectionalDimension } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
-import { EnumSelect } from '../EnumSelect';
-import { RULES } from '../../../constants/osc-enum-values';
+import { RuleSegmentedControl } from '../RuleSegmentedControl';
+import { SegmentedControl } from '../SegmentedControl';
+import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
 
 const DIRECTIONAL_DIMENSIONS = ['longitudinal', 'lateral', 'vertical'] as const;
 
@@ -21,49 +22,46 @@ export function SpeedConditionEditor({ condition, onUpdate }: SpeedConditionEdit
     } as Partial<Condition>);
   };
 
+  const clearDirection = () => {
+    const { direction: _d, ...rest } = cond;
+    onUpdate(condition.id, {
+      condition: { ...inner, entityCondition: rest as SpeedCondition },
+    } as Partial<Condition>);
+  };
+
   return (
-    <div className="space-y-3">
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Speed</p>
-        <div className="grid gap-1">
-          <Label className="text-xs">Value (m/s)</Label>
+    <div className="space-y-2">
+      <p className="text-xs font-medium text-muted-foreground">Speed</p>
+      <div className="grid gap-1">
+        <Label className="text-[10px]">Value (m/s)</Label>
+        <div className="flex gap-1">
           <ParameterAwareInput
             elementId={condition.id}
             fieldName="value"
             value={cond.value}
             onValueChange={(v) => update({ value: parseFloat(v) || 0 })}
             acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
-            className="h-8 text-sm"
+            className="h-7 text-xs flex-1 min-w-0"
           />
-        </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Rule</Label>
-          <EnumSelect
+          <RuleSegmentedControl
             value={cond.rule}
-            options={RULES}
-            onValueChange={(v) => update({ rule: v as SpeedCondition['rule'] })}
-            className="h-8 text-sm"
-          />
-        </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Direction (optional)</Label>
-          <EnumSelect
-            value={cond.direction ?? ''}
-            options={['', ...DIRECTIONAL_DIMENSIONS]}
-            onValueChange={(v) => {
-              if (v === '') {
-                const { direction: _d, ...rest } = cond;
-                onUpdate(condition.id, {
-                  condition: { ...inner, entityCondition: rest as SpeedCondition },
-                } as Partial<Condition>);
-              } else {
-                update({ direction: v as DirectionalDimension });
-              }
-            }}
-            className="h-8 text-sm"
+            onValueChange={(v) => update({ rule: v })}
+            className="shrink-0"
           />
         </div>
       </div>
+      <OptionalFieldWrapper
+        label="Direction"
+        hasValue={cond.direction !== undefined}
+        onClear={clearDirection}
+      >
+        <SegmentedControl
+          value={cond.direction ?? 'longitudinal'}
+          options={DIRECTIONAL_DIMENSIONS}
+          onValueChange={(v) => update({ direction: v as DirectionalDimension })}
+          labels={{ longitudinal: 'Long', lateral: 'Lat', vertical: 'Vert' }}
+        />
+      </OptionalFieldWrapper>
     </div>
   );
 }

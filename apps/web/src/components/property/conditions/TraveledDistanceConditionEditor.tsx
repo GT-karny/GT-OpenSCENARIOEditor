@@ -22,14 +22,14 @@ export function TraveledDistanceConditionEditor({ condition, onUpdate }: Travele
       <div className="space-y-2">
         <p className="text-xs font-medium text-muted-foreground">Traveled Distance</p>
         <div className="grid gap-1">
-          <Label className="text-xs">Value (m)</Label>
+          <Label className="text-[10px]">Value (m)</Label>
           <ParameterAwareInput
             elementId={condition.id}
             fieldName="value"
             value={cond.value}
             onValueChange={(v) => update({ value: parseFloat(v) || 0 })}
             acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
-            className="h-8 text-sm"
+            className="h-7 text-xs"
           />
         </div>
       </div>

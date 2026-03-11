@@ -2,6 +2,7 @@ import type { Condition, ByEntityCondition, RelativeClearanceCondition } from '@
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefMultiSelect } from '../EntityRefMultiSelect';
+import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
 
 interface RelativeClearanceConditionEditorProps {
   condition: Condition;
@@ -22,89 +23,90 @@ export function RelativeClearanceConditionEditor({
   };
 
   return (
-    <div className="space-y-3">
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Relative Clearance</p>
-        <div className="flex items-center gap-2">
+    <div className="space-y-2">
+      <p className="text-xs font-medium text-muted-foreground">Relative Clearance</p>
+      <div className="flex gap-4">
+        <label className="flex items-center gap-2 text-xs">
           <input
             type="checkbox"
-            id={`${condition.id}-freeSpace`}
             checked={cond.freeSpace}
             onChange={(e) => update({ freeSpace: e.target.checked })}
-            className="size-3.5"
           />
-          <Label htmlFor={`${condition.id}-freeSpace`} className="text-xs">
-            Free Space
-          </Label>
-        </div>
-        <div className="flex items-center gap-2">
+          Free Space
+        </label>
+        <label className="flex items-center gap-2 text-xs">
           <input
             type="checkbox"
-            id={`${condition.id}-oppositeLanes`}
             checked={cond.oppositeLanes}
             onChange={(e) => update({ oppositeLanes: e.target.checked })}
-            className="size-3.5"
           />
-          <Label htmlFor={`${condition.id}-oppositeLanes`} className="text-xs">
-            Opposite Lanes
-          </Label>
-        </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Entity Refs</Label>
-          <EntityRefMultiSelect
-            value={cond.entityRefs}
-            onValueChange={(refs) => update({ entityRefs: refs })}
-          />
-        </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Distance Forward (m, optional)</Label>
-          <ParameterAwareInput
-            elementId={condition.id}
-            fieldName="distanceForward"
-            value={cond.distanceForward ?? ''}
-            onValueChange={(v) => {
-              const num = parseFloat(v);
-              if (v === '' || isNaN(num)) {
-                const { distanceForward: _df, ...rest } = cond;
-                onUpdate(condition.id, {
-                  condition: {
-                    ...inner,
-                    entityCondition: rest as RelativeClearanceCondition,
-                  },
-                } as Partial<Condition>);
-              } else {
-                update({ distanceForward: num });
-              }
-            }}
-            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
-            className="h-8 text-sm"
-          />
-        </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Distance Backward (m, optional)</Label>
-          <ParameterAwareInput
-            elementId={condition.id}
-            fieldName="distanceBackward"
-            value={cond.distanceBackward ?? ''}
-            onValueChange={(v) => {
-              const num = parseFloat(v);
-              if (v === '' || isNaN(num)) {
-                const { distanceBackward: _db, ...rest } = cond;
-                onUpdate(condition.id, {
-                  condition: {
-                    ...inner,
-                    entityCondition: rest as RelativeClearanceCondition,
-                  },
-                } as Partial<Condition>);
-              } else {
-                update({ distanceBackward: num });
-              }
-            }}
-            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
-            className="h-8 text-sm"
-          />
-        </div>
+          Opposite Lanes
+        </label>
       </div>
+      <div className="grid gap-1">
+        <Label className="text-[10px]">Entity Refs</Label>
+        <EntityRefMultiSelect
+          value={cond.entityRefs}
+          onValueChange={(refs) => update({ entityRefs: refs })}
+        />
+      </div>
+      <OptionalFieldWrapper
+        label="Distances"
+        hasValue={cond.distanceForward !== undefined || cond.distanceBackward !== undefined}
+        onClear={() => {
+          const { distanceForward: _df, distanceBackward: _db, ...rest } = cond;
+          onUpdate(condition.id, {
+            condition: { ...inner, entityCondition: rest as RelativeClearanceCondition },
+          } as Partial<Condition>);
+        }}
+      >
+        <div className="grid grid-cols-2 gap-2">
+          <div className="grid gap-1">
+            <Label className="text-[10px]">Forward (m)</Label>
+            <ParameterAwareInput
+              elementId={condition.id}
+              fieldName="distanceForward"
+              value={cond.distanceForward ?? ''}
+              placeholder="—"
+              onValueChange={(v) => {
+                const num = parseFloat(v);
+                if (v === '' || isNaN(num)) {
+                  const { distanceForward: _df, ...rest } = cond;
+                  onUpdate(condition.id, {
+                    condition: { ...inner, entityCondition: rest as RelativeClearanceCondition },
+                  } as Partial<Condition>);
+                } else {
+                  update({ distanceForward: num });
+                }
+              }}
+              acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
+              className="h-7 text-xs"
+            />
+          </div>
+          <div className="grid gap-1">
+            <Label className="text-[10px]">Backward (m)</Label>
+            <ParameterAwareInput
+              elementId={condition.id}
+              fieldName="distanceBackward"
+              value={cond.distanceBackward ?? ''}
+              placeholder="—"
+              onValueChange={(v) => {
+                const num = parseFloat(v);
+                if (v === '' || isNaN(num)) {
+                  const { distanceBackward: _db, ...rest } = cond;
+                  onUpdate(condition.id, {
+                    condition: { ...inner, entityCondition: rest as RelativeClearanceCondition },
+                  } as Partial<Condition>);
+                } else {
+                  update({ distanceBackward: num });
+                }
+              }}
+              acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
+              className="h-7 text-xs"
+            />
+          </div>
+        </div>
+      </OptionalFieldWrapper>
     </div>
   );
 }

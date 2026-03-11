@@ -1,6 +1,6 @@
 import type { Condition, ByEntityCondition, ReachPositionCondition } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 import { PositionEditor } from '../PositionEditor';
 
 interface ReachPositionConditionEditorProps {
@@ -23,12 +23,14 @@ export function ReachPositionConditionEditor({ condition, onUpdate }: ReachPosit
       <div className="space-y-2">
         <p className="text-xs font-medium text-muted-foreground">Reach Position</p>
         <div className="grid gap-1">
-          <Label className="text-xs">Tolerance (m)</Label>
-          <Input
-            type="number"
+          <Label className="text-[10px]">Tolerance (m)</Label>
+          <ParameterAwareInput
+            elementId={condition.id}
+            fieldName="tolerance"
             value={cond.tolerance}
-            onChange={(e) => update({ tolerance: parseFloat(e.target.value) || 0 })}
-            className="h-8 text-sm"
+            onValueChange={(v) => update({ tolerance: parseFloat(v) || 0 })}
+            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
+            className="h-7 text-xs"
           />
         </div>
       </div>

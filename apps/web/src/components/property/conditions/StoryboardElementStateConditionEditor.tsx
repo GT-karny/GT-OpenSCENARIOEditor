@@ -48,29 +48,29 @@ export function StoryboardElementStateConditionEditor({ condition, onUpdate }: S
       <div className="space-y-2">
         <p className="text-xs font-medium text-muted-foreground">Storyboard Element State</p>
         <div className="grid gap-1">
-          <Label className="text-xs">Storyboard Element Ref</Label>
+          <Label className="text-[10px]">Storyboard Element Ref</Label>
           <Input
             value={cond.storyboardElementRef}
             onChange={(e) => update({ storyboardElementRef: e.target.value })}
-            className="h-8 text-sm"
+            className="h-7 text-xs"
           />
         </div>
         <div className="grid gap-1">
-          <Label className="text-xs">Storyboard Element Type</Label>
+          <Label className="text-[10px]">Storyboard Element Type</Label>
           <EnumSelect
             value={cond.storyboardElementType}
             options={STORYBOARD_ELEMENT_TYPES}
             onValueChange={(v) => update({ storyboardElementType: v as StoryboardElementType })}
-            className="h-8 text-sm"
+            className="h-7 text-xs"
           />
         </div>
         <div className="grid gap-1">
-          <Label className="text-xs">State</Label>
+          <Label className="text-[10px]">State</Label>
           <EnumSelect
             value={cond.state}
             options={STORYBOARD_ELEMENT_STATES}
             onValueChange={(v) => update({ state: v as StoryboardElementState })}
-            className="h-8 text-sm"
+            className="h-7 text-xs"
           />
         </div>
       </div>

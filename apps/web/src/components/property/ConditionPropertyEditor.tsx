@@ -7,17 +7,18 @@ import type {
   ByValueCondition,
   EntityCondition,
   ValueCondition,
+  Rule,
 } from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { ParameterAwareInput } from './ParameterAwareInput';
-import { EnumSelect } from './EnumSelect';
 import { PositionEditor } from './PositionEditor';
+import { SegmentedControl } from './SegmentedControl';
+import { RuleSegmentedControl } from './RuleSegmentedControl';
 import { defaultEntityConditionByType, defaultValueConditionByType } from '@osce/scenario-engine';
 import {
   CONDITION_EDGES,
-  RULES,
   ENTITY_CONDITION_TYPES,
   CONDITION_SUBCATEGORIES,
 } from '../../constants/osc-enum-values';
@@ -308,35 +309,43 @@ export function ConditionItem({ condition, onUpdateCondition }: ConditionItemPro
 
   return (
     <div className="space-y-2 border-b pb-3">
-      <div className="grid gap-1">
-        <Label className="text-xs">Name</Label>
-        <Input value={condition.name} readOnly className="h-8 text-sm bg-muted" />
-      </div>
+      {condition.name && (
+        <div className="grid gap-1">
+          <Label className="text-[10px]">Name</Label>
+          <Input value={condition.name} readOnly className="h-7 text-xs bg-muted" />
+        </div>
+      )}
 
-      <div className="grid gap-1">
-        <Label className="text-xs">Delay (s)</Label>
-        <ParameterAwareInput
-          elementId={condition.id}
-          fieldName="delay"
-          value={condition.delay}
-          onValueChange={(v) =>
-            onUpdateCondition(condition.id, {
-              delay: parseFloat(v) || 0,
-            })
-          }
-          acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
-          className="h-8 text-sm"
-        />
-      </div>
-
-      <div className="grid gap-1">
-        <Label className="text-xs">Condition Edge</Label>
-        <EnumSelect
-          value={condition.conditionEdge}
-          options={CONDITION_EDGES}
-          onValueChange={handleConditionEdgeChange}
-          className="h-8 text-sm"
-        />
+      <div className="flex gap-2 items-end">
+        <div className="grid gap-1 flex-1 min-w-0">
+          <Label className="text-[10px]">Delay (s)</Label>
+          <ParameterAwareInput
+            elementId={condition.id}
+            fieldName="delay"
+            value={condition.delay}
+            onValueChange={(v) =>
+              onUpdateCondition(condition.id, {
+                delay: parseFloat(v) || 0,
+              })
+            }
+            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
+            className="h-7 text-xs"
+          />
+        </div>
+        <div className="grid gap-1 shrink-0">
+          <Label className="text-[10px]">Edge</Label>
+          <SegmentedControl
+            value={condition.conditionEdge}
+            options={CONDITION_EDGES}
+            onValueChange={(v) => handleConditionEdgeChange(v)}
+            labels={{
+              rising: '↑ Rise',
+              falling: '↓ Fall',
+              risingOrFalling: '↕ Both',
+              none: '— None',
+            }}
+          />
+        </div>
       </div>
 
       {/* Subcategory — SegmentedControl tabs */}
@@ -398,12 +407,10 @@ export function ConditionItem({ condition, onUpdateCondition }: ConditionItemPro
 
       {hasRule && currentRule !== undefined && !DEDICATED_EDITOR_TYPES.has(conditionType) && (
         <div className="grid gap-1">
-          <Label className="text-xs">Rule</Label>
-          <EnumSelect
-            value={currentRule}
-            options={RULES}
-            onValueChange={handleRuleChange}
-            className="h-8 text-sm"
+          <Label className="text-[10px]">Rule</Label>
+          <RuleSegmentedControl
+            value={currentRule as Rule}
+            onValueChange={(v) => handleRuleChange(v)}
           />
         </div>
       )}

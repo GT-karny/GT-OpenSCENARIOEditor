@@ -25,21 +25,21 @@ export function TrafficSignalConditionEditor({
       <div className="space-y-2">
         <p className="text-xs font-medium text-muted-foreground">Traffic Signal Condition</p>
         <div className="grid gap-1">
-          <Label className="text-xs">Signal Name</Label>
+          <Label className="text-[10px]">Signal Name</Label>
           <Input
             value={cond.name}
             placeholder="signal name"
             onChange={(e) => update({ name: e.target.value })}
-            className="h-8 text-sm"
+            className="h-7 text-xs"
           />
         </div>
         <div className="grid gap-1">
-          <Label className="text-xs">State</Label>
+          <Label className="text-[10px]">State</Label>
           <Input
             value={cond.state}
             placeholder="e.g. red, green, yellow"
             onChange={(e) => update({ state: e.target.value })}
-            className="h-8 text-sm"
+            className="h-7 text-xs"
           />
         </div>
       </div>

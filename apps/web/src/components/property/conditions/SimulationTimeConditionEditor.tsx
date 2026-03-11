@@ -1,8 +1,7 @@
 import type { Condition, ByValueCondition, SimulationTimeCondition } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
-import { EnumSelect } from '../EnumSelect';
-import { RULES } from '../../../constants/osc-enum-values';
+import { RuleSegmentedControl } from '../RuleSegmentedControl';
 
 interface SimulationTimeConditionEditorProps {
   condition: Condition;
@@ -23,24 +22,22 @@ export function SimulationTimeConditionEditor({ condition, onUpdate }: Simulatio
     <div className="space-y-2">
       <p className="text-xs font-medium text-muted-foreground">Simulation Time</p>
       <div className="grid gap-1">
-        <Label className="text-xs">Value (s)</Label>
-        <ParameterAwareInput
-          elementId={condition.id}
-          fieldName="value"
-          value={cond.value}
-          onValueChange={(v) => update({ value: parseFloat(v) || 0 })}
-          acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
-          className="h-8 text-sm"
-        />
-      </div>
-      <div className="grid gap-1">
-        <Label className="text-xs">Rule</Label>
-        <EnumSelect
-          value={cond.rule}
-          options={RULES}
-          onValueChange={(v) => update({ rule: v as SimulationTimeCondition['rule'] })}
-          className="h-8 text-sm"
-        />
+        <Label className="text-[10px]">Value (s)</Label>
+        <div className="flex gap-1">
+          <ParameterAwareInput
+            elementId={condition.id}
+            fieldName="value"
+            value={cond.value}
+            onValueChange={(v) => update({ value: parseFloat(v) || 0 })}
+            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
+            className="h-7 text-xs flex-1 min-w-0"
+          />
+          <RuleSegmentedControl
+            value={cond.rule}
+            onValueChange={(v) => update({ rule: v })}
+            className="shrink-0"
+          />
+        </div>
       </div>
     </div>
   );

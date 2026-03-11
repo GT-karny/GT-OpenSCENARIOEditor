@@ -29,21 +29,21 @@ export function TrafficSignalControllerConditionEditor({
       <div className="space-y-2">
         <p className="text-xs font-medium text-muted-foreground">Traffic Signal Controller Condition</p>
         <div className="grid gap-1">
-          <Label className="text-xs">Controller Ref</Label>
+          <Label className="text-[10px]">Controller Ref</Label>
           <Input
             value={cond.trafficSignalControllerRef}
             placeholder="controller name"
             onChange={(e) => update({ trafficSignalControllerRef: e.target.value })}
-            className="h-8 text-sm"
+            className="h-7 text-xs"
           />
         </div>
         <div className="grid gap-1">
-          <Label className="text-xs">Phase</Label>
+          <Label className="text-[10px]">Phase</Label>
           <Input
             value={cond.phase}
             placeholder="phase name"
             onChange={(e) => update({ phase: e.target.value })}
-            className="h-8 text-sm"
+            className="h-7 text-xs"
           />
         </div>
       </div>

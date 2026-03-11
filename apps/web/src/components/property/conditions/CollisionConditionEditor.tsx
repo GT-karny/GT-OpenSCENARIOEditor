@@ -7,7 +7,7 @@ import type {
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefSelect } from '../EntityRefSelect';
-import { EnumSelect } from '../EnumSelect';
+import { SegmentedControl } from '../SegmentedControl';
 
 const TARGET_KINDS = ['entity', 'objectType'] as const;
 
@@ -39,41 +39,39 @@ export function CollisionConditionEditor({
   };
 
   return (
-    <div className="space-y-3">
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Collision</p>
+    <div className="space-y-2">
+      <p className="text-xs font-medium text-muted-foreground">Collision</p>
+      <div className="grid gap-1">
+        <Label className="text-[10px]">Target Kind</Label>
+        <SegmentedControl
+          value={cond.target.kind}
+          options={TARGET_KINDS}
+          onValueChange={handleKindChange}
+          labels={{ entity: 'Entity', objectType: 'Object Type' }}
+        />
+      </div>
+      {cond.target.kind === 'entity' && (
         <div className="grid gap-1">
-          <Label className="text-xs">Target Kind</Label>
-          <EnumSelect
-            value={cond.target.kind}
-            options={TARGET_KINDS as unknown as readonly string[]}
-            onValueChange={handleKindChange}
-            className="h-8 text-sm"
+          <Label className="text-[10px]">Entity Ref</Label>
+          <EntityRefSelect
+            value={cond.target.entityRef}
+            onValueChange={(v) => updateTarget({ kind: 'entity', entityRef: v })}
           />
         </div>
-        {cond.target.kind === 'entity' && (
-          <div className="grid gap-1">
-            <Label className="text-xs">Entity Ref</Label>
-            <EntityRefSelect
-              value={cond.target.entityRef}
-              onValueChange={(v) => updateTarget({ kind: 'entity', entityRef: v })}
-            />
-          </div>
-        )}
-        {cond.target.kind === 'objectType' && (
-          <div className="grid gap-1">
-            <Label className="text-xs">Object Type</Label>
-            <ParameterAwareInput
-              elementId={condition.id}
-              fieldName="objectType"
-              value={cond.target.objectType}
-              onValueChange={(v) => updateTarget({ kind: 'objectType', objectType: v })}
-              acceptedTypes={['string']}
-              className="h-8 text-sm"
-            />
-          </div>
-        )}
-      </div>
+      )}
+      {cond.target.kind === 'objectType' && (
+        <div className="grid gap-1">
+          <Label className="text-[10px]">Object Type</Label>
+          <ParameterAwareInput
+            elementId={condition.id}
+            fieldName="objectType"
+            value={cond.target.objectType}
+            onValueChange={(v) => updateTarget({ kind: 'objectType', objectType: v })}
+            acceptedTypes={['string']}
+            className="h-7 text-xs"
+          />
+        </div>
+      )}
     </div>
   );
 }

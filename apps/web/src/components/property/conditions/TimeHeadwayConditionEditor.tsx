@@ -2,8 +2,11 @@ import type { Condition, ByEntityCondition, TimeHeadwayCondition, CoordinateSyst
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefSelect } from '../EntityRefSelect';
-import { EnumSelect } from '../EnumSelect';
-import { RULES } from '../../../constants/osc-enum-values';
+import { RuleSegmentedControl } from '../RuleSegmentedControl';
+import { SegmentedControl } from '../SegmentedControl';
+import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
+
+const COORDINATE_SYSTEMS = ['entity', 'lane', 'road', 'trajectory'] as const;
 
 interface TimeHeadwayConditionEditorProps {
   condition: Condition;
@@ -20,7 +23,7 @@ export function TimeHeadwayConditionEditor({ condition, onUpdate }: TimeHeadwayC
     } as Partial<Condition>);
   };
 
-  const remove = (...keys: (keyof TimeHeadwayCondition)[]) => {
+  const clearField = (...keys: (keyof TimeHeadwayCondition)[]) => {
     const next = { ...cond };
     for (const k of keys) delete next[k];
     onUpdate(condition.id, {
@@ -32,63 +35,64 @@ export function TimeHeadwayConditionEditor({ condition, onUpdate }: TimeHeadwayC
     <div className="space-y-2">
       <p className="text-xs font-medium text-muted-foreground">Time Headway</p>
       <div className="grid gap-1">
-        <Label className="text-xs">Entity Ref</Label>
+        <Label className="text-[10px]">Entity Ref</Label>
         <EntityRefSelect
           value={cond.entityRef}
           onValueChange={(v) => update({ entityRef: v })}
         />
       </div>
       <div className="grid gap-1">
-        <Label className="text-xs">Value (s)</Label>
-        <ParameterAwareInput
-          elementId={condition.id}
-          fieldName="value"
-          value={cond.value}
-          onValueChange={(v) => update({ value: parseFloat(v) || 0 })}
-          acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
-          className="h-8 text-sm"
-        />
+        <Label className="text-[10px]">Value (s)</Label>
+        <div className="flex gap-1">
+          <ParameterAwareInput
+            elementId={condition.id}
+            fieldName="value"
+            value={cond.value}
+            onValueChange={(v) => update({ value: parseFloat(v) || 0 })}
+            acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
+            className="h-7 text-xs flex-1 min-w-0"
+          />
+          <RuleSegmentedControl
+            value={cond.rule}
+            onValueChange={(v) => update({ rule: v })}
+            className="shrink-0"
+          />
+        </div>
       </div>
-      <div className="grid gap-1">
-        <Label className="text-xs">Freespace</Label>
-        <EnumSelect
-          value={String(cond.freespace)}
-          options={['false', 'true']}
-          onValueChange={(v) => update({ freespace: v === 'true' })}
-          className="h-8 text-sm"
+      <label className="flex items-center gap-2 text-xs">
+        <input
+          type="checkbox"
+          checked={cond.freespace}
+          onChange={(e) => update({ freespace: e.target.checked })}
         />
-      </div>
-      <div className="grid gap-1">
-        <Label className="text-xs">Rule</Label>
-        <EnumSelect
-          value={cond.rule}
-          options={RULES}
-          onValueChange={(v) => update({ rule: v as TimeHeadwayCondition['rule'] })}
-          className="h-8 text-sm"
+        Freespace
+      </label>
+      <OptionalFieldWrapper
+        label="Coordinate System"
+        hasValue={cond.coordinateSystem !== undefined}
+        onClear={() => clearField('coordinateSystem')}
+      >
+        <SegmentedControl
+          value={cond.coordinateSystem ?? 'entity'}
+          options={COORDINATE_SYSTEMS}
+          onValueChange={(v) => update({ coordinateSystem: v as CoordinateSystemCond })}
+          labels={{ entity: 'Entity', lane: 'Lane', road: 'Road', trajectory: 'Traj' }}
         />
-      </div>
-      <div className="grid gap-1">
-        <Label className="text-xs">Coordinate System (optional)</Label>
-        <EnumSelect
-          value={cond.coordinateSystem ?? ''}
-          options={['', 'entity', 'lane', 'road', 'trajectory']}
-          onValueChange={(v) =>
-            v === '' ? remove('coordinateSystem') : update({ coordinateSystem: v as CoordinateSystemCond })
-          }
-          className="h-8 text-sm"
-        />
-      </div>
-      <div className="grid gap-1">
-        <Label className="text-xs">Along Route (optional)</Label>
-        <EnumSelect
-          value={cond.alongRoute === undefined ? '' : String(cond.alongRoute)}
-          options={['', 'false', 'true']}
-          onValueChange={(v) =>
-            v === '' ? remove('alongRoute') : update({ alongRoute: v === 'true' })
-          }
-          className="h-8 text-sm"
-        />
-      </div>
+      </OptionalFieldWrapper>
+      <OptionalFieldWrapper
+        label="Along Route"
+        hasValue={cond.alongRoute !== undefined}
+        onClear={() => clearField('alongRoute')}
+      >
+        <label className="flex items-center gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={cond.alongRoute ?? false}
+            onChange={(e) => update({ alongRoute: e.target.checked })}
+          />
+          Enabled
+        </label>
+      </OptionalFieldWrapper>
     </div>
   );
 }

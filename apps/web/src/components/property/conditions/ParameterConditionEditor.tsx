@@ -1,8 +1,7 @@
 import type { Condition, ByValueCondition, ParameterCondition } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
-import { EnumSelect } from '../EnumSelect';
-import { RULES } from '../../../constants/osc-enum-values';
+import { RuleSegmentedControl } from '../RuleSegmentedControl';
 
 interface ParameterConditionEditorProps {
   condition: Condition;
@@ -20,32 +19,28 @@ export function ParameterConditionEditor({ condition, onUpdate }: ParameterCondi
   };
 
   return (
-    <div className="space-y-3">
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Parameter Condition</p>
-        <div className="grid gap-1">
-          <Label className="text-xs">Parameter Ref</Label>
-          <Input
-            value={cond.parameterRef}
-            onChange={(e) => update({ parameterRef: e.target.value })}
-            className="h-8 text-sm"
-          />
-        </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Value</Label>
+    <div className="space-y-2">
+      <p className="text-xs font-medium text-muted-foreground">Parameter Condition</p>
+      <div className="grid gap-1">
+        <Label className="text-[10px]">Parameter Ref</Label>
+        <Input
+          value={cond.parameterRef}
+          onChange={(e) => update({ parameterRef: e.target.value })}
+          className="h-7 text-xs"
+        />
+      </div>
+      <div className="grid gap-1">
+        <Label className="text-[10px]">Value</Label>
+        <div className="flex gap-1">
           <Input
             value={cond.value}
             onChange={(e) => update({ value: e.target.value })}
-            className="h-8 text-sm"
+            className="h-7 text-xs flex-1 min-w-0"
           />
-        </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Rule</Label>
-          <EnumSelect
+          <RuleSegmentedControl
             value={cond.rule}
-            options={RULES}
-            onValueChange={(v) => update({ rule: v as ParameterCondition['rule'] })}
-            className="h-8 text-sm"
+            onValueChange={(v) => update({ rule: v })}
+            className="shrink-0"
           />
         </div>
       </div>

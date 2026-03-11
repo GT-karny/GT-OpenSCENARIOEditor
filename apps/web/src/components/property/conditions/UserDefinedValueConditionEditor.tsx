@@ -1,8 +1,7 @@
 import type { Condition, ByValueCondition, UserDefinedValueCondition } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
-import { EnumSelect } from '../EnumSelect';
-import { RULES } from '../../../constants/osc-enum-values';
+import { RuleSegmentedControl } from '../RuleSegmentedControl';
 
 interface UserDefinedValueConditionEditorProps {
   condition: Condition;
@@ -23,32 +22,28 @@ export function UserDefinedValueConditionEditor({
   };
 
   return (
-    <div className="space-y-3">
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">User Defined Value</p>
-        <div className="grid gap-1">
-          <Label className="text-xs">Name</Label>
-          <Input
-            value={cond.name}
-            onChange={(e) => update({ name: e.target.value })}
-            className="h-8 text-sm"
-          />
-        </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Value</Label>
+    <div className="space-y-2">
+      <p className="text-xs font-medium text-muted-foreground">User Defined Value</p>
+      <div className="grid gap-1">
+        <Label className="text-[10px]">Name</Label>
+        <Input
+          value={cond.name}
+          onChange={(e) => update({ name: e.target.value })}
+          className="h-7 text-xs"
+        />
+      </div>
+      <div className="grid gap-1">
+        <Label className="text-[10px]">Value</Label>
+        <div className="flex gap-1">
           <Input
             value={cond.value}
             onChange={(e) => update({ value: e.target.value })}
-            className="h-8 text-sm"
+            className="h-7 text-xs flex-1 min-w-0"
           />
-        </div>
-        <div className="grid gap-1">
-          <Label className="text-xs">Rule</Label>
-          <EnumSelect
+          <RuleSegmentedControl
             value={cond.rule}
-            options={RULES}
-            onValueChange={(v) => update({ rule: v as UserDefinedValueCondition['rule'] })}
-            className="h-8 text-sm"
+            onValueChange={(v) => update({ rule: v })}
+            className="shrink-0"
           />
         </div>
       </div>

@@ -22,14 +22,14 @@ export function OffroadConditionEditor({ condition, onUpdate }: OffroadCondition
       <div className="space-y-2">
         <p className="text-xs font-medium text-muted-foreground">Offroad</p>
         <div className="grid gap-1">
-          <Label className="text-xs">Duration (s)</Label>
+          <Label className="text-[10px]">Duration (s)</Label>
           <ParameterAwareInput
             elementId={condition.id}
             fieldName="value"
             value={cond.duration}
             onValueChange={(v) => update({ duration: parseFloat(v) || 0 })}
             acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
-            className="h-8 text-sm"
+            className="h-7 text-xs"
           />
         </div>
       </div>
