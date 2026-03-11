@@ -56,6 +56,10 @@ export interface EditorState {
   // Signal selection (OpenDRIVE signal, separate from scenario element selection)
   selectedSignalKey: string | null;
   setSelectedSignalKey: (key: string | null) => void;
+
+  // Active Act tab in Scene Composer
+  activeActId: string | null;
+  setActiveActId: (id: string | null) => void;
 }
 
 const defaultPreferences: EditorPreferences = {
@@ -161,6 +165,10 @@ export const useEditorStore = create<EditorState>()(
             ? { selection: { selectedElementIds: [], hoveredElementId: null, focusedPanelId: null } }
             : {}),
         }),
+
+      // Active Act tab
+      activeActId: null,
+      setActiveActId: (id) => set({ activeActId: id }),
     }),
     {
       name: 'osce-editor-preferences',

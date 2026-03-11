@@ -1,8 +1,16 @@
-import { useState, useRef, useEffect } from 'react';
-import { Plus, X, Layers, Zap } from 'lucide-react';
-import type { Act } from '@osce/shared';
+import { useState, useEffect, useMemo } from 'react';
+import type { Act, Condition, Trigger } from '@osce/shared';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
-import { getTriggerSummary } from '../scene-composer/trigger-summary';
+import { SegmentedControl } from './SegmentedControl';
+import { TriggerSectionEditor } from './TriggerSectionEditor';
+
+type TriggerTab = 'start' | 'stop';
+
+const TRIGGER_TABS = ['start', 'stop'] as const;
+const TRIGGER_LABELS: Record<TriggerTab, string> = {
+  start: 'Start Trigger',
+  stop: 'Stop Trigger',
+};
 
 interface ActPropertyEditorProps {
   act: Act;
@@ -10,41 +18,51 @@ interface ActPropertyEditorProps {
 
 export function ActPropertyEditor({ act }: ActPropertyEditorProps) {
   const storeApi = useScenarioStoreApi();
+  const [triggerTab, setTriggerTab] = useState<TriggerTab>('start');
+  const [selectedConditionId, setSelectedConditionId] = useState<string | null>(null);
 
-  // ---- Name editing ----
-  const [editingName, setEditingName] = useState(false);
-  const [draftName, setDraftName] = useState(act.name);
-  const nameInputRef = useRef<HTMLInputElement>(null);
+  // Reset condition selection when Act or trigger tab changes
+  useEffect(() => {
+    setSelectedConditionId(null);
+  }, [act.id, triggerTab]);
 
-  useEffect(() => { setDraftName(act.name); }, [act.name]);
-  useEffect(() => { if (editingName) nameInputRef.current?.select(); }, [editingName]);
+  // Ensure StopTrigger exists when switching to stop tab
+  const stopTrigger = useMemo<Trigger>(() => {
+    if (act.stopTrigger) return act.stopTrigger;
+    return { id: `${act.id}_stopTrigger_placeholder`, conditionGroups: [] };
+  }, [act.stopTrigger, act.id]);
 
-  const commitName = () => {
-    const trimmed = draftName.trim();
-    if (trimmed && trimmed !== act.name) {
-      storeApi.getState().updateAct(act.id, { name: trimmed });
-    } else {
-      setDraftName(act.name);
-    }
-    setEditingName(false);
+  const activeTrigger = triggerTab === 'start' ? act.startTrigger : stopTrigger;
+
+  // ── Trigger callbacks ──────────────────────────────────────────
+
+  /** Ensure a real StopTrigger exists in the store before mutating */
+  const ensureStopTrigger = (): Trigger => {
+    if (act.stopTrigger) return act.stopTrigger;
+    const newTrigger: Trigger = { id: crypto.randomUUID(), conditionGroups: [] };
+    storeApi.getState().setStopTrigger(act.id, newTrigger);
+    // Re-read from store (synchronous update)
+    const updated = findActInStore(storeApi.getState(), act.id);
+    return updated?.stopTrigger ?? newTrigger;
   };
 
-  const handleNameKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') commitName();
-    if (e.key === 'Escape') { setDraftName(act.name); setEditingName(false); }
+  const handleAddCondition = (groupId: string) => {
+    storeApi.getState().addCondition(groupId, {
+      name: 'SimTime',
+      delay: 0,
+      conditionEdge: 'none',
+      condition: {
+        kind: 'byValue',
+        valueCondition: { type: 'simulationTime', value: 0, rule: 'greaterThan' },
+      },
+    });
   };
 
-  // ---- Trigger ----
-  const allConditions = act.startTrigger.conditionGroups.flatMap((g) => g.conditions);
-
-  const handleAddCondition = () => {
+  const handleAddOrGroup = () => {
     const store = storeApi.getState();
-    const trigger = act.startTrigger;
-    const group =
-      trigger.conditionGroups.length > 0
-        ? trigger.conditionGroups[0]
-        : store.addConditionGroup(trigger.id);
-    store.addCondition(group.id, {
+    const trigger = triggerTab === 'start' ? act.startTrigger : ensureStopTrigger();
+    const newGroup = store.addConditionGroup(trigger.id);
+    store.addCondition(newGroup.id, {
       name: 'SimTime',
       delay: 0,
       conditionEdge: 'none',
@@ -59,129 +77,53 @@ export function ActPropertyEditor({ act }: ActPropertyEditorProps) {
     storeApi.getState().removeCondition(conditionId);
   };
 
-  // ---- Maneuver Groups ----
-  const handleAddGroup = () => {
-    storeApi.getState().addManeuverGroup(act.id, { name: 'New Group' });
+  const handleRemoveGroup = (groupId: string) => {
+    storeApi.getState().removeConditionGroup(groupId);
   };
 
-  const handleRemoveGroup = (groupId: string) => {
-    storeApi.getState().removeManeuverGroup(groupId);
+  const handleUpdateCondition = (conditionId: string, partial: Partial<Condition>) => {
+    storeApi.getState().updateCondition(conditionId, partial);
   };
 
   return (
-    <div className="flex flex-col gap-5 p-4">
-      {/* Scene Name */}
-      <section className="space-y-1.5">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          Scene Name
-        </p>
-        {editingName ? (
-          <input
-            ref={nameInputRef}
-            value={draftName}
-            onChange={(e) => setDraftName(e.target.value)}
-            onBlur={commitName}
-            onKeyDown={handleNameKeyDown}
-            className="w-full px-2 py-1 text-sm rounded bg-[var(--color-glass-2)] border border-[var(--color-glass-edge-mid)] outline-none focus:border-[var(--color-accent-vivid)] text-[var(--color-text-primary)]"
-          />
-        ) : (
-          <button
-            className="w-full text-left px-2 py-1 text-sm rounded bg-[var(--color-glass-2)] border border-[var(--color-glass-edge)] hover:border-[var(--color-glass-edge-mid)] transition-colors"
-            onClick={() => setEditingName(true)}
-            title="Click to edit"
-          >
-            {act.name}
-          </button>
-        )}
-      </section>
+    <div className="flex flex-col gap-3 p-3">
+      {/* Act name (display only — edit via tab bar) */}
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+        Act: {act.name}
+      </p>
 
-      {/* Start Trigger */}
-      <section className="space-y-2">
-        <div className="flex items-center justify-between">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-            <Zap className="h-3 w-3" />
-            Start Trigger
-          </p>
-          <button
-            onClick={handleAddCondition}
-            className="flex items-center gap-1 text-[10px] text-[var(--color-accent-vivid)] hover:opacity-80 transition-opacity"
-            title="Add SimulationTime condition"
-          >
-            <Plus className="h-3 w-3" />
-            Add
-          </button>
-        </div>
+      {/* Start / Stop Trigger toggle */}
+      <SegmentedControl
+        value={triggerTab}
+        options={TRIGGER_TABS}
+        onValueChange={setTriggerTab}
+        labels={TRIGGER_LABELS}
+      />
 
-        {allConditions.length === 0 ? (
-          <p className="text-[11px] text-muted-foreground italic px-1">
-            No conditions — starts immediately
-          </p>
-        ) : (
-          <div className="space-y-1">
-            {allConditions.map((condition) => (
-              <div
-                key={condition.id}
-                className="flex items-center justify-between px-2 py-1.5 rounded bg-[var(--color-glass-2)] border border-[var(--color-glass-edge)] group/cond"
-              >
-                <span className="text-[11px] font-mono text-[var(--color-text-primary)] truncate">
-                  {getTriggerSummary({ id: '', conditionGroups: [{ id: '', conditions: [condition] }] })}
-                </span>
-                <button
-                  onClick={() => handleRemoveCondition(condition.id)}
-                  className="ml-2 shrink-0 opacity-0 group-hover/cond:opacity-100 text-muted-foreground hover:text-destructive transition-all"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Maneuver Groups */}
-      <section className="space-y-2">
-        <div className="flex items-center justify-between">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-            <Layers className="h-3 w-3" />
-            Maneuver Groups ({act.maneuverGroups.length})
-          </p>
-          <button
-            onClick={handleAddGroup}
-            className="flex items-center gap-1 text-[10px] text-[var(--color-accent-vivid)] hover:opacity-80 transition-opacity"
-          >
-            <Plus className="h-3 w-3" />
-            Add
-          </button>
-        </div>
-
-        {act.maneuverGroups.length === 0 ? (
-          <p className="text-[11px] text-muted-foreground italic px-1">No maneuver groups</p>
-        ) : (
-          <div className="space-y-1">
-            {act.maneuverGroups.map((mg) => (
-              <div
-                key={mg.id}
-                className="flex items-start justify-between px-2 py-1.5 rounded bg-[var(--color-glass-2)] border border-[var(--color-glass-edge)] group/mg"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-medium truncate">{mg.name}</p>
-                  {mg.actors.entityRefs.length > 0 && (
-                    <p className="text-[10px] text-muted-foreground font-mono mt-0.5 truncate">
-                      {mg.actors.entityRefs.join(', ')}
-                    </p>
-                  )}
-                </div>
-                <button
-                  onClick={() => handleRemoveGroup(mg.id)}
-                  className="ml-2 shrink-0 opacity-0 group-hover/mg:opacity-100 text-muted-foreground hover:text-destructive transition-all"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      {/* Trigger editor */}
+      <TriggerSectionEditor
+        trigger={activeTrigger}
+        selectedConditionId={selectedConditionId}
+        onSelectCondition={setSelectedConditionId}
+        onUpdateCondition={handleUpdateCondition}
+        onAddCondition={handleAddCondition}
+        onRemoveCondition={handleRemoveCondition}
+        onAddOrGroup={handleAddOrGroup}
+        onRemoveGroup={handleRemoveGroup}
+      />
     </div>
   );
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+
+function findActInStore(
+  store: ReturnType<ReturnType<typeof useScenarioStoreApi>['getState']>,
+  actId: string,
+): Act | undefined {
+  for (const story of store.document.storyboard.stories) {
+    const found = story.acts.find((a) => a.id === actId);
+    if (found) return found;
+  }
+  return undefined;
 }
