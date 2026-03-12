@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useRef, useEffect, memo } from 'react';
 import { useStore } from 'zustand';
 import { SceneComposerView } from '../scene-composer/SceneComposerView';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import type { ImperativePanelHandle } from 'react-resizable-panels';
+import type { ImperativePanelHandle, ImperativePanelGroupHandle } from 'react-resizable-panels';
 import { FolderTree } from 'lucide-react';
 import type { Node } from '@xyflow/react';
 import { NodeEditorProvider, NodeEditor, detectElementType } from '@osce/node-editor';
@@ -176,6 +176,7 @@ export function EditorLayout() {
   const currentProject = useProjectStore((s) => s.currentProject);
   const [centerTab, setCenterTab] = useState<'composer' | 'graph'>('composer');
   const fileTreePanelRef = useRef<ImperativePanelHandle>(null);
+  const editingPanelGroupRef = useRef<ImperativePanelGroupHandle>(null);
   const [fileTreeCollapsed, setFileTreeCollapsed] = useState(true);
 
   // --- Collapse file tree on mount ---
@@ -610,7 +611,10 @@ export function EditorLayout() {
 
             {/* Editing area */}
             <Panel defaultSize={70} minSize={30}>
-              <PanelGroup direction="horizontal">
+              <PanelGroup
+                direction="horizontal"
+                ref={editingPanelGroupRef}
+              >
                 {/* File Tree sidebar (project mode only) */}
                 {currentProject && (
                   <>
@@ -621,8 +625,17 @@ export function EditorLayout() {
                       maxSize={25}
                       collapsible
                       collapsedSize={3}
-                      onCollapse={() => setFileTreeCollapsed(true)}
-                      onExpand={() => setFileTreeCollapsed(false)}
+                      onCollapse={() => {
+                        setFileTreeCollapsed(true);
+                        // Redistribute freed space to Composer (3rd panel), not Entity
+                        // Layout: [FileTree, Entity, Composer] → [3%, 25%, 72%]
+                        editingPanelGroupRef.current?.setLayout([3, 25, 72]);
+                      }}
+                      onExpand={() => {
+                        setFileTreeCollapsed(false);
+                        // Restore: take space from Composer
+                        editingPanelGroupRef.current?.setLayout([15, 25, 60]);
+                      }}
                     >
                       {fileTreeCollapsed ? (
                         <div className="flex flex-col items-center h-full bg-[var(--color-bg-deep)] border-r border-[var(--color-glass-edge-mid)] py-2">
@@ -645,7 +658,7 @@ export function EditorLayout() {
                   </>
                 )}
 
-                {/* Left sidebar */}
+                {/* Left sidebar — Entity/Parameter */}
                 <Panel defaultSize={25} minSize={8} maxSize={35}>
                   <div className="h-full bg-[var(--color-bg-deep)] enter-l">
                     <Tabs defaultValue="entities" className="flex flex-col h-full">
@@ -669,7 +682,7 @@ export function EditorLayout() {
 
                 <ResizeHandle />
 
-                {/* Center area */}
+                {/* Center area: Composer / Graph */}
                 <Panel defaultSize={60} minSize={30}>
                   <NodeEditorProvider
                     scenarioStore={scenarioStoreApi}
