@@ -25,7 +25,9 @@ import type { CameraControllerHandle } from '../scene/CameraController.js';
 import { RoadNetwork } from '../road/RoadNetwork.js';
 import { EntityGroup } from '../entities/EntityGroup.js';
 import { RoadClickHandler } from '../interaction/RoadClickHandler.js';
+import type { PickedPositionData } from '../interaction/RoadClickHandler.js';
 import { PlacementOverlay } from '../interaction/PlacementOverlay.js';
+import { PositionInspectorOverlay } from '../interaction/PositionInspectorOverlay.js';
 import { ViewerToolbar } from './ViewerToolbar.js';
 import { useScenarioEntities } from '../scenario/useScenarioEntities.js';
 import { useEntityPositions } from '../scenario/useEntityPositions.js';
@@ -119,6 +121,12 @@ export interface ScenarioViewerProps {
   onSignalSelect?: (key: string) => void;
   /** Show r3f-perf overlay for performance monitoring */
   showPerf?: boolean;
+  /** Whether position pick mode is active */
+  positionPickActive?: boolean;
+  /** Callback when a position is picked from the 3D viewer */
+  onPositionPicked?: (data: PickedPositionData) => void;
+  /** Callback when pick mode is cancelled (Escape key) */
+  onPositionPickCancel?: () => void;
 }
 
 /**
@@ -149,6 +157,9 @@ function ScenarioViewerScene({
   routePreviewData,
   selectedSignalKey,
   onSignalSelect,
+  positionPickActive,
+  onPositionPicked,
+  onPositionPickCancel,
 }: {
   scenarioStore: ScenarioViewerProps['scenarioStore'];
   openDriveDocument: OpenDriveDocument | null;
@@ -174,6 +185,9 @@ function ScenarioViewerScene({
   routePreviewData?: RoutePreviewData[];
   selectedSignalKey?: string | null;
   onSignalSelect?: (key: string) => void;
+  positionPickActive?: boolean;
+  onPositionPicked?: (data: PickedPositionData) => void;
+  onPositionPickCancel?: () => void;
 }) {
   const cameraMode = useViewerStore(viewerStore, (s) => s.cameraMode);
   const showGrid = useViewerStore(viewerStore, (s) => s.showGrid);
@@ -300,9 +314,12 @@ function ScenarioViewerScene({
     }
   }, [focusWorldPosition, viewerStore]);
 
+  const showInspector = useViewerStore(viewerStore, (s) => s.showInspector);
+
   // Determine if hover/click should be active
-  const hoverActive = isEditMode && (gizmoMode === 'place' || gizmoMode === 'translate');
-  const clickActive = isEditMode && gizmoMode === 'place';
+  const hoverActive =
+    isEditMode && (gizmoMode === 'place' || gizmoMode === 'translate' || showInspector || !!positionPickActive);
+  const clickActive = isEditMode && (gizmoMode === 'place' || !!positionPickActive);
 
   return (
     <>
@@ -329,7 +346,7 @@ function ScenarioViewerScene({
         />
       )}
 
-      {/* Road click handler for Place mode and hover detection */}
+      {/* Road click handler for Place mode, hover detection, and pick mode */}
       {isEditMode && (hoverActive || clickActive) && (
         <RoadClickHandler
           roadGroupRef={roadGroupRef}
@@ -342,6 +359,9 @@ function ScenarioViewerScene({
           onPlacement={handlePlacement}
           onHoverLaneChange={handleHoverLaneChange}
           highlightedLaneRef={highlightedLaneRef}
+          pickModeActive={positionPickActive}
+          onPositionPicked={onPositionPicked}
+          onPositionPickCancel={onPositionPickCancel}
         />
       )}
 
@@ -468,6 +488,9 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   selectedSignalKey,
   onSignalSelect,
   showPerf,
+  positionPickActive,
+  onPositionPicked,
+  onPositionPickCancel,
 }) => {
   const viewerStoreRef = useRef<ReturnType<typeof createViewerStore> | null>(null);
   if (!viewerStoreRef.current) {
@@ -512,6 +535,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   const flySpeed = useViewerStore(viewerStore, (s) => s.flySpeed);
 
   const hoverLaneInfo = useViewerStore(viewerStore, (s) => s.hoverLaneInfo);
+  const showInspector = useViewerStore(viewerStore, (s) => s.showInspector);
   const showMinimap = useViewerStore(viewerStore, (s) => s.showMinimap);
   const minimapSize = useViewerStore(viewerStore, (s) => s.minimapSize);
 
@@ -576,18 +600,31 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
         followTargetEntity={followTargetEntity}
         onFollowTargetChange={(name) => viewerStore.getState().setFollowTarget(name)}
         entities={entities}
+        showInspector={showInspector}
+        onToggleInspector={() => viewerStore.getState().toggleInspector()}
         showMinimap={showMinimap}
         onToggleMinimap={() => viewerStore.getState().toggleMinimap()}
         minimapSize={minimapSize}
         onCycleMinimapSize={() => viewerStore.getState().cycleMinimapSize()}
       />
 
-      {/* Placement overlay (shown in Place mode with hover info) */}
-      <PlacementOverlay
-        hoverLaneInfo={hoverLaneInfo}
-        snapToLane={snapToLane}
-        isPlaceMode={gizmoMode === 'place' && viewerMode === 'edit'}
-      />
+      {/* Placement overlay (shown in Place mode with hover info, hidden during pick mode) */}
+      {!positionPickActive && (
+        <PlacementOverlay
+          hoverLaneInfo={hoverLaneInfo}
+          snapToLane={snapToLane}
+          isPlaceMode={gizmoMode === 'place' && viewerMode === 'edit'}
+        />
+      )}
+
+      {/* Position inspector overlay (shown when inspector is on or pick mode is active) */}
+      {(gizmoMode !== 'place' || positionPickActive) && (
+        <PositionInspectorOverlay
+          hoverLaneInfo={hoverLaneInfo}
+          visible={showInspector && viewerMode === 'edit'}
+          pickModeActive={positionPickActive}
+        />
+      )}
 
       {/* Speed multiplier slider (top-right) */}
       <div style={speedSliderStyle}>
@@ -655,6 +692,9 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           routePreviewData={routePreviewData}
           selectedSignalKey={selectedSignalKey}
           onSignalSelect={onSignalSelect}
+          positionPickActive={positionPickActive}
+          onPositionPicked={onPositionPicked}
+          onPositionPickCancel={onPositionPickCancel}
         />
       </ViewerCanvas>
     </div>

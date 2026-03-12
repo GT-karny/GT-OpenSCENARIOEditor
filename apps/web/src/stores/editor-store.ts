@@ -8,6 +8,26 @@ import type {
   OpenDriveDocument,
 } from '@osce/shared';
 
+/** Request to pick a position from the 3D viewer */
+export interface PositionPickRequest {
+  targetType: 'worldPosition' | 'lanePosition';
+  requestId: string;
+}
+
+/** Data returned from picking a position in the 3D viewer */
+export interface PickedPositionData {
+  requestId: string;
+  worldX: number;
+  worldY: number;
+  worldZ: number;
+  heading: number;
+  roadId: string;
+  laneId: number;
+  s: number;
+  offset: number;
+  roadT: number;
+}
+
 export interface EditorState {
   // Selection
   selection: EditorSelection;
@@ -60,6 +80,13 @@ export interface EditorState {
   // Active Act tab in Scene Composer
   activeActId: string | null;
   setActiveActId: (id: string | null) => void;
+
+  // Position pick from 3D viewer
+  positionPickRequest: PositionPickRequest | null;
+  pickedPosition: PickedPositionData | null;
+  requestPositionPick: (req: PositionPickRequest) => void;
+  resolvePositionPick: (data: Omit<PickedPositionData, 'requestId'>) => void;
+  cancelPositionPick: () => void;
 }
 
 const defaultPreferences: EditorPreferences = {
@@ -169,6 +196,19 @@ export const useEditorStore = create<EditorState>()(
       // Active Act tab
       activeActId: null,
       setActiveActId: (id) => set({ activeActId: id }),
+
+      // Position pick from 3D viewer
+      positionPickRequest: null,
+      pickedPosition: null,
+      requestPositionPick: (req) => set({ positionPickRequest: req, pickedPosition: null }),
+      resolvePositionPick: (data) =>
+        set((state) => ({
+          pickedPosition: state.positionPickRequest
+            ? { ...data, requestId: state.positionPickRequest.requestId }
+            : null,
+          positionPickRequest: null,
+        })),
+      cancelPositionPick: () => set({ positionPickRequest: null, pickedPosition: null }),
     }),
     {
       name: 'osce-editor-preferences',

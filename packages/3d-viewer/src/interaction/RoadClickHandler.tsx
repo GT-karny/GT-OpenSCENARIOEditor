@@ -11,6 +11,19 @@ import type { OpenDriveDocument } from '@osce/shared';
 import { worldToLane } from '@osce/opendrive';
 import type { HoverLaneInfo } from '../store/viewer-types.js';
 
+/** Data returned when a position is picked in pick mode */
+export interface PickedPositionData {
+  worldX: number;
+  worldY: number;
+  worldZ: number;
+  heading: number;
+  roadId: string;
+  laneId: number;
+  s: number;
+  offset: number;
+  roadT: number;
+}
+
 interface RoadClickHandlerProps {
   /** Reference to the road network group for raycasting */
   roadGroupRef: React.RefObject<THREE.Group | null>;
@@ -32,6 +45,12 @@ interface RoadClickHandlerProps {
   onHoverLaneChange: (info: HoverLaneInfo | null) => void;
   /** Ref for imperative lane highlight (updated every frame, no re-renders) */
   highlightedLaneRef: React.MutableRefObject<{ roadId: string; laneId: number } | null>;
+  /** Whether position pick mode is active (overrides normal click behavior) */
+  pickModeActive?: boolean;
+  /** Callback when a position is picked in pick mode */
+  onPositionPicked?: (data: PickedPositionData) => void;
+  /** Callback when pick mode is cancelled via Escape */
+  onPositionPickCancel?: () => void;
 }
 
 const raycaster = new THREE.Raycaster();
@@ -48,6 +67,9 @@ export function RoadClickHandler({
   onPlacement,
   onHoverLaneChange,
   highlightedLaneRef,
+  pickModeActive = false,
+  onPositionPicked,
+  onPositionPickCancel,
 }: RoadClickHandlerProps) {
   const { camera, gl } = useThree();
 
@@ -56,27 +78,18 @@ export function RoadClickHandler({
   const pointerDownRef = useRef({ x: 0, y: 0 });
   const lastHoverUpdateRef = useRef(0);
   const lastHoverInfoRef = useRef<{ roadId: string; laneId: number } | null>(null);
-  // Cached canvas rect — updated on resize, not per pointermove
-  const rectRef = useRef<DOMRect | null>(null);
 
   useEffect(() => {
     const canvas = gl.domElement;
-    rectRef.current = canvas.getBoundingClientRect();
 
     const handlePointerMove = (e: PointerEvent) => {
       pointerClientRef.current.x = e.clientX;
       pointerClientRef.current.y = e.clientY;
     };
 
-    const handleResize = () => {
-      rectRef.current = canvas.getBoundingClientRect();
-    };
-
     canvas.addEventListener('pointermove', handlePointerMove, { passive: true });
-    window.addEventListener('resize', handleResize);
     return () => {
       canvas.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('resize', handleResize);
     };
   }, [gl]);
 
@@ -95,8 +108,8 @@ export function RoadClickHandler({
     lastHoverUpdateRef.current++;
     if (lastHoverUpdateRef.current % 3 !== 0) return;
 
-    const rect = rectRef.current;
-    if (!rect) return;
+    // Get fresh rect every hover frame to avoid stale-rect drift on distant roads
+    const rect = gl.domElement.getBoundingClientRect();
     const px = pointerClientRef.current.x - rect.left;
     const py = pointerClientRef.current.y - rect.top;
 
@@ -154,6 +167,8 @@ export function RoadClickHandler({
         heading: laneResult.heading,
         worldX: osceX,
         worldY: osceY,
+        worldZ: laneResult.z,
+        roadT: laneResult.roadT,
       });
     }
 
@@ -168,7 +183,10 @@ export function RoadClickHandler({
   const handlePointerUp = useCallback(
     (e: PointerEvent) => {
       if (e.button !== 0) return;
-      if (!clickActive || !hasSelectedEntity || !roadGroupRef.current || !openDriveDocument) return;
+      if (!roadGroupRef.current || !openDriveDocument) return;
+
+      // In pick mode, skip entity selection requirement
+      if (!pickModeActive && (!clickActive || !hasSelectedEntity)) return;
 
       // Click vs drag heuristic: 5px threshold
       const dx = e.clientX - pointerDownRef.current.x;
@@ -197,6 +215,22 @@ export function RoadClickHandler({
       const laneResult = worldToLane(openDriveDocument, osceX, osceY, 20, reverseDirection);
       if (!laneResult) return; // No lane found nearby
 
+      // Pick mode: return full coordinate data
+      if (pickModeActive && onPositionPicked) {
+        onPositionPicked({
+          worldX: osceX,
+          worldY: osceY,
+          worldZ: osceZ,
+          heading: laneResult.heading,
+          roadId: laneResult.roadId,
+          laneId: laneResult.laneId,
+          s: laneResult.s,
+          offset: laneResult.offset,
+          roadT: laneResult.roadT,
+        });
+        return;
+      }
+
       if (snapToLane) {
         // Snap ON: use lane coordinates, let EditorLayout convert to LanePosition
         onPlacement(osceX, osceY, osceZ, laneResult.heading, false);
@@ -205,7 +239,7 @@ export function RoadClickHandler({
         onPlacement(osceX, osceY, osceZ, laneResult.heading, true);
       }
     },
-    [clickActive, hasSelectedEntity, roadGroupRef, openDriveDocument, snapToLane, reverseDirection, onPlacement, gl, camera],
+    [clickActive, hasSelectedEntity, roadGroupRef, openDriveDocument, snapToLane, reverseDirection, onPlacement, gl, camera, pickModeActive, onPositionPicked],
   );
 
   useEffect(() => {
@@ -217,6 +251,29 @@ export function RoadClickHandler({
       canvas.removeEventListener('pointerup', handlePointerUp);
     };
   }, [gl, handlePointerDown, handlePointerUp]);
+
+  // Pick mode: crosshair cursor
+  useEffect(() => {
+    if (!pickModeActive) return;
+    const canvas = gl.domElement;
+    const prev = canvas.style.cursor;
+    canvas.style.cursor = 'crosshair';
+    return () => {
+      canvas.style.cursor = prev;
+    };
+  }, [pickModeActive, gl]);
+
+  // Pick mode: Escape to cancel
+  useEffect(() => {
+    if (!pickModeActive || !onPositionPickCancel) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onPositionPickCancel();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [pickModeActive, onPositionPickCancel]);
 
   // This component renders nothing — it's purely behavioral
   return null;

@@ -8,7 +8,7 @@ import type { Node } from '@xyflow/react';
 import { NodeEditorProvider, NodeEditor, detectElementType } from '@osce/node-editor';
 import type { OsceNodeData, OsceNodeType } from '@osce/node-editor';
 import { ScenarioViewer } from '@osce/3d-viewer';
-import type { ViewerMode } from '@osce/3d-viewer';
+import type { ViewerMode, PickedPositionData } from '@osce/3d-viewer';
 import { worldToLane } from '@osce/opendrive';
 import { HeaderToolbar } from './HeaderToolbar';
 import { StatusBar } from './StatusBar';
@@ -91,6 +91,9 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   routePreviewData?: import('@osce/3d-viewer').RoutePreviewData[];
   selectedSignalKey?: string | null;
   onSignalSelect?: (key: string) => void;
+  positionPickActive?: boolean;
+  onPositionPicked?: (data: PickedPositionData) => void;
+  onPositionPickCancel?: () => void;
 }) {
   const simStatus = useSimulationStore((s) => s.status);
   const simFrames = useSimulationStore((s) => s.frames);
@@ -149,6 +152,9 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       routePreviewData={props.routePreviewData}
       selectedSignalKey={props.selectedSignalKey}
       onSignalSelect={props.onSignalSelect}
+      positionPickActive={props.positionPickActive}
+      onPositionPicked={props.onPositionPicked}
+      onPositionPickCancel={props.onPositionPickCancel}
       showPerf={false}
       className="h-full w-full"
     />
@@ -249,9 +255,18 @@ export function EditorLayout() {
   }, []);
 
   const selectedSignalKey = useEditorStore((s) => s.selectedSignalKey);
+  const positionPickRequest = useEditorStore((s) => s.positionPickRequest);
 
   const handleSignalSelect = useCallback((key: string) => {
     useEditorStore.getState().setSelectedSignalKey(key);
+  }, []);
+
+  const handlePositionPicked = useCallback((data: PickedPositionData) => {
+    useEditorStore.getState().resolvePositionPick(data);
+  }, []);
+
+  const handlePositionPickCancel = useCallback(() => {
+    useEditorStore.getState().cancelPositionPick();
   }, []);
 
   const handleEntityPositionChange = useCallback(
@@ -566,6 +581,9 @@ export function EditorLayout() {
                     routePreviewData={routePreviewData}
                     selectedSignalKey={selectedSignalKey}
                     onSignalSelect={handleSignalSelect}
+                    positionPickActive={positionPickRequest != null}
+                    onPositionPicked={handlePositionPicked}
+                    onPositionPickCancel={handlePositionPickCancel}
                   />
                 </ErrorBoundary>
                 {waypointContextMenu && (

@@ -33,6 +33,8 @@ interface ViewerToolbarProps {
   followTargetEntity: string | null;
   onFollowTargetChange: (entityName: string | null) => void;
   entities: ScenarioEntity[];
+  showInspector: boolean;
+  onToggleInspector: () => void;
   showMinimap: boolean;
   onToggleMinimap: () => void;
   minimapSize: MinimapSize;
@@ -153,6 +155,8 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = React.memo(
     followTargetEntity,
     onFollowTargetChange,
     entities,
+    showInspector,
+    onToggleInspector,
     showMinimap,
     onToggleMinimap,
     minimapSize,
@@ -329,6 +333,13 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = React.memo(
           title="Toggle traffic signals"
         >
           Signals
+        </button>
+        <button
+          style={showInspector ? activeButtonStyle : buttonStyle}
+          onClick={onToggleInspector}
+          title="Toggle position inspector (show coordinates on hover)"
+        >
+          Inspect
         </button>
 
         <div style={separatorStyle} />

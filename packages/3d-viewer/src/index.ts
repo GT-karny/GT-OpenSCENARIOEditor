@@ -41,6 +41,10 @@ export { RoutePreviewOverlay } from './route/RoutePreviewOverlay.js';
 export type { RoutePreviewData, RoutePreviewOverlayProps } from './route/RoutePreviewOverlay.js';
 export { RouteClickHandler } from './interaction/RouteClickHandler.js';
 
+// Position inspector & pick mode
+export { PositionInspectorOverlay } from './interaction/PositionInspectorOverlay.js';
+export type { PickedPositionData } from './interaction/RoadClickHandler.js';
+
 // Traffic signal rendering
 export { TrafficSignalGroup } from './signals/TrafficSignalGroup.js';
 export type { ResolvedSignal } from './signals/TrafficSignalGroup.js';
