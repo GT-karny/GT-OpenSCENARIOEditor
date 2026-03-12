@@ -40,6 +40,8 @@ import type { RoutePreviewData } from '../route/RoutePreviewOverlay.js';
 import { RouteClickHandler } from '../interaction/RouteClickHandler.js';
 import { RouteEditOverlay } from '../route/RouteEditOverlay.js';
 import { TrafficSignalGroup } from '../signals/TrafficSignalGroup.js';
+import { useScenarioPositions } from '../scenario/useScenarioPositions.js';
+import { PositionMarkersOverlay } from '../markers/PositionMarkersOverlay.js';
 import type { ThreeEvent } from '@react-three/fiber';
 
 export interface ScenarioViewerProps {
@@ -127,6 +129,8 @@ export interface ScenarioViewerProps {
   onPositionPicked?: (data: PickedPositionData) => void;
   /** Callback when pick mode is cancelled (Escape key) */
   onPositionPickCancel?: () => void;
+  /** Element IDs to highlight their associated position markers */
+  highlightedPositionElementIds?: string[];
 }
 
 /**
@@ -160,6 +164,7 @@ function ScenarioViewerScene({
   positionPickActive,
   onPositionPicked,
   onPositionPickCancel,
+  highlightedPositionElementIds,
 }: {
   scenarioStore: ScenarioViewerProps['scenarioStore'];
   openDriveDocument: OpenDriveDocument | null;
@@ -188,6 +193,7 @@ function ScenarioViewerScene({
   positionPickActive?: boolean;
   onPositionPicked?: (data: PickedPositionData) => void;
   onPositionPickCancel?: () => void;
+  highlightedPositionElementIds?: string[];
 }) {
   const cameraMode = useViewerStore(viewerStore, (s) => s.cameraMode);
   const showGrid = useViewerStore(viewerStore, (s) => s.showGrid);
@@ -207,8 +213,11 @@ function ScenarioViewerScene({
     [resolveCatalogRoute],
   );
 
+  const showPositionMarkers = useViewerStore(viewerStore, (s) => s.showPositionMarkers);
+
   const entities = useScenarioEntities(scenarioStore);
   const entityPositions = useEntityPositions(scenarioStore, openDriveDocument, resolveOptions);
+  const scenarioPositions = useScenarioPositions(scenarioStore, openDriveDocument, resolveOptions);
 
   const isSimulating = currentFrame != null;
   const isEditMode = viewerMode === 'edit';
@@ -398,6 +407,16 @@ function ScenarioViewerScene({
         />
       )}
 
+      {/* Position markers for actions/conditions (inside rotation group) */}
+      {!showSimulation && showPositionMarkers && scenarioPositions.length > 0 && (
+        <group rotation={[-Math.PI / 2, 0, 0]}>
+          <PositionMarkersOverlay
+            positions={scenarioPositions}
+            highlightedElementIds={highlightedPositionElementIds ?? []}
+          />
+        </group>
+      )}
+
       {/* Show init positions when not simulating */}
       {!showSimulation && (
         <EntityGroup
@@ -491,6 +510,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   positionPickActive,
   onPositionPicked,
   onPositionPickCancel,
+  highlightedPositionElementIds,
 }) => {
   const viewerStoreRef = useRef<ReturnType<typeof createViewerStore> | null>(null);
   if (!viewerStoreRef.current) {
@@ -527,6 +547,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   const showRoadIds = useViewerStore(viewerStore, (s) => s.showRoadIds);
   const showLaneIds = useViewerStore(viewerStore, (s) => s.showLaneIds);
   const showTrafficSignals = useViewerStore(viewerStore, (s) => s.showTrafficSignals);
+  const showPositionMarkersOuter = useViewerStore(viewerStore, (s) => s.showPositionMarkers);
   const gizmoMode = useViewerStore(viewerStore, (s) => s.gizmoMode);
   const reverseDirection = useViewerStore(viewerStore, (s) => s.reverseDirection);
   const snapToLane = useViewerStore(viewerStore, (s) => s.snapToLane);
@@ -541,6 +562,50 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
 
   // Entity positions for minimap
   const entityPositions = useEntityPositions(scenarioStore, openDriveDocument);
+
+  // Scenario positions for minimap markers
+  const scenarioPositionsOuter = useScenarioPositions(scenarioStore, openDriveDocument);
+  const minimapPositionMarkers = useMemo(() => {
+    if (!showPositionMarkersOuter) return undefined;
+    const highlightedSet = new Set(highlightedPositionElementIds ?? []);
+    return scenarioPositionsOuter
+      .filter((p) => p.worldCoords != null)
+      .map((p) => ({
+        x: p.worldCoords!.x,
+        y: p.worldCoords!.y,
+        category: p.category,
+        isHighlighted: highlightedSet.has(p.ownerElementId),
+      }));
+  }, [scenarioPositionsOuter, showPositionMarkersOuter, highlightedPositionElementIds]);
+
+  // Route data for minimap
+  const minimapRoutes = useMemo(() => {
+    const routes: Array<{ waypoints: Array<{ x: number; y: number }>; segments: Array<{ points: Array<{ x: number; y: number }> }> }> = [];
+
+    // Active edit route
+    if (routeEditActive && routeWaypoints && routeWaypoints.length > 0) {
+      routes.push({
+        waypoints: routeWaypoints.map((wp) => ({ x: wp.x, y: wp.y })),
+        segments: (routePathSegments ?? []).map((seg) => ({
+          points: seg.map((p) => ({ x: p.x, y: p.y })),
+        })),
+      });
+    }
+
+    // Preview routes
+    if (!routeEditActive && routePreviewData) {
+      for (const preview of routePreviewData) {
+        routes.push({
+          waypoints: preview.waypoints.map((wp) => ({ x: wp.x, y: wp.y })),
+          segments: preview.pathSegments.map((seg) => ({
+            points: seg.map((p) => ({ x: p.x, y: p.y })),
+          })),
+        });
+      }
+    }
+
+    return routes.length > 0 ? routes : undefined;
+  }, [routeEditActive, routeWaypoints, routePathSegments, routePreviewData]);
 
   // Minimap click handler
   const handleMinimapClick = useCallback(
@@ -602,6 +667,8 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
         entities={entities}
         showInspector={showInspector}
         onToggleInspector={() => viewerStore.getState().toggleInspector()}
+        showPositionMarkers={showPositionMarkersOuter}
+        onTogglePositionMarkers={() => viewerStore.getState().togglePositionMarkers()}
         showMinimap={showMinimap}
         onToggleMinimap={() => viewerStore.getState().toggleMinimap()}
         minimapSize={minimapSize}
@@ -663,6 +730,8 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           size={minimapSize}
           onClickPosition={handleMinimapClick}
           currentFrame={currentFrameProp}
+          positionMarkers={minimapPositionMarkers}
+          routes={minimapRoutes}
         />
       )}
 
@@ -695,6 +764,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           positionPickActive={positionPickActive}
           onPositionPicked={onPositionPicked}
           onPositionPickCancel={onPositionPickCancel}
+          highlightedPositionElementIds={highlightedPositionElementIds}
         />
       </ViewerCanvas>
     </div>

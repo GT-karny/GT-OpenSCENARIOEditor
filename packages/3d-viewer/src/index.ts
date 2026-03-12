@@ -32,6 +32,12 @@ export type { RoadProjectionResult } from './utils/road-projection.js';
 // Scenario data bridge hooks
 export { useScenarioEntities } from './scenario/useScenarioEntities.js';
 export { useEntityPositions, extractEntityPositions } from './scenario/useEntityPositions.js';
+export { useScenarioPositions, collectScenarioPositions } from './scenario/useScenarioPositions.js';
+export type { ScenarioPositionEntry } from './scenario/useScenarioPositions.js';
+
+// Position markers
+export { PositionMarkersOverlay } from './markers/PositionMarkersOverlay.js';
+export type { PositionMarkersOverlayProps } from './markers/PositionMarkersOverlay.js';
 
 // Route visualization & interaction
 export { RouteOverlay } from './route/RouteOverlay.js';

@@ -63,6 +63,9 @@ export interface ViewerState {
   /** Position inspector overlay visibility */
   showInspector: boolean;
 
+  /** Position markers (action/condition positions) visibility */
+  showPositionMarkers: boolean;
+
   /** Minimap visibility */
   showMinimap: boolean;
   /** Minimap size preset */
@@ -94,6 +97,7 @@ export interface ViewerActions {
   setFlySpeed: (speed: number) => void;
 
   toggleInspector: () => void;
+  togglePositionMarkers: () => void;
   toggleMinimap: () => void;
   cycleMinimapSize: () => void;
   setFocusWorldPosition: (pos: [number, number, number] | null) => void;

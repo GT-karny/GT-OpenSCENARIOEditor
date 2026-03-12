@@ -94,6 +94,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   positionPickActive?: boolean;
   onPositionPicked?: (data: PickedPositionData) => void;
   onPositionPickCancel?: () => void;
+  highlightedPositionElementIds?: string[];
 }) {
   const simStatus = useSimulationStore((s) => s.status);
   const simFrames = useSimulationStore((s) => s.frames);
@@ -155,6 +156,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       positionPickActive={props.positionPickActive}
       onPositionPicked={props.onPositionPicked}
       onPositionPickCancel={props.onPositionPickCancel}
+      highlightedPositionElementIds={props.highlightedPositionElementIds}
       showPerf={false}
       className="h-full w-full"
     />
@@ -584,6 +586,7 @@ export function EditorLayout() {
                     positionPickActive={positionPickRequest != null}
                     onPositionPicked={handlePositionPicked}
                     onPositionPickCancel={handlePositionPickCancel}
+                    highlightedPositionElementIds={selectedElementIds}
                   />
                 </ErrorBoundary>
                 {waypointContextMenu && (

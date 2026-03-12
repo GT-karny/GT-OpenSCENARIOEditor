@@ -17,6 +17,7 @@ import {
   renderDynamicLayer,
   canvasToWorld,
 } from '../utils/minimap-renderer.js';
+import type { MinimapPositionMarker, MinimapRouteData } from '../utils/minimap-renderer.js';
 
 
 interface MinimapProps {
@@ -29,6 +30,10 @@ interface MinimapProps {
   onClickPosition: (worldX: number, worldY: number) => void;
   /** When provided, entity positions are taken from simulation frame instead of initial positions */
   currentFrame?: SimulationFrame | null;
+  /** Position markers from actions/conditions */
+  positionMarkers?: MinimapPositionMarker[];
+  /** Route lines and waypoints to display */
+  routes?: MinimapRouteData[];
 }
 
 const SIZE_MAP: Record<MinimapSize, number> = {
@@ -54,6 +59,8 @@ export const Minimap: React.FC<MinimapProps> = React.memo(({
   size,
   onClickPosition,
   currentFrame,
+  positionMarkers,
+  routes,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>(0);
@@ -239,6 +246,8 @@ export const Minimap: React.FC<MinimapProps> = React.memo(({
         cameraY: camY,
         cameraAngle,
         zoom: zoomRef.current,
+        positionMarkers,
+        routes,
       });
 
       ctx.restore(); // zoom/pan clip
@@ -247,7 +256,7 @@ export const Minimap: React.FC<MinimapProps> = React.memo(({
 
     rafRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [bounds, canvasSize, entities, entityPositions, selectedEntityId, entityIdMap, roadPolylines, cameraStateRef, currentFrame]);
+  }, [bounds, canvasSize, entities, entityPositions, selectedEntityId, entityIdMap, roadPolylines, cameraStateRef, currentFrame, positionMarkers, routes]);
 
   // Handle click to teleport (only if not dragging)
   const handleClick = useCallback(
