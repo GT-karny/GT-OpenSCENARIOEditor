@@ -24,12 +24,12 @@
 |----------|----|----|----|----|----|----|-------|
 | File & Project | 4 | 3 | 0 | 1 | 2 | 0 | 10 |
 | Scenario Editing | 18 | 20 | 2 | 0 | 4 | 1 | 45 |
-| 3D & Visualization | 5 | 10 | 0 | 0 | 2 | 0 | 17 |
+| 3D & Visualization | 5 | 14 | 0 | 0 | 2 | 0 | 21 |
 | Simulation | 0 | 1 | 6 | 0 | 3 | 1 | 11 |
 | AI Integration | 0 | 1 | 0 | 0 | 2 | 0 | 3 |
 | Validation & Quality | 3 | 0 | 0 | 0 | 3 | 0 | 6 |
-| Infrastructure | 7 | 4 | 2 | 0 | 1 | 0 | 14 |
-| **Total** | **37** | **39** | **10** | **1** | **17** | **2** | **106** |
+| Infrastructure | 8 | 5 | 2 | 0 | 1 | 0 | 16 |
+| **Total** | **38** | **44** | **10** | **1** | **17** | **2** | **112** |
 
 ---
 
@@ -108,7 +108,7 @@
 
 | # | Feature | Status | Notes | Tests |
 |---|---------|--------|-------|-------|
-| 2.4.1 | Catalog reference resolution | 🟡 | Vehicle/Pedestrian/MiscObject/Controller OK. Maneuver/Trajectory/Route/Environment catalogs not yet | Unit: `parse-catalog` |
+| 2.4.1 | Catalog reference resolution | ⚠️ | Vehicle/Pedestrian/MiscObject/Controller/Maneuver/Route catalogs supported. Standalone catalog XML parsing added | Unit: `parse-catalog` |
 | 2.4.2 | Catalog auto-load | ⚠️ | Auto-discover catalogs in project directory | -- |
 | 2.4.3 | Catalog editor modal | ⚠️ | CRUD operations, parameter assignment editing | -- |
 | 2.4.4 | Parameter binding preservation | ⚠️ | Round-trip through simulation preserved | Unit: `round-trip` |
@@ -148,8 +148,12 @@
 | 3.13 | Lane snapping | ⚠️ | OpenDRIVE inverse lookup (world → road/lane), driving direction support | Unit: `position-resolver` |
 | 3.14 | Speed multiplier | ⚠️ | Top-right slider 0.1x–5.0x for FPS controls | -- |
 | 3.15 | Entity selection in 3D | ⚠️ | Click to select, double-click to focus/center | Unit: `entity-positions` |
-| 3.16 | Measurement tools | ❌ | No distance/angle measurement | -- |
-| 3.17 | Trajectory visualization | ❌ | Path preview. **Priority upgraded** — needed for scenario authoring UX | -- |
+| 3.16 | Traffic signal 3D rendering | ⚠️ | Type-specific geometry (traffic lights, stop signs, speed limits). InstancedMesh for poles/heads. Canvas texture baking | Unit: `signal-catalog`, `signal-geometry`, `signal-shapes`, `parse-traffic-light-state` |
+| 3.17 | Traffic signal selection | ⚠️ | Hover highlight, click to select, property panel integration | -- |
+| 3.18 | Traffic signal state display | ⚠️ | Connected to esmini simulation state. Real-time bulb color updates | Unit: `signal-position-resolver` |
+| 3.19 | Route editing overlay | ⚠️ | Visual waypoint placement, drag editing, connection lines in 3D viewport | -- |
+| 3.20 | Measurement tools | ❌ | No distance/angle measurement | -- |
+| 3.21 | Trajectory visualization | ❌ | Path preview. **Priority upgraded** — needed for scenario authoring UX | -- |
 
 ---
 
@@ -211,10 +215,10 @@
 
 | Package | Unit Tests | E2E Tests |
 |---------|-----------|-----------|
-| `@osce/scenario-engine` | 9 files: entity-operations, storyboard-operations, trigger-operations, init-operations, command-history, defaults, scenario-store, tree-traversal, parameter-commands | -- |
 | `@osce/openscenario` | 5 files: xosc-parser, xosc-validator, round-trip, thirdparty-files, parse-catalog | -- |
 | `@osce/node-editor` | 8 files: action-display, condition-display, document-to-flow, edge-factory, editor-store, layout, node-factory, compute-time-axis | -- |
-| `@osce/3d-viewer` | 5 files: entity-positions, viewer-store, entity-geometry, lane-type-colors, position-resolver | -- |
+| `@osce/scenario-engine` + compat | 10 files: entity-operations, storyboard-operations, trigger-operations, init-operations, command-history, defaults, scenario-store, tree-traversal, parameter-commands, feature-registry | -- |
+| `@osce/3d-viewer` | 10 files: entity-positions, viewer-store, entity-geometry, lane-type-colors, position-resolver, parse-traffic-light-state, signal-catalog, signal-geometry, signal-position-resolver, signal-shapes | -- |
 | `@osce/opendrive` | 10 files: arc, lane-boundary, line, reference-line, spiral, lane-offset, parse-and-mesh, junction-surface-builder, road-mesh-generator, xodr-parser | -- |
 | `@osce/mcp-server` | 9 files: action-tools, entity-tools, init-tools, integration, scenario-tools, storyboard-tools, template-tools, trigger-tools, undo-redo-tools | -- |
 | `@osce/esmini` | 3 files: ground-truth-converter, gt-sim-rest-client, gt-sim-service | -- |
@@ -250,20 +254,32 @@
 | 7.3.2 | WebSocket | ⚠️ | Persistent connection, heartbeat, file ops messaging | Unit: `ws-handler` |
 | 7.3.3 | Notifications system | ✅ | Toast notification area (alt+T) | -- |
 
-### 7.4 Accessibility & UX
+### 7.4 Desktop App
+
+| # | Feature | Status | Notes | Tests |
+|---|---------|--------|-------|-------|
+| 7.4.1 | Electron desktop app | ⚠️ | Native file system access, IPC handlers, electron-builder config | -- |
+
+### 7.5 Version Compatibility
+
+| # | Feature | Status | Notes | Tests |
+|---|---------|--------|-------|-------|
+| 7.5.1 | Feature gating system | ⚠️ | Feature registry for OpenSCENARIO version and simulator capability differences | Unit: `feature-registry` |
+
+### 7.6 Accessibility & UX
 
 | # | Feature | Status | Notes | Tests |
 |---|---------|--------|-------|-------|
 | 7.4.1 | Keyboard shortcuts | 🟡 | Ctrl+O, Ctrl+S, Ctrl+Z, Ctrl+Y, Delete/Backspace. Focus guard on inputs | -- |
 | 7.4.2 | Responsive panels | ✅ | react-resizable-panels, min/max constraints, collapsible file tree | -- |
 | 7.4.3 | ARIA roles | 🟡 | 97 matches across 33 files. Status bar, language toggle, modals. No screen reader testing | -- |
-| 7.4.4 | Status bar | ✅ | Sim status dot (color-coded), entity/story count, validation, filename + dirty, version (v1.2) | -- |
+| 7.4.4 | Status bar | ✅ | Sim status dot (color-coded), entity/story count, validation, filename + dirty, version (v1.3) | -- |
 
 ---
 
-## Appendix A: OpenSCENARIO v1.2 XSD Spec Coverage Map
+## Appendix A: OpenSCENARIO XSD Spec Coverage Map
 
-> Generated: 2026-03-04 | XSD Source: `Thirdparty/openscenario-v1.2.0/Schema/OpenSCENARIO.xsd`
+> Generated: 2026-03-04 | Primary XSD: `Thirdparty/openscenario-v1.3.1/ASAM_OpenSCENARIO_v1.3.1_Schema/OpenSCENARIO.xsd`
 > Parser: `packages/openscenario/src/parser/` | Serializer: `packages/openscenario/src/serializer/`
 > Types: `packages/shared/src/types/`
 > Status legend: ✅ Full | ⚠️ Partial | ❌ None
@@ -515,8 +531,8 @@
 | TrajectoryCatalogLocation | Catalog | ✅ | ✅ | Directory path |
 | RouteCatalogLocation | Catalog | ✅ | ✅ | Directory path |
 | CatalogReference | Catalog | ✅ | ✅ | catalogName, entryName, ParameterAssignments |
-| Catalog (definition file) | Catalog | ❌ | ❌ | No parsing of standalone catalog XML files; only references |
-| CatalogDefinition (group) | Catalog | ❌ | ❌ | For standalone catalog XML files |
+| Catalog (definition file) | Catalog | ⚠️ | ⚠️ | Standalone catalog XML parsing added (Vehicle, Pedestrian, MiscObject, Maneuver, Route) |
+| CatalogDefinition (group) | Catalog | ⚠️ | ⚠️ | Supported for parsed catalog types |
 
 ### A.17 Road Network
 
@@ -596,5 +612,5 @@
 - **Distribution/Stochastic** (14 types): Entire parameter distribution subsystem for automated test variation. Future consideration.
 - **TrajectoryPosition**: The only position type without a typed model.
 - **TimeOfDayCondition**: The only ByValueCondition variant not dispatched.
-- **Catalog definition files**: Only CatalogLocations and CatalogReference handled; no standalone catalog XML parsing.
+- **Catalog definition files**: Standalone catalog parsing added for Vehicle, Pedestrian, MiscObject, Maneuver, Route types. Environment and Trajectory catalogs not yet.
 - **ExternalObjectReference**, **EntitySelection**, **DomeImage**, **SensorReference/SensorReferenceSet**, **Color/ColorCmyk** (detailed color model), **License** (FileHeader child), **UsedArea**.

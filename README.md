@@ -1,6 +1,6 @@
 # GT-OpenSCENARIOEditor
 
-A web-based visual editor for [ASAM OpenSCENARIO XML v1.2](https://www.asam.net/standards/detail/openscenario/) — the industry standard for autonomous driving simulation scenarios.
+A web-based visual editor for [ASAM OpenSCENARIO XML v1.3.1](https://www.asam.net/standards/detail/openscenario/) — the industry standard for autonomous driving simulation scenarios.
 
 > Targeting the same space as IPG CarMaker and MathWorks RoadRunner, but with a modern browser-based UI, AI agent integration, and full open-source transparency.
 
@@ -9,11 +9,18 @@ A web-based visual editor for [ASAM OpenSCENARIO XML v1.2](https://www.asam.net/
 ## Features
 
 - **Node editor** — Visualize and edit the Storyboard hierarchy (Story → Act → ManeuverGroup → Maneuver → Event → Action) as an interactive node graph
-- **3D viewer** — Real-time Three.js road and vehicle rendering from `.xodr` / `.xosc` files
+- **Scene composer** — Act-based tab navigation with entity behavior cards, event rows, and trigger summary badges
+- **3D viewer** — Real-time Three.js road, vehicle, and traffic signal rendering from `.xodr` / `.xosc` files with minimap
+- **Traffic signals** — Type-specific 3D signal rendering (traffic lights, stop signs, speed limits) with simulation state connection
+- **Route editing** — Visual waypoint placement and editing in the 3D viewport
+- **Property panels** — Rich editors for actions, conditions, and triggers with segmented controls, entity/ref selectors, and transition dynamics
 - **Scenario templates** — One-click scenario presets (Cut-In, Overtaking, Emergency Brake, Pedestrian Crossing, and more)
 - **OpenDRIVE support** — Load `.xodr` road networks with geometric road shape computation
+- **Catalog support** — Parse, resolve, and edit OpenSCENARIO catalogs (Vehicle, Pedestrian, Maneuver, Route, etc.)
+- **Version compatibility** — Feature gating system for OpenSCENARIO version and simulator capability differences
 - **AI integration** — MCP server for agent-driven scenario authoring
-- **esmini integration** — Live simulation preview via GT_Sim REST + gRPC API
+- **esmini integration** — Live simulation preview via GT_Sim REST + gRPC API; WASM variant for in-browser playback
+- **Desktop app** — Electron-based desktop application with native file system access
 - **i18n** — English and Japanese UI
 
 ## Tech Stack
@@ -27,7 +34,8 @@ A web-based visual editor for [ASAM OpenSCENARIO XML v1.2](https://www.asam.net/
 | State | Zustand |
 | Backend | Fastify (Node.js) |
 | XML parsing | fast-xml-parser |
-| Simulation | gRPC + REST (esmini / GT_Sim) |
+| Simulation | gRPC + REST (esmini / GT_Sim); WASM (in-browser) |
+| Desktop | Electron |
 | Testing | Vitest (unit), Playwright (E2E) |
 | Monorepo | pnpm workspaces |
 
@@ -63,7 +71,9 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 ```bash
 pnpm dev              # Start frontend dev server
 pnpm dev:full         # Start frontend + backend
+pnpm dev:desktop      # Start Electron desktop app (dev mode)
 pnpm build            # Build all packages
+pnpm build:desktop    # Build Electron distributable
 pnpm test             # Run unit tests (Vitest)
 pnpm test:e2e         # Run E2E tests (Playwright)
 pnpm typecheck        # TypeScript type checking
@@ -77,18 +87,19 @@ pnpm format           # Prettier
 apps/
   web/              — React frontend (main editor UI)
   server/           — Fastify backend (WebSocket, GT_Sim bridge)
+  desktop/          — Electron desktop application
 packages/
   shared/           — Shared type contracts (immutable — coordinate before changing)
   openscenario/     — .xosc XML parser and serializer
   opendrive/        — .xodr parser and road geometry computation
   scenario-engine/  — Core business logic, Zustand store, Command pattern
   node-editor/      — React Flow node editor and timeline UI
-  3d-viewer/        — Three.js road and vehicle visualization
-  esmini/           — GT_Sim API client (REST + gRPC)
+  3d-viewer/        — Three.js road, vehicle, and traffic signal visualization
+  esmini/           — GT_Sim API client (REST + gRPC); WASM variant in apps/web
   mcp-server/       — MCP protocol for AI agent integration
   templates/        — Built-in scenario templates
   i18n/             — English/Japanese translation strings
-  theme-apex/       — APEX design tokens and styles
+  theme-apex/       — APEX design tokens and styles (glass, cursor light)
 ```
 
 ## Sample Scenarios

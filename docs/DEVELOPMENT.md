@@ -96,6 +96,18 @@ pnpm dev
 
 Swagger UI: http://127.0.0.1:8000/docs（GT_Sim 起動時）
 
+### モード 5: デスクトップアプリ（Electron）
+
+Electronベースのデスクトップアプリケーション。ネイティブファイルシステムアクセスが可能。
+
+```bash
+# 開発モード
+pnpm dev:desktop
+
+# ビルド（配布用パッケージ作成）
+pnpm build:desktop
+```
+
 ---
 
 ## 環境変数
@@ -122,14 +134,15 @@ Swagger UI: http://127.0.0.1:8000/docs（GT_Sim 起動時）
 GT-OpenSCENARIOEditor/
 ├── apps/
 │   ├── web/                  # React フロントエンド（Vite, port 5173）
-│   └── server/               # Node.js バックエンド（Fastify, port 3001）
+│   ├── server/               # Node.js バックエンド（Fastify, port 3001）
+│   └── desktop/              # Electron デスクトップアプリ
 ├── packages/
 │   ├── shared/               # 型定義・インターフェース（全パッケージの契約）
 │   ├── openscenario/         # .xosc パーサー / シリアライザ
 │   ├── opendrive/            # .xodr パーサー / 道路形状計算
 │   ├── scenario-engine/      # Zustand ストア / Command パターン
 │   ├── node-editor/          # React Flow ノードエディタ
-│   ├── 3d-viewer/            # Three.js 3D ビューア
+│   ├── 3d-viewer/            # Three.js 3D ビューア（道路/エンティティ/交通信号）
 │   ├── esmini/               # GT_Sim API クライアント（REST + gRPC）
 │   ├── mcp-server/           # MCP ツール（AI 連携）
 │   ├── templates/            # ユースケーステンプレート
@@ -140,7 +153,8 @@ GT-OpenSCENARIOEditor/
     ├── open-simulation-interface/  # OSI proto 定義（git submodule）
     ├── GT_Sim/                    # GT_Sim ソース（git submodule）
     ├── GT_Sim_v0.6.0-rc/         # GT_Sim 実行環境
-    ├── openscenario-v1.2.0/       # OpenSCENARIO スキーマ + サンプル
+    ├── openscenario-v1.3.1/       # OpenSCENARIO v1.3.1 スキーマ（プライマリ）
+    ├── openscenario-v1.2.0/       # OpenSCENARIO v1.2 スキーマ + サンプル（後方互換）
     └── esmini-demo_Windows/       # esmini テスト用リソース
 ```
 
@@ -199,6 +213,9 @@ pnpm format
 ```bash
 # 全パッケージ + アプリをビルド
 pnpm build
+
+# Electron デスクトップアプリをビルド
+pnpm build:desktop
 
 # クリーンビルド
 pnpm clean && pnpm build
