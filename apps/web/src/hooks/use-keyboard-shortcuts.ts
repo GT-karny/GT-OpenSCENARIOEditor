@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useScenarioStoreApi } from '../stores/use-scenario-store';
+import { useRouteEditStore } from '../stores/route-edit-store';
 import { useFileOperations } from './use-file-operations';
 import { useElementDelete } from './use-element-delete';
 import { isInputFocused } from '../lib/dom-utils';
@@ -13,12 +14,14 @@ export function useKeyboardShortcuts() {
     const handler = (e: KeyboardEvent) => {
       const ctrl = e.ctrlKey || e.metaKey;
 
+      const routeEditActive = useRouteEditStore.getState().active;
+
       if (ctrl && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
-        storeApi.getState().undo();
+        if (!routeEditActive) storeApi.getState().undo();
       } else if (ctrl && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
         e.preventDefault();
-        storeApi.getState().redo();
+        if (!routeEditActive) storeApi.getState().redo();
       } else if (ctrl && e.shiftKey && e.key === 'S') {
         e.preventDefault();
         saveAsXosc();
@@ -29,7 +32,7 @@ export function useKeyboardShortcuts() {
         e.preventDefault();
         openXosc();
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (isInputFocused()) return;
+        if (isInputFocused() || routeEditActive) return;
         e.preventDefault();
         deleteSelected();
       }

@@ -34,6 +34,7 @@ import { useEditorStore } from '../../stores/editor-store';
 import { useProjectStore } from '../../stores/project-store';
 import { useSimulationStore } from '../../stores/simulation-store';
 import { useRouteEdit } from '../../hooks/use-route-edit';
+import { useRoutePreview } from '../../hooks/use-route-preview';
 import { useRoadManagerClient } from '../../hooks/use-road-manager-client';
 import { useCatalogStore } from '../../stores/catalog-store';
 import { useTemplateDrop } from '../../hooks/use-template-drop';
@@ -87,6 +88,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   routeWarnings?: string[];
   routeWaypointCount?: number;
   resolveCatalogRoute?: (ref: { catalogName: string; entryName: string }) => import('@osce/shared').Route | null;
+  routePreviewData?: import('@osce/3d-viewer').RoutePreviewData[];
   selectedSignalKey?: string | null;
   onSignalSelect?: (key: string) => void;
 }) {
@@ -144,6 +146,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       routeWarnings={props.routeWarnings}
       routeWaypointCount={props.routeWaypointCount}
       resolveCatalogRoute={props.resolveCatalogRoute}
+      routePreviewData={props.routePreviewData}
       selectedSignalKey={props.selectedSignalKey}
       onSignalSelect={props.onSignalSelect}
       showPerf={false}
@@ -307,6 +310,9 @@ export function EditorLayout() {
   const routeEdit = useRouteEdit(roadNetwork, roadManagerClient);
   const updateCatalogEntry = useCatalogStore((s) => s.updateEntry);
   const catalogResolveReference = useCatalogStore((s) => s.resolveReference);
+
+  // --- Route preview (read-only visualization for selected entity/action) ---
+  const routePreviewData = useRoutePreview(scenarioStoreApi, roadNetwork, roadManagerClient);
 
   const resolveCatalogRoute = useCallback(
     (ref: { catalogName: string; entryName: string }) => {
@@ -557,6 +563,7 @@ export function EditorLayout() {
                     routeWarnings={routeEdit.warnings}
                     routeWaypointCount={routeEdit.editingRoute?.waypoints.length ?? 0}
                     resolveCatalogRoute={resolveCatalogRoute}
+                    routePreviewData={routePreviewData}
                     selectedSignalKey={selectedSignalKey}
                     onSignalSelect={handleSignalSelect}
                   />

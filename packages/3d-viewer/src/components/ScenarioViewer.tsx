@@ -33,6 +33,8 @@ import { SimulationOverlay } from '../scenario/SimulationOverlay.js';
 import { useCameraFollow } from '../scene/useCameraFollow.js';
 import { Minimap } from './Minimap.js';
 import { RouteOverlay } from '../route/RouteOverlay.js';
+import { RoutePreviewOverlay } from '../route/RoutePreviewOverlay.js';
+import type { RoutePreviewData } from '../route/RoutePreviewOverlay.js';
 import { RouteClickHandler } from '../interaction/RouteClickHandler.js';
 import { RouteEditOverlay } from '../route/RouteEditOverlay.js';
 import { TrafficSignalGroup } from '../signals/TrafficSignalGroup.js';
@@ -109,6 +111,8 @@ export interface ScenarioViewerProps {
   routeWaypointCount?: number;
   /** Resolve a catalog reference to a Route definition (for RoutePosition placement) */
   resolveCatalogRoute?: (ref: { catalogName: string; entryName: string }) => Route | null;
+  /** Route preview data for selected entity/action (read-only visualization) */
+  routePreviewData?: RoutePreviewData[];
   /** Currently selected traffic signal key (roadId:signalId) */
   selectedSignalKey?: string | null;
   /** Callback when user clicks a traffic signal in the viewer */
@@ -142,6 +146,7 @@ function ScenarioViewerScene({
   onRouteWaypointAdd,
   onRouteWaypointDragEnd,
   resolveCatalogRoute,
+  routePreviewData,
   selectedSignalKey,
   onSignalSelect,
 }: {
@@ -166,6 +171,7 @@ function ScenarioViewerScene({
   onRouteWaypointAdd?: ScenarioViewerProps['onRouteWaypointAdd'];
   onRouteWaypointDragEnd?: ScenarioViewerProps['onRouteWaypointDragEnd'];
   resolveCatalogRoute?: ScenarioViewerProps['resolveCatalogRoute'];
+  routePreviewData?: RoutePreviewData[];
   selectedSignalKey?: string | null;
   onSignalSelect?: (key: string) => void;
 }) {
@@ -339,6 +345,13 @@ function ScenarioViewerScene({
         />
       )}
 
+      {/* Route preview overlay (shown when entity/action selected, not editing) */}
+      {!routeEditActive && routePreviewData && routePreviewData.length > 0 && (
+        <group rotation={[-Math.PI / 2, 0, 0]}>
+          <RoutePreviewOverlay previews={routePreviewData} />
+        </group>
+      )}
+
       {/* Route overlay (inside rotation group to match OpenDRIVE coords) */}
       {routeEditActive && routeWaypoints && routeWaypoints.length > 0 && (
         <group rotation={[-Math.PI / 2, 0, 0]}>
@@ -451,6 +464,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   routeWarnings,
   routeWaypointCount,
   resolveCatalogRoute,
+  routePreviewData,
   selectedSignalKey,
   onSignalSelect,
   showPerf,
@@ -638,6 +652,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           onRouteWaypointAdd={onRouteWaypointAdd}
           onRouteWaypointDragEnd={onRouteWaypointDragEnd}
           resolveCatalogRoute={resolveCatalogRoute}
+          routePreviewData={routePreviewData}
           selectedSignalKey={selectedSignalKey}
           onSignalSelect={onSignalSelect}
         />

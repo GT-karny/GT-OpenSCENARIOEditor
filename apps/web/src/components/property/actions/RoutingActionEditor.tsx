@@ -41,11 +41,18 @@ export function RoutingActionEditor({ action, onUpdate }: RoutingActionEditorPro
   // Route edit mode state
   const routeEditActive = useRouteEditStore((s) => s.active);
   const routeEditSource = useRouteEditStore((s) => s.source);
+  const editingRoute = useRouteEditStore((s) => s.editingRoute);
+  const selectedWaypointIndex = useRouteEditStore((s) => s.selectedWaypointIndex);
 
   const isEditingThisRoute =
     routeEditActive &&
     routeEditSource?.type === 'action' &&
     routeEditSource.actionId === action.id;
+
+  // When route edit mode is active for this route, use the store's working copy
+  const displayRoute = isEditingThisRoute && editingRoute
+    ? { name: editingRoute.name, closed: editingRoute.closed, waypoints: editingRoute.waypoints }
+    : inner.route;
 
   // Determine route source mode for assignRoute variant
   const routeSourceMode: RouteSourceMode = inner.catalogReference ? 'catalogRef' : 'inline';
@@ -102,12 +109,22 @@ export function RoutingActionEditor({ action, onUpdate }: RoutingActionEditorPro
   };
 
   const handleWaypointDelete = (index: number) => {
+    if (isEditingThisRoute) {
+      // Sync deletion to route-edit-store
+      useRouteEditStore.getState().removeWaypoint(index);
+      return;
+    }
     if (!inner.route) return;
     const waypoints = inner.route.waypoints.filter((_, i) => i !== index);
     updateInner({ route: { ...inner.route, waypoints } });
   };
 
   const handleWaypointStrategyChange = (index: number, strategy: RouteStrategy) => {
+    if (isEditingThisRoute) {
+      // Sync strategy change to route-edit-store
+      useRouteEditStore.getState().updateWaypointStrategy(index, strategy);
+      return;
+    }
     if (!inner.route) return;
     const waypoints = inner.route.waypoints.map((wp, i) =>
       i === index ? { ...wp, routeStrategy: strategy } : wp,
@@ -150,15 +167,19 @@ export function RoutingActionEditor({ action, onUpdate }: RoutingActionEditorPro
           />
 
           {/* Inline route editor */}
-          {routeSourceMode === 'inline' && inner.route && (
+          {routeSourceMode === 'inline' && displayRoute && (
             <div className="space-y-2">
               <div className="grid gap-1">
                 <Label className="text-xs">Route Name</Label>
                 <Input
-                  value={inner.route.name}
-                  onChange={(e) =>
-                    updateInner({ route: { ...inner.route!, name: e.target.value } })
-                  }
+                  value={displayRoute.name}
+                  onChange={(e) => {
+                    if (isEditingThisRoute) {
+                      useRouteEditStore.getState().updateRouteName(e.target.value);
+                    } else {
+                      updateInner({ route: { ...inner.route!, name: e.target.value } });
+                    }
+                  }}
                   className="h-8 text-sm"
                 />
               </div>
@@ -166,10 +187,14 @@ export function RoutingActionEditor({ action, onUpdate }: RoutingActionEditorPro
               <label className="flex items-center gap-2 text-xs">
                 <input
                   type="checkbox"
-                  checked={inner.route.closed}
-                  onChange={(e) =>
-                    updateInner({ route: { ...inner.route!, closed: e.target.checked } })
-                  }
+                  checked={displayRoute.closed}
+                  onChange={(e) => {
+                    if (isEditingThisRoute) {
+                      useRouteEditStore.getState().updateRouteClosed(e.target.checked);
+                    } else {
+                      updateInner({ route: { ...inner.route!, closed: e.target.checked } });
+                    }
+                  }}
                 />
                 Closed
               </label>
@@ -178,24 +203,26 @@ export function RoutingActionEditor({ action, onUpdate }: RoutingActionEditorPro
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs">
-                    Waypoints ({inner.route.waypoints.length})
+                    Waypoints ({displayRoute.waypoints.length})
                   </Label>
                 </div>
 
-                {inner.route.waypoints.length === 0 ? (
+                {displayRoute.waypoints.length === 0 ? (
                   <p className="text-xs text-muted-foreground italic py-2">
                     No waypoints defined. Use &quot;Edit in 3D&quot; to add waypoints visually.
                   </p>
                 ) : (
                   <div className="space-y-1 max-h-[200px] overflow-y-auto">
-                    {inner.route.waypoints.map((wp, i) => (
+                    {displayRoute.waypoints.map((wp, i) => (
                       <WaypointListItem
                         key={i}
                         index={i}
                         waypoint={wp}
-                        isSelected={false}
+                        isSelected={isEditingThisRoute && selectedWaypointIndex === i}
                         onSelect={() => {
-                          // Selection is handled in route edit mode via the store
+                          if (isEditingThisRoute) {
+                            useRouteEditStore.getState().selectWaypoint(i);
+                          }
                         }}
                         onDelete={() => handleWaypointDelete(i)}
                         onStrategyChange={(strategy) =>

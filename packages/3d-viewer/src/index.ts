@@ -37,6 +37,8 @@ export { useEntityPositions, extractEntityPositions } from './scenario/useEntity
 export { RouteOverlay } from './route/RouteOverlay.js';
 export type { RouteOverlayProps } from './route/RouteOverlay.js';
 export { RouteEditOverlay } from './route/RouteEditOverlay.js';
+export { RoutePreviewOverlay } from './route/RoutePreviewOverlay.js';
+export type { RoutePreviewData, RoutePreviewOverlayProps } from './route/RoutePreviewOverlay.js';
 export { RouteClickHandler } from './interaction/RouteClickHandler.js';
 
 // Traffic signal rendering
