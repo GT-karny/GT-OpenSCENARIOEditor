@@ -23,7 +23,7 @@ export function ValidationIssueRow({ issue }: ValidationIssueRowProps) {
     <button
       onClick={handleClick}
       disabled={!navigable}
-      className={`w-full text-left px-3 py-2 transition-colors border-b last:border-b-0 ${navigable ? 'cursor-pointer hover:bg-accent' : 'cursor-default'}`}
+      className={`w-full text-left px-3 py-2 transition-colors border-b border-[var(--color-glass-edge)] last:border-b-0 ${navigable ? 'cursor-pointer hover:bg-[var(--color-glass-hover)]' : 'cursor-default'}`}
     >
       <div className="flex items-start gap-2">
         {issue.severity === 'error' ? (

@@ -49,7 +49,7 @@ function HL({
     <div
       onMouseEnter={() => onHighlight(hk)}
       onMouseLeave={() => onHighlight(null)}
-      className={isActive ? 'ring-1 ring-[#9B84E8] rounded-sm' : ''}
+      className={isActive ? 'ring-1 ring-[var(--color-accent-vivid)] rounded-none' : ''}
     >
       {children}
     </div>

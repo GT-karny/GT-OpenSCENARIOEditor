@@ -281,7 +281,7 @@ export function SaveAsDialog({ open, onOpenChange, onSave }: SaveAsDialogProps) 
 
         <div className="space-y-4 py-2">
           {/* Folder tree with files */}
-          <div className="border border-[var(--color-glass-edge-mid)] bg-[var(--color-bg-deep)] rounded-sm">
+          <div className="border border-[var(--color-glass-edge-mid)] bg-[var(--color-bg-deep)] rounded-none">
             <ScrollArea className="h-48">
               <div className="py-1">
                 {tree.map((node) => (

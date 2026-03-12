@@ -29,9 +29,10 @@ export function TemplatePalettePanel() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-3 py-2 border-b">
+      <div className="px-3 py-2">
         <h3 className="text-xs font-semibold">{t('panels.templates')}</h3>
       </div>
+      <div className="divider-glow" />
 
       <ScrollArea className="flex-1">
         <Accordion type="multiple" defaultValue={['highway']}>

@@ -62,7 +62,7 @@ export function InitPropertyEditorContent({ entityInit }: InitPropertyEditorCont
         ) : (
           <button
             onClick={handleAddPosition}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs text-[var(--color-text-muted)] hover:text-[var(--color-accent-1)] hover:bg-[var(--color-glass-2)] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-none text-xs text-[var(--color-text-muted)] hover:text-[var(--color-accent-1)] hover:bg-[var(--color-glass-2)] transition-colors"
           >
             <Plus className="h-3 w-3" />
             Add Position
@@ -94,7 +94,7 @@ export function InitPropertyEditorContent({ entityInit }: InitPropertyEditorCont
         ) : (
           <button
             onClick={handleAddSpeed}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs text-[var(--color-text-muted)] hover:text-[var(--color-accent-1)] hover:bg-[var(--color-glass-2)] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-none text-xs text-[var(--color-text-muted)] hover:text-[var(--color-accent-1)] hover:bg-[var(--color-glass-2)] transition-colors"
           >
             <Plus className="h-3 w-3" />
             Add Speed

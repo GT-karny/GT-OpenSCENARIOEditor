@@ -94,7 +94,7 @@ export function ConditionPropertyEditor({ trigger, onUpdateCondition }: Conditio
 
   return (
     <div className="space-y-4">
-      <div className="pb-2 border-b">
+      <div className="pb-2 border-b border-[var(--color-glass-edge)]">
         <p className="text-sm font-medium">Trigger</p>
         <p className="text-xs text-muted-foreground">
           {trigger.conditionGroups.length} group{trigger.conditionGroups.length !== 1 ? 's' : ''},{' '}
@@ -308,7 +308,7 @@ export function ConditionItem({ condition, onUpdateCondition }: ConditionItemPro
   };
 
   return (
-    <div className="space-y-2 border-b pb-3">
+    <div className="space-y-2 border-b border-[var(--color-glass-edge)] pb-3">
       {condition.name && (
         <div className="grid gap-1">
           <Label className="text-[10px]">Name</Label>
@@ -373,7 +373,7 @@ export function ConditionItem({ condition, onUpdateCondition }: ConditionItemPro
       {/* Type list — flat buttons with descriptions */}
       <div className="grid gap-1.5">
         <Label className="text-xs">Type</Label>
-        <div className="mx-4 flex flex-col divide-y divide-border border border-border bg-[var(--color-glass-1)] shadow-[inset_0_2px_6px_rgba(0,0,0,0.4)]">
+        <div className="mx-4 flex flex-col divide-y divide-[var(--color-glass-edge)] border border-[var(--color-glass-edge)] bg-[var(--color-glass-1)] shadow-[inset_0_2px_6px_rgba(0,0,0,0.4)]">
           {typeList.map((type) => {
             const gate = checkCondition(type);
             return (
@@ -388,7 +388,7 @@ export function ConditionItem({ condition, onUpdateCondition }: ConditionItemPro
                   conditionType === type
                     ? 'glass-item selected'
                     : gate.allowed
-                      ? 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      ? 'text-muted-foreground hover:text-foreground hover:bg-[var(--color-glass-hover)]'
                       : 'text-muted-foreground/40 cursor-not-allowed',
                 )}
               >

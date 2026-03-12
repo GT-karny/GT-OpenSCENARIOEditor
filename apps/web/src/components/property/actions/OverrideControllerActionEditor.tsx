@@ -29,7 +29,7 @@ function OverrideValueGroup({ label, value, showMaxRate = true, showMaxTorque = 
   };
 
   return (
-    <div className="space-y-1 py-2 border-b last:border-0">
+    <div className="space-y-1 py-2 border-b border-[var(--color-glass-edge)] last:border-0">
       <label className="flex items-center gap-2 text-xs font-medium">
         <input
           type="checkbox"

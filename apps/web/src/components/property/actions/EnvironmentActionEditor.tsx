@@ -56,7 +56,7 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
 
       {/* Time of Day */}
       <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground border-b pb-1">Time of Day</p>
+        <p className="text-xs font-medium text-muted-foreground border-b border-[var(--color-glass-edge)] pb-1">Time of Day</p>
         <div className="grid gap-1">
           <Label className="text-xs">Date & Time</Label>
           <Input
@@ -79,7 +79,7 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
 
       {/* Weather */}
       <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground border-b pb-1">Weather</p>
+        <p className="text-xs font-medium text-muted-foreground border-b border-[var(--color-glass-edge)] pb-1">Weather</p>
         <div className="grid gap-1">
           <Label className="text-xs">Cloud Cover</Label>
           <EnumSelect
@@ -273,7 +273,7 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
 
       {/* Road Condition */}
       <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground border-b pb-1">Road Condition</p>
+        <p className="text-xs font-medium text-muted-foreground border-b border-[var(--color-glass-edge)] pb-1">Road Condition</p>
         <div className="grid gap-1">
           <Label className="text-xs">Friction Scale Factor</Label>
           <ParameterAwareInput

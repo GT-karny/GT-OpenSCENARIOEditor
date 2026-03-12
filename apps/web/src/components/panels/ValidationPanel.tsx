@@ -12,7 +12,7 @@ export function ValidationPanel() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-3 py-2 border-b">
+      <div className="flex items-center justify-between px-3 py-2">
         <div className="flex items-center gap-2 ml-auto">
           {result && (
             <Badge data-testid="validation-summary" variant={result.valid ? 'secondary' : 'destructive'} className="text-[10px]">
@@ -24,6 +24,7 @@ export function ValidationPanel() {
           </Button>
         </div>
       </div>
+      <div className="divider-glow" />
 
       <ScrollArea className="flex-1">
         {result ? (

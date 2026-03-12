@@ -31,6 +31,10 @@ import { EntityActionEditor } from './actions/EntityActionEditor';
 import { EnvironmentActionEditor } from './actions/EnvironmentActionEditor';
 import { TrafficActionEditor } from './actions/TrafficActionEditor';
 import { InfrastructureActionEditor } from './actions/InfrastructureActionEditor';
+import { SpeedProfileActionEditor } from './actions/SpeedProfileActionEditor';
+import { LateralDistanceActionEditor } from './actions/LateralDistanceActionEditor';
+import { ParameterActionEditor } from './actions/ParameterActionEditor';
+import { VariableActionEditor } from './actions/VariableActionEditor';
 import { GenericActionEditor } from './actions/GenericActionEditor';
 import { useFeatureGate } from '../../hooks/use-feature-gate';
 import { cn } from '@/lib/utils';
@@ -69,6 +73,10 @@ const PHASE5_TYPES = [
   'environmentAction',
   'trafficAction',
   'infrastructureAction',
+  'speedProfileAction',
+  'lateralDistanceAction',
+  'parameterAction',
+  'variableAction',
 ] as const;
 
 interface ActionPropertyEditorProps {
@@ -124,7 +132,7 @@ export function ActionPropertyEditor({ action, onUpdate }: ActionPropertyEditorP
 
   return (
     <div className="space-y-4">
-      <div className="pb-2 border-b">
+      <div className="pb-2 border-b border-[var(--color-glass-edge)]">
         <p className="text-sm font-medium">{action.name}</p>
         <p className="text-xs text-muted-foreground">
           {t(`actionTypes.${actionType}` as never)}
@@ -187,7 +195,7 @@ export function ActionPropertyEditor({ action, onUpdate }: ActionPropertyEditorP
       {category !== 'userDefined' && (
         <div className="grid gap-1.5">
           <Label className="text-xs">Type</Label>
-          <div className="mx-4 flex flex-col divide-y divide-border border border-border bg-[var(--color-glass-1)] shadow-[inset_0_2px_6px_rgba(0,0,0,0.4)]">
+          <div className="mx-4 flex flex-col divide-y divide-[var(--color-glass-edge)] border border-[var(--color-glass-edge)] bg-[var(--color-glass-1)] shadow-[inset_0_2px_6px_rgba(0,0,0,0.4)]">
             {typeList.map((type) => {
               const gate = checkAction(type);
               return (
@@ -206,7 +214,7 @@ export function ActionPropertyEditor({ action, onUpdate }: ActionPropertyEditorP
                     actionType === type
                       ? 'glass-item selected font-medium'
                       : gate.allowed
-                        ? 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                        ? 'text-muted-foreground hover:text-foreground hover:bg-[var(--color-glass-hover)]'
                         : 'text-muted-foreground/40 cursor-not-allowed',
                   )}
                 >
@@ -220,7 +228,7 @@ export function ActionPropertyEditor({ action, onUpdate }: ActionPropertyEditorP
       )}
 
       {/* Type-specific editor */}
-      <div className="pt-1 border-t">
+      <div className="pt-1 border-t border-[var(--color-glass-edge)]">
         {actionType === 'speedAction' && (
           <SpeedActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
         )}
@@ -298,6 +306,21 @@ export function ActionPropertyEditor({ action, onUpdate }: ActionPropertyEditorP
         )}
         {actionType === 'infrastructureAction' && (
           <InfrastructureActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
+        )}
+        {actionType === 'speedProfileAction' && (
+          <SpeedProfileActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
+        )}
+        {actionType === 'lateralDistanceAction' && (
+          <LateralDistanceActionEditor
+            action={action}
+            onUpdate={(p) => onUpdate(action.id, p)}
+          />
+        )}
+        {actionType === 'parameterAction' && (
+          <ParameterActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
+        )}
+        {actionType === 'variableAction' && (
+          <VariableActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
         )}
         {actionType !== 'speedAction' &&
           actionType !== 'laneChangeAction' &&

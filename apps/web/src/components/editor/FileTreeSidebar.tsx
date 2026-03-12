@@ -281,7 +281,7 @@ function TrashFileItem({
         <button
           type="button"
           onClick={() => onRestore(file.relativePath)}
-          className="p-0.5 hover:bg-[var(--color-glass-3)] rounded-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+          className="p-0.5 hover:bg-[var(--color-glass-3)] rounded-none text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
           title={t('fileTree.restore')}
         >
           <Undo2 size={10} />
@@ -289,7 +289,7 @@ function TrashFileItem({
         <button
           type="button"
           onClick={() => onPermanentDelete(file.relativePath, file.name)}
-          className="p-0.5 hover:bg-[var(--color-glass-3)] rounded-sm text-[var(--color-text-muted)] hover:text-red-400"
+          className="p-0.5 hover:bg-[var(--color-glass-3)] rounded-none text-[var(--color-text-muted)] hover:text-red-400"
           title={t('fileTree.permanentDelete')}
         >
           <X size={10} />
@@ -452,7 +452,7 @@ export function FileTreeSidebar({ onCollapse }: FileTreeSidebarProps) {
           <button
             type="button"
             onClick={onCollapse}
-            className="p-0.5 hover:bg-[var(--color-glass-2)] rounded-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+            className="p-0.5 hover:bg-[var(--color-glass-2)] rounded-none text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
             title={t('fileTree.collapse')}
           >
             <PanelLeftClose size={14} />

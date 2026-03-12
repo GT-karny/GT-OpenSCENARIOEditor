@@ -96,7 +96,7 @@ export function RouteFields({ entry, onUpdate }: RouteFieldsProps) {
           aria-checked={def.closed}
           onClick={handleToggleClosed}
           className={
-            'h-4 w-4 shrink-0 rounded-sm border border-input transition-colors ' +
+            'h-4 w-4 shrink-0 rounded-none border border-input transition-colors ' +
             (def.closed
               ? 'bg-primary border-primary'
               : 'bg-transparent hover:border-muted-foreground')
@@ -127,7 +127,7 @@ export function RouteFields({ entry, onUpdate }: RouteFieldsProps) {
 
         {/* Warning for insufficient waypoints */}
         {def.waypoints.length < 2 && (
-          <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-sm bg-yellow-500/10 border border-yellow-500/30">
+          <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-none bg-yellow-500/10 border border-yellow-500/30">
             <AlertTriangle className="h-3 w-3 text-yellow-500 shrink-0" />
             <span className="text-[10px] text-yellow-500">
               Route requires at least 2 waypoints
@@ -140,7 +140,7 @@ export function RouteFields({ entry, onUpdate }: RouteFieldsProps) {
           {def.waypoints.map((wp, i) => (
             <div
               key={i}
-              className="group flex items-center gap-1 px-1.5 py-1 rounded-sm hover:bg-accent/50 transition-colors"
+              className="group flex items-center gap-1 px-1.5 py-1 rounded-none hover:bg-[var(--color-glass-hover)] transition-colors"
             >
               {/* Index badge */}
               <span className="text-[10px] text-muted-foreground w-5 shrink-0 text-center font-mono">
@@ -188,7 +188,7 @@ export function RouteFields({ entry, onUpdate }: RouteFieldsProps) {
       {/* Edit in 3D button */}
       <div className="pt-1">
         {isEditingThisRoute ? (
-          <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-sm bg-primary/10 border border-primary/30">
+          <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-none bg-primary/10 border border-primary/30">
             <Navigation2 className="h-3 w-3 text-primary animate-pulse" />
             <span className="text-[10px] text-primary font-medium">
               Editing in 3D...

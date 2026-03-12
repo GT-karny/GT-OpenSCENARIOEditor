@@ -660,25 +660,15 @@ export function EditorLayout() {
                   >
                     <div className="flex flex-col h-full enter d2">
                       {/* Tab bar */}
-                      <div className="flex shrink-0 border-b border-[var(--color-border-glass)] bg-[var(--color-glass-1)] backdrop-blur-[28px]">
-                        {(['composer', 'graph'] as const).map((tab) => (
-                          <button
-                            key={tab}
-                            onClick={() => setCenterTab(tab)}
-                            className={[
-                              'relative px-4 py-1.5 text-xs font-medium capitalize transition-colors',
-                              centerTab === tab
-                                ? 'text-[var(--color-accent-1)]'
-                                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]',
-                            ].join(' ')}
-                          >
-                            {tab}
-                            {centerTab === tab && (
-                              <span className="absolute bottom-0 left-0 right-0 h-px bg-[var(--color-accent-1)]" />
-                            )}
-                          </button>
-                        ))}
-                      </div>
+                      <Tabs value={centerTab} onValueChange={(v) => setCenterTab(v as 'composer' | 'graph')} className="flex flex-col h-full">
+                        <TabsList className="bg-[var(--color-glass-1)] backdrop-blur-[28px] rounded-none p-0">
+                          <TabsTrigger value="composer" className="apex-tab flex-1">
+                            Composer
+                          </TabsTrigger>
+                          <TabsTrigger value="graph" className="apex-tab flex-1">
+                            Graph
+                          </TabsTrigger>
+                        </TabsList>
                       {/* Content — both views stay mounted to preserve React Flow state */}
                       <div className="flex-1 overflow-hidden relative">
                         <div className={`absolute inset-0 ${centerTab !== 'composer' ? 'hidden' : ''}`}>
@@ -704,6 +694,7 @@ export function EditorLayout() {
                           </ErrorBoundary>
                         </div>
                       </div>
+                      </Tabs>
                     </div>
                   </NodeEditorProvider>
                 </Panel>

@@ -224,7 +224,7 @@ export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTraject
                   // ignore invalid JSON while typing
                 }
               }}
-              className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs font-mono resize-y"
+              className="min-h-[80px] w-full rounded-none border border-input bg-background px-3 py-2 text-xs font-mono resize-y"
               spellCheck={false}
             />
           </div>
@@ -372,7 +372,7 @@ export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTraject
                     // ignore invalid JSON while typing
                   }
                 }}
-                className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs font-mono resize-y"
+                className="min-h-[80px] w-full rounded-none border border-input bg-background px-3 py-2 text-xs font-mono resize-y"
                 spellCheck={false}
               />
             </div>

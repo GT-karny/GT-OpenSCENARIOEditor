@@ -23,12 +23,13 @@ export function EntityListPanel() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-3 py-2 border-b">
+      <div className="flex items-center justify-between px-3 py-2">
         <div className="flex-1" />
         <Button variant="ghost" size="icon" className="h-6 w-6" aria-label="Add new entity" onClick={() => setAddDialogOpen(true)}>
           <Plus className="h-3.5 w-3.5" />
         </Button>
       </div>
+      <div className="divider-glow" />
 
       <ScrollArea className="flex-1">
         {entities.map((entity) => (
