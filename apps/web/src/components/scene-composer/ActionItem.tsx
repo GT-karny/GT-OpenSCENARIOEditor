@@ -68,7 +68,7 @@ export function ActionItem({ action, selected, onSelect, onRemove }: ActionItemP
   return (
     <div
       className={cn(
-        'group/action flex items-center gap-2 pl-10 pr-2 py-1 cursor-pointer transition-colors',
+        'group/action flex items-center gap-2 pl-14 pr-2 py-1 cursor-pointer transition-colors',
         'border border-transparent',
         selected
           ? 'bg-[var(--color-accent-1)]/10 border-[var(--color-accent-1)]/30'

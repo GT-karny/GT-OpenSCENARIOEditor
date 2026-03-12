@@ -62,5 +62,8 @@ export const composer = {
     deleteBehavior: 'ビヘイビアグループを削除',
     deleteEvent: 'イベントを削除',
     deleteAction: 'アクションを削除',
+    addManeuver: 'マヌーバを追加',
+    deleteManeuver: 'マヌーバを削除',
+    noEvents: 'イベント未定義',
   },
 } as const;

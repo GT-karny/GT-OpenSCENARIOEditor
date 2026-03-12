@@ -62,5 +62,8 @@ export const composer = {
     deleteBehavior: 'Delete behavior group',
     deleteEvent: 'Remove event',
     deleteAction: 'Remove action',
+    addManeuver: 'Add Maneuver',
+    deleteManeuver: 'Remove maneuver',
+    noEvents: 'No events defined',
   },
 } as const;

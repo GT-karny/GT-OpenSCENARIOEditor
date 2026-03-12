@@ -6,7 +6,7 @@ import { cn } from '../../lib/utils';
 import { useScenarioStore, useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
 import { EntityIcon } from '../entity/EntityIcon';
-import { EventRow } from './EventRow';
+import { ManeuverSection } from './ManeuverSection';
 import { getActionShortLabel } from './action-summary';
 
 interface EntityBehaviorCardProps {
@@ -31,10 +31,6 @@ export function EntityBehaviorCard({ group, selected, onSelect }: EntityBehavior
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState(group.name);
   const nameInputRef = useRef<HTMLInputElement>(null);
-
-  // D&D state
-  const [dragEventId, setDragEventId] = useState<string | null>(null);
-  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
 
   useEffect(() => {
     setDraftName(group.name);
@@ -88,17 +84,6 @@ export function EntityBehaviorCard({ group, selected, onSelect }: EntityBehavior
 
   // --- Event handlers ---
 
-  const handleAddEvent = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const store = storeApi.getState();
-    let maneuver = group.maneuvers[0];
-    if (!maneuver) {
-      maneuver = store.addManeuver(group.id, { name: 'Maneuver' });
-    }
-    const event = store.addEvent(maneuver.id, { name: `Event_${allEvents.length + 1}` });
-    store.addAction(event.id, { name: `Action_${allEvents.length + 1}` });
-  };
-
   const handleSelectEvent = (eventId: string) => {
     useEditorStore.getState().setSelection({ selectedElementIds: [eventId] });
   };
@@ -133,31 +118,11 @@ export function EntityBehaviorCard({ group, selected, onSelect }: EntityBehavior
     if (selected) useEditorStore.getState().clearSelection();
   };
 
-  // --- D&D handlers ---
-
-  const handleDragStart = (eventId: string) => (e: React.DragEvent) => {
-    setDragEventId(eventId);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragEnd = () => {
-    setDragEventId(null);
-    setDropTargetIndex(null);
-  };
-
-  const handleDragOver = (index: number) => (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    setDropTargetIndex(index);
-  };
-
-  const handleDrop = (targetIndex: number) => (e: React.DragEvent) => {
-    e.preventDefault();
-    if (dragEventId) {
-      storeApi.getState().reorderEvent(dragEventId, targetIndex);
-    }
-    setDragEventId(null);
-    setDropTargetIndex(null);
+  const handleAddManeuver = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    storeApi.getState().addManeuver(group.id, {
+      name: `Maneuver_${group.maneuvers.length + 1}`,
+    });
   };
 
   // --- Hover → 3D viewer ---
@@ -283,56 +248,38 @@ export function EntityBehaviorCard({ group, selected, onSelect }: EntityBehavior
         </div>
       )}
 
-      {/* Event list */}
+      {/* Maneuver sections */}
       {!collapsed && (
         <div className="pb-2 flex flex-col">
-          {allEvents.length === 0 ? (
+          {group.maneuvers.map((maneuver) => (
+            <ManeuverSection
+              key={maneuver.id}
+              maneuver={maneuver}
+              groupId={group.id}
+              isOnly={group.maneuvers.length === 1}
+              selectedEventId={selectedEventId}
+              selectedActionId={selectedActionId}
+              onSelectEvent={handleSelectEvent}
+              onSelectAction={handleSelectAction}
+              onRemoveEvent={handleRemoveEvent}
+              onAddAction={handleAddAction}
+              onRemoveAction={handleRemoveAction}
+            />
+          ))}
+
+          {group.maneuvers.length === 0 && (
             <p className="text-[11px] text-[var(--color-text-muted)] italic px-4 py-1">
               {t('card.noActions')}
             </p>
-          ) : (
-            allEvents.map((event, index) => (
-              <div
-                key={event.id}
-                onDragOver={handleDragOver(index)}
-                onDrop={handleDrop(index)}
-              >
-                {/* Drop indicator */}
-                {dropTargetIndex === index && dragEventId && (
-                  <div className="h-0.5 mx-2 bg-[var(--color-accent-1)] rounded-full" />
-                )}
-
-                <EventRow
-                  event={event}
-                  selectedEventId={selectedEventId}
-                  selectedActionId={selectedActionId}
-                  onSelectEvent={handleSelectEvent}
-                  onSelectAction={handleSelectAction}
-                  onRemoveEvent={handleRemoveEvent}
-                  onAddAction={handleAddAction}
-                  onRemoveAction={handleRemoveAction}
-                  dragHandleProps={{
-                    draggable: true,
-                    onDragStart: handleDragStart(event.id),
-                    onDragEnd: handleDragEnd,
-                  }}
-                />
-
-                {/* Divider between events */}
-                {index < allEvents.length - 1 && (
-                  <div className="divider-glow mx-2 my-1" />
-                )}
-              </div>
-            ))
           )}
 
-          {/* Add event button */}
+          {/* Add maneuver button */}
           <button
-            onClick={handleAddEvent}
+            onClick={handleAddManeuver}
             className="flex items-center gap-1.5 px-3 py-1 mt-1 text-[11px] text-[var(--color-text-muted)] hover:text-[var(--color-accent-1)] hover:bg-[var(--color-glass-2)] transition-colors"
           >
             <Plus className="h-3 w-3" />
-            {t('card.addEvent')}
+            {t('card.addManeuver')}
           </button>
         </div>
       )}

@@ -109,7 +109,7 @@ export function EventRow({
           e.stopPropagation();
           onAddAction(event.id);
         }}
-        className="flex items-center gap-1.5 pl-10 pr-2 py-1 text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-accent-1)] hover:bg-[var(--color-glass-2)] transition-colors"
+        className="flex items-center gap-1.5 pl-14 pr-2 py-1 text-[10px] text-[var(--color-text-muted)] hover:text-[var(--color-accent-1)] hover:bg-[var(--color-glass-2)] transition-colors"
       >
         <Plus className="h-2.5 w-2.5" />
         {t('card.addAction')}
