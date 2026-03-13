@@ -44,6 +44,9 @@ export {
 } from './mesh/sampling.js';
 export { buildJunctionSurfaceMesh } from './mesh/junction-surface-builder.js';
 
+// Utilities
+export { convertGeometryType } from './utils/convert-geometry-type.js';
+
 // Types
 export type { Vec3, Pose2D } from './geometry/types.js';
 export type { LaneBoundaryPoint } from './geometry/lane-boundary.js';

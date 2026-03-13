@@ -1,12 +1,21 @@
 import type { OdrGeometry } from '@osce/shared';
+import { convertGeometryType } from '@osce/opendrive';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { Badge } from '../../ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 
 interface OdrGeometryPropertyEditorProps {
   geometry: OdrGeometry;
   index: number;
   onUpdate: (updates: Partial<OdrGeometry>) => void;
+}
+
+const CONVERTIBLE_TYPES = ['line', 'arc', 'spiral'] as const;
+type ConvertibleType = (typeof CONVERTIBLE_TYPES)[number];
+
+function isConvertible(type: string): type is ConvertibleType {
+  return (CONVERTIBLE_TYPES as readonly string[]).includes(type);
 }
 
 export function OdrGeometryPropertyEditor({
@@ -16,6 +25,12 @@ export function OdrGeometryPropertyEditor({
 }: OdrGeometryPropertyEditorProps) {
   const isReadOnly = geometry.type === 'poly3' || geometry.type === 'paramPoly3';
 
+  const handleTypeChange = (newType: string) => {
+    if (!isConvertible(newType) || newType === geometry.type) return;
+    const converted = convertGeometryType(geometry, newType);
+    onUpdate(converted);
+  };
+
   return (
     <div className="space-y-4">
       {/* Section: Geometry Segment Header */}
@@ -24,9 +39,24 @@ export function OdrGeometryPropertyEditor({
           <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider">
             Geometry #{index}
           </h3>
-          <Badge variant="secondary" className="text-[10px] py-0">
-            {geometry.type}
-          </Badge>
+          {isConvertible(geometry.type) ? (
+            <Select value={geometry.type} onValueChange={handleTypeChange}>
+              <SelectTrigger className="h-6 w-24 text-[10px] rounded-none bg-[var(--color-glass-1)] border-[var(--color-glass-edge)] hover:bg-[var(--color-glass-hover)]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-none">
+                {CONVERTIBLE_TYPES.map((t) => (
+                  <SelectItem key={t} value={t} className="text-xs rounded-none">
+                    {t}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Badge variant="secondary" className="text-[10px] py-0">
+              {geometry.type}
+            </Badge>
+          )}
           {isReadOnly && (
             <Badge variant="outline" className="text-[10px] py-0 text-[var(--color-text-secondary)]">
               Read Only
