@@ -20,8 +20,10 @@ interface ControlPointGizmoProps {
   index: number;
   /** Whether this control point is currently selected */
   selected: boolean;
-  /** Callback when clicked */
+  /** Callback when clicked (normal click) */
   onClick: (index: number) => void;
+  /** Callback when Shift+clicked for multi-selection */
+  onShiftClick?: (index: number) => void;
   /** Callback when drag ends with new position */
   onDragEnd?: (index: number, newX: number, newY: number) => void;
   /** Ref to OrbitControls (to disable during drag) */
@@ -33,6 +35,7 @@ export function ControlPointGizmo({
   index,
   selected,
   onClick,
+  onShiftClick,
   onDragEnd,
   orbitControlsRef,
 }: ControlPointGizmoProps) {
@@ -59,6 +62,10 @@ export function ControlPointGizmo({
   const handlePointerDown = useCallback(
     (e: THREE.Event & { stopPropagation: () => void; nativeEvent: PointerEvent }) => {
       e.stopPropagation();
+      if (e.nativeEvent.shiftKey && onShiftClick) {
+        onShiftClick(index);
+        return;
+      }
       onClick(index);
 
       if (!isEditable || !onDragEnd) return;
@@ -126,7 +133,7 @@ export function ControlPointGizmo({
       gl.domElement.addEventListener('pointermove', handleMove);
       gl.domElement.addEventListener('pointerup', handleUp);
     },
-    [geometry, index, isEditable, onClick, onDragEnd, orbitControlsRef, gl, camera, position],
+    [geometry, index, isEditable, onClick, onShiftClick, onDragEnd, orbitControlsRef, gl, camera, position],
   );
 
   return (

@@ -36,6 +36,10 @@ interface RoadEditingLayerProps {
   onHeadingDragEnd?: (roadId: string, geometryIndex: number, newHdg: number) => void;
   /** Callback when arc curvature is changed via drag */
   onCurvatureDragEnd?: (roadId: string, geometryIndex: number, newCurvature: number) => void;
+  /** Callback when a geometry point is Shift+clicked for multi-selection */
+  onGeometryShiftClick?: (roadId: string, geometryIndex: number) => void;
+  /** Set of selected geometry indices (for multi-selection highlight) */
+  selectedGeometryIndices?: Set<number>;
 }
 
 export function RoadEditingLayer({
@@ -50,6 +54,8 @@ export function RoadEditingLayer({
   gridSnap = false,
   onHeadingDragEnd,
   onCurvatureDragEnd,
+  onGeometryShiftClick,
+  selectedGeometryIndices,
 }: RoadEditingLayerProps) {
   const selectedRoad = useMemo(
     () => openDriveDocument.roads.find((r) => r.id === selectedRoadId) ?? null,
@@ -81,6 +87,15 @@ export function RoadEditingLayer({
       }
     },
     [selectedRoadId, onHeadingDragEnd],
+  );
+
+  const handleShiftClick = useCallback(
+    (index: number) => {
+      if (selectedRoadId) {
+        onGeometryShiftClick?.(selectedRoadId, index);
+      }
+    },
+    [selectedRoadId, onGeometryShiftClick],
   );
 
   const handleCurvatureDragEnd = useCallback(
@@ -119,8 +134,9 @@ export function RoadEditingLayer({
               <ControlPointGizmo
                 geometry={geometry}
                 index={i}
-                selected={selectedGeometryIndex === i}
+                selected={selectedGeometryIndices ? selectedGeometryIndices.has(i) : selectedGeometryIndex === i}
                 onClick={handleControlPointClick}
+                onShiftClick={handleShiftClick}
                 onDragEnd={handleControlPointDragEnd}
                 orbitControlsRef={orbitControlsRef}
               />

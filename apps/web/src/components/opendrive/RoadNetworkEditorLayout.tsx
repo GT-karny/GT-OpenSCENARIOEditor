@@ -70,11 +70,13 @@ export function RoadNetworkEditorLayout() {
   // Lane-level selection (local state, reset when road changes)
   const [selectedLaneId, setSelectedLaneId] = useState<number | null>(null);
   const [selectedGeometryIndex, setSelectedGeometryIndex] = useState<number | null>(null);
+  const [selectedGeometryIndices, setSelectedGeometryIndices] = useState<Set<number>>(new Set());
 
   // Reset lane/geometry selection when road changes
   useEffect(() => {
     setSelectedLaneId(null);
     setSelectedGeometryIndex(null);
+    setSelectedGeometryIndices(new Set());
   }, [selectedRoadId]);
 
   const [centerTab, setCenterTab] = useState<'crossSection' | 'elevation'>('crossSection');
@@ -112,9 +114,65 @@ export function RoadNetworkEditorLayout() {
   const handleGeometrySelect = useCallback(
     (_roadId: string, geometryIndex: number) => {
       setSelectedGeometryIndex(geometryIndex);
+      setSelectedGeometryIndices(new Set([geometryIndex]));
     },
     [],
   );
+
+  const handleGeometryShiftClick = useCallback(
+    (_roadId: string, geometryIndex: number) => {
+      setSelectedGeometryIndices((prev) => {
+        const next = new Set(prev);
+        if (next.has(geometryIndex)) {
+          next.delete(geometryIndex);
+        } else {
+          next.add(geometryIndex);
+        }
+        // Update primary selection to the last toggled item
+        if (next.size > 0) {
+          setSelectedGeometryIndex(geometryIndex);
+        } else {
+          setSelectedGeometryIndex(null);
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
+  const handleDeleteSelectedGeometry = useCallback(() => {
+    if (!selectedRoadId || selectedGeometryIndices.size === 0) return;
+    const road = odrDocument.roads.find((r) => r.id === selectedRoadId);
+    if (!road || road.planView.length <= 1) return;
+
+    // Filter out selected indices, preserving at least one geometry
+    const remaining = road.planView.filter((_, i) => !selectedGeometryIndices.has(i));
+    if (remaining.length === 0) return;
+
+    // Recalculate s values
+    let s = 0;
+    const updatedPlanView = remaining.map((g) => {
+      const updated = { ...g, s };
+      s += g.length;
+      return updated;
+    });
+
+    odrStoreApi.getState().updateRoad(selectedRoadId, { planView: updatedPlanView });
+    setSelectedGeometryIndex(null);
+    setSelectedGeometryIndices(new Set());
+  }, [selectedRoadId, selectedGeometryIndices, odrDocument.roads, odrStoreApi]);
+
+  // Delete/Backspace to remove selected geometry segments
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
+        handleDeleteSelectedGeometry();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [handleDeleteSelectedGeometry]);
 
   const handleGeometryDragEnd = useCallback(
     (roadId: string, geometryIndex: number, newX: number, newY: number) => {
@@ -254,6 +312,8 @@ export function RoadNetworkEditorLayout() {
                   onRoadCreate={handleRoadCreate}
                   onRoadHeadingDragEnd={handleHeadingDragEnd}
                   onRoadCurvatureDragEnd={handleCurvatureDragEnd}
+                  onRoadGeometryShiftClick={handleGeometryShiftClick}
+                  roadEditSelectedGeometryIndices={selectedGeometryIndices}
                 />
               </ErrorBoundary>
             </div>

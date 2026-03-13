@@ -159,6 +159,10 @@ export interface ScenarioViewerProps {
   onRoadHeadingDragEnd?: (roadId: string, geometryIndex: number, newHdg: number) => void;
   /** Callback when arc curvature is changed via drag */
   onRoadCurvatureDragEnd?: (roadId: string, geometryIndex: number, newCurvature: number) => void;
+  /** Callback when a geometry point is Shift+clicked */
+  onRoadGeometryShiftClick?: (roadId: string, geometryIndex: number) => void;
+  /** Set of selected geometry indices for multi-selection */
+  roadEditSelectedGeometryIndices?: Set<number>;
 }
 
 /**
@@ -203,6 +207,8 @@ function ScenarioViewerScene({
   roadGridSnap,
   onRoadHeadingDragEnd,
   onRoadCurvatureDragEnd,
+  onRoadGeometryShiftClick,
+  roadEditSelectedGeometryIndices,
 }: {
   scenarioStore: ScenarioViewerProps['scenarioStore'];
   openDriveDocument: OpenDriveDocument | null;
@@ -242,6 +248,8 @@ function ScenarioViewerScene({
   roadGridSnap?: boolean;
   onRoadHeadingDragEnd?: ScenarioViewerProps['onRoadHeadingDragEnd'];
   onRoadCurvatureDragEnd?: ScenarioViewerProps['onRoadCurvatureDragEnd'];
+  onRoadGeometryShiftClick?: ScenarioViewerProps['onRoadGeometryShiftClick'];
+  roadEditSelectedGeometryIndices?: Set<number>;
 }) {
   const cameraMode = useViewerStore(viewerStore, (s) => s.cameraMode);
   const showGrid = useViewerStore(viewerStore, (s) => s.showGrid);
@@ -511,6 +519,8 @@ function ScenarioViewerScene({
             gridSnap={roadGridSnap}
             onHeadingDragEnd={onRoadHeadingDragEnd}
             onCurvatureDragEnd={onRoadCurvatureDragEnd}
+            onGeometryShiftClick={onRoadGeometryShiftClick}
+            selectedGeometryIndices={roadEditSelectedGeometryIndices}
           />
         </group>
       )}
@@ -588,6 +598,8 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   roadGridSnap,
   onRoadHeadingDragEnd,
   onRoadCurvatureDragEnd,
+  onRoadGeometryShiftClick,
+  roadEditSelectedGeometryIndices,
 }) => {
   const viewerStoreRef = useRef<ReturnType<typeof createViewerStore> | null>(null);
   if (!viewerStoreRef.current) {
@@ -852,6 +864,8 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           roadGridSnap={roadGridSnap}
           onRoadHeadingDragEnd={onRoadHeadingDragEnd}
           onRoadCurvatureDragEnd={onRoadCurvatureDragEnd}
+          onRoadGeometryShiftClick={onRoadGeometryShiftClick}
+          roadEditSelectedGeometryIndices={roadEditSelectedGeometryIndices}
         />
       </ViewerCanvas>
     </div>
