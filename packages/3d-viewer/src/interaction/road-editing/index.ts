@@ -5,4 +5,5 @@ export { RoadEndpointMarkers } from './RoadEndpointMarkers.js';
 export { RoadCreationTool } from './RoadCreationTool.js';
 export { SnapIndicator } from './SnapIndicator.js';
 export { ArcCurvatureHandle } from './ArcCurvatureHandle.js';
+export { EndPointGizmo } from './EndPointGizmo.js';
 export { applySnap, snapToGrid, snapToEndpoint } from './snap-utils.js';

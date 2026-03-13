@@ -12,14 +12,21 @@ import { RoadEndpointMarkers } from './RoadEndpointMarkers.js';
 import { RoadCreationTool } from './RoadCreationTool.js';
 import { SnapIndicator } from './SnapIndicator.js';
 import { ArcCurvatureHandle } from './ArcCurvatureHandle.js';
+import { EndPointGizmo } from './EndPointGizmo.js';
 
 interface RoadEditingLayerProps {
   /** Full OpenDRIVE document */
   openDriveDocument: OpenDriveDocument;
   /** Currently selected road ID */
   selectedRoadId: string | null;
-  /** Callback when a geometry control point is dragged to a new position */
+  /** Callback when a control point is Ctrl+dragged (translate: only x,y change) */
   onGeometryDragEnd?: (roadId: string, geometryIndex: number, newX: number, newY: number) => void;
+  /** Callback when a start point is dragged to reshape (keep endpoint fixed) */
+  onStartpointDragEnd?: (
+    roadId: string,
+    geometryIndex: number,
+    updates: { x: number; y: number; hdg: number; length: number; curvature?: number },
+  ) => void;
   /** Callback when a geometry control point is selected */
   onGeometrySelect?: (roadId: string, geometryIndex: number) => void;
   /** Currently selected geometry index */
@@ -36,6 +43,12 @@ interface RoadEditingLayerProps {
   onHeadingDragEnd?: (roadId: string, geometryIndex: number, newHdg: number) => void;
   /** Callback when arc curvature is changed via drag */
   onCurvatureDragEnd?: (roadId: string, geometryIndex: number, newCurvature: number) => void;
+  /** Callback when an endpoint gizmo is dragged to reshape geometry */
+  onEndpointDragEnd?: (
+    roadId: string,
+    geometryIndex: number,
+    updates: { hdg?: number; length: number; curvature?: number },
+  ) => void;
   /** Callback when a geometry point is Shift+clicked for multi-selection */
   onGeometryShiftClick?: (roadId: string, geometryIndex: number) => void;
   /** Set of selected geometry indices (for multi-selection highlight) */
@@ -46,6 +59,7 @@ export function RoadEditingLayer({
   openDriveDocument,
   selectedRoadId,
   onGeometryDragEnd,
+  onStartpointDragEnd,
   onGeometrySelect,
   selectedGeometryIndex,
   orbitControlsRef,
@@ -54,6 +68,7 @@ export function RoadEditingLayer({
   gridSnap = false,
   onHeadingDragEnd,
   onCurvatureDragEnd,
+  onEndpointDragEnd,
   onGeometryShiftClick,
   selectedGeometryIndices,
 }: RoadEditingLayerProps) {
@@ -71,13 +86,27 @@ export function RoadEditingLayer({
     [selectedRoadId, onGeometrySelect],
   );
 
-  const handleControlPointDragEnd = useCallback(
+  // Ctrl+drag on start or end point: translate (just move x,y)
+  const handleTranslateDragEnd = useCallback(
     (index: number, newX: number, newY: number) => {
       if (selectedRoadId) {
         onGeometryDragEnd?.(selectedRoadId, index, newX, newY);
       }
     },
     [selectedRoadId, onGeometryDragEnd],
+  );
+
+  // Normal drag on start point: reshape from start (keep endpoint fixed)
+  const handleStartpointDragEnd = useCallback(
+    (
+      index: number,
+      updates: { x: number; y: number; hdg: number; length: number; curvature?: number },
+    ) => {
+      if (selectedRoadId) {
+        onStartpointDragEnd?.(selectedRoadId, index, updates);
+      }
+    },
+    [selectedRoadId, onStartpointDragEnd],
   );
 
   const handleHeadingDragEnd = useCallback(
@@ -105,6 +134,15 @@ export function RoadEditingLayer({
       }
     },
     [selectedRoadId, onCurvatureDragEnd],
+  );
+
+  const handleEndpointDragEnd = useCallback(
+    (index: number, updates: { hdg?: number; length: number; curvature?: number }) => {
+      if (selectedRoadId) {
+        onEndpointDragEnd?.(selectedRoadId, index, updates);
+      }
+    },
+    [selectedRoadId, onEndpointDragEnd],
   );
 
   return (
@@ -137,7 +175,8 @@ export function RoadEditingLayer({
                 selected={selectedGeometryIndices ? selectedGeometryIndices.has(i) : selectedGeometryIndex === i}
                 onClick={handleControlPointClick}
                 onShiftClick={handleShiftClick}
-                onDragEnd={handleControlPointDragEnd}
+                onDragEnd={handleStartpointDragEnd}
+                onTranslateDragEnd={handleTranslateDragEnd}
                 orbitControlsRef={orbitControlsRef}
               />
               <TangentHandle
@@ -152,6 +191,14 @@ export function RoadEditingLayer({
                 index={i}
                 selected={selectedGeometryIndex === i}
                 onCurvatureChange={handleCurvatureDragEnd}
+                orbitControlsRef={orbitControlsRef}
+              />
+              <EndPointGizmo
+                geometry={geometry}
+                index={i}
+                selected={selectedGeometryIndices ? selectedGeometryIndices.has(i) : selectedGeometryIndex === i}
+                onDragEnd={handleEndpointDragEnd}
+                onTranslateDragEnd={handleTranslateDragEnd}
                 orbitControlsRef={orbitControlsRef}
               />
             </React.Fragment>

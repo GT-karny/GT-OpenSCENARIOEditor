@@ -216,6 +216,73 @@ export function RoadNetworkEditorLayout() {
     [odrDocument.roads, odrStoreApi],
   );
 
+  const handleEndpointDragEnd = useCallback(
+    (
+      roadId: string,
+      geometryIndex: number,
+      updates: { hdg?: number; length: number; curvature?: number },
+    ) => {
+      const road = odrDocument.roads.find((r) => r.id === roadId);
+      if (!road) return;
+      const updatedPlanView = [...road.planView];
+      const geo = updatedPlanView[geometryIndex];
+      if (geo) {
+        const patch: Record<string, unknown> = { length: updates.length };
+        if (updates.hdg !== undefined) patch.hdg = updates.hdg;
+        if (updates.curvature !== undefined) patch.curvature = updates.curvature;
+        updatedPlanView[geometryIndex] = { ...geo, ...patch };
+
+        // Recalculate s values after length change
+        let s = 0;
+        const recalculated = updatedPlanView.map((g) => {
+          const updated = { ...g, s };
+          s += g.length;
+          return updated;
+        });
+
+        // Total road length = sum of all geometry lengths
+        const totalLength = recalculated.reduce((sum, g) => sum + g.length, 0);
+        odrStoreApi.getState().updateRoad(roadId, { planView: recalculated, length: totalLength });
+      }
+    },
+    [odrDocument.roads, odrStoreApi],
+  );
+
+  const handleStartpointDragEnd = useCallback(
+    (
+      roadId: string,
+      geometryIndex: number,
+      updates: { x: number; y: number; hdg: number; length: number; curvature?: number },
+    ) => {
+      const road = odrDocument.roads.find((r) => r.id === roadId);
+      if (!road) return;
+      const updatedPlanView = [...road.planView];
+      const geo = updatedPlanView[geometryIndex];
+      if (geo) {
+        const patch: Record<string, unknown> = {
+          x: updates.x,
+          y: updates.y,
+          hdg: updates.hdg,
+          length: updates.length,
+        };
+        if (updates.curvature !== undefined) patch.curvature = updates.curvature;
+        updatedPlanView[geometryIndex] = { ...geo, ...patch };
+
+        // Recalculate s values after length change
+        let s = 0;
+        const recalculated = updatedPlanView.map((g) => {
+          const updated = { ...g, s };
+          s += g.length;
+          return updated;
+        });
+
+        const totalLength = recalculated.reduce((sum, g) => sum + g.length, 0);
+        odrStoreApi.getState().updateRoad(roadId, { planView: recalculated, length: totalLength });
+      }
+    },
+    [odrDocument.roads, odrStoreApi],
+  );
+
   // --- Road creation from 3D click ---
   const handleRoadCreate = useCallback(
     (x: number, y: number, hdg: number) => {
@@ -307,11 +374,13 @@ export function RoadNetworkEditorLayout() {
                   roadEditSelectedRoadId={selectedRoadId}
                   roadEditSelectedGeometryIndex={selectedGeometryIndex}
                   onRoadGeometryDragEnd={handleGeometryDragEnd}
+                  onRoadStartpointDragEnd={handleStartpointDragEnd}
                   onRoadGeometrySelect={handleGeometrySelect}
                   roadCreationModeActive={roadCreationMode}
                   onRoadCreate={handleRoadCreate}
                   onRoadHeadingDragEnd={handleHeadingDragEnd}
                   onRoadCurvatureDragEnd={handleCurvatureDragEnd}
+                  onRoadEndpointDragEnd={handleEndpointDragEnd}
                   onRoadGeometryShiftClick={handleGeometryShiftClick}
                   roadEditSelectedGeometryIndices={selectedGeometryIndices}
                 />

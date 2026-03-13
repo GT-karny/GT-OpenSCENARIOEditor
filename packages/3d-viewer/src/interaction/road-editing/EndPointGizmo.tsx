@@ -1,54 +1,46 @@
 /**
- * Draggable sphere gizmo at a geometry segment's start position.
+ * Draggable gizmo at a geometry segment's end position.
  * Uses horizontal-plane raycasting for drag tracking.
  *
- * Default drag: reshape — keep endpoint fixed, solve new hdg/length from new start.
- * Ctrl+drag: translate — move the whole segment (only x,y change).
- *
- * Editable types (line, arc) → accent color, draggable.
- * Read-only types (poly3, paramPoly3, spiral) → gray, non-draggable.
+ * For line segments: dragging recomputes hdg + length.
+ * For arc segments: dragging recomputes curvature + length (keeping start hdg fixed).
+ * Only shown for editable types (line, arc).
  */
 
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useMemo } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { OdrGeometry } from '@osce/shared';
-import { solveFromStartpoint } from './geometry-solve.js';
+import { computeEndpoint, solveFromEndpoint } from './geometry-solve.js';
 
 const EDITABLE_TYPES = new Set(['line', 'arc']);
 
-interface ControlPointGizmoProps {
+interface EndPointGizmoProps {
   /** Geometry segment data */
   geometry: OdrGeometry;
   /** Index in the road's planView array */
   index: number;
-  /** Whether this control point is currently selected */
+  /** Whether this geometry segment is currently selected */
   selected: boolean;
-  /** Callback when clicked (normal click) */
-  onClick: (index: number) => void;
-  /** Callback when Shift+clicked for multi-selection */
-  onShiftClick?: (index: number) => void;
-  /** Callback when drag ends — reshape mode (keep endpoint fixed) */
+  /** Callback when drag ends with new geometry properties */
   onDragEnd?: (
     index: number,
-    updates: { x: number; y: number; hdg: number; length: number; curvature?: number },
+    updates: { hdg?: number; length: number; curvature?: number },
   ) => void;
-  /** Callback when Ctrl+drag ends — translate mode (only x,y change) */
+  /** Callback when Ctrl+drag ends (translate whole segment) */
   onTranslateDragEnd?: (index: number, newX: number, newY: number) => void;
   /** Ref to OrbitControls (to disable during drag) */
   orbitControlsRef?: React.RefObject<{ enabled: boolean } | null>;
 }
 
-export function ControlPointGizmo({
+export function EndPointGizmo({
   geometry,
   index,
   selected,
-  onClick,
-  onShiftClick,
   onDragEnd,
   onTranslateDragEnd,
   orbitControlsRef,
-}: ControlPointGizmoProps) {
+}: EndPointGizmoProps) {
   const { gl, camera } = useThree();
   const meshRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
@@ -56,30 +48,21 @@ export function ControlPointGizmo({
   const isEditable = EDITABLE_TYPES.has(geometry.type);
   const isDragging = useRef(false);
 
-  // Colors
-  const baseColor = isEditable
-    ? selected
-      ? '#c8b8ff' // accent bright
-      : '#9b84e8' // accent
-    : '#555'; // gray for read-only
-  const hoverColor = isEditable ? '#e0d4ff' : '#666';
+  // Compute endpoint position
+  const endPos = useMemo(() => computeEndpoint(geometry), [geometry]);
+  const position: [number, number, number] = [endPos[0], endPos[1], 0];
+
+  // Colors — use a warm/orange tone to distinguish from start point (purple)
+  const baseColor = selected ? '#ffb86c' : '#e89b4e';
+  const hoverColor = '#ffd9a8';
 
   const radius = selected ? 1.0 : 0.8;
-  const hitRadius = 1.5;
-
-  // Position in OpenDRIVE coords (inside the rotation group, x/y/z maps directly)
-  const position: [number, number, number] = [geometry.x, geometry.y, 0];
+  const hitRadius = 1.5; // Invisible larger hit area
 
   const handlePointerDown = useCallback(
     (e: THREE.Event & { stopPropagation: () => void; nativeEvent: PointerEvent }) => {
       e.stopPropagation();
-      if (e.nativeEvent.shiftKey && onShiftClick) {
-        onShiftClick(index);
-        return;
-      }
-      onClick(index);
-
-      if (!isEditable) return;
+      if (!isEditable || !onDragEnd) return;
 
       isDragging.current = false;
 
@@ -94,9 +77,9 @@ export function ControlPointGizmo({
       const mouse = new THREE.Vector2();
 
       const handleMove = (ev: PointerEvent) => {
-        const dx = ev.clientX - startX;
-        const dy = ev.clientY - startY;
-        if (!isDragging.current && dx * dx + dy * dy > 9) {
+        const dxScreen = ev.clientX - startX;
+        const dyScreen = ev.clientY - startY;
+        if (!isDragging.current && dxScreen * dxScreen + dyScreen * dyScreen > 9) {
           isDragging.current = true;
           if (orbitControlsRef?.current) orbitControlsRef.current.enabled = false;
         }
@@ -127,15 +110,17 @@ export function ControlPointGizmo({
         if (orbitControlsRef?.current) orbitControlsRef.current.enabled = true;
 
         if (isDragging.current) {
-          const finalX = meshRef.current?.position.x ?? geometry.x;
-          const finalY = meshRef.current?.position.y ?? geometry.y;
+          const finalX = meshRef.current?.position.x ?? endPos[0];
+          const finalY = meshRef.current?.position.y ?? endPos[1];
 
           if (ev.ctrlKey || ev.metaKey) {
-            // Ctrl+drag: translate (move only x,y, keep hdg/length/curvature)
-            onTranslateDragEnd?.(index, finalX, finalY);
+            // Ctrl+drag: translate whole segment (move start by same delta as endpoint)
+            const deltaX = finalX - endPos[0];
+            const deltaY = finalY - endPos[1];
+            onTranslateDragEnd?.(index, geometry.x + deltaX, geometry.y + deltaY);
           } else {
-            // Normal drag: reshape (keep endpoint fixed, solve geometry)
-            const updates = solveFromStartpoint(geometry, finalX, finalY);
+            // Normal drag: reshape (keep start fixed, solve from new end)
+            const updates = solveFromEndpoint(geometry, finalX, finalY);
             onDragEnd?.(index, updates);
           }
         }
@@ -146,8 +131,10 @@ export function ControlPointGizmo({
       gl.domElement.addEventListener('pointermove', handleMove);
       gl.domElement.addEventListener('pointerup', handleUp);
     },
-    [geometry, index, isEditable, onClick, onShiftClick, onDragEnd, onTranslateDragEnd, orbitControlsRef, gl, camera, position],
+    [geometry, index, isEditable, onDragEnd, onTranslateDragEnd, orbitControlsRef, gl, camera, position, endPos],
   );
+
+  if (!isEditable) return null;
 
   return (
     <group
@@ -156,7 +143,7 @@ export function ControlPointGizmo({
       onPointerDown={handlePointerDown}
       onPointerEnter={() => {
         setHovered(true);
-        gl.domElement.style.cursor = isEditable ? 'grab' : 'default';
+        gl.domElement.style.cursor = 'grab';
       }}
       onPointerLeave={() => {
         setHovered(false);
@@ -170,8 +157,6 @@ export function ControlPointGizmo({
           color={hovered ? hoverColor : baseColor}
           emissive={selected ? baseColor : '#000'}
           emissiveIntensity={selected ? 0.4 : 0}
-          transparent
-          opacity={isEditable ? 1 : 0.5}
         />
       </mesh>
       {/* Invisible larger hit area */}

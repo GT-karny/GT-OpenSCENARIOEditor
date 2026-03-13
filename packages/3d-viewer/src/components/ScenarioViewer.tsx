@@ -140,12 +140,18 @@ export interface ScenarioViewerProps {
   roadEditSelectedRoadId?: string | null;
   /** Currently selected geometry index */
   roadEditSelectedGeometryIndex?: number | null;
-  /** Callback when a geometry control point is dragged to a new position */
+  /** Callback when a control point is Ctrl+dragged to translate (only x,y change) */
   onRoadGeometryDragEnd?: (
     roadId: string,
     geometryIndex: number,
     newX: number,
     newY: number,
+  ) => void;
+  /** Callback when a start point is dragged to reshape (keep endpoint fixed) */
+  onRoadStartpointDragEnd?: (
+    roadId: string,
+    geometryIndex: number,
+    updates: { x: number; y: number; hdg: number; length: number; curvature?: number },
   ) => void;
   /** Callback when a geometry control point is selected */
   onRoadGeometrySelect?: (roadId: string, geometryIndex: number) => void;
@@ -161,6 +167,12 @@ export interface ScenarioViewerProps {
   onRoadCurvatureDragEnd?: (roadId: string, geometryIndex: number, newCurvature: number) => void;
   /** Callback when a geometry point is Shift+clicked */
   onRoadGeometryShiftClick?: (roadId: string, geometryIndex: number) => void;
+  /** Callback when an endpoint gizmo is dragged to reshape geometry */
+  onRoadEndpointDragEnd?: (
+    roadId: string,
+    geometryIndex: number,
+    updates: { hdg?: number; length: number; curvature?: number },
+  ) => void;
   /** Set of selected geometry indices for multi-selection */
   roadEditSelectedGeometryIndices?: Set<number>;
 }
@@ -201,12 +213,14 @@ function ScenarioViewerScene({
   roadEditSelectedRoadId,
   roadEditSelectedGeometryIndex,
   onRoadGeometryDragEnd,
+  onRoadStartpointDragEnd,
   onRoadGeometrySelect,
   roadCreationModeActive,
   onRoadCreate,
   roadGridSnap,
   onRoadHeadingDragEnd,
   onRoadCurvatureDragEnd,
+  onRoadEndpointDragEnd,
   onRoadGeometryShiftClick,
   roadEditSelectedGeometryIndices,
 }: {
@@ -242,12 +256,14 @@ function ScenarioViewerScene({
   roadEditSelectedRoadId?: string | null;
   roadEditSelectedGeometryIndex?: number | null;
   onRoadGeometryDragEnd?: ScenarioViewerProps['onRoadGeometryDragEnd'];
+  onRoadStartpointDragEnd?: ScenarioViewerProps['onRoadStartpointDragEnd'];
   onRoadGeometrySelect?: ScenarioViewerProps['onRoadGeometrySelect'];
   roadCreationModeActive?: boolean;
   onRoadCreate?: ScenarioViewerProps['onRoadCreate'];
   roadGridSnap?: boolean;
   onRoadHeadingDragEnd?: ScenarioViewerProps['onRoadHeadingDragEnd'];
   onRoadCurvatureDragEnd?: ScenarioViewerProps['onRoadCurvatureDragEnd'];
+  onRoadEndpointDragEnd?: ScenarioViewerProps['onRoadEndpointDragEnd'];
   onRoadGeometryShiftClick?: ScenarioViewerProps['onRoadGeometryShiftClick'];
   roadEditSelectedGeometryIndices?: Set<number>;
 }) {
@@ -512,6 +528,7 @@ function ScenarioViewerScene({
             selectedRoadId={roadEditSelectedRoadId ?? null}
             selectedGeometryIndex={roadEditSelectedGeometryIndex ?? null}
             onGeometryDragEnd={onRoadGeometryDragEnd}
+            onStartpointDragEnd={onRoadStartpointDragEnd}
             onGeometrySelect={onRoadGeometrySelect}
             orbitControlsRef={cameraRef.current?.orbitControls}
             creationModeActive={roadCreationModeActive}
@@ -519,6 +536,7 @@ function ScenarioViewerScene({
             gridSnap={roadGridSnap}
             onHeadingDragEnd={onRoadHeadingDragEnd}
             onCurvatureDragEnd={onRoadCurvatureDragEnd}
+            onEndpointDragEnd={onRoadEndpointDragEnd}
             onGeometryShiftClick={onRoadGeometryShiftClick}
             selectedGeometryIndices={roadEditSelectedGeometryIndices}
           />
@@ -592,12 +610,14 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   roadEditSelectedRoadId,
   roadEditSelectedGeometryIndex,
   onRoadGeometryDragEnd,
+  onRoadStartpointDragEnd,
   onRoadGeometrySelect,
   roadCreationModeActive,
   onRoadCreate,
   roadGridSnap,
   onRoadHeadingDragEnd,
   onRoadCurvatureDragEnd,
+  onRoadEndpointDragEnd,
   onRoadGeometryShiftClick,
   roadEditSelectedGeometryIndices,
 }) => {
@@ -858,12 +878,14 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           roadEditSelectedRoadId={roadEditSelectedRoadId}
           roadEditSelectedGeometryIndex={roadEditSelectedGeometryIndex}
           onRoadGeometryDragEnd={onRoadGeometryDragEnd}
+          onRoadStartpointDragEnd={onRoadStartpointDragEnd}
           onRoadGeometrySelect={onRoadGeometrySelect}
           roadCreationModeActive={roadCreationModeActive}
           onRoadCreate={onRoadCreate}
           roadGridSnap={roadGridSnap}
           onRoadHeadingDragEnd={onRoadHeadingDragEnd}
           onRoadCurvatureDragEnd={onRoadCurvatureDragEnd}
+          onRoadEndpointDragEnd={onRoadEndpointDragEnd}
           onRoadGeometryShiftClick={onRoadGeometryShiftClick}
           roadEditSelectedGeometryIndices={roadEditSelectedGeometryIndices}
         />
