@@ -159,6 +159,26 @@ This project uses Claude Code worktrees for parallel development. When assigning
 | `VITE_WS_URL` | Frontend WebSocket URL | ws://localhost:3001/ws |
 | `USE_GT_SIM` | Enable GT_Sim E2E tests | (unset = skip) |
 
+## Quality Gates
+
+### Before Reporting Completion
+- Run `pnpm typecheck` after every edit session — fix all errors before moving on
+- For UI/styling changes: visually verify with Playwright screenshot before reporting completion
+- For 3D/Three.js changes: confirm which specific property to modify before editing — ask if ambiguous
+
+### Zustand Selector Safety
+- Always use `useShallow()` for selectors returning arrays or objects
+- Use stable empty-array constants instead of inline `[]` in selectors
+- Wrap derived data in `useMemo` — bare `.filter()` / `.map()` in selectors cause infinite re-renders
+
+### UI Layout Defaults
+- Keep related form fields (Value+Kind, delta/factor) on the same row unless explicitly told otherwise
+- Follow existing compact styling patterns in the codebase
+
+### Git Workflow
+- Before starting git operations, confirm the full scope: branch? commit? merge? push?
+- Use `/ship` skill for品質チェック付きコミット (lint → typecheck → test → build → commit)
+
 ## Don'ts
 
 - Don't modify `packages/shared/` types without updating all dependents

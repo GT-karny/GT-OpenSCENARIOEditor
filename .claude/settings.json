@@ -7,5 +7,14 @@
   },
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "hooks": {
+    "PostEditFile": [
+      {
+        "matcher": "**/*.{ts,tsx}",
+        "command": "cd e:/Repository/GT-karny/GT-OpenSCENARIOEditor && npx tsc --noEmit --pretty 2>&1 | head -20",
+        "timeout": 30000
+      }
+    ]
   }
 }
