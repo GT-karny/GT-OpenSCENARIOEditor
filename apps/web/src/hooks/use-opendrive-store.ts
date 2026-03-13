@@ -8,6 +8,7 @@
 import { useMemo } from 'react';
 import { create } from 'zustand';
 import { useStore } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
 import { createOpenDriveStore } from '@osce/opendrive-engine';
 import type { OpenDriveStore } from '@osce/opendrive-engine';
 import type { OpenDriveDocument, OdrRoad, OdrJunction, OdrSignal } from '@osce/shared';
@@ -61,27 +62,32 @@ export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
 
 // ---- Derived Data Selectors ----
 
+const EMPTY_ROADS: OdrRoad[] = [];
+const EMPTY_JUNCTIONS: OdrJunction[] = [];
+
 export function useOdrRoads(): OdrRoad[] {
-  return useEditorStore((s) => s.roadNetwork?.roads ?? []);
+  return useEditorStore(useShallow((s) => s.roadNetwork?.roads ?? EMPTY_ROADS));
 }
 
 export function useOdrJunctions(): OdrJunction[] {
-  return useEditorStore((s) => s.roadNetwork?.junctions ?? []);
+  return useEditorStore(useShallow((s) => s.roadNetwork?.junctions ?? EMPTY_JUNCTIONS));
 }
 
 export function useOdrSignals(): Array<OdrSignal & { roadId: string; roadName: string }> {
-  const roads = useEditorStore((s) => s.roadNetwork?.roads ?? []);
-  const signals: Array<OdrSignal & { roadId: string; roadName: string }> = [];
-  for (const road of roads) {
-    for (const signal of road.signals) {
-      signals.push({
-        ...signal,
-        roadId: road.id,
-        roadName: road.name || `Road ${road.id}`,
-      });
+  const roads = useOdrRoads();
+  return useMemo(() => {
+    const result: Array<OdrSignal & { roadId: string; roadName: string }> = [];
+    for (const road of roads) {
+      for (const signal of road.signals) {
+        result.push({
+          ...signal,
+          roadId: road.id,
+          roadName: road.name || `Road ${road.id}`,
+        });
+      }
     }
-  }
-  return signals;
+    return result;
+  }, [roads]);
 }
 
 export function useOdrDocument(): OpenDriveDocument | null {
