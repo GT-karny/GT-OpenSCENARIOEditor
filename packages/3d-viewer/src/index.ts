@@ -58,6 +58,9 @@ export { classifySignal } from './utils/signal-geometry.js';
 export type { SignalCategory } from './utils/signal-geometry.js';
 export { resolveSignalPosition } from './utils/signal-position-resolver.js';
 
+// Road editing gizmos
+export { RoadEditingLayer } from './interaction/road-editing/index.js';
+
 // Sub-components (for composition)
 export { RoadNetwork } from './road/RoadNetwork.js';
 export { EntityGroup } from './entities/EntityGroup.js';

@@ -68,10 +68,12 @@ export function RoadNetworkEditorLayout() {
 
   // Lane-level selection (local state, reset when road changes)
   const [selectedLaneId, setSelectedLaneId] = useState<number | null>(null);
+  const [selectedGeometryIndex, setSelectedGeometryIndex] = useState<number | null>(null);
 
-  // Reset lane selection when road changes
+  // Reset lane/geometry selection when road changes
   useEffect(() => {
     setSelectedLaneId(null);
+    setSelectedGeometryIndex(null);
   }, [selectedRoadId]);
 
   const [centerTab, setCenterTab] = useState<'crossSection' | 'elevation'>('crossSection');
@@ -104,6 +106,27 @@ export function RoadNetworkEditorLayout() {
   const handleLaneSelect = useCallback((laneId: number) => {
     setSelectedLaneId(laneId);
   }, []);
+
+  const handleGeometrySelect = useCallback(
+    (_roadId: string, geometryIndex: number) => {
+      setSelectedGeometryIndex(geometryIndex);
+    },
+    [],
+  );
+
+  const handleGeometryDragEnd = useCallback(
+    (roadId: string, geometryIndex: number, newX: number, newY: number) => {
+      const road = odrDocument.roads.find((r) => r.id === roadId);
+      if (!road) return;
+      const updatedPlanView = [...road.planView];
+      const geo = updatedPlanView[geometryIndex];
+      if (geo) {
+        updatedPlanView[geometryIndex] = { ...geo, x: newX, y: newY };
+        odrStoreApi.getState().updateRoad(roadId, { planView: updatedPlanView });
+      }
+    },
+    [odrDocument.roads, odrStoreApi],
+  );
 
   // --- Store-connected callbacks for property editor ---
   const handleUpdateRoad = useCallback(
@@ -177,6 +200,11 @@ export function RoadNetworkEditorLayout() {
                   }}
                   showPerf={false}
                   className="h-full w-full"
+                  roadEditMode
+                  roadEditSelectedRoadId={selectedRoadId}
+                  roadEditSelectedGeometryIndex={selectedGeometryIndex}
+                  onRoadGeometryDragEnd={handleGeometryDragEnd}
+                  onRoadGeometrySelect={handleGeometrySelect}
                 />
               </ErrorBoundary>
             </div>
@@ -272,7 +300,7 @@ export function RoadNetworkEditorLayout() {
                 selectedJunctionId={selectedJunctionId}
                 selectedSignalId={selectedSignalId}
                 selectedLaneId={selectedLaneId}
-                selectedGeometryIndex={null}
+                selectedGeometryIndex={selectedGeometryIndex}
                 onUpdateRoad={handleUpdateRoad}
                 onUpdateLane={handleUpdateLane}
                 onUpdateSignal={handleUpdateSignal}

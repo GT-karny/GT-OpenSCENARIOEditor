@@ -43,6 +43,7 @@ import { TrafficSignalGroup } from '../signals/TrafficSignalGroup.js';
 import { useScenarioPositions } from '../scenario/useScenarioPositions.js';
 import { PositionMarkersOverlay } from '../markers/PositionMarkersOverlay.js';
 import type { ThreeEvent } from '@react-three/fiber';
+import { RoadEditingLayer } from '../interaction/road-editing/RoadEditingLayer.js';
 
 export interface ScenarioViewerProps {
   /** The scenario engine Zustand store (vanilla) */
@@ -131,6 +132,23 @@ export interface ScenarioViewerProps {
   onPositionPickCancel?: () => void;
   /** Element IDs to highlight their associated position markers */
   highlightedPositionElementIds?: string[];
+
+  // ---- Road Network Editing ----
+  /** Whether road geometry editing mode is active */
+  roadEditMode?: boolean;
+  /** Currently selected road ID for editing */
+  roadEditSelectedRoadId?: string | null;
+  /** Currently selected geometry index */
+  roadEditSelectedGeometryIndex?: number | null;
+  /** Callback when a geometry control point is dragged to a new position */
+  onRoadGeometryDragEnd?: (
+    roadId: string,
+    geometryIndex: number,
+    newX: number,
+    newY: number,
+  ) => void;
+  /** Callback when a geometry control point is selected */
+  onRoadGeometrySelect?: (roadId: string, geometryIndex: number) => void;
 }
 
 /**
@@ -165,6 +183,11 @@ function ScenarioViewerScene({
   onPositionPicked,
   onPositionPickCancel,
   highlightedPositionElementIds,
+  roadEditMode,
+  roadEditSelectedRoadId,
+  roadEditSelectedGeometryIndex,
+  onRoadGeometryDragEnd,
+  onRoadGeometrySelect,
 }: {
   scenarioStore: ScenarioViewerProps['scenarioStore'];
   openDriveDocument: OpenDriveDocument | null;
@@ -194,6 +217,11 @@ function ScenarioViewerScene({
   onPositionPicked?: (data: PickedPositionData) => void;
   onPositionPickCancel?: () => void;
   highlightedPositionElementIds?: string[];
+  roadEditMode?: boolean;
+  roadEditSelectedRoadId?: string | null;
+  roadEditSelectedGeometryIndex?: number | null;
+  onRoadGeometryDragEnd?: ScenarioViewerProps['onRoadGeometryDragEnd'];
+  onRoadGeometrySelect?: ScenarioViewerProps['onRoadGeometrySelect'];
 }) {
   const cameraMode = useViewerStore(viewerStore, (s) => s.cameraMode);
   const showGrid = useViewerStore(viewerStore, (s) => s.showGrid);
@@ -447,6 +475,20 @@ function ScenarioViewerScene({
           showLabels={showEntityLabels}
         />
       )}
+
+      {/* Road editing gizmos (inside rotation group for OpenDRIVE coords) */}
+      {roadEditMode && openDriveDocument && (
+        <group rotation={[-Math.PI / 2, 0, 0]}>
+          <RoadEditingLayer
+            openDriveDocument={openDriveDocument}
+            selectedRoadId={roadEditSelectedRoadId ?? null}
+            selectedGeometryIndex={roadEditSelectedGeometryIndex ?? null}
+            onGeometryDragEnd={onRoadGeometryDragEnd}
+            onGeometrySelect={onRoadGeometrySelect}
+            orbitControlsRef={cameraRef.current?.orbitControls}
+          />
+        </group>
+      )}
     </>
   );
 }
@@ -511,6 +553,11 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   onPositionPicked,
   onPositionPickCancel,
   highlightedPositionElementIds,
+  roadEditMode,
+  roadEditSelectedRoadId,
+  roadEditSelectedGeometryIndex,
+  onRoadGeometryDragEnd,
+  onRoadGeometrySelect,
 }) => {
   const viewerStoreRef = useRef<ReturnType<typeof createViewerStore> | null>(null);
   if (!viewerStoreRef.current) {
@@ -765,6 +812,11 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           onPositionPicked={onPositionPicked}
           onPositionPickCancel={onPositionPickCancel}
           highlightedPositionElementIds={highlightedPositionElementIds}
+          roadEditMode={roadEditMode}
+          roadEditSelectedRoadId={roadEditSelectedRoadId}
+          roadEditSelectedGeometryIndex={roadEditSelectedGeometryIndex}
+          onRoadGeometryDragEnd={onRoadGeometryDragEnd}
+          onRoadGeometrySelect={onRoadGeometrySelect}
         />
       </ViewerCanvas>
     </div>
