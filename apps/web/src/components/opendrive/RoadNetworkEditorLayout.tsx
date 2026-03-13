@@ -130,6 +130,20 @@ export function RoadNetworkEditorLayout() {
     [odrDocument.roads, odrStoreApi],
   );
 
+  const handleHeadingDragEnd = useCallback(
+    (roadId: string, geometryIndex: number, newHdg: number) => {
+      const road = odrDocument.roads.find((r) => r.id === roadId);
+      if (!road) return;
+      const updatedPlanView = [...road.planView];
+      const geo = updatedPlanView[geometryIndex];
+      if (geo) {
+        updatedPlanView[geometryIndex] = { ...geo, hdg: newHdg };
+        odrStoreApi.getState().updateRoad(roadId, { planView: updatedPlanView });
+      }
+    },
+    [odrDocument.roads, odrStoreApi],
+  );
+
   // --- Road creation from 3D click ---
   const handleRoadCreate = useCallback(
     (x: number, y: number, hdg: number) => {
@@ -224,6 +238,7 @@ export function RoadNetworkEditorLayout() {
                   onRoadGeometrySelect={handleGeometrySelect}
                   roadCreationModeActive={roadCreationMode}
                   onRoadCreate={handleRoadCreate}
+                  onRoadHeadingDragEnd={handleHeadingDragEnd}
                 />
               </ErrorBoundary>
             </div>

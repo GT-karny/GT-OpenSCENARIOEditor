@@ -155,6 +155,8 @@ export interface ScenarioViewerProps {
   onRoadCreate?: (x: number, y: number, hdg: number) => void;
   /** Whether grid snap is enabled for road editing */
   roadGridSnap?: boolean;
+  /** Callback when a tangent handle is dragged to change heading */
+  onRoadHeadingDragEnd?: (roadId: string, geometryIndex: number, newHdg: number) => void;
 }
 
 /**
@@ -197,6 +199,7 @@ function ScenarioViewerScene({
   roadCreationModeActive,
   onRoadCreate,
   roadGridSnap,
+  onRoadHeadingDragEnd,
 }: {
   scenarioStore: ScenarioViewerProps['scenarioStore'];
   openDriveDocument: OpenDriveDocument | null;
@@ -234,6 +237,7 @@ function ScenarioViewerScene({
   roadCreationModeActive?: boolean;
   onRoadCreate?: ScenarioViewerProps['onRoadCreate'];
   roadGridSnap?: boolean;
+  onRoadHeadingDragEnd?: ScenarioViewerProps['onRoadHeadingDragEnd'];
 }) {
   const cameraMode = useViewerStore(viewerStore, (s) => s.cameraMode);
   const showGrid = useViewerStore(viewerStore, (s) => s.showGrid);
@@ -501,6 +505,7 @@ function ScenarioViewerScene({
             creationModeActive={roadCreationModeActive}
             onCreateRoad={onRoadCreate}
             gridSnap={roadGridSnap}
+            onHeadingDragEnd={onRoadHeadingDragEnd}
           />
         </group>
       )}
@@ -576,6 +581,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   roadCreationModeActive,
   onRoadCreate,
   roadGridSnap,
+  onRoadHeadingDragEnd,
 }) => {
   const viewerStoreRef = useRef<ReturnType<typeof createViewerStore> | null>(null);
   if (!viewerStoreRef.current) {
@@ -838,6 +844,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           roadCreationModeActive={roadCreationModeActive}
           onRoadCreate={onRoadCreate}
           roadGridSnap={roadGridSnap}
+          onRoadHeadingDragEnd={onRoadHeadingDragEnd}
         />
       </ViewerCanvas>
     </div>

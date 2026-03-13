@@ -31,6 +31,8 @@ interface RoadEditingLayerProps {
   onCreateRoad?: (x: number, y: number, hdg: number) => void;
   /** Whether grid snap is enabled */
   gridSnap?: boolean;
+  /** Callback when a tangent handle is dragged to change heading */
+  onHeadingDragEnd?: (roadId: string, geometryIndex: number, newHdg: number) => void;
 }
 
 export function RoadEditingLayer({
@@ -43,6 +45,7 @@ export function RoadEditingLayer({
   creationModeActive = false,
   onCreateRoad,
   gridSnap = false,
+  onHeadingDragEnd,
 }: RoadEditingLayerProps) {
   const selectedRoad = useMemo(
     () => openDriveDocument.roads.find((r) => r.id === selectedRoadId) ?? null,
@@ -65,6 +68,15 @@ export function RoadEditingLayer({
       }
     },
     [selectedRoadId, onGeometryDragEnd],
+  );
+
+  const handleHeadingDragEnd = useCallback(
+    (index: number, newHdg: number) => {
+      if (selectedRoadId) {
+        onHeadingDragEnd?.(selectedRoadId, index, newHdg);
+      }
+    },
+    [selectedRoadId, onHeadingDragEnd],
   );
 
   return (
@@ -101,7 +113,10 @@ export function RoadEditingLayer({
               />
               <TangentHandle
                 geometry={geometry}
+                index={i}
                 selected={selectedGeometryIndex === i}
+                onHeadingChange={handleHeadingDragEnd}
+                orbitControlsRef={orbitControlsRef}
               />
             </React.Fragment>
           ))}
