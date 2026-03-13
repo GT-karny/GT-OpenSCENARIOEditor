@@ -45,6 +45,7 @@ import { useFileOperations } from '../../hooks/use-file-operations';
 import { useProjectFileOperations } from '../../hooks/use-project-file-operations';
 import { buildFullPathToIdMap } from '../../lib/fullpath-mapping';
 import { buildCatalogLocationsFromProject } from '../../lib/catalog-location-utils';
+import { RoadNetworkEditorLayout } from '../opendrive/RoadNetworkEditorLayout';
 
 function ResizeHandle() {
   return (
@@ -174,6 +175,7 @@ export function EditorLayout() {
   const { t } = useTranslation('common');
   const scenarioStoreApi = useScenarioStoreApi();
   const currentProject = useProjectStore((s) => s.currentProject);
+  const editorMode = useEditorStore((s) => s.editorMode);
   const [centerTab, setCenterTab] = useState<'composer' | 'graph'>('composer');
   const fileTreePanelRef = useRef<ImperativePanelHandle>(null);
   const editingPanelGroupRef = useRef<ImperativePanelGroupHandle>(null);
@@ -541,6 +543,21 @@ export function EditorLayout() {
     <div className="relative flex flex-col h-screen overflow-hidden">
       <HeaderToolbar />
 
+      {editorMode === 'roadNetwork' ? (
+        <>
+          <RoadNetworkEditorLayout />
+
+          <StatusBar />
+
+          {/* SaveAs Dialog */}
+          <SaveAsDialog
+            open={showSaveAs}
+            onOpenChange={setShowSaveAs}
+            onSave={handleSaveAs}
+          />
+        </>
+      ) : (
+      <>
       <PanelGroup direction="horizontal" className="flex-1">
         {/* Left section: 3D Viewer (top) + Editing area (bottom) */}
         <Panel defaultSize={75} minSize={40}>
@@ -808,6 +825,8 @@ export function EditorLayout() {
         childCount={deleteRequest?.childCount ?? 0}
         onConfirm={handleConfirmDelete}
       />
+      </>
+      )}
     </div>
   );
 }

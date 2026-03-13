@@ -19,6 +19,7 @@
     { "path": "../../packages/3d-viewer" },
     { "path": "../../packages/openscenario" },
     { "path": "../../packages/opendrive" },
+    { "path": "../../packages/opendrive-engine" },
     { "path": "../../packages/i18n" },
     { "path": "../../packages/templates" }
   ]

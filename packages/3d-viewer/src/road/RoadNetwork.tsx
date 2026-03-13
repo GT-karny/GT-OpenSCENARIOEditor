@@ -7,9 +7,9 @@
  * This component applies a rotation to map between them.
  */
 
-import React, { useMemo, forwardRef } from 'react';
+import React, { useMemo, useRef, forwardRef } from 'react';
 import type * as THREE from 'three';
-import type { OpenDriveDocument } from '@osce/shared';
+import type { OpenDriveDocument, OdrRoad, RoadMeshData } from '@osce/shared';
 import { generateRoadMesh, buildJunctionSurfaceMesh } from '@osce/opendrive';
 import type { JunctionSurfaceData } from '@osce/opendrive';
 import { RoadMesh } from './RoadMesh.js';
@@ -37,22 +37,65 @@ export const RoadNetwork = forwardRef<THREE.Group, RoadNetworkProps>(
     },
     ref,
   ) {
-    // Generate mesh data for all roads
+    // Per-road mesh cache: only regenerate meshes for roads that changed.
+    // Uses immer reference identity — unchanged roads keep the same object reference.
+    const meshCacheRef = useRef<Map<string, { road: OdrRoad; meshData: RoadMeshData }>>(new Map());
+
     const roadMeshes = useMemo(() => {
-      if (!odrDocument) return [];
-      return odrDocument.roads.map((road) => ({
-        road,
-        meshData: generateRoadMesh(road),
-      }));
+      if (!odrDocument) {
+        meshCacheRef.current.clear();
+        return [];
+      }
+
+      const cache = meshCacheRef.current;
+      const currentRoadIds = new Set(odrDocument.roads.map((r) => r.id));
+
+      // Remove cached entries for deleted roads
+      for (const id of cache.keys()) {
+        if (!currentRoadIds.has(id)) cache.delete(id);
+      }
+
+      // Build mesh list, reusing cache where road reference is unchanged
+      return odrDocument.roads.map((road) => {
+        const cached = cache.get(road.id);
+        if (cached && cached.road === road) {
+          return { road, meshData: cached.meshData };
+        }
+        // Road changed or is new — regenerate mesh
+        const meshData = generateRoadMesh(road);
+        cache.set(road.id, { road, meshData });
+        return { road, meshData };
+      });
     }, [odrDocument]);
 
-    // Generate junction surface fill meshes
+    // Per-junction surface cache
+    const junctionCacheRef = useRef<Map<string, { junction: unknown; surface: JunctionSurfaceData }>>(new Map());
+
     const junctionSurfaces = useMemo(() => {
-      if (!odrDocument) return [];
+      if (!odrDocument) {
+        junctionCacheRef.current.clear();
+        return [];
+      }
+
+      const cache = junctionCacheRef.current;
+      const currentIds = new Set(odrDocument.junctions.map((j) => j.id));
+
+      for (const id of cache.keys()) {
+        if (!currentIds.has(id)) cache.delete(id);
+      }
+
       const surfaces: JunctionSurfaceData[] = [];
       for (const junction of odrDocument.junctions) {
+        const cached = cache.get(junction.id);
+        if (cached && cached.junction === junction) {
+          surfaces.push(cached.surface);
+          continue;
+        }
         const surface = buildJunctionSurfaceMesh(junction, odrDocument.roads);
-        if (surface) surfaces.push(surface);
+        if (surface) {
+          cache.set(junction.id, { junction, surface });
+          surfaces.push(surface);
+        }
       }
       return surfaces;
     }, [odrDocument]);

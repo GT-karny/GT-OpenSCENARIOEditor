@@ -28,7 +28,13 @@ export interface PickedPositionData {
   roadT: number;
 }
 
+export type EditorMode = 'scenario' | 'roadNetwork';
+
 export interface EditorState {
+  // Editor mode (Scenario / Road Network tab)
+  editorMode: EditorMode;
+  setEditorMode: (mode: EditorMode) => void;
+
   // Selection
   selection: EditorSelection;
   setSelection: (sel: Partial<EditorSelection>) => void;
@@ -117,6 +123,10 @@ const defaultPanelVisibility: Record<EditorPanel, boolean> = {
 export const useEditorStore = create<EditorState>()(
   persist(
     (set) => ({
+      // Editor mode
+      editorMode: 'scenario' as EditorMode,
+      setEditorMode: (mode) => set({ editorMode: mode }),
+
       // Selection
       selection: { selectedElementIds: [], hoveredElementId: null, focusedPanelId: null },
       setSelection: (sel) =>

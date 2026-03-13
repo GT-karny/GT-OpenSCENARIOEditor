@@ -1,0 +1,291 @@
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import type { OdrRoad, OdrLane, OdrSignal, OdrJunction, OdrHeader, OpenDriveDocument } from '@osce/shared';
+import { ScenarioViewer } from '@osce/3d-viewer';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
+import { ErrorBoundary } from '../ErrorBoundary';
+import { OdrPropertyEditor } from './property/OdrPropertyEditor';
+import { OdrSidebar } from './sidebar/OdrSidebar';
+import { CrossSectionView } from './cross-section/CrossSectionView';
+import { CrossSectionToolbar } from './cross-section/CrossSectionToolbar';
+import { ElevationGraphEditor } from './elevation/ElevationGraphEditor';
+import { ValidationPanel } from '../panels/ValidationPanel';
+import { useEditorStore } from '../../stores/editor-store';
+import { useScenarioStoreApi } from '../../stores/use-scenario-store';
+import {
+  useOpenDriveStore,
+  useOpenDriveStoreApi,
+  useOdrSidebarStore,
+} from '../../hooks/use-opendrive-store';
+
+function ResizeHandle() {
+  return (
+    <PanelResizeHandle className="w-[1px] divider-glow-v hover:w-[3px] transition-all data-[resize-handle-active]:w-[3px]" />
+  );
+}
+
+function ResizeHandleH() {
+  return (
+    <PanelResizeHandle className="h-[1px] divider-glow hover:h-[3px] transition-all data-[resize-handle-active]:h-[3px]" />
+  );
+}
+
+export function RoadNetworkEditorLayout() {
+  const roadNetwork = useEditorStore((s) => s.roadNetwork);
+  const scenarioStoreApi = useScenarioStoreApi();
+  const odrStoreApi = useOpenDriveStoreApi();
+  const odrDocument = useOpenDriveStore((s) => s.document);
+  const preferences = useEditorStore((s) => s.preferences);
+
+  // Sync roadNetwork from editorStore → openDriveStore on mode entry
+  useEffect(() => {
+    if (roadNetwork) {
+      odrStoreApi.getState().loadDocument(roadNetwork);
+    }
+  }, []); // Only on mount
+
+  // Sync openDriveStore → editorStore.roadNetwork reactively
+  useEffect(() => {
+    const unsub = odrStoreApi.subscribe((state: { document: OpenDriveDocument }) => {
+      useEditorStore.getState().setRoadNetwork(state.document);
+    });
+    return unsub;
+  }, [odrStoreApi]);
+
+  // --- Selection from sidebar store ---
+  const sidebarSelection = useOdrSidebarStore((s) => s.selection);
+
+  const selectedRoadId = useMemo(() => {
+    if (sidebarSelection.type === 'road') return sidebarSelection.id;
+    if (sidebarSelection.type === 'signal') return sidebarSelection.roadId ?? null;
+    return null;
+  }, [sidebarSelection]);
+
+  const selectedJunctionId =
+    sidebarSelection.type === 'junction' ? sidebarSelection.id : null;
+  const selectedSignalId =
+    sidebarSelection.type === 'signal' ? sidebarSelection.id : null;
+
+  // Lane-level selection (local state, reset when road changes)
+  const [selectedLaneId, setSelectedLaneId] = useState<number | null>(null);
+
+  // Reset lane selection when road changes
+  useEffect(() => {
+    setSelectedLaneId(null);
+  }, [selectedRoadId]);
+
+  const [centerTab, setCenterTab] = useState<'crossSection' | 'elevation'>('crossSection');
+  const [sPosition, setSPosition] = useState(0);
+
+  // Reset s-position when road changes
+  useEffect(() => {
+    setSPosition(0);
+  }, [selectedRoadId]);
+
+  const selectedRoad = useMemo(
+    () => odrDocument.roads.find((r) => r.id === selectedRoadId) ?? null,
+    [odrDocument.roads, selectedRoadId],
+  );
+
+  // Compute active lane section index for current s-position
+  const activeLaneSectionIdx = useMemo(() => {
+    if (!selectedRoad) return 0;
+    let idx = 0;
+    for (let i = 0; i < selectedRoad.lanes.length; i++) {
+      if (selectedRoad.lanes[i].s <= sPosition) idx = i;
+      else break;
+    }
+    return idx;
+  }, [selectedRoad, sPosition]);
+
+  const activeLaneSection = selectedRoad?.lanes[activeLaneSectionIdx] ?? null;
+  const dsFromSectionStart = activeLaneSection ? sPosition - activeLaneSection.s : 0;
+
+  const handleLaneSelect = useCallback((laneId: number) => {
+    setSelectedLaneId(laneId);
+  }, []);
+
+  // --- Store-connected callbacks for property editor ---
+  const handleUpdateRoad = useCallback(
+    (roadId: string, updates: Partial<OdrRoad>) => {
+      odrStoreApi.getState().updateRoad(roadId, updates);
+    },
+    [odrStoreApi],
+  );
+
+  const handleUpdateLane = useCallback(
+    (roadId: string, sectionIdx: number, laneId: number, updates: Partial<OdrLane>) => {
+      const side = laneId > 0 ? 'left' : 'right';
+      odrStoreApi
+        .getState()
+        .updateLane(roadId, sectionIdx, side as 'left' | 'right', laneId, updates);
+    },
+    [odrStoreApi],
+  );
+
+  const handleUpdateSignal = useCallback(
+    (roadId: string, signalId: string, updates: Partial<OdrSignal>) => {
+      odrStoreApi.getState().updateSignal(roadId, signalId, updates);
+    },
+    [odrStoreApi],
+  );
+
+  const handleUpdateJunction = useCallback(
+    (junctionId: string, updates: Partial<OdrJunction>) => {
+      // Junction update not in store yet
+      console.warn('Junction update not yet implemented', junctionId, updates);
+    },
+    [],
+  );
+
+  const handleUpdateHeader = useCallback(
+    (updates: Partial<OdrHeader>) => {
+      odrStoreApi.getState().updateHeader(updates);
+    },
+    [odrStoreApi],
+  );
+
+  return (
+    <PanelGroup direction="horizontal" className="flex-1">
+      {/* Left: OdrSidebar */}
+      <Panel defaultSize={20} minSize={12} maxSize={30}>
+        <div className="h-full bg-[var(--color-bg-deep)] enter-l">
+          <OdrSidebar />
+        </div>
+      </Panel>
+
+      <ResizeHandle />
+
+      {/* Center: 3D Viewer (top) + Cross-Section/Elevation (bottom) */}
+      <Panel defaultSize={55} minSize={30}>
+        <PanelGroup direction="vertical">
+          {/* 3D Viewer */}
+          <Panel defaultSize={55} minSize={20}>
+            <div className="h-full bg-[var(--color-bg-deep)] enter d5">
+              <ErrorBoundary fallbackTitle="3D Viewer Error">
+                <ScenarioViewer
+                  scenarioStore={scenarioStoreApi}
+                  openDriveDocument={odrDocument}
+                  selectedEntityId={null}
+                  hoveredEntityName={null}
+                  onEntitySelect={() => {}}
+                  onEntityFocus={() => {}}
+                  preferences={{
+                    showGrid3D: preferences.showGrid3D,
+                    showLaneIds: preferences.showLaneIds,
+                    showRoadIds: preferences.showRoadIds,
+                  }}
+                  showPerf={false}
+                  className="h-full w-full"
+                />
+              </ErrorBoundary>
+            </div>
+          </Panel>
+
+          <ResizeHandleH />
+
+          {/* Cross-Section / Elevation editor area */}
+          <Panel defaultSize={45} minSize={15}>
+            <div className="flex flex-col h-full bg-[var(--color-bg-deep)]">
+              {/* Tab bar + content */}
+              <Tabs
+                value={centerTab}
+                onValueChange={(v) => setCenterTab(v as 'crossSection' | 'elevation')}
+                className="flex flex-col flex-1 min-h-0"
+              >
+                <TabsList className="bg-[var(--color-glass-1)] backdrop-blur-[28px] rounded-none p-0">
+                  <TabsTrigger value="crossSection" className="apex-tab flex-1">
+                    Cross Section
+                  </TabsTrigger>
+                  <TabsTrigger value="elevation" className="apex-tab flex-1">
+                    Elevation
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="crossSection" className="flex-1 overflow-hidden mt-0">
+                  {selectedRoad && activeLaneSection ? (
+                    <div className="flex flex-col h-full">
+                      <CrossSectionToolbar
+                        sPosition={sPosition}
+                        roadLength={selectedRoad.length}
+                        onSPositionChange={setSPosition}
+                        laneSections={selectedRoad.lanes}
+                        activeLaneSectionIndex={activeLaneSectionIdx}
+                        selectedLaneId={selectedLaneId}
+                      />
+                      <div className="flex-1 min-h-0">
+                        <CrossSectionView
+                          laneSection={activeLaneSection}
+                          dsFromSectionStart={dsFromSectionStart}
+                          superelevation={selectedRoad.lateralProfile}
+                          sPosition={sPosition}
+                          selectedLaneId={selectedLaneId}
+                          onLaneSelect={handleLaneSelect}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-sm text-[var(--color-text-muted)]">
+                      Select a road to view cross section
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="elevation" className="flex-1 overflow-hidden mt-0">
+                  {selectedRoad ? (
+                    <ElevationGraphEditor
+                      elevations={selectedRoad.elevationProfile}
+                      roadLength={selectedRoad.length}
+                      sPosition={sPosition}
+                      onSPositionChange={setSPosition}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-sm text-[var(--color-text-muted)]">
+                      Select a road to view elevation
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </div>
+          </Panel>
+        </PanelGroup>
+      </Panel>
+
+      <ResizeHandle />
+
+      {/* Right: Property Editor + Validation */}
+      <Panel defaultSize={25} minSize={12} maxSize={35}>
+        <div className="h-full bg-[var(--color-bg-deep)] enter-r">
+          <Tabs defaultValue="properties" className="flex flex-col h-full">
+            <TabsList className="bg-[var(--color-glass-1)] backdrop-blur-[28px] rounded-none p-0">
+              <TabsTrigger value="properties" className="apex-tab flex-1">
+                Properties
+              </TabsTrigger>
+              <TabsTrigger value="validation" className="apex-tab flex-1">
+                Validation
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="properties" className="flex-1 overflow-hidden mt-0">
+              <OdrPropertyEditor
+                document={odrDocument}
+                selectedRoadId={selectedRoadId}
+                selectedJunctionId={selectedJunctionId}
+                selectedSignalId={selectedSignalId}
+                selectedLaneId={selectedLaneId}
+                selectedGeometryIndex={null}
+                onUpdateRoad={handleUpdateRoad}
+                onUpdateLane={handleUpdateLane}
+                onUpdateSignal={handleUpdateSignal}
+                onUpdateJunction={handleUpdateJunction}
+                onUpdateHeader={handleUpdateHeader}
+              />
+            </TabsContent>
+            <TabsContent value="validation" className="flex-1 overflow-hidden mt-0">
+              <ValidationPanel />
+            </TabsContent>
+          </Tabs>
+        </div>
+      </Panel>
+    </PanelGroup>
+  );
+}

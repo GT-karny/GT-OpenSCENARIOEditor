@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { XoscParser, XoscSerializer } from '@osce/openscenario';
-import { XodrParser } from '@osce/opendrive';
+import { XodrParser, XodrSerializer } from '@osce/opendrive';
 import type { CatalogLocations } from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
 import { toast } from 'sonner';
@@ -306,5 +306,25 @@ export function useFileOperations() {
     }
   }, [setRoadNetwork]);
 
-  return { newScenario, openXosc, saveXosc, saveAsXosc, loadXodr, handleSaveAs };
+  const saveXodr = useCallback(async () => {
+    const roadNetwork = useEditorStore.getState().roadNetwork;
+    if (!roadNetwork) {
+      toast.error('No road network to save');
+      return;
+    }
+
+    try {
+      const serializer = new XodrSerializer();
+      const xml = serializer.serializeFormatted(roadNetwork);
+      await writeFileToDisk(xml, '.xodr', null);
+      toast.success(t('labels.fileSaved'));
+    } catch (err) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        console.error('Save .xodr failed:', err);
+        toast.error(t('labels.serializeFailed'));
+      }
+    }
+  }, [t]);
+
+  return { newScenario, openXosc, saveXosc, saveAsXosc, loadXodr, saveXodr, handleSaveAs };
 }
