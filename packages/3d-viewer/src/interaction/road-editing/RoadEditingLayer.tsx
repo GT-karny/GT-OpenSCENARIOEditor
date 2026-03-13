@@ -11,6 +11,7 @@ import { TangentHandle } from './TangentHandle.js';
 import { RoadEndpointMarkers } from './RoadEndpointMarkers.js';
 import { RoadCreationTool } from './RoadCreationTool.js';
 import { SnapIndicator } from './SnapIndicator.js';
+import { ArcCurvatureHandle } from './ArcCurvatureHandle.js';
 
 interface RoadEditingLayerProps {
   /** Full OpenDRIVE document */
@@ -33,6 +34,8 @@ interface RoadEditingLayerProps {
   gridSnap?: boolean;
   /** Callback when a tangent handle is dragged to change heading */
   onHeadingDragEnd?: (roadId: string, geometryIndex: number, newHdg: number) => void;
+  /** Callback when arc curvature is changed via drag */
+  onCurvatureDragEnd?: (roadId: string, geometryIndex: number, newCurvature: number) => void;
 }
 
 export function RoadEditingLayer({
@@ -46,6 +49,7 @@ export function RoadEditingLayer({
   onCreateRoad,
   gridSnap = false,
   onHeadingDragEnd,
+  onCurvatureDragEnd,
 }: RoadEditingLayerProps) {
   const selectedRoad = useMemo(
     () => openDriveDocument.roads.find((r) => r.id === selectedRoadId) ?? null,
@@ -77,6 +81,15 @@ export function RoadEditingLayer({
       }
     },
     [selectedRoadId, onHeadingDragEnd],
+  );
+
+  const handleCurvatureDragEnd = useCallback(
+    (index: number, newCurvature: number) => {
+      if (selectedRoadId) {
+        onCurvatureDragEnd?.(selectedRoadId, index, newCurvature);
+      }
+    },
+    [selectedRoadId, onCurvatureDragEnd],
   );
 
   return (
@@ -116,6 +129,13 @@ export function RoadEditingLayer({
                 index={i}
                 selected={selectedGeometryIndex === i}
                 onHeadingChange={handleHeadingDragEnd}
+                orbitControlsRef={orbitControlsRef}
+              />
+              <ArcCurvatureHandle
+                geometry={geometry}
+                index={i}
+                selected={selectedGeometryIndex === i}
+                onCurvatureChange={handleCurvatureDragEnd}
                 orbitControlsRef={orbitControlsRef}
               />
             </React.Fragment>

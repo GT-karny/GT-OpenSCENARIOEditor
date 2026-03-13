@@ -157,6 +157,8 @@ export interface ScenarioViewerProps {
   roadGridSnap?: boolean;
   /** Callback when a tangent handle is dragged to change heading */
   onRoadHeadingDragEnd?: (roadId: string, geometryIndex: number, newHdg: number) => void;
+  /** Callback when arc curvature is changed via drag */
+  onRoadCurvatureDragEnd?: (roadId: string, geometryIndex: number, newCurvature: number) => void;
 }
 
 /**
@@ -200,6 +202,7 @@ function ScenarioViewerScene({
   onRoadCreate,
   roadGridSnap,
   onRoadHeadingDragEnd,
+  onRoadCurvatureDragEnd,
 }: {
   scenarioStore: ScenarioViewerProps['scenarioStore'];
   openDriveDocument: OpenDriveDocument | null;
@@ -238,6 +241,7 @@ function ScenarioViewerScene({
   onRoadCreate?: ScenarioViewerProps['onRoadCreate'];
   roadGridSnap?: boolean;
   onRoadHeadingDragEnd?: ScenarioViewerProps['onRoadHeadingDragEnd'];
+  onRoadCurvatureDragEnd?: ScenarioViewerProps['onRoadCurvatureDragEnd'];
 }) {
   const cameraMode = useViewerStore(viewerStore, (s) => s.cameraMode);
   const showGrid = useViewerStore(viewerStore, (s) => s.showGrid);
@@ -506,6 +510,7 @@ function ScenarioViewerScene({
             onCreateRoad={onRoadCreate}
             gridSnap={roadGridSnap}
             onHeadingDragEnd={onRoadHeadingDragEnd}
+            onCurvatureDragEnd={onRoadCurvatureDragEnd}
           />
         </group>
       )}
@@ -582,6 +587,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   onRoadCreate,
   roadGridSnap,
   onRoadHeadingDragEnd,
+  onRoadCurvatureDragEnd,
 }) => {
   const viewerStoreRef = useRef<ReturnType<typeof createViewerStore> | null>(null);
   if (!viewerStoreRef.current) {
@@ -845,6 +851,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           onRoadCreate={onRoadCreate}
           roadGridSnap={roadGridSnap}
           onRoadHeadingDragEnd={onRoadHeadingDragEnd}
+          onRoadCurvatureDragEnd={onRoadCurvatureDragEnd}
         />
       </ViewerCanvas>
     </div>
