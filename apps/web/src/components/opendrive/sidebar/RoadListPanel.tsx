@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { Plus, Route, Trash2, Copy, Pencil } from 'lucide-react';
 import type { OdrRoad } from '@osce/shared';
+import { DEFAULT_PRESETS, createRoadFromPartial } from '@osce/opendrive-engine';
 import { Button } from '../../ui/button';
 import { ScrollArea } from '../../ui/scroll-area';
 import {
@@ -16,7 +17,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../../ui/dropdown-menu';
-import { useOdrRoads, useOdrSidebarStore, countRoadLanes } from '../../../hooks/use-opendrive-store';
+import {
+  useOdrRoads,
+  useOdrSidebarStore,
+  useOpenDriveStoreApi,
+  countRoadLanes,
+} from '../../../hooks/use-opendrive-store';
 import { cn } from '@/lib/utils';
 
 interface RoadListPanelProps {
@@ -25,6 +31,7 @@ interface RoadListPanelProps {
 
 export function RoadListPanel({ searchQuery }: RoadListPanelProps) {
   const roads = useOdrRoads();
+  const odrStoreApi = useOpenDriveStoreApi();
   const selection = useOdrSidebarStore((s) => s.selection);
   const setSelection = useOdrSidebarStore((s) => s.setSelection);
 
@@ -46,17 +53,48 @@ export function RoadListPanel({ searchQuery }: RoadListPanelProps) {
     // TODO: Implement rename dialog
   }, []);
 
-  const handleDelete = useCallback((_road: OdrRoad) => {
-    // TODO: Implement road deletion via store action
-  }, []);
+  const handleDelete = useCallback(
+    (road: OdrRoad) => {
+      odrStoreApi.getState().removeRoad(road.id);
+      if (selection.type === 'road' && selection.id === road.id) {
+        useOdrSidebarStore.getState().clearSelection();
+      }
+    },
+    [odrStoreApi, selection],
+  );
 
-  const handleDuplicate = useCallback((_road: OdrRoad) => {
-    // TODO: Implement road duplication via store action
-  }, []);
+  const handleDuplicate = useCallback(
+    (road: OdrRoad) => {
+      const newRoad = odrStoreApi.getState().addRoad({
+        name: `${road.name || 'Road'} (copy)`,
+        length: road.length,
+        planView: road.planView.map((g) => ({ ...g, x: g.x + 10, y: g.y + 10 })),
+        lanes: road.lanes,
+        elevationProfile: road.elevationProfile,
+        lateralProfile: road.lateralProfile,
+        signals: [],
+      });
+      setSelection({ type: 'road', id: newRoad.id });
+    },
+    [odrStoreApi, setSelection],
+  );
 
-  const handleAddRoad = useCallback((_preset: string) => {
-    // TODO: Implement road creation with lane preset via store action
-  }, []);
+  const handleAddRoad = useCallback(
+    (presetName: string) => {
+      const preset = DEFAULT_PRESETS.find((p) => p.name === presetName);
+      const existingCount = odrStoreApi.getState().document.roads.length;
+      const offsetX = existingCount * 20;
+      // Build a template road with preset lanes, then pass lanes explicitly to addRoad
+      const template = createRoadFromPartial({}, preset);
+      const newRoad = odrStoreApi.getState().addRoad({
+        name: `Road ${existingCount + 1}`,
+        planView: [{ s: 0, x: offsetX, y: 0, hdg: 0, length: 100, type: 'line' as const }],
+        lanes: template.lanes,
+      });
+      setSelection({ type: 'road', id: newRoad.id });
+    },
+    [odrStoreApi, setSelection],
+  );
 
   return (
     <div className="flex flex-col h-full">
@@ -83,7 +121,7 @@ export function RoadListPanel({ searchQuery }: RoadListPanelProps) {
             <DropdownMenuItem onClick={() => handleAddRoad('4-lane')}>
               4-Lane Road
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleAddRoad('2-lane-shoulder')}>
+            <DropdownMenuItem onClick={() => handleAddRoad('2-lane+shoulder')}>
               2-Lane + Shoulder
             </DropdownMenuItem>
           </DropdownMenuContent>

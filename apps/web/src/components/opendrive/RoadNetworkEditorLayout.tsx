@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import type { OdrRoad, OdrLane, OdrSignal, OdrJunction, OdrHeader, OpenDriveDocument } from '@osce/shared';
+import { createRoadFromPartial } from '@osce/opendrive-engine';
 import { ScenarioViewer } from '@osce/3d-viewer';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { ErrorBoundary } from '../ErrorBoundary';
@@ -78,6 +79,7 @@ export function RoadNetworkEditorLayout() {
 
   const [centerTab, setCenterTab] = useState<'crossSection' | 'elevation'>('crossSection');
   const [sPosition, setSPosition] = useState(0);
+  const [roadCreationMode, setRoadCreationMode] = useState(false);
 
   // Reset s-position when road changes
   useEffect(() => {
@@ -126,6 +128,21 @@ export function RoadNetworkEditorLayout() {
       }
     },
     [odrDocument.roads, odrStoreApi],
+  );
+
+  // --- Road creation from 3D click ---
+  const handleRoadCreate = useCallback(
+    (x: number, y: number, hdg: number) => {
+      const template = createRoadFromPartial({});
+      const newRoad = odrStoreApi.getState().addRoad({
+        name: `Road ${odrDocument.roads.length + 1}`,
+        planView: [{ s: 0, x, y, hdg, length: 100, type: 'line' as const }],
+        lanes: template.lanes,
+      });
+      useOdrSidebarStore.getState().setSelection({ type: 'road', id: newRoad.id });
+      setRoadCreationMode(false);
+    },
+    [odrStoreApi, odrDocument.roads.length],
   );
 
   // --- Store-connected callbacks for property editor ---
@@ -205,6 +222,8 @@ export function RoadNetworkEditorLayout() {
                   roadEditSelectedGeometryIndex={selectedGeometryIndex}
                   onRoadGeometryDragEnd={handleGeometryDragEnd}
                   onRoadGeometrySelect={handleGeometrySelect}
+                  roadCreationModeActive={roadCreationMode}
+                  onRoadCreate={handleRoadCreate}
                 />
               </ErrorBoundary>
             </div>

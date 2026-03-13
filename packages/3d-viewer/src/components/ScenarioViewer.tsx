@@ -149,6 +149,12 @@ export interface ScenarioViewerProps {
   ) => void;
   /** Callback when a geometry control point is selected */
   onRoadGeometrySelect?: (roadId: string, geometryIndex: number) => void;
+  /** Whether road creation mode is active (click ground to create) */
+  roadCreationModeActive?: boolean;
+  /** Callback when user clicks ground to create a road */
+  onRoadCreate?: (x: number, y: number, hdg: number) => void;
+  /** Whether grid snap is enabled for road editing */
+  roadGridSnap?: boolean;
 }
 
 /**
@@ -188,6 +194,9 @@ function ScenarioViewerScene({
   roadEditSelectedGeometryIndex,
   onRoadGeometryDragEnd,
   onRoadGeometrySelect,
+  roadCreationModeActive,
+  onRoadCreate,
+  roadGridSnap,
 }: {
   scenarioStore: ScenarioViewerProps['scenarioStore'];
   openDriveDocument: OpenDriveDocument | null;
@@ -222,6 +231,9 @@ function ScenarioViewerScene({
   roadEditSelectedGeometryIndex?: number | null;
   onRoadGeometryDragEnd?: ScenarioViewerProps['onRoadGeometryDragEnd'];
   onRoadGeometrySelect?: ScenarioViewerProps['onRoadGeometrySelect'];
+  roadCreationModeActive?: boolean;
+  onRoadCreate?: ScenarioViewerProps['onRoadCreate'];
+  roadGridSnap?: boolean;
 }) {
   const cameraMode = useViewerStore(viewerStore, (s) => s.cameraMode);
   const showGrid = useViewerStore(viewerStore, (s) => s.showGrid);
@@ -486,6 +498,9 @@ function ScenarioViewerScene({
             onGeometryDragEnd={onRoadGeometryDragEnd}
             onGeometrySelect={onRoadGeometrySelect}
             orbitControlsRef={cameraRef.current?.orbitControls}
+            creationModeActive={roadCreationModeActive}
+            onCreateRoad={onRoadCreate}
+            gridSnap={roadGridSnap}
           />
         </group>
       )}
@@ -558,6 +573,9 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   roadEditSelectedGeometryIndex,
   onRoadGeometryDragEnd,
   onRoadGeometrySelect,
+  roadCreationModeActive,
+  onRoadCreate,
+  roadGridSnap,
 }) => {
   const viewerStoreRef = useRef<ReturnType<typeof createViewerStore> | null>(null);
   if (!viewerStoreRef.current) {
@@ -817,6 +835,9 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           roadEditSelectedGeometryIndex={roadEditSelectedGeometryIndex}
           onRoadGeometryDragEnd={onRoadGeometryDragEnd}
           onRoadGeometrySelect={onRoadGeometrySelect}
+          roadCreationModeActive={roadCreationModeActive}
+          onRoadCreate={onRoadCreate}
+          roadGridSnap={roadGridSnap}
         />
       </ViewerCanvas>
     </div>

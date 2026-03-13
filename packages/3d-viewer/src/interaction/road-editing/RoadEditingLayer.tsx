@@ -9,6 +9,8 @@ import type { OpenDriveDocument } from '@osce/shared';
 import { ControlPointGizmo } from './ControlPointGizmo.js';
 import { TangentHandle } from './TangentHandle.js';
 import { RoadEndpointMarkers } from './RoadEndpointMarkers.js';
+import { RoadCreationTool } from './RoadCreationTool.js';
+import { SnapIndicator } from './SnapIndicator.js';
 
 interface RoadEditingLayerProps {
   /** Full OpenDRIVE document */
@@ -23,6 +25,12 @@ interface RoadEditingLayerProps {
   selectedGeometryIndex?: number | null;
   /** Ref to OrbitControls */
   orbitControlsRef?: React.RefObject<{ enabled: boolean } | null>;
+  /** Whether road creation mode is active */
+  creationModeActive?: boolean;
+  /** Callback when user clicks to create a road */
+  onCreateRoad?: (x: number, y: number, hdg: number) => void;
+  /** Whether grid snap is enabled */
+  gridSnap?: boolean;
 }
 
 export function RoadEditingLayer({
@@ -32,6 +40,9 @@ export function RoadEditingLayer({
   onGeometrySelect,
   selectedGeometryIndex,
   orbitControlsRef,
+  creationModeActive = false,
+  onCreateRoad,
+  gridSnap = false,
 }: RoadEditingLayerProps) {
   const selectedRoad = useMemo(
     () => openDriveDocument.roads.find((r) => r.id === selectedRoadId) ?? null,
@@ -56,30 +67,49 @@ export function RoadEditingLayer({
     [selectedRoadId, onGeometryDragEnd],
   );
 
-  if (!selectedRoad) return null;
-
   return (
     <group>
-      {/* Control points at each geometry segment start */}
-      {selectedRoad.planView.map((geometry, i) => (
-        <React.Fragment key={`cp-${i}`}>
-          <ControlPointGizmo
-            geometry={geometry}
-            index={i}
-            selected={selectedGeometryIndex === i}
-            onClick={handleControlPointClick}
-            onDragEnd={handleControlPointDragEnd}
-            orbitControlsRef={orbitControlsRef}
-          />
-          <TangentHandle
-            geometry={geometry}
-            selected={selectedGeometryIndex === i}
-          />
-        </React.Fragment>
-      ))}
+      {/* Road creation tool (invisible ground plane for click-to-create) */}
+      {creationModeActive && onCreateRoad && (
+        <RoadCreationTool
+          active={creationModeActive}
+          openDriveDocument={openDriveDocument}
+          onCreateRoad={onCreateRoad}
+          gridSnap={gridSnap}
+        />
+      )}
 
-      {/* Road endpoint markers (start + end) */}
-      <RoadEndpointMarkers road={selectedRoad} />
+      {/* Snap target indicators (show endpoints of other roads) */}
+      <SnapIndicator
+        openDriveDocument={openDriveDocument}
+        excludeRoadId={selectedRoadId}
+        visible={creationModeActive || selectedRoad != null}
+      />
+
+      {/* Selected road: control points + tangent handles */}
+      {selectedRoad && (
+        <>
+          {selectedRoad.planView.map((geometry, i) => (
+            <React.Fragment key={`cp-${i}`}>
+              <ControlPointGizmo
+                geometry={geometry}
+                index={i}
+                selected={selectedGeometryIndex === i}
+                onClick={handleControlPointClick}
+                onDragEnd={handleControlPointDragEnd}
+                orbitControlsRef={orbitControlsRef}
+              />
+              <TangentHandle
+                geometry={geometry}
+                selected={selectedGeometryIndex === i}
+              />
+            </React.Fragment>
+          ))}
+
+          {/* Road endpoint markers (start + end) */}
+          <RoadEndpointMarkers road={selectedRoad} />
+        </>
+      )}
 
       {/* Unselected roads: faint control point markers for context */}
       {openDriveDocument.roads
