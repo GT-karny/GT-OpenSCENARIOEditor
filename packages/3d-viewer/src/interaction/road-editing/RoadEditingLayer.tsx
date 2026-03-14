@@ -13,6 +13,7 @@ import { RoadCreationTool } from './RoadCreationTool.js';
 import { SnapIndicator } from './SnapIndicator.js';
 import { ArcCurvatureHandle } from './ArcCurvatureHandle.js';
 import { EndPointGizmo } from './EndPointGizmo.js';
+import { RoadLinkLines } from './RoadLinkLines.js';
 
 interface RoadEditingLayerProps {
   /** Full OpenDRIVE document */
@@ -53,6 +54,20 @@ interface RoadEditingLayerProps {
   onGeometryShiftClick?: (roadId: string, geometryIndex: number) => void;
   /** Set of selected geometry indices (for multi-selection highlight) */
   selectedGeometryIndices?: Set<number>;
+  /** Callback when a road endpoint snaps to another road's endpoint */
+  onRoadLinkSet?: (
+    roadId: string,
+    linkType: 'predecessor' | 'successor',
+    targetRoadId: string,
+    targetContactPoint: 'start' | 'end',
+  ) => void;
+  /** Callback when endpoint is right-clicked */
+  onEndpointContextMenu?: (
+    roadId: string,
+    contactPoint: 'start' | 'end',
+    screenX: number,
+    screenY: number,
+  ) => void;
 }
 
 export function RoadEditingLayer({
@@ -71,6 +86,8 @@ export function RoadEditingLayer({
   onEndpointDragEnd,
   onGeometryShiftClick,
   selectedGeometryIndices,
+  onRoadLinkSet,
+  onEndpointContextMenu,
 }: RoadEditingLayerProps) {
   const selectedRoad = useMemo(
     () => openDriveDocument.roads.find((r) => r.id === selectedRoadId) ?? null,
@@ -145,8 +162,32 @@ export function RoadEditingLayer({
     [selectedRoadId, onEndpointDragEnd],
   );
 
+  const handleSnapLink = useCallback(
+    (
+      roadId: string,
+      linkType: 'predecessor' | 'successor',
+      targetRoadId: string,
+      targetContactPoint: 'start' | 'end',
+    ) => {
+      onRoadLinkSet?.(roadId, linkType, targetRoadId, targetContactPoint);
+    },
+    [onRoadLinkSet],
+  );
+
+  const handleEndpointContextMenu = useCallback(
+    (contactPoint: 'start' | 'end', screenX: number, screenY: number) => {
+      if (selectedRoadId) {
+        onEndpointContextMenu?.(selectedRoadId, contactPoint, screenX, screenY);
+      }
+    },
+    [selectedRoadId, onEndpointContextMenu],
+  );
+
   return (
     <group>
+      {/* Road link connection lines */}
+      <RoadLinkLines openDriveDocument={openDriveDocument} />
+
       {/* Road creation tool (invisible ground plane for click-to-create) */}
       {creationModeActive && onCreateRoad && (
         <RoadCreationTool
@@ -178,6 +219,9 @@ export function RoadEditingLayer({
                 onDragEnd={handleStartpointDragEnd}
                 onTranslateDragEnd={handleTranslateDragEnd}
                 orbitControlsRef={orbitControlsRef}
+                openDriveDocument={openDriveDocument}
+                roadId={selectedRoadId!}
+                onSnapLink={handleSnapLink}
               />
               <TangentHandle
                 geometry={geometry}
@@ -200,12 +244,19 @@ export function RoadEditingLayer({
                 onDragEnd={handleEndpointDragEnd}
                 onTranslateDragEnd={handleTranslateDragEnd}
                 orbitControlsRef={orbitControlsRef}
+                openDriveDocument={openDriveDocument}
+                roadId={selectedRoadId!}
+                isLastGeometry={i === selectedRoad.planView.length - 1}
+                onSnapLink={handleSnapLink}
               />
             </React.Fragment>
           ))}
 
           {/* Road endpoint markers (start + end) */}
-          <RoadEndpointMarkers road={selectedRoad} />
+          <RoadEndpointMarkers
+            road={selectedRoad}
+            onEndpointContextMenu={handleEndpointContextMenu}
+          />
         </>
       )}
 

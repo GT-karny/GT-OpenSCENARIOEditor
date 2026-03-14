@@ -158,7 +158,12 @@ export interface ScenarioViewerProps {
   /** Whether road creation mode is active (click ground to create) */
   roadCreationModeActive?: boolean;
   /** Callback when user clicks ground to create a road */
-  onRoadCreate?: (x: number, y: number, hdg: number) => void;
+  onRoadCreate?: (
+    x: number,
+    y: number,
+    hdg: number,
+    snapInfo?: { roadId: string; contactPoint: 'start' | 'end' },
+  ) => void;
   /** Whether grid snap is enabled for road editing */
   roadGridSnap?: boolean;
   /** Callback when a tangent handle is dragged to change heading */
@@ -175,6 +180,20 @@ export interface ScenarioViewerProps {
   ) => void;
   /** Set of selected geometry indices for multi-selection */
   roadEditSelectedGeometryIndices?: Set<number>;
+  /** Callback when a road endpoint snaps to another road's endpoint */
+  onRoadLinkSet?: (
+    roadId: string,
+    linkType: 'predecessor' | 'successor',
+    targetRoadId: string,
+    targetContactPoint: 'start' | 'end',
+  ) => void;
+  /** Callback when endpoint is right-clicked */
+  onRoadEndpointContextMenu?: (
+    roadId: string,
+    contactPoint: 'start' | 'end',
+    screenX: number,
+    screenY: number,
+  ) => void;
 }
 
 /**
@@ -223,6 +242,8 @@ function ScenarioViewerScene({
   onRoadEndpointDragEnd,
   onRoadGeometryShiftClick,
   roadEditSelectedGeometryIndices,
+  onRoadLinkSet,
+  onRoadEndpointContextMenu,
 }: {
   scenarioStore: ScenarioViewerProps['scenarioStore'];
   openDriveDocument: OpenDriveDocument | null;
@@ -266,6 +287,8 @@ function ScenarioViewerScene({
   onRoadEndpointDragEnd?: ScenarioViewerProps['onRoadEndpointDragEnd'];
   onRoadGeometryShiftClick?: ScenarioViewerProps['onRoadGeometryShiftClick'];
   roadEditSelectedGeometryIndices?: Set<number>;
+  onRoadLinkSet?: ScenarioViewerProps['onRoadLinkSet'];
+  onRoadEndpointContextMenu?: ScenarioViewerProps['onRoadEndpointContextMenu'];
 }) {
   const cameraMode = useViewerStore(viewerStore, (s) => s.cameraMode);
   const showGrid = useViewerStore(viewerStore, (s) => s.showGrid);
@@ -539,6 +562,8 @@ function ScenarioViewerScene({
             onEndpointDragEnd={onRoadEndpointDragEnd}
             onGeometryShiftClick={onRoadGeometryShiftClick}
             selectedGeometryIndices={roadEditSelectedGeometryIndices}
+            onRoadLinkSet={onRoadLinkSet}
+            onEndpointContextMenu={onRoadEndpointContextMenu}
           />
         </group>
       )}
@@ -620,6 +645,8 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   onRoadEndpointDragEnd,
   onRoadGeometryShiftClick,
   roadEditSelectedGeometryIndices,
+  onRoadLinkSet,
+  onRoadEndpointContextMenu,
 }) => {
   const viewerStoreRef = useRef<ReturnType<typeof createViewerStore> | null>(null);
   if (!viewerStoreRef.current) {
@@ -888,6 +915,8 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           onRoadEndpointDragEnd={onRoadEndpointDragEnd}
           onRoadGeometryShiftClick={onRoadGeometryShiftClick}
           roadEditSelectedGeometryIndices={roadEditSelectedGeometryIndices}
+          onRoadLinkSet={onRoadLinkSet}
+          onRoadEndpointContextMenu={onRoadEndpointContextMenu}
         />
       </ViewerCanvas>
     </div>

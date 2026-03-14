@@ -6,9 +6,11 @@
 import { createStore } from 'zustand/vanilla';
 import { produce } from 'immer';
 import { v4 as uuidv4 } from 'uuid';
+import { nextNumericId } from '../utils/id-generator.js';
 import type {
   OpenDriveDocument,
   OdrRoad,
+  OdrRoadLinkElement,
   OdrLane,
   OdrHeader,
   OdrSignal,
@@ -36,6 +38,11 @@ export interface OpenDriveStore extends OpenDriveState {
   addRoad(partial: Partial<OdrRoad>): OdrRoad;
   removeRoad(roadId: string): void;
   updateRoad(roadId: string, updates: Partial<OdrRoad>): void;
+  setRoadLink(
+    roadId: string,
+    linkType: 'predecessor' | 'successor',
+    link: OdrRoadLinkElement | undefined,
+  ): void;
 
   // Lane operations
   addLane(
@@ -176,6 +183,44 @@ export function createOpenDriveStore() {
         syncUndoRedo();
       },
 
+      setRoadLink: (
+        roadId: string,
+        linkType: 'predecessor' | 'successor',
+        link: OdrRoadLinkElement | undefined,
+      ): void => {
+        const doc = getDoc();
+        const roadIdx = findRoadIndex(doc, roadId);
+        if (roadIdx === -1) return;
+
+        const prevDoc = structuredClone(doc);
+        setDoc(
+          produce(doc, (draft) => {
+            const road = draft.roads[roadIdx];
+            if (!road.link) road.link = {};
+            if (link) {
+              road.link[linkType] = { ...link };
+            } else {
+              delete road.link[linkType];
+              if (!road.link.predecessor && !road.link.successor) {
+                road.link = undefined;
+              }
+            }
+          }),
+        );
+        markDirtyRoad(roadId);
+
+        commandHistory.execute({
+          id: uuidv4(),
+          description: `Set ${linkType} link on road ${roadId}`,
+          execute: () => { /* already executed */ },
+          undo: () => {
+            setDoc(prevDoc);
+            markDirtyRoad(roadId);
+          },
+        });
+        syncUndoRedo();
+      },
+
       // --- Lane operations (inline commands for simplicity) ---
       addLane: (
         roadId: string,
@@ -299,7 +344,7 @@ export function createOpenDriveStore() {
       // --- Junction operations ---
       addJunction: (partial: Partial<OdrJunction>): OdrJunction => {
         const junction = createJunctionFromDefaults(
-          partial.id ?? uuidv4(),
+          partial.id ?? nextNumericId(getDoc().junctions.map((j) => j.id)),
           partial.name ?? '',
         );
         if (partial.type) junction.type = partial.type;
@@ -352,8 +397,9 @@ export function createOpenDriveStore() {
         junctionId: string,
         partial: Partial<OdrJunctionConnection>,
       ): OdrJunctionConnection => {
+        const allConnIds = getDoc().junctions.flatMap((j) => j.connections.map((c) => c.id));
         const connection = createJunctionConnectionFromDefaults(
-          partial.id ?? uuidv4(),
+          partial.id ?? nextNumericId(allConnIds),
           partial.incomingRoad ?? '',
           partial.connectingRoad ?? '',
         );
@@ -384,10 +430,12 @@ export function createOpenDriveStore() {
 
       // --- Signal operations ---
       addSignal: (roadId: string, partial: Partial<OdrSignal>): OdrSignal => {
+        const allSignalIds = getDoc().roads.flatMap((r) => r.signals.map((s) => s.id));
+        const signalId = partial.id ?? nextNumericId(allSignalIds);
         const signal: OdrSignal = {
-          ...createSignalFromDefaults(partial.id ?? uuidv4()),
+          ...createSignalFromDefaults(signalId),
           ...partial,
-          id: partial.id ?? uuidv4(),
+          id: signalId,
         };
 
         const prevDoc = structuredClone(getDoc());
@@ -465,7 +513,7 @@ export function createOpenDriveStore() {
       // --- Controller operations ---
       addController: (partial: Partial<OdrController>): OdrController => {
         const controller = createControllerFromDefaults(
-          partial.id ?? uuidv4(),
+          partial.id ?? nextNumericId(getDoc().controllers.map((c) => c.id)),
           partial.name ?? '',
         );
         if (partial.sequence !== undefined) controller.sequence = partial.sequence;

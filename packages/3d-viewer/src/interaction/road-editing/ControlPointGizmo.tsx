@@ -12,8 +12,9 @@
 import React, { useRef, useState, useCallback } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import type { OdrGeometry } from '@osce/shared';
+import type { OdrGeometry, OpenDriveDocument } from '@osce/shared';
 import { solveFromStartpoint } from './geometry-solve.js';
+import { snapToEndpoint } from './snap-utils.js';
 
 const EDITABLE_TYPES = new Set(['line', 'arc']);
 
@@ -37,6 +38,17 @@ interface ControlPointGizmoProps {
   onTranslateDragEnd?: (index: number, newX: number, newY: number) => void;
   /** Ref to OrbitControls (to disable during drag) */
   orbitControlsRef?: React.RefObject<{ enabled: boolean } | null>;
+  /** Full OpenDRIVE document (for endpoint snapping) */
+  openDriveDocument?: OpenDriveDocument;
+  /** ID of the road this gizmo belongs to */
+  roadId?: string;
+  /** Callback when start point snaps to another road's endpoint */
+  onSnapLink?: (
+    roadId: string,
+    linkType: 'predecessor' | 'successor',
+    targetRoadId: string,
+    targetContactPoint: 'start' | 'end',
+  ) => void;
 }
 
 export function ControlPointGizmo({
@@ -48,6 +60,9 @@ export function ControlPointGizmo({
   onDragEnd,
   onTranslateDragEnd,
   orbitControlsRef,
+  openDriveDocument,
+  roadId,
+  onSnapLink,
 }: ControlPointGizmoProps) {
   const { gl, camera } = useThree();
   const meshRef = useRef<THREE.Group>(null);
@@ -138,6 +153,14 @@ export function ControlPointGizmo({
             const updates = solveFromStartpoint(geometry, finalX, finalY);
             onDragEnd?.(index, updates);
           }
+
+          // Check for snap link (only for index 0 = road start point)
+          if (index === 0 && openDriveDocument && roadId && onSnapLink) {
+            const snap = snapToEndpoint(finalX, finalY, openDriveDocument, roadId);
+            if (snap.snapped && snap.snapRoadId && snap.snapContactPoint) {
+              onSnapLink(roadId, 'predecessor', snap.snapRoadId, snap.snapContactPoint);
+            }
+          }
         }
 
         isDragging.current = false;
@@ -146,7 +169,7 @@ export function ControlPointGizmo({
       gl.domElement.addEventListener('pointermove', handleMove);
       gl.domElement.addEventListener('pointerup', handleUp);
     },
-    [geometry, index, isEditable, onClick, onShiftClick, onDragEnd, onTranslateDragEnd, orbitControlsRef, gl, camera, position],
+    [geometry, index, isEditable, onClick, onShiftClick, onDragEnd, onTranslateDragEnd, orbitControlsRef, gl, camera, position, openDriveDocument, roadId, onSnapLink],
   );
 
   return (

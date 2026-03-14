@@ -1,14 +1,19 @@
 /**
  * Visual markers at the start and end of a road.
- * Start = green diamond, End = red diamond.
+ * Start = green diamond (blue if connected), End = red diamond (blue if connected).
  * Helps users identify road direction and connection points.
+ * Right-click opens a context menu for adding/disconnecting roads.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
+import { useThree } from '@react-three/fiber';
+import type * as THREE from 'three';
 import type { OdrRoad } from '@osce/shared';
 
 interface RoadEndpointMarkersProps {
   road: OdrRoad;
+  /** Callback when an endpoint is right-clicked */
+  onEndpointContextMenu?: (contactPoint: 'start' | 'end', screenX: number, screenY: number) => void;
 }
 
 /**
@@ -59,25 +64,69 @@ function computeRoadEndPosition(road: OdrRoad): { x: number; y: number; hdg: num
   };
 }
 
-export function RoadEndpointMarkers({ road }: RoadEndpointMarkersProps) {
+export function RoadEndpointMarkers({ road, onEndpointContextMenu }: RoadEndpointMarkersProps) {
+  const { gl } = useThree();
   const startGeo = road.planView[0];
   const endPoint = useMemo(() => computeRoadEndPosition(road), [road]);
+
+  const hasStartLink = !!road.link?.predecessor;
+  const hasEndLink = !!road.link?.successor;
+
+  // Colors: blue for connected, green/red for unconnected
+  const startColor = hasStartLink ? '#3b82f6' : '#4ade80';
+  const endColor = hasEndLink ? '#3b82f6' : '#f87171';
+
+  const handleStartContextMenu = useCallback(
+    (e: THREE.Event & { nativeEvent: MouseEvent }) => {
+      e.nativeEvent.preventDefault();
+      e.nativeEvent.stopPropagation();
+      const rect = gl.domElement.getBoundingClientRect();
+      onEndpointContextMenu?.(
+        'start',
+        e.nativeEvent.clientX - rect.left + rect.left,
+        e.nativeEvent.clientY - rect.top + rect.top,
+      );
+    },
+    [gl, onEndpointContextMenu],
+  );
+
+  const handleEndContextMenu = useCallback(
+    (e: THREE.Event & { nativeEvent: MouseEvent }) => {
+      e.nativeEvent.preventDefault();
+      e.nativeEvent.stopPropagation();
+      const rect = gl.domElement.getBoundingClientRect();
+      onEndpointContextMenu?.(
+        'end',
+        e.nativeEvent.clientX - rect.left + rect.left,
+        e.nativeEvent.clientY - rect.top + rect.top,
+      );
+    },
+    [gl, onEndpointContextMenu],
+  );
 
   if (!startGeo) return null;
 
   return (
     <group>
-      {/* Start marker (green) */}
-      <mesh position={[startGeo.x, startGeo.y, 0.1]} rotation={[0, 0, Math.PI / 4]}>
+      {/* Start marker */}
+      <mesh
+        position={[startGeo.x, startGeo.y, 0.1]}
+        rotation={[0, 0, Math.PI / 4]}
+        onContextMenu={onEndpointContextMenu ? handleStartContextMenu : undefined}
+      >
         <boxGeometry args={[0.6, 0.6, 0.15]} />
-        <meshStandardMaterial color="#4ade80" emissive="#4ade80" emissiveIntensity={0.3} />
+        <meshStandardMaterial color={startColor} emissive={startColor} emissiveIntensity={0.3} />
       </mesh>
 
-      {/* End marker (red) */}
+      {/* End marker */}
       {endPoint && (
-        <mesh position={[endPoint.x, endPoint.y, 0.1]} rotation={[0, 0, Math.PI / 4]}>
+        <mesh
+          position={[endPoint.x, endPoint.y, 0.1]}
+          rotation={[0, 0, Math.PI / 4]}
+          onContextMenu={onEndpointContextMenu ? handleEndContextMenu : undefined}
+        >
           <boxGeometry args={[0.6, 0.6, 0.15]} />
-          <meshStandardMaterial color="#f87171" emissive="#f87171" emissiveIntensity={0.3} />
+          <meshStandardMaterial color={endColor} emissive={endColor} emissiveIntensity={0.3} />
         </mesh>
       )}
     </group>

@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import type { OdrRoad, OdrLane, OdrSignal, OdrJunction, OdrHeader, OpenDriveDocument } from '@osce/shared';
+import type { OdrRoad, OdrRoadLinkElement, OdrLane, OdrSignal, OdrJunction, OdrHeader, OpenDriveDocument } from '@osce/shared';
 import { createRoadFromPartial } from '@osce/opendrive-engine';
 import { ScenarioViewer } from '@osce/3d-viewer';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
@@ -10,6 +10,7 @@ import { OdrSidebar } from './sidebar/OdrSidebar';
 import { CrossSectionView } from './cross-section/CrossSectionView';
 import { CrossSectionToolbar } from './cross-section/CrossSectionToolbar';
 import { ElevationGraphEditor } from './elevation/ElevationGraphEditor';
+import { RoadEndpointContextMenu } from './RoadEndpointContextMenu';
 import { ValidationPanel } from '../panels/ValidationPanel';
 import { useEditorStore } from '../../stores/editor-store';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
@@ -45,10 +46,15 @@ export function RoadNetworkEditorLayout() {
     }
   }, []); // Only on mount
 
-  // Sync openDriveStore → editorStore.roadNetwork reactively
+  // Sync openDriveStore → editorStore.roadNetwork reactively + dirty tracking
   useEffect(() => {
+    let prevDoc = odrStoreApi.getState().document;
     const unsub = odrStoreApi.subscribe((state: { document: OpenDriveDocument }) => {
       useEditorStore.getState().setRoadNetwork(state.document);
+      if (state.document !== prevDoc) {
+        prevDoc = state.document;
+        useEditorStore.getState().setRoadNetworkDirty(true);
+      }
     });
     return unsub;
   }, [odrStoreApi]);
@@ -283,19 +289,158 @@ export function RoadNetworkEditorLayout() {
     [odrDocument.roads, odrStoreApi],
   );
 
+  // --- Road link set (bidirectional) ---
+  const handleRoadLinkSet = useCallback(
+    (
+      roadId: string,
+      linkType: 'predecessor' | 'successor',
+      targetRoadId: string,
+      targetContactPoint: 'start' | 'end',
+    ) => {
+      const store = odrStoreApi.getState();
+      // Set link on the source road
+      const sourceLink: OdrRoadLinkElement = {
+        elementType: 'road',
+        elementId: targetRoadId,
+        contactPoint: targetContactPoint,
+      };
+      store.setRoadLink(roadId, linkType, sourceLink);
+
+      // Set reverse link on the target road
+      const reverseType: 'predecessor' | 'successor' =
+        targetContactPoint === 'start' ? 'predecessor' : 'successor';
+      const sourceContactPoint: 'start' | 'end' =
+        linkType === 'predecessor' ? 'start' : 'end';
+      const targetLink: OdrRoadLinkElement = {
+        elementType: 'road',
+        elementId: roadId,
+        contactPoint: sourceContactPoint,
+      };
+      store.setRoadLink(targetRoadId, reverseType, targetLink);
+    },
+    [odrStoreApi],
+  );
+
   // --- Road creation from 3D click ---
   const handleRoadCreate = useCallback(
-    (x: number, y: number, hdg: number) => {
+    (
+      x: number,
+      y: number,
+      hdg: number,
+      snapInfo?: { roadId: string; contactPoint: 'start' | 'end' },
+    ) => {
       const template = createRoadFromPartial({});
       const newRoad = odrStoreApi.getState().addRoad({
         name: `Road ${odrDocument.roads.length + 1}`,
         planView: [{ s: 0, x, y, hdg, length: 100, type: 'line' as const }],
         lanes: template.lanes,
       });
+
+      // If snapped to an existing road endpoint, set bidirectional links
+      if (snapInfo) {
+        handleRoadLinkSet(newRoad.id, 'predecessor', snapInfo.roadId, snapInfo.contactPoint);
+      }
+
       useOdrSidebarStore.getState().setSelection({ type: 'road', id: newRoad.id });
       setRoadCreationMode(false);
     },
-    [odrStoreApi, odrDocument.roads.length],
+    [odrStoreApi, odrDocument.roads.length, handleRoadLinkSet],
+  );
+
+  // --- Endpoint context menu ---
+  const [endpointContextMenu, setEndpointContextMenu] = useState<{
+    roadId: string;
+    contactPoint: 'start' | 'end';
+    screenX: number;
+    screenY: number;
+  } | null>(null);
+
+  const handleEndpointContextMenu = useCallback(
+    (roadId: string, contactPoint: 'start' | 'end', screenX: number, screenY: number) => {
+      setEndpointContextMenu({ roadId, contactPoint, screenX, screenY });
+    },
+    [],
+  );
+
+  const handleEndpointContextMenuClose = useCallback(() => {
+    setEndpointContextMenu(null);
+  }, []);
+
+  const handleAddRoadFromEndpoint = useCallback(
+    (roadId: string, contactPoint: 'start' | 'end') => {
+      const road = odrDocument.roads.find((r) => r.id === roadId);
+      if (!road || road.planView.length === 0) return;
+
+      let x: number, y: number, hdg: number;
+      if (contactPoint === 'end') {
+        // Get end position and heading of the road
+        const last = road.planView[road.planView.length - 1];
+        if (last.type === 'arc' && last.curvature !== undefined && Math.abs(last.curvature) > 1e-10) {
+          const c = last.curvature;
+          const endHdg = last.hdg + c * last.length;
+          const r = 1 / c;
+          x = last.x + r * (Math.sin(endHdg) - Math.sin(last.hdg));
+          y = last.y + r * (-Math.cos(endHdg) + Math.cos(last.hdg));
+          hdg = endHdg;
+        } else {
+          x = last.x + Math.cos(last.hdg) * last.length;
+          y = last.y + Math.sin(last.hdg) * last.length;
+          hdg = last.hdg;
+        }
+      } else {
+        // Start position
+        const first = road.planView[0];
+        x = first.x;
+        y = first.y;
+        hdg = first.hdg + Math.PI; // Reverse direction for predecessor
+      }
+
+      const template = createRoadFromPartial({});
+      const newRoad = odrStoreApi.getState().addRoad({
+        name: `Road ${odrDocument.roads.length + 1}`,
+        planView: [{ s: 0, x, y, hdg, length: 100, type: 'line' as const }],
+        lanes: template.lanes,
+      });
+
+      // Set bidirectional links
+      if (contactPoint === 'end') {
+        // Existing road's end → new road's start
+        handleRoadLinkSet(roadId, 'successor', newRoad.id, 'start');
+      } else {
+        // Existing road's start → new road's end
+        handleRoadLinkSet(roadId, 'predecessor', newRoad.id, 'end');
+      }
+
+      useOdrSidebarStore.getState().setSelection({ type: 'road', id: newRoad.id });
+      setEndpointContextMenu(null);
+    },
+    [odrDocument.roads, odrStoreApi, handleRoadLinkSet],
+  );
+
+  const handleDisconnectEndpoint = useCallback(
+    (roadId: string, contactPoint: 'start' | 'end') => {
+      const store = odrStoreApi.getState();
+      const road = odrDocument.roads.find((r) => r.id === roadId);
+      if (!road?.link) return;
+
+      const linkType: 'predecessor' | 'successor' =
+        contactPoint === 'start' ? 'predecessor' : 'successor';
+      const existingLink = road.link[linkType];
+
+      if (existingLink) {
+        // Clear the link on the source road
+        store.setRoadLink(roadId, linkType, undefined);
+
+        // Clear the reverse link on the target road
+        if (existingLink.contactPoint) {
+          const reverseType: 'predecessor' | 'successor' =
+            existingLink.contactPoint === 'start' ? 'predecessor' : 'successor';
+          store.setRoadLink(existingLink.elementId, reverseType, undefined);
+        }
+      }
+      setEndpointContextMenu(null);
+    },
+    [odrStoreApi, odrDocument.roads],
   );
 
   // --- Store-connected callbacks for property editor ---
@@ -383,8 +528,27 @@ export function RoadNetworkEditorLayout() {
                   onRoadEndpointDragEnd={handleEndpointDragEnd}
                   onRoadGeometryShiftClick={handleGeometryShiftClick}
                   roadEditSelectedGeometryIndices={selectedGeometryIndices}
+                  onRoadLinkSet={handleRoadLinkSet}
+                  onRoadEndpointContextMenu={handleEndpointContextMenu}
                 />
               </ErrorBoundary>
+              {endpointContextMenu && (
+                <RoadEndpointContextMenu
+                  position={{ x: endpointContextMenu.screenX, y: endpointContextMenu.screenY }}
+                  roadId={endpointContextMenu.roadId}
+                  contactPoint={endpointContextMenu.contactPoint}
+                  hasLink={(() => {
+                    const road = odrDocument.roads.find((r) => r.id === endpointContextMenu.roadId);
+                    if (!road?.link) return false;
+                    return endpointContextMenu.contactPoint === 'start'
+                      ? !!road.link.predecessor
+                      : !!road.link.successor;
+                  })()}
+                  onAddRoad={handleAddRoadFromEndpoint}
+                  onDisconnect={handleDisconnectEndpoint}
+                  onClose={handleEndpointContextMenuClose}
+                />
+              )}
             </div>
           </Panel>
 

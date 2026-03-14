@@ -15,8 +15,13 @@ interface RoadCreationToolProps {
   active: boolean;
   /** Full document for endpoint snapping */
   openDriveDocument: OpenDriveDocument;
-  /** Callback when user clicks to create a road at (x, y) with heading */
-  onCreateRoad: (x: number, y: number, hdg: number) => void;
+  /** Callback when user clicks to create a road at (x, y) with heading and optional snap info */
+  onCreateRoad: (
+    x: number,
+    y: number,
+    hdg: number,
+    snapInfo?: { roadId: string; contactPoint: 'start' | 'end' },
+  ) => void;
   /** Whether grid snap is enabled */
   gridSnap?: boolean;
 }
@@ -49,7 +54,13 @@ export function RoadCreationTool({
       // Could be smarter (e.g., toward camera direction), but simple is better for now
       const hdg = 0;
 
-      onCreateRoad(odrX, odrY, hdg);
+      // Pass snap info so the caller can set road links
+      const snapInfo =
+        snapResult.snapped && snapResult.snapType === 'endpoint' && snapResult.snapRoadId && snapResult.snapContactPoint
+          ? { roadId: snapResult.snapRoadId, contactPoint: snapResult.snapContactPoint }
+          : undefined;
+
+      onCreateRoad(odrX, odrY, hdg, snapInfo);
     },
     [active, openDriveDocument, onCreateRoad, gridSnap, camera],
   );

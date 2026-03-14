@@ -5,7 +5,7 @@
 
 import type { OpenDriveDocument, OdrGeometry } from '@osce/shared';
 
-interface SnapResult {
+export interface SnapResult {
   x: number;
   y: number;
   /** Whether a snap was applied */
@@ -14,6 +14,8 @@ interface SnapResult {
   snapType?: 'grid' | 'endpoint';
   /** ID of the road whose endpoint was snapped to */
   snapRoadId?: string;
+  /** Which end of the target road was snapped to */
+  snapContactPoint?: 'start' | 'end';
 }
 
 /** Default grid size in meters */
@@ -88,6 +90,7 @@ export function snapToEndpoint(
         snapped: true,
         snapType: 'endpoint',
         snapRoadId: road.id,
+        snapContactPoint: 'start',
       };
     }
 
@@ -103,6 +106,7 @@ export function snapToEndpoint(
           snapped: true,
           snapType: 'endpoint',
           snapRoadId: road.id,
+          snapContactPoint: 'end',
         };
       }
     }
