@@ -4,10 +4,10 @@
  */
 
 import { produce } from 'immer';
-import { v4 as uuidv4 } from 'uuid';
 import type { OpenDriveDocument, OdrController } from '@osce/shared';
 import { BaseCommand } from './base-command.js';
 import type { GetDoc, SetDoc } from './road-commands.js';
+import { nextNumericId } from '../utils/id-generator.js';
 import { createControllerFromDefaults } from '../store/defaults.js';
 
 function findControllerIndex(doc: OpenDriveDocument, controllerId: string): number {
@@ -20,7 +20,7 @@ export class AddControllerCommand extends BaseCommand {
   private readonly setDoc: SetDoc;
 
   constructor(partial: Partial<OdrController>, getDoc: GetDoc, setDoc: SetDoc) {
-    const id = partial.id ?? uuidv4();
+    const id = partial.id ?? nextNumericId(getDoc().controllers.map((c) => c.id));
     super(`Add controller: ${partial.name ?? id}`);
     const controller = createControllerFromDefaults(id, partial.name ?? '');
     if (partial.sequence !== undefined) controller.sequence = partial.sequence;

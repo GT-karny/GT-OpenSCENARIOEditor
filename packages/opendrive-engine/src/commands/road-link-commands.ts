@@ -3,7 +3,7 @@
  */
 
 import { produce } from 'immer';
-import { v4 as uuidv4 } from 'uuid';
+import { nextNumericId } from '../utils/id-generator.js';
 import type {
   OpenDriveDocument,
   OdrRoad,
@@ -129,7 +129,7 @@ export class SplitRoadCommand extends BaseCommand {
     super(`Split road ${roadId} at s=${splitS}`);
     this.roadId = roadId;
     this.splitS = splitS;
-    this.newRoadId = uuidv4();
+    this.newRoadId = nextNumericId(getDoc().roads.map((r) => r.id));
     this.getDoc = getDoc;
     this.setDoc = setDoc;
     this.markDirtyRoad = markDirtyRoad;

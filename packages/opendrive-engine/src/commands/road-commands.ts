@@ -25,7 +25,7 @@ export class AddRoadCommand extends BaseCommand {
     markDirty: MarkDirtyRoad,
   ) {
     super(`Add road: ${partial.name ?? partial.id ?? 'unnamed'}`);
-    this.road = createRoadFromPartial(partial);
+    this.road = createRoadFromPartial(partial, undefined, getDoc());
     this.getDoc = getDoc;
     this.setDoc = setDoc;
     this.markDirty = markDirty;

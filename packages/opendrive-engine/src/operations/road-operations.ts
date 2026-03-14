@@ -2,16 +2,14 @@
  * Pure helper functions for road operations.
  */
 
-import { v4 as uuidv4 } from 'uuid';
 import type { OpenDriveDocument, OdrRoad } from '@osce/shared';
+import { nextNumericId } from '../utils/id-generator.js';
 
 /**
- * Generate a unique road ID. OpenDRIVE uses numeric string IDs by convention,
- * but we use UUID internally to avoid collisions during editing.
- * The serializer maps these to sequential numeric IDs on export.
+ * Generate a unique numeric road ID based on existing roads in the document.
  */
-export function generateRoadId(): string {
-  return uuidv4();
+export function generateRoadId(doc: OpenDriveDocument): string {
+  return nextNumericId(doc.roads.map((r) => r.id));
 }
 
 /**

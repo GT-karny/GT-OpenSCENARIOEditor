@@ -61,6 +61,9 @@ export {
 // Operations
 export { generateRoadId, findRoadById, findRoadIndex } from './operations/road-operations.js';
 
+// Utils
+export { nextNumericId } from './utils/id-generator.js';
+
 // Builders
 export { createRoadFromPartial } from './builders/road-builder.js';
 export { DEFAULT_PRESETS } from './builders/lane-presets.js';

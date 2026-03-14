@@ -3,10 +3,10 @@
  */
 
 import { produce } from 'immer';
-import { v4 as uuidv4 } from 'uuid';
 import type { OpenDriveDocument, OdrJunction, OdrJunctionConnection } from '@osce/shared';
 import { BaseCommand } from './base-command.js';
 import type { GetDoc, SetDoc } from './road-commands.js';
+import { nextNumericId } from '../utils/id-generator.js';
 import {
   createJunctionFromDefaults,
   createJunctionConnectionFromDefaults,
@@ -30,7 +30,7 @@ export class AddJunctionCommand extends BaseCommand {
     setDoc: SetDoc,
     markDirty: MarkDirtyJunction,
   ) {
-    const id = partial.id ?? uuidv4();
+    const id = partial.id ?? nextNumericId(getDoc().junctions.map((j) => j.id));
     super(`Add junction: ${partial.name ?? id}`);
     const junction = createJunctionFromDefaults(id, partial.name ?? '');
     if (partial.type) junction.type = partial.type;
@@ -176,7 +176,8 @@ export class AddJunctionConnectionCommand extends BaseCommand {
     setDoc: SetDoc,
     markDirty: MarkDirtyJunction,
   ) {
-    const connId = partial.id ?? uuidv4();
+    const allConnIds = getDoc().junctions.flatMap((j) => j.connections.map((c) => c.id));
+    const connId = partial.id ?? nextNumericId(allConnIds);
     super(`Add connection ${connId} to junction ${junctionId}`);
     this.junctionId = junctionId;
 

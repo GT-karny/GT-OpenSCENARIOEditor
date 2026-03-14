@@ -4,12 +4,12 @@
  */
 
 import { produce } from 'immer';
-import { v4 as uuidv4 } from 'uuid';
 import type { OdrSignal } from '@osce/shared';
 import { BaseCommand } from './base-command.js';
 import type { GetDoc, SetDoc, MarkDirtyRoad } from './road-commands.js';
 import { findRoadIndex } from '../operations/road-operations.js';
 import { createSignalFromDefaults } from '../store/defaults.js';
+import { nextNumericId } from '../utils/id-generator.js';
 
 export class AddSignalCommand extends BaseCommand {
   private readonly roadId: string;
@@ -25,7 +25,8 @@ export class AddSignalCommand extends BaseCommand {
     setDoc: SetDoc,
     markDirty: MarkDirtyRoad,
   ) {
-    const id = partial.id ?? uuidv4();
+    const allSignalIds = getDoc().roads.flatMap((r) => r.signals.map((s) => s.id));
+    const id = partial.id ?? nextNumericId(allSignalIds);
     super(`Add signal ${id} to road ${roadId}`);
     this.roadId = roadId;
     this.signal = {

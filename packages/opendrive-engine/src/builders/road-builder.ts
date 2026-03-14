@@ -2,9 +2,9 @@
  * Road builder: creates a complete OdrRoad from partial input and optional lane preset.
  */
 
-import type { OdrRoad, OdrLane, OdrLaneSection } from '@osce/shared';
+import type { OdrRoad, OdrLane, OdrLaneSection, OpenDriveDocument } from '@osce/shared';
 import { generateRoadId } from '../operations/road-operations.js';
-import { createDefaultCenterLane } from '../store/defaults.js';
+import { createDefaultCenterLane, createDefaultDocument } from '../store/defaults.js';
 import type { LanePreset } from './lane-presets.js';
 
 /**
@@ -38,8 +38,8 @@ function buildLaneSectionFromPreset(preset: LanePreset): OdrLaneSection {
  * Create a complete OdrRoad from a partial definition and optional lane preset.
  * Missing fields are filled with sensible defaults.
  */
-export function createRoadFromPartial(partial: Partial<OdrRoad>, preset?: LanePreset): OdrRoad {
-  const id = partial.id ?? generateRoadId();
+export function createRoadFromPartial(partial: Partial<OdrRoad>, preset?: LanePreset, doc?: OpenDriveDocument): OdrRoad {
+  const id = partial.id ?? generateRoadId(doc ?? createDefaultDocument());
   const length = partial.length ?? 100;
 
   const lanes: OdrLaneSection[] = partial.lanes ??
