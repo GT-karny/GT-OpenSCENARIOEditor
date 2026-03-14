@@ -63,6 +63,7 @@ export interface OpenDriveStore extends OpenDriveState {
   // Junction operations
   addJunction(partial: Partial<OdrJunction>): OdrJunction;
   removeJunction(junctionId: string): void;
+  updateJunction(junctionId: string, updates: Partial<OdrJunction>): void;
   addJunctionConnection(
     junctionId: string,
     partial: Partial<OdrJunctionConnection>,
@@ -387,6 +388,35 @@ export function createOpenDriveStore() {
           execute: () => { /* already executed */ },
           undo: () => {
             setDoc(prevDoc);
+            markDirtyJunction(junctionId);
+          },
+        });
+        syncUndoRedo();
+      },
+
+      updateJunction: (junctionId: string, updates: Partial<OdrJunction>): void => {
+        const doc = getDoc();
+        const idx = doc.junctions.findIndex((j) => j.id === junctionId);
+        if (idx === -1) return;
+        const prevJunction = structuredClone(doc.junctions[idx]);
+        setDoc(
+          produce(doc, (draft) => {
+            Object.assign(draft.junctions[idx], updates);
+          }),
+        );
+        markDirtyJunction(junctionId);
+
+        commandHistory.execute({
+          id: uuidv4(),
+          description: `Update junction: ${junctionId}`,
+          execute: () => { /* already executed */ },
+          undo: () => {
+            setDoc(
+              produce(getDoc(), (draft) => {
+                const i = draft.junctions.findIndex((j) => j.id === junctionId);
+                if (i !== -1) draft.junctions[i] = prevJunction;
+              }),
+            );
             markDirtyJunction(junctionId);
           },
         });

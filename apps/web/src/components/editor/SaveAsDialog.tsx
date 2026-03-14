@@ -208,15 +208,15 @@ interface SaveAsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (relativePath: string) => Promise<void>;
-  fileType?: 'xosc' | 'xodr';
+  fileType?: 'xosc' | 'xodr' | 'osce';
 }
 
 export function SaveAsDialog({ open, onOpenChange, onSave, fileType = 'xosc' }: SaveAsDialogProps) {
   const { t } = useTranslation('common');
   const currentProject = useProjectStore((s) => s.currentProject);
 
-  const prefix = fileType === 'xodr' ? 'xodr' : 'xosc';
-  const extension = `.${fileType}`;
+  const prefix = fileType === 'xodr' || fileType === 'osce' ? 'xodr' : 'xosc';
+  const extension = fileType === 'osce' ? '.osce.json' : `.${fileType}`;
 
   const [selectedDir, setSelectedDir] = useState(prefix);
   const [fileName, setFileName] = useState('');
@@ -317,7 +317,7 @@ export function SaveAsDialog({ open, onOpenChange, onSave, fileType = 'xosc' }: 
                 id="save-filename"
                 value={fileName}
                 onChange={(e) => setFileName(e.target.value)}
-                placeholder={fileType === 'xodr' ? 'my-road-network' : 'my-scenario'}
+                placeholder={fileType === 'xodr' || fileType === 'osce' ? 'my-road-network' : 'my-scenario'}
                 className="bg-[var(--color-glass-1)] border-[var(--color-glass-edge-mid)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] flex-1"
                 disabled={isSaving}
                 autoFocus

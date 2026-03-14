@@ -9,7 +9,11 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from '../../ui/context-menu';
-import { useOdrSignals, useOdrSidebarStore } from '../../../hooks/use-opendrive-store';
+import {
+  useOdrSignals,
+  useOdrSidebarStore,
+  useOpenDriveStoreApi,
+} from '../../../hooks/use-opendrive-store';
 import { cn } from '@/lib/utils';
 
 type SignalWithRoad = OdrSignal & { roadId: string; roadName: string };
@@ -53,6 +57,8 @@ export function SignalListPanel({ searchQuery }: SignalListPanelProps) {
     return groups;
   }, [filteredSignals]);
 
+  const odrStoreApi = useOpenDriveStoreApi();
+
   const handleSelect = useCallback(
     (signal: SignalWithRoad) => {
       setSelection({ type: 'signal', id: signal.id, roadId: signal.roadId });
@@ -60,13 +66,25 @@ export function SignalListPanel({ searchQuery }: SignalListPanelProps) {
     [setSelection],
   );
 
-  const handleDelete = useCallback((_signal: SignalWithRoad) => {
-    // TODO: Implement signal deletion via store action
-  }, []);
+  const handleDelete = useCallback(
+    (signal: SignalWithRoad) => {
+      odrStoreApi.getState().removeSignal(signal.roadId, signal.id);
+      if (
+        selection.type === 'signal' &&
+        selection.id === signal.id
+      ) {
+        setSelection({ type: null, id: null });
+      }
+    },
+    [odrStoreApi, selection, setSelection],
+  );
 
   const handleAddSignal = useCallback(() => {
-    // TODO: Implement signal creation (needs road selection first)
-  }, []);
+    if (selection.type !== 'road' || !selection.id) return;
+    const roadId = selection.id;
+    const signal = odrStoreApi.getState().addSignal(roadId, { name: '' });
+    setSelection({ type: 'signal', id: signal.id, roadId });
+  }, [odrStoreApi, selection, setSelection]);
 
   const hasRoadSelected = selection.type === 'road' && selection.id !== null;
 

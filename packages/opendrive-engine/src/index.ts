@@ -3,6 +3,23 @@ export { createOpenDriveStore } from './store/opendrive-store.js';
 export type { OpenDriveStore } from './store/opendrive-store.js';
 export type { OpenDriveState } from './store/store-types.js';
 
+// Editor Metadata Store
+export { createEditorMetadataStore } from './store/editor-metadata-store.js';
+export type { EditorMetadataStore, EditorMetadataState } from './store/editor-metadata-store.js';
+export type {
+  EditorMetadata,
+  VirtualRoad,
+  JunctionMetadata,
+  JunctionSettings,
+  LaneRoutingConfig,
+} from './store/editor-metadata-types.js';
+export {
+  EDITOR_METADATA_VERSION,
+  createDefaultEditorMetadata,
+  createDefaultJunctionSettings,
+  createDefaultLaneRoutingConfig,
+} from './store/editor-metadata-types.js';
+
 // Defaults
 export {
   createDefaultDocument,
@@ -57,9 +74,26 @@ export {
   RemoveControllerCommand,
   UpdateControllerCommand,
 } from './commands/controller-commands.js';
+export { CompoundCommand } from './commands/compound-command.js';
+
+// Serializers / Parsers (editor format)
+export { serializeOsceJson, isOsceJsonFormat } from './serializer/osce-json-serializer.js';
+export type { OsceEditorFile } from './serializer/osce-json-serializer.js';
+export { parseOsceJson } from './parser/osce-json-parser.js';
+export type { OsceParseResult } from './parser/osce-json-parser.js';
 
 // Operations
 export { generateRoadId, findRoadById, findRoadIndex } from './operations/road-operations.js';
+export {
+  createVirtualRoad,
+  getVirtualRoadGeometry,
+  getVirtualRoadLength,
+  resolveVirtualS,
+  toVirtualS,
+  insertSplitSegment,
+  removeMergedSegment,
+  getSegmentRoads,
+} from './operations/virtual-road-operations.js';
 
 // Utils
 export { nextNumericId } from './utils/id-generator.js';
@@ -68,3 +102,34 @@ export { nextNumericId } from './utils/id-generator.js';
 export { createRoadFromPartial } from './builders/road-builder.js';
 export { DEFAULT_PRESETS } from './builders/lane-presets.js';
 export type { LanePreset } from './builders/lane-presets.js';
+export {
+  generateConnectingRoads,
+  computeRoadEndpoint,
+} from './builders/connecting-road-builder.js';
+export type {
+  TurnType,
+  ConnectingRoadSpec,
+  RoadEndpoint,
+} from './builders/connecting-road-builder.js';
+
+// Junction operations
+export {
+  planJunctionCreation,
+  getConnectingRoadIds,
+  findRoadsToJoin,
+} from './operations/junction-operations.js';
+export type {
+  CreateJunctionParams,
+  JunctionCreationPlan,
+} from './operations/junction-operations.js';
+
+// Virtual junction operations
+export {
+  createVirtualJunction,
+  validateVirtualJunctionRefs,
+} from './operations/virtual-junction-operations.js';
+export type {
+  VirtualJunctionRoadRef,
+  CreateVirtualJunctionParams,
+  VirtualJunctionResult,
+} from './operations/virtual-junction-operations.js';

@@ -196,6 +196,16 @@ export interface ScenarioViewerProps {
     screenX: number,
     screenY: number,
   ) => void;
+
+  // ---- Junction Editing ----
+  /** Currently selected junction ID (renders with highlight) */
+  selectedJunctionId?: string | null;
+  /** Ghost junction surface data for auto-detection preview */
+  ghostJunctionSurface?: import('@osce/opendrive').JunctionSurfaceData | null;
+  /** Callback when a junction surface is clicked */
+  onJunctionClick?: (junctionId: string) => void;
+  /** Callback when a junction surface is right-clicked */
+  onJunctionContextMenu?: (junctionId: string, event: ThreeEvent<MouseEvent>) => void;
 }
 
 /**
@@ -247,6 +257,10 @@ function ScenarioViewerScene({
   onRoadLinkSet,
   onRoadLinkUnset,
   onRoadEndpointContextMenu,
+  selectedJunctionId,
+  ghostJunctionSurface,
+  onJunctionClick,
+  onJunctionContextMenu,
 }: {
   scenarioStore: ScenarioViewerProps['scenarioStore'];
   openDriveDocument: OpenDriveDocument | null;
@@ -293,6 +307,10 @@ function ScenarioViewerScene({
   onRoadLinkSet?: ScenarioViewerProps['onRoadLinkSet'];
   onRoadLinkUnset?: ScenarioViewerProps['onRoadLinkUnset'];
   onRoadEndpointContextMenu?: ScenarioViewerProps['onRoadEndpointContextMenu'];
+  selectedJunctionId?: string | null;
+  ghostJunctionSurface?: ScenarioViewerProps['ghostJunctionSurface'];
+  onJunctionClick?: ScenarioViewerProps['onJunctionClick'];
+  onJunctionContextMenu?: ScenarioViewerProps['onJunctionContextMenu'];
 }) {
   const cameraMode = useViewerStore(viewerStore, (s) => s.cameraMode);
   const showGrid = useViewerStore(viewerStore, (s) => s.showGrid);
@@ -441,6 +459,10 @@ function ScenarioViewerScene({
         showRoadIds={showRoadIds}
         showLaneIds={showLaneIds}
         highlightedLaneRef={highlightedLaneRef}
+        selectedJunctionId={selectedJunctionId}
+        ghostJunctionSurface={ghostJunctionSurface}
+        onJunctionClick={onJunctionClick}
+        onJunctionContextMenu={onJunctionContextMenu}
       />
 
       {/* Traffic signals from OpenDRIVE */}
@@ -653,6 +675,10 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   onRoadLinkSet,
   onRoadLinkUnset,
   onRoadEndpointContextMenu,
+  selectedJunctionId,
+  ghostJunctionSurface,
+  onJunctionClick,
+  onJunctionContextMenu,
 }) => {
   const viewerStoreRef = useRef<ReturnType<typeof createViewerStore> | null>(null);
   if (!viewerStoreRef.current) {
@@ -924,6 +950,10 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           onRoadLinkSet={onRoadLinkSet}
           onRoadLinkUnset={onRoadLinkUnset}
           onRoadEndpointContextMenu={onRoadEndpointContextMenu}
+          selectedJunctionId={selectedJunctionId}
+          ghostJunctionSurface={ghostJunctionSurface}
+          onJunctionClick={onJunctionClick}
+          onJunctionContextMenu={onJunctionContextMenu}
         />
       </ViewerCanvas>
     </div>

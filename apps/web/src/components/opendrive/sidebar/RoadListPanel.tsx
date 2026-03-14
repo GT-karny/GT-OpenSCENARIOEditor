@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { Plus, Route, Trash2, Copy, Pencil } from 'lucide-react';
 import type { OdrRoad } from '@osce/shared';
 import { DEFAULT_PRESETS, createRoadFromPartial } from '@osce/opendrive-engine';
@@ -49,9 +49,23 @@ export function RoadListPanel({ searchQuery }: RoadListPanelProps) {
     [setSelection],
   );
 
-  const handleRename = useCallback((_road: OdrRoad) => {
-    // TODO: Implement rename dialog
+  const [renamingRoadId, setRenamingRoadId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+
+  const handleRename = useCallback((road: OdrRoad) => {
+    setRenamingRoadId(road.id);
+    setRenameValue(road.name || `Road ${road.id}`);
   }, []);
+
+  const handleRenameSubmit = useCallback(
+    (roadId: string) => {
+      if (renameValue.trim()) {
+        odrStoreApi.getState().updateRoad(roadId, { name: renameValue.trim() });
+      }
+      setRenamingRoadId(null);
+    },
+    [odrStoreApi, renameValue],
+  );
 
   const handleDelete = useCallback(
     (road: OdrRoad) => {
@@ -136,6 +150,11 @@ export function RoadListPanel({ searchQuery }: RoadListPanelProps) {
               key={road.id}
               road={road}
               selected={selection.type === 'road' && selection.id === road.id}
+              renaming={renamingRoadId === road.id}
+              renameValue={renamingRoadId === road.id ? renameValue : ''}
+              onRenameChange={setRenameValue}
+              onRenameSubmit={() => handleRenameSubmit(road.id)}
+              onRenameCancel={() => setRenamingRoadId(null)}
               onSelect={() => handleSelect(road)}
               onRename={() => handleRename(road)}
               onDelete={() => handleDelete(road)}
@@ -158,13 +177,30 @@ export function RoadListPanel({ searchQuery }: RoadListPanelProps) {
 interface RoadListItemProps {
   road: OdrRoad;
   selected: boolean;
+  renaming: boolean;
+  renameValue: string;
+  onRenameChange: (value: string) => void;
+  onRenameSubmit: () => void;
+  onRenameCancel: () => void;
   onSelect: () => void;
   onRename: () => void;
   onDelete: () => void;
   onDuplicate: () => void;
 }
 
-function RoadListItem({ road, selected, onSelect, onRename, onDelete, onDuplicate }: RoadListItemProps) {
+function RoadListItem({
+  road,
+  selected,
+  renaming,
+  renameValue,
+  onRenameChange,
+  onRenameSubmit,
+  onRenameCancel,
+  onSelect,
+  onRename,
+  onDelete,
+  onDuplicate,
+}: RoadListItemProps) {
   const displayName = road.name || `Road ${road.id}`;
   const laneCount = countRoadLanes(road);
 
@@ -194,7 +230,22 @@ function RoadListItem({ road, selected, onSelect, onRename, onDelete, onDuplicat
           <Route className="h-4 w-4 shrink-0 text-[var(--color-text-muted)]" />
 
           <div className="flex-1 min-w-0">
-            <p className="text-[12px] font-medium truncate">{displayName}</p>
+            {renaming ? (
+              <input
+                autoFocus
+                value={renameValue}
+                onChange={(e) => onRenameChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') onRenameSubmit();
+                  if (e.key === 'Escape') onRenameCancel();
+                }}
+                onBlur={onRenameSubmit}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full text-[12px] font-medium bg-[var(--color-glass-2)] border border-[var(--color-glass-edge)] px-1 py-0.5 outline-none"
+              />
+            ) : (
+              <p className="text-[12px] font-medium truncate">{displayName}</p>
+            )}
             <p className="text-[10px] text-[var(--color-text-tertiary)] mt-px">
               {road.length.toFixed(1)}m &middot; {laneCount} lane{laneCount !== 1 ? 's' : ''}
             </p>

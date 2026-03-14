@@ -11,6 +11,15 @@ import { CrossSectionView } from './cross-section/CrossSectionView';
 import { CrossSectionToolbar } from './cross-section/CrossSectionToolbar';
 import { ElevationGraphEditor } from './elevation/ElevationGraphEditor';
 import { RoadEndpointContextMenu } from './RoadEndpointContextMenu';
+import { JunctionContextMenu } from './JunctionContextMenu';
+import { LaneLinkEditor } from './lane-link/LaneLinkEditor';
+import { useAutoJunctionDetection } from '../../hooks/use-auto-junction-detection';
+import { evaluateReferenceLineAtS } from '@osce/opendrive';
+import {
+  generateConnectingRoads,
+  computeRoadEndpoint,
+  createDefaultLaneRoutingConfig,
+} from '@osce/opendrive-engine';
 import { ValidationPanel } from '../panels/ValidationPanel';
 import { useEditorStore } from '../../stores/editor-store';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
@@ -85,9 +94,15 @@ export function RoadNetworkEditorLayout() {
     setSelectedGeometryIndices(new Set());
   }, [selectedRoadId]);
 
-  const [centerTab, setCenterTab] = useState<'crossSection' | 'elevation'>('crossSection');
+  const [centerTab, setCenterTab] = useState<'crossSection' | 'elevation' | 'laneLinks'>('crossSection');
   const [sPosition, setSPosition] = useState(0);
   const [roadCreationMode, setRoadCreationMode] = useState(false);
+
+  // Auto-junction detection on road geometry changes
+  const { checkForIntersections } = useAutoJunctionDetection({
+    enabled: true,
+    odrStoreApi,
+  });
 
   // Reset s-position when road changes
   useEffect(() => {
@@ -189,9 +204,10 @@ export function RoadNetworkEditorLayout() {
       if (geo) {
         updatedPlanView[geometryIndex] = { ...geo, x: newX, y: newY };
         odrStoreApi.getState().updateRoad(roadId, { planView: updatedPlanView });
+        checkForIntersections(odrStoreApi.getState().document);
       }
     },
-    [odrDocument.roads, odrStoreApi],
+    [odrDocument.roads, odrStoreApi, checkForIntersections],
   );
 
   const handleHeadingDragEnd = useCallback(
@@ -203,9 +219,10 @@ export function RoadNetworkEditorLayout() {
       if (geo) {
         updatedPlanView[geometryIndex] = { ...geo, hdg: newHdg };
         odrStoreApi.getState().updateRoad(roadId, { planView: updatedPlanView });
+        checkForIntersections(odrStoreApi.getState().document);
       }
     },
-    [odrDocument.roads, odrStoreApi],
+    [odrDocument.roads, odrStoreApi, checkForIntersections],
   );
 
   const handleCurvatureDragEnd = useCallback(
@@ -217,9 +234,10 @@ export function RoadNetworkEditorLayout() {
       if (geo) {
         updatedPlanView[geometryIndex] = { ...geo, curvature: newCurvature };
         odrStoreApi.getState().updateRoad(roadId, { planView: updatedPlanView });
+        checkForIntersections(odrStoreApi.getState().document);
       }
     },
-    [odrDocument.roads, odrStoreApi],
+    [odrDocument.roads, odrStoreApi, checkForIntersections],
   );
 
   const handleEndpointDragEnd = useCallback(
@@ -250,9 +268,10 @@ export function RoadNetworkEditorLayout() {
         // Total road length = sum of all geometry lengths
         const totalLength = recalculated.reduce((sum, g) => sum + g.length, 0);
         odrStoreApi.getState().updateRoad(roadId, { planView: recalculated, length: totalLength });
+        checkForIntersections(odrStoreApi.getState().document);
       }
     },
-    [odrDocument.roads, odrStoreApi],
+    [odrDocument.roads, odrStoreApi, checkForIntersections],
   );
 
   const handleStartpointDragEnd = useCallback(
@@ -286,9 +305,10 @@ export function RoadNetworkEditorLayout() {
 
         const totalLength = recalculated.reduce((sum, g) => sum + g.length, 0);
         odrStoreApi.getState().updateRoad(roadId, { planView: recalculated, length: totalLength });
+        checkForIntersections(odrStoreApi.getState().document);
       }
     },
-    [odrDocument.roads, odrStoreApi],
+    [odrDocument.roads, odrStoreApi, checkForIntersections],
   );
 
   // --- Road link set (bidirectional) ---
@@ -345,8 +365,9 @@ export function RoadNetworkEditorLayout() {
 
       useOdrSidebarStore.getState().setSelection({ type: 'road', id: newRoad.id });
       setRoadCreationMode(false);
+      checkForIntersections(odrStoreApi.getState().document);
     },
-    [odrStoreApi, odrDocument.roads.length, handleRoadLinkSet],
+    [odrStoreApi, odrDocument.roads.length, handleRoadLinkSet, checkForIntersections],
   );
 
   // --- Endpoint context menu ---
@@ -445,6 +466,118 @@ export function RoadNetworkEditorLayout() {
     [odrStoreApi, odrDocument.roads],
   );
 
+  // --- Junction click selection ---
+  const handleJunctionClick = useCallback(
+    (junctionId: string) => {
+      useOdrSidebarStore.getState().setSelection({ type: 'junction', id: junctionId });
+    },
+    [],
+  );
+
+  // --- Junction context menu ---
+  const [junctionContextMenu, setJunctionContextMenu] = useState<{
+    junctionId: string;
+    screenX: number;
+    screenY: number;
+  } | null>(null);
+
+  const handleJunctionContextMenu = useCallback(
+    (junctionId: string, event: { nativeEvent: MouseEvent }) => {
+      event.nativeEvent.preventDefault();
+      setJunctionContextMenu({
+        junctionId,
+        screenX: event.nativeEvent.clientX,
+        screenY: event.nativeEvent.clientY,
+      });
+    },
+    [],
+  );
+
+  const handleJunctionContextMenuClose = useCallback(() => {
+    setJunctionContextMenu(null);
+  }, []);
+
+  const handleDeleteJunction = useCallback(
+    (junctionId: string) => {
+      odrStoreApi.getState().removeJunction(junctionId);
+      setJunctionContextMenu(null);
+      // Deselect if deleted junction was selected
+      if (selectedJunctionId === junctionId) {
+        useOdrSidebarStore.getState().setSelection({ type: null, id: null });
+      }
+    },
+    [odrStoreApi, selectedJunctionId],
+  );
+
+  const handleRegenerateConnections = useCallback(
+    (junctionId: string) => {
+      const store = odrStoreApi.getState();
+      const doc = store.document;
+      const junction = doc.junctions.find((j) => j.id === junctionId);
+      if (!junction) {
+        setJunctionContextMenu(null);
+        return;
+      }
+
+      // Remove existing connecting roads
+      const existingConnRoadIds = junction.connections.map((c) => c.connectingRoad);
+      for (const connRoadId of existingConnRoadIds) {
+        if (doc.roads.some((r) => r.id === connRoadId)) {
+          store.removeRoad(connRoadId);
+        }
+      }
+
+      // Gather unique incoming road IDs and their contact points
+      const incomingEntries = new Map<string, 'start' | 'end'>();
+      for (const conn of junction.connections) {
+        if (!incomingEntries.has(conn.incomingRoad)) {
+          incomingEntries.set(conn.incomingRoad, conn.contactPoint);
+        }
+      }
+
+      // Build endpoints from incoming roads
+      const freshDoc = store.document;
+      const endpoints = [];
+      for (const [roadId, contactPoint] of incomingEntries) {
+        const road = freshDoc.roads.find((r) => r.id === roadId);
+        if (road) {
+          endpoints.push(computeRoadEndpoint(road, contactPoint, evaluateReferenceLineAtS));
+        }
+      }
+
+      if (endpoints.length < 2) {
+        // Not enough roads to regenerate — clear connections
+        store.updateJunction(junctionId, { connections: [] });
+        setJunctionContextMenu(null);
+        return;
+      }
+
+      // Generate new connecting roads
+      const routingConfig = createDefaultLaneRoutingConfig();
+      const result = generateConnectingRoads(endpoints, junctionId, routingConfig, store.document);
+
+      // Add new connecting roads
+      for (const connRoad of result.roads) {
+        store.addRoad({ ...connRoad, junction: junctionId });
+      }
+
+      // Update junction connections
+      store.updateJunction(junctionId, { connections: result.connections });
+
+      setJunctionContextMenu(null);
+    },
+    [odrStoreApi],
+  );
+
+  const handleAddJunctionConnection = useCallback(
+    (junctionId: string) => {
+      // Add an empty connection placeholder that user can configure via property editor
+      odrStoreApi.getState().addJunctionConnection(junctionId, {});
+      setJunctionContextMenu(null);
+    },
+    [odrStoreApi],
+  );
+
   // --- Road link unset (on gizmo drag away from snap) ---
   const handleRoadLinkUnset = useCallback(
     (roadId: string, linkType: 'predecessor' | 'successor') => {
@@ -495,10 +628,9 @@ export function RoadNetworkEditorLayout() {
 
   const handleUpdateJunction = useCallback(
     (junctionId: string, updates: Partial<OdrJunction>) => {
-      // Junction update not in store yet
-      console.warn('Junction update not yet implemented', junctionId, updates);
+      odrStoreApi.getState().updateJunction(junctionId, updates);
     },
-    [],
+    [odrStoreApi],
   );
 
   const handleUpdateHeader = useCallback(
@@ -556,6 +688,9 @@ export function RoadNetworkEditorLayout() {
                   onRoadLinkSet={handleRoadLinkSet}
                   onRoadLinkUnset={handleRoadLinkUnset}
                   onRoadEndpointContextMenu={handleEndpointContextMenu}
+                  selectedJunctionId={selectedJunctionId}
+                  onJunctionClick={handleJunctionClick}
+                  onJunctionContextMenu={handleJunctionContextMenu}
                 />
               </ErrorBoundary>
               {endpointContextMenu && (
@@ -575,6 +710,16 @@ export function RoadNetworkEditorLayout() {
                   onClose={handleEndpointContextMenuClose}
                 />
               )}
+              {junctionContextMenu && (
+                <JunctionContextMenu
+                  position={{ x: junctionContextMenu.screenX, y: junctionContextMenu.screenY }}
+                  junctionId={junctionContextMenu.junctionId}
+                  onDelete={handleDeleteJunction}
+                  onRegenerateConnections={handleRegenerateConnections}
+                  onAddConnection={handleAddJunctionConnection}
+                  onClose={handleJunctionContextMenuClose}
+                />
+              )}
             </div>
           </Panel>
 
@@ -586,7 +731,7 @@ export function RoadNetworkEditorLayout() {
               {/* Tab bar + content */}
               <Tabs
                 value={centerTab}
-                onValueChange={(v) => setCenterTab(v as 'crossSection' | 'elevation')}
+                onValueChange={(v) => setCenterTab(v as 'crossSection' | 'elevation' | 'laneLinks')}
                 className="flex flex-col flex-1 min-h-0"
               >
                 <TabsList className="bg-[var(--color-glass-1)] backdrop-blur-[28px] rounded-none p-0">
@@ -595,6 +740,9 @@ export function RoadNetworkEditorLayout() {
                   </TabsTrigger>
                   <TabsTrigger value="elevation" className="apex-tab flex-1">
                     Elevation
+                  </TabsTrigger>
+                  <TabsTrigger value="laneLinks" className="apex-tab flex-1">
+                    Lane Links
                   </TabsTrigger>
                 </TabsList>
 
@@ -638,6 +786,21 @@ export function RoadNetworkEditorLayout() {
                   ) : (
                     <div className="flex items-center justify-center h-full text-sm text-[var(--color-text-muted)]">
                       Select a road to view elevation
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="laneLinks" className="flex-1 overflow-hidden mt-0">
+                  {selectedJunctionId &&
+                  odrDocument.junctions.find((j) => j.id === selectedJunctionId) ? (
+                    <LaneLinkEditor
+                      junction={odrDocument.junctions.find((j) => j.id === selectedJunctionId)!}
+                      document={odrDocument}
+                      onUpdate={handleUpdateJunction}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-sm text-[var(--color-text-muted)]">
+                      Select a junction to edit lane links
                     </div>
                   )}
                 </TabsContent>

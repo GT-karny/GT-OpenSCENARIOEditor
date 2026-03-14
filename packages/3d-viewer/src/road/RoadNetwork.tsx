@@ -9,6 +9,7 @@
 
 import React, { useMemo, useRef, forwardRef } from 'react';
 import type * as THREE from 'three';
+import type { ThreeEvent } from '@react-three/fiber';
 import type { OpenDriveDocument, OdrRoad, RoadMeshData } from '@osce/shared';
 import { generateRoadMesh, buildJunctionSurfaceMesh } from '@osce/opendrive';
 import type { JunctionSurfaceData } from '@osce/opendrive';
@@ -24,6 +25,14 @@ interface RoadNetworkProps {
   showLaneIds?: boolean;
   /** Ref-based lane highlight for hover feedback (read in useFrame, no re-renders) */
   highlightedLaneRef?: React.RefObject<{ roadId: string; laneId: number } | null>;
+  /** Currently selected junction ID (renders with highlight) */
+  selectedJunctionId?: string | null;
+  /** Ghost junction surface to preview during auto-detection */
+  ghostJunctionSurface?: JunctionSurfaceData | null;
+  /** Callback when a junction surface is clicked */
+  onJunctionClick?: (junctionId: string) => void;
+  /** Callback when a junction surface is right-clicked */
+  onJunctionContextMenu?: (junctionId: string, event: ThreeEvent<MouseEvent>) => void;
 }
 
 export const RoadNetwork = forwardRef<THREE.Group, RoadNetworkProps>(
@@ -34,6 +43,10 @@ export const RoadNetwork = forwardRef<THREE.Group, RoadNetworkProps>(
       showRoadIds = false,
       showLaneIds = false,
       highlightedLaneRef,
+      selectedJunctionId,
+      ghostJunctionSurface,
+      onJunctionClick,
+      onJunctionContextMenu,
     },
     ref,
   ) {
@@ -114,8 +127,22 @@ export const RoadNetwork = forwardRef<THREE.Group, RoadNetworkProps>(
         ))}
         {/* Junction surface fills (rendered behind roads via polygonOffset) */}
         {junctionSurfaces.map((surface) => (
-          <JunctionMesh key={`junc-${surface.junctionId}`} surface={surface} />
+          <JunctionMesh
+            key={`junc-${surface.junctionId}`}
+            surface={surface}
+            selected={selectedJunctionId === surface.junctionId}
+            onClick={onJunctionClick}
+            onContextMenu={onJunctionContextMenu}
+          />
         ))}
+        {/* Ghost junction preview during auto-detection */}
+        {ghostJunctionSurface && (
+          <JunctionMesh
+            key={`ghost-${ghostJunctionSurface.junctionId}`}
+            surface={ghostJunctionSurface}
+            ghost
+          />
+        )}
         <RoadLabels
           roads={odrDocument.roads}
           showRoadIds={showRoadIds}

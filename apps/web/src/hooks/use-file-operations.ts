@@ -1,7 +1,12 @@
 import { useCallback } from 'react';
 import { XoscParser, XoscSerializer } from '@osce/openscenario';
 import { XodrParser, XodrSerializer } from '@osce/opendrive';
-import { createDefaultDocument } from '@osce/opendrive-engine';
+import {
+  createDefaultDocument,
+  serializeOsceJson,
+  parseOsceJson,
+  isOsceJsonFormat,
+} from '@osce/opendrive-engine';
 import type { CatalogLocations } from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
 import { toast } from 'sonner';
@@ -10,6 +15,7 @@ import { useEditorStore } from '../stores/editor-store';
 import { useProjectStore } from '../stores/project-store';
 import { useCatalogStore } from '../stores/catalog-store';
 import { buildCatalogLocationsFromProject } from '../lib/catalog-location-utils';
+import { editorMetadataStoreApi } from '../stores/editor-metadata-store-instance';
 import * as api from '../lib/project-api';
 
 // File picker type definitions for File System Access API
@@ -519,6 +525,101 @@ export function useFileOperations() {
     [t],
   );
 
+  // ---- .osce.json (editor format) operations ----
+
+  /** Load .osce.json or .xodr (auto-detect format) */
+  const loadOpenDrive = useCallback(async () => {
+    try {
+      const { text, name, filePath, handle } = await readFileFromDisk(
+        'OpenDRIVE / OSCE Editor',
+        ['.xodr', '.osce.json'],
+      );
+
+      if (name.endsWith('.osce.json') || isOsceJsonFormat(text)) {
+        // .osce.json format
+        const result = parseOsceJson(text);
+        setRoadNetwork(result.document, null);
+        useEditorStore.getState().setRoadNetworkFileName(name);
+        useEditorStore.getState().setRoadNetworkDirty(false);
+        useEditorStore.getState().setOsceFileHandle(handle ?? null);
+        useEditorStore.getState().setOsceFilePath(filePath ?? null);
+        // Clear xodr handles since we loaded osce
+        useEditorStore.getState().setXodrFileHandle(null);
+        useEditorStore.getState().setXodrFilePath(null);
+        editorMetadataStoreApi.getState().loadMetadata(result.metadata);
+      } else {
+        // .xodr format
+        const parser = new XodrParser();
+        const doc = parser.parse(text);
+        setRoadNetwork(doc, text);
+        useEditorStore.getState().setRoadNetworkFileName(name);
+        useEditorStore.getState().setRoadNetworkDirty(false);
+        useEditorStore.getState().setXodrFileHandle(handle ?? null);
+        useEditorStore.getState().setXodrFilePath(filePath ?? null);
+        // Clear osce handles since we loaded xodr
+        useEditorStore.getState().setOsceFileHandle(null);
+        useEditorStore.getState().setOsceFilePath(null);
+      }
+    } catch {
+      // User cancelled the file picker
+    }
+  }, [setRoadNetwork]);
+
+  /** Save as .osce.json (editor format, preserves metadata) */
+  const saveOsce = useCallback(async () => {
+    const roadNetwork = useEditorStore.getState().roadNetwork;
+    if (!roadNetwork) {
+      toast.error('No road network to save');
+      return;
+    }
+
+    try {
+      const metadata = editorMetadataStoreApi.getState().getMetadata();
+      const json = serializeOsceJson(roadNetwork, metadata);
+      const state = useEditorStore.getState();
+      const result = await writeFileToDisk(json, '.osce.json', {
+        suggestedName: state.roadNetworkFileName?.replace(/\.xodr$/, '') ?? 'road-network',
+        existingHandle: state.osceFileHandle,
+        existingFilePath: state.osceFilePath,
+      });
+      useEditorStore.getState().setRoadNetworkFileName(result.fileName);
+      if (result.handle) useEditorStore.getState().setOsceFileHandle(result.handle);
+      if (result.filePath) useEditorStore.getState().setOsceFilePath(result.filePath);
+      useEditorStore.getState().setRoadNetworkDirty(false);
+      toast.success(t('labels.fileSaved'));
+    } catch (err) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        console.error('Save .osce.json failed:', err);
+        toast.error(t('labels.serializeFailed'));
+      }
+    }
+  }, [t]);
+
+  /** Export as .xodr (OpenDRIVE standard, for external tools) */
+  const exportXodr = useCallback(async () => {
+    const roadNetwork = useEditorStore.getState().roadNetwork;
+    if (!roadNetwork) {
+      toast.error('No road network to export');
+      return;
+    }
+
+    try {
+      const serializer = new XodrSerializer();
+      const xml = serializer.serializeFormatted(roadNetwork);
+      const state = useEditorStore.getState();
+      const baseName = state.roadNetworkFileName?.replace(/\.(osce\.json|xodr)$/, '') ?? 'export';
+      await writeFileToDisk(xml, '.xodr', {
+        suggestedName: `${baseName}.xodr`,
+      });
+      toast.success('Exported as .xodr');
+    } catch (err) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        console.error('Export .xodr failed:', err);
+        toast.error(t('labels.serializeFailed'));
+      }
+    }
+  }, [t]);
+
   return {
     newScenario,
     openXosc,
@@ -530,5 +631,8 @@ export function useFileOperations() {
     handleSaveAs,
     handleSaveAsXodr,
     newOpenDrive,
+    loadOpenDrive,
+    saveOsce,
+    exportXodr,
   };
 }

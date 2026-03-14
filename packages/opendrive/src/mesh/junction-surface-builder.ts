@@ -55,6 +55,10 @@ export function buildJunctionSurfaceMesh(
   const candidates: Point3[] = [];
 
   // --- 1. Incoming road boundary points (both left and right) ---
+  // Only include incoming roads that have a link pointing to this junction
+  // (i.e., roads that have been properly split). Roads that pass through
+  // the junction without being split would produce boundary points at the
+  // wrong s-coordinate, distorting the surface mesh.
   const visitedIncoming = new Set<string>();
   for (const conn of junction.connections) {
     if (visitedIncoming.has(conn.incomingRoad)) continue;
@@ -63,6 +67,9 @@ export function buildJunctionSurfaceMesh(
     const road = roadMap.get(conn.incomingRoad);
     if (!road || road.lanes.length === 0) continue;
 
+    // Skip incoming roads that don't have a link to this junction
+    if (!hasJunctionLink(road, junction.id)) continue;
+
     const s = getJunctionFacingS(road, junction.id);
     const bp = getBoundaryPair(road, s);
     if (bp) {
@@ -70,8 +77,6 @@ export function buildJunctionSurfaceMesh(
       candidates.push(bp.right);
     }
   }
-
-  if (candidates.length < 4) return null; // need ≥ 2 incoming roads
 
   // --- 2. Connecting road boundary points (both sides, dense sampling) ---
   const visitedConnecting = new Set<string>();
@@ -91,6 +96,9 @@ export function buildJunctionSurfaceMesh(
       candidates.push(bp.right);
     }
   }
+
+  // Need enough boundary points to form a surface
+  if (candidates.length < 4) return null;
 
   // --- 3. Compute centroid ---
   let cx = 0;
@@ -156,6 +164,21 @@ export function buildJunctionSurfaceMesh(
   }
 
   return { junctionId: junction.id, vertices, indices };
+}
+
+/**
+ * Check if a road has a link (successor or predecessor) pointing to a junction.
+ */
+function hasJunctionLink(road: OdrRoad, junctionId: string): boolean {
+  const link = road.link;
+  if (!link) return false;
+  if (link.successor?.elementId === junctionId && link.successor.elementType === 'junction') {
+    return true;
+  }
+  if (link.predecessor?.elementId === junctionId && link.predecessor.elementType === 'junction') {
+    return true;
+  }
+  return false;
 }
 
 /**

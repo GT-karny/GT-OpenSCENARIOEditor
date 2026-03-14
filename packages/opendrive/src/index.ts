@@ -21,6 +21,13 @@ export {
   stToXyz,
 } from './geometry/lane-boundary.js';
 
+// Intersection detection
+export {
+  detectRoadIntersections,
+  detectIntersectionsIncremental,
+} from './geometry/intersection-detection.js';
+export type { IntersectionResult } from './geometry/intersection-detection.js';
+
 // Driving direction and inverse lookup
 export { computeDrivingHeading } from './geometry/driving-direction.js';
 export { worldToRoad, worldToLane } from './geometry/inverse-lookup.js';

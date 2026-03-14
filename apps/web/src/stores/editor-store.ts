@@ -85,11 +85,17 @@ export interface EditorState {
   xodrFilePath: string | null;
   setXodrFilePath: (path: string | null) => void;
 
+  // File handles for .osce.json (editor format)
+  osceFileHandle: FileSystemFileHandle | null;
+  setOsceFileHandle: (handle: FileSystemFileHandle | null) => void;
+  osceFilePath: string | null;
+  setOsceFilePath: (path: string | null) => void;
+
   // SaveAs dialog
   showSaveAs: boolean;
   setShowSaveAs: (show: boolean) => void;
-  saveAsFileType: 'xosc' | 'xodr';
-  setSaveAsFileType: (type: 'xosc' | 'xodr') => void;
+  saveAsFileType: 'xosc' | 'xodr' | 'osce';
+  setSaveAsFileType: (type: 'xosc' | 'xodr' | 'osce') => void;
 
   // Entity property tab persistence
   entityPropertyTab: 'definition' | 'initialState';
@@ -217,6 +223,12 @@ export const useEditorStore = create<EditorState>()(
       setXoscFilePath: (path) => set({ xoscFilePath: path }),
       xodrFilePath: null,
       setXodrFilePath: (path) => set({ xodrFilePath: path }),
+
+      // .osce.json file handles/paths
+      osceFileHandle: null,
+      setOsceFileHandle: (handle) => set({ osceFileHandle: handle }),
+      osceFilePath: null,
+      setOsceFilePath: (path) => set({ osceFilePath: path }),
 
       // SaveAs dialog
       showSaveAs: false,

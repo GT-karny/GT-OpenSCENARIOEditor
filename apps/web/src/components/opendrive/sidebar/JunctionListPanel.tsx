@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Plus, GitFork, Trash2 } from 'lucide-react';
+import { Plus, GitFork, Trash2, ChevronDown } from 'lucide-react';
 import type { OdrJunction } from '@osce/shared';
 import { Button } from '../../ui/button';
 import { ScrollArea } from '../../ui/scroll-area';
@@ -9,7 +9,17 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from '../../ui/context-menu';
-import { useOdrJunctions, useOdrSidebarStore } from '../../../hooks/use-opendrive-store';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../ui/dropdown-menu';
+import {
+  useOdrJunctions,
+  useOdrSidebarStore,
+  useOpenDriveStoreApi,
+} from '../../../hooks/use-opendrive-store';
 import { cn } from '@/lib/utils';
 
 interface JunctionListPanelProps {
@@ -35,13 +45,28 @@ export function JunctionListPanel({ searchQuery }: JunctionListPanelProps) {
     [setSelection],
   );
 
-  const handleDelete = useCallback((_junction: OdrJunction) => {
-    // TODO: Implement junction deletion via store action
-  }, []);
+  const odrStoreApi = useOpenDriveStoreApi();
+
+  const handleDelete = useCallback(
+    (junction: OdrJunction) => {
+      odrStoreApi.getState().removeJunction(junction.id);
+      // Deselect if deleted junction was selected
+      if (selection.type === 'junction' && selection.id === junction.id) {
+        setSelection({ type: null, id: null });
+      }
+    },
+    [odrStoreApi, selection, setSelection],
+  );
 
   const handleAddJunction = useCallback(() => {
-    // TODO: Implement junction creation via store action
-  }, []);
+    const junction = odrStoreApi.getState().addJunction({ name: '' });
+    setSelection({ type: 'junction', id: junction.id });
+  }, [odrStoreApi, setSelection]);
+
+  const handleAddVirtualJunction = useCallback(() => {
+    const junction = odrStoreApi.getState().addJunction({ name: '', type: 'virtual' });
+    setSelection({ type: 'junction', id: junction.id });
+  }, [odrStoreApi, setSelection]);
 
   return (
     <div className="flex flex-col h-full">
@@ -50,15 +75,29 @@ export function JunctionListPanel({ searchQuery }: JunctionListPanelProps) {
         <span className="text-[11px] font-medium text-[var(--color-text-muted)]">
           {filteredJunctions.length} junction{filteredJunctions.length !== 1 ? 's' : ''}
         </span>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6"
-          aria-label="Add new junction"
-          onClick={handleAddJunction}
-        >
-          <Plus className="h-3.5 w-3.5" />
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              aria-label="Add junction"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <ChevronDown className="h-2.5 w-2.5 ml-px" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handleAddJunction}>
+              <GitFork className="h-3.5 w-3.5 mr-2" />
+              Junction
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleAddVirtualJunction}>
+              <GitFork className="h-3.5 w-3.5 mr-2 opacity-50" />
+              Virtual Junction
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Junction list */}
