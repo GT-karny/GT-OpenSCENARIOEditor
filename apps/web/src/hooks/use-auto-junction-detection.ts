@@ -44,6 +44,22 @@ interface AutoJunctionRecord {
  * Remove an auto-created junction and its connecting roads from the store.
  */
 function removeAutoJunction(store: OpenDriveStore, record: AutoJunctionRecord): void {
+  // Clear road links pointing to this junction before removing it
+  for (const road of store.document.roads) {
+    if (
+      road.link?.predecessor?.elementType === 'junction' &&
+      road.link.predecessor.elementId === record.junctionId
+    ) {
+      store.setRoadLink(road.id, 'predecessor', undefined);
+    }
+    if (
+      road.link?.successor?.elementType === 'junction' &&
+      road.link.successor.elementId === record.junctionId
+    ) {
+      store.setRoadLink(road.id, 'successor', undefined);
+    }
+  }
+
   for (const connRoadId of record.connectingRoadIds) {
     if (store.document.roads.some((r) => r.id === connRoadId)) {
       store.removeRoad(connRoadId);
@@ -174,6 +190,16 @@ export function useAutoJunctionDetection({
           type: 'default',
           connections: plan.junction.connections,
         });
+
+        // Set road links on incoming roads pointing to the junction
+        for (const ep of plan.incomingEndpoints) {
+          const linkType: 'predecessor' | 'successor' =
+            ep.contactPoint === 'end' ? 'successor' : 'predecessor';
+          store.setRoadLink(ep.roadId, linkType, {
+            elementType: 'junction',
+            elementId: addedJunction.id,
+          });
+        }
 
         // Track for cleanup
         autoJunctionsRef.current.push({

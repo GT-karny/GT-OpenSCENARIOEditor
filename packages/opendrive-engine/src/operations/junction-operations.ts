@@ -53,6 +53,11 @@ export interface JunctionCreationPlan {
   junction: OdrJunction;
   connectingRoads: OdrRoad[];
   junctionMetadata: JunctionMetadata;
+  /** Incoming road endpoints at the junction boundary (for setting road links). */
+  incomingEndpoints: Array<{
+    roadId: string;
+    contactPoint: 'start' | 'end';
+  }>;
 }
 
 /**
@@ -142,15 +147,18 @@ export function planJunctionCreation(
   const dataB_end = computeEndpointDataAtS(roadB, sB_end, evaluateAtS);
   const dataB_start = computeEndpointDataAtS(roadB, sB_start, evaluateAtS);
 
-  // Generate connecting roads — 4 endpoints at the junction boundaries:
-  // Each road contributes two arms (toward-end and toward-start)
+  // Generate connecting roads — 4 endpoints at the junction boundaries.
+  // Each road contributes two arms (toward-end and toward-start).
+  // hdg convention: direction pointing INTO the junction (toward center).
+  //   'end' arm:   road heading + π  (reverse of road direction)
+  //   'start' arm: road heading      (same as road direction = toward center)
   const endpoints: RoadEndpoint[] = [
     {
       roadId: roadA.id,
       contactPoint: 'end',
       x: dataA_end.x,
       y: dataA_end.y,
-      hdg: dataA_end.hdg,
+      hdg: dataA_end.hdg + Math.PI,
       drivingLanes: dataA_end.drivingLanes,
       road: roadA,
     },
@@ -159,7 +167,7 @@ export function planJunctionCreation(
       contactPoint: 'end',
       x: dataB_end.x,
       y: dataB_end.y,
-      hdg: dataB_end.hdg,
+      hdg: dataB_end.hdg + Math.PI,
       drivingLanes: dataB_end.drivingLanes,
       road: roadB,
     },
@@ -168,7 +176,7 @@ export function planJunctionCreation(
       contactPoint: 'start',
       x: dataA_start.x,
       y: dataA_start.y,
-      hdg: dataA_start.hdg + Math.PI,
+      hdg: dataA_start.hdg,
       drivingLanes: dataA_start.drivingLanes,
       road: roadA,
     },
@@ -177,7 +185,7 @@ export function planJunctionCreation(
       contactPoint: 'start',
       x: dataB_start.x,
       y: dataB_start.y,
-      hdg: dataB_start.hdg + Math.PI,
+      hdg: dataB_start.hdg,
       drivingLanes: dataB_start.drivingLanes,
       road: roadB,
     },
@@ -205,10 +213,22 @@ export function planJunctionCreation(
     autoCreated: true,
   };
 
+  // Deduplicate endpoints by roadId+contactPoint
+  const seen = new Set<string>();
+  const incomingEndpoints: Array<{ roadId: string; contactPoint: 'start' | 'end' }> = [];
+  for (const ep of endpoints) {
+    const key = `${ep.roadId}:${ep.contactPoint}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      incomingEndpoints.push({ roadId: ep.roadId, contactPoint: ep.contactPoint });
+    }
+  }
+
   return {
     junction,
     connectingRoads,
     junctionMetadata: junctionMeta,
+    incomingEndpoints,
   };
 }
 

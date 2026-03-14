@@ -232,6 +232,47 @@ function normalizeAngle(angle: number): number {
 }
 
 /**
+ * Find the best intersection between two sets of road samples.
+ * Prioritizes centerline-to-centerline crossings over edge crossings
+ * to ensure the intersection point is at the true road center.
+ */
+function findBestIntersection(
+  samplesA: SamplePoint[],
+  samplesB: SamplePoint[],
+): { sA: number; sB: number; x: number; y: number } | null {
+  // Pass 1: centerline-to-centerline only
+  for (let i = 0; i < samplesA.length - 1; i++) {
+    for (let j = 0; j < samplesB.length - 1; j++) {
+      const center = segmentIntersection(
+        samplesA[i].x, samplesA[i].y, samplesA[i + 1].x, samplesA[i + 1].y,
+        samplesB[j].x, samplesB[j].y, samplesB[j + 1].x, samplesB[j + 1].y,
+      );
+      if (center) {
+        return {
+          sA: samplesA[i].s + center.t * (samplesA[i + 1].s - samplesA[i].s),
+          sB: samplesB[j].s + center.u * (samplesB[j + 1].s - samplesB[j].s),
+          x: center.x,
+          y: center.y,
+        };
+      }
+    }
+  }
+
+  // Pass 2: fall back to edge-based detection (roads overlap but centerlines don't cross)
+  for (let i = 0; i < samplesA.length - 1; i++) {
+    for (let j = 0; j < samplesB.length - 1; j++) {
+      const hit = checkBandIntersection(
+        samplesA[i], samplesA[i + 1],
+        samplesB[j], samplesB[j + 1],
+      );
+      if (hit) return hit;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Detect intersections between roads using sampling and spatial hashing.
  *
  * @param roads Roads to check for intersections
@@ -322,40 +363,25 @@ export function detectRoadIntersections(
     const samplesB = roadSamples.get(idB);
     if (!samplesA || !samplesB) continue;
 
-    // Check all segment pairs between the two roads
-    for (let i = 0; i < samplesA.length - 1; i++) {
-      for (let j = 0; j < samplesB.length - 1; j++) {
-        const hit = checkBandIntersection(
-          samplesA[i], samplesA[i + 1],
-          samplesB[j], samplesB[j + 1],
-        );
+    const hit = findBestIntersection(samplesA, samplesB);
 
-        if (hit) {
-          // Compute intersection angle
-          const poseA = evaluateReferenceLineAtS(
-            roads.find((r) => r.id === idA)!.planView,
-            hit.sA,
-          );
-          const poseB = evaluateReferenceLineAtS(
-            roads.find((r) => r.id === idB)!.planView,
-            hit.sB,
-          );
-          const angleDiff = Math.abs(normalizeAngle(poseA.hdg - poseB.hdg));
-          const angle = angleDiff > Math.PI / 2 ? Math.PI - angleDiff : angleDiff;
+    if (hit) {
+      const roadA = roads.find((r) => r.id === idA)!;
+      const roadB = roads.find((r) => r.id === idB)!;
+      const poseA = evaluateReferenceLineAtS(roadA.planView, hit.sA);
+      const poseB = evaluateReferenceLineAtS(roadB.planView, hit.sB);
+      const angleDiff = Math.abs(normalizeAngle(poseA.hdg - poseB.hdg));
+      const angle = angleDiff > Math.PI / 2 ? Math.PI - angleDiff : angleDiff;
 
-          results.push({
-            roadIdA: idA,
-            roadIdB: idB,
-            sA: hit.sA,
-            sB: hit.sB,
-            point: { x: hit.x, y: hit.y },
-            angle,
-          });
-          foundPairs.add(pairKey);
-          break; // One intersection per road pair is enough
-        }
-      }
-      if (foundPairs.has(pairKey)) break;
+      results.push({
+        roadIdA: idA,
+        roadIdB: idB,
+        sA: hit.sA,
+        sB: hit.sB,
+        point: { x: hit.x, y: hit.y },
+        angle,
+      });
+      foundPairs.add(pairKey);
     }
   }
 
@@ -404,33 +430,21 @@ export function detectIntersectionsIncremental(
     for (const other of otherRoads) {
       const otherSamples = sampleRoad(other, sampleInterval);
 
-      for (let i = 0; i < changedSamples.length - 1; i++) {
-        let found = false;
-        for (let j = 0; j < otherSamples.length - 1; j++) {
-          const hit = checkBandIntersection(
-            changedSamples[i], changedSamples[i + 1],
-            otherSamples[j], otherSamples[j + 1],
-          );
+      const hit = findBestIntersection(changedSamples, otherSamples);
+      if (hit) {
+        const poseA = evaluateReferenceLineAtS(changed.planView, hit.sA);
+        const poseB = evaluateReferenceLineAtS(other.planView, hit.sB);
+        const angleDiff = Math.abs(normalizeAngle(poseA.hdg - poseB.hdg));
+        const angle = angleDiff > Math.PI / 2 ? Math.PI - angleDiff : angleDiff;
 
-          if (hit) {
-            const poseA = evaluateReferenceLineAtS(changed.planView, hit.sA);
-            const poseB = evaluateReferenceLineAtS(other.planView, hit.sB);
-            const angleDiff = Math.abs(normalizeAngle(poseA.hdg - poseB.hdg));
-            const angle = angleDiff > Math.PI / 2 ? Math.PI - angleDiff : angleDiff;
-
-            results.push({
-              roadIdA: changed.id,
-              roadIdB: other.id,
-              sA: hit.sA,
-              sB: hit.sB,
-              point: { x: hit.x, y: hit.y },
-              angle,
-            });
-            found = true;
-            break;
-          }
-        }
-        if (found) break;
+        results.push({
+          roadIdA: changed.id,
+          roadIdB: other.id,
+          sA: hit.sA,
+          sB: hit.sB,
+          point: { x: hit.x, y: hit.y },
+          angle,
+        });
       }
     }
   }
