@@ -11,8 +11,8 @@ import React, { useRef, useState, useCallback, useMemo } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { OdrGeometry, OpenDriveDocument } from '@osce/shared';
-import { computeEndpoint, solveFromEndpoint } from './geometry-solve.js';
-import { snapToEndpoint } from './snap-utils.js';
+import { computeEndpoint, solveFromEndpoint, solveFromEndpointWithHeading } from './geometry-solve.js';
+import { snapToEndpoint, computeAlignedHeading } from './snap-utils.js';
 
 const EDITABLE_TYPES = new Set(['line', 'arc']);
 
@@ -45,6 +45,8 @@ interface EndPointGizmoProps {
     targetRoadId: string,
     targetContactPoint: 'start' | 'end',
   ) => void;
+  /** Callback when endpoint is dragged away from a snapped position (unsnap) */
+  onSnapUnlink?: (roadId: string, linkType: 'predecessor' | 'successor') => void;
 }
 
 export function EndPointGizmo({
@@ -58,6 +60,7 @@ export function EndPointGizmo({
   roadId,
   isLastGeometry,
   onSnapLink,
+  onSnapUnlink,
 }: EndPointGizmoProps) {
   const { gl, camera } = useThree();
   const meshRef = useRef<THREE.Group>(null);
@@ -115,6 +118,14 @@ export function EndPointGizmo({
           if (meshRef.current?.parent) {
             meshRef.current.parent.worldToLocal(intersection);
           }
+          // Snap to nearby endpoint during drag (visual feedback)
+          if (isLastGeometry && openDriveDocument && roadId) {
+            const snap = snapToEndpoint(intersection.x, intersection.y, openDriveDocument, roadId);
+            if (snap.snapped) {
+              intersection.x = snap.x;
+              intersection.y = snap.y;
+            }
+          }
           if (meshRef.current) {
             meshRef.current.position.set(intersection.x, intersection.y, 0);
           }
@@ -136,18 +147,24 @@ export function EndPointGizmo({
             const deltaX = finalX - endPos[0];
             const deltaY = finalY - endPos[1];
             onTranslateDragEnd?.(index, geometry.x + deltaX, geometry.y + deltaY);
+          } else if (isLastGeometry && openDriveDocument && roadId) {
+            // Last geometry: check snap first, then solve with heading alignment
+            const snap = snapToEndpoint(finalX, finalY, openDriveDocument, roadId);
+            if (snap.snapped && snap.snapRoadId && snap.snapContactPoint && snap.snapHeading !== undefined) {
+              const alignedHdg = computeAlignedHeading('end', snap.snapContactPoint, snap.snapHeading);
+              const updates = solveFromEndpointWithHeading(geometry, snap.x, snap.y, alignedHdg);
+              onDragEnd?.(index, updates);
+              onSnapLink?.(roadId, 'successor', snap.snapRoadId, snap.snapContactPoint);
+            } else {
+              const updates = solveFromEndpoint(geometry, finalX, finalY);
+              onDragEnd?.(index, updates);
+              // Dragged away from snap — clear existing link
+              onSnapUnlink?.(roadId, 'successor');
+            }
           } else {
-            // Normal drag: reshape (keep start fixed, solve from new end)
+            // Non-last geometry: normal solve
             const updates = solveFromEndpoint(geometry, finalX, finalY);
             onDragEnd?.(index, updates);
-          }
-
-          // Check for snap link (only for last geometry = road endpoint)
-          if (isLastGeometry && openDriveDocument && roadId && onSnapLink) {
-            const snap = snapToEndpoint(finalX, finalY, openDriveDocument, roadId);
-            if (snap.snapped && snap.snapRoadId && snap.snapContactPoint) {
-              onSnapLink(roadId, 'successor', snap.snapRoadId, snap.snapContactPoint);
-            }
           }
         }
 
@@ -157,7 +174,7 @@ export function EndPointGizmo({
       gl.domElement.addEventListener('pointermove', handleMove);
       gl.domElement.addEventListener('pointerup', handleUp);
     },
-    [geometry, index, isEditable, onDragEnd, onTranslateDragEnd, orbitControlsRef, gl, camera, position, endPos, isLastGeometry, openDriveDocument, roadId, onSnapLink],
+    [geometry, index, isEditable, onDragEnd, onTranslateDragEnd, orbitControlsRef, gl, camera, position, endPos, isLastGeometry, openDriveDocument, roadId, onSnapLink, onSnapUnlink],
   );
 
   if (!isEditable) return null;

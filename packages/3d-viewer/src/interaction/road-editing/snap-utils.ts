@@ -16,6 +16,8 @@ export interface SnapResult {
   snapRoadId?: string;
   /** Which end of the target road was snapped to */
   snapContactPoint?: 'start' | 'end';
+  /** Heading at the snapped endpoint (radians) */
+  snapHeading?: number;
 }
 
 /** Default grid size in meters */
@@ -37,9 +39,11 @@ export function snapToGrid(x: number, y: number, gridSize: number = DEFAULT_GRID
 }
 
 /**
- * Compute the end position of a road from its last geometry segment.
+ * Compute the end position and heading of a road from its last geometry segment.
  */
-function computeEndPosition(planView: readonly OdrGeometry[]): { x: number; y: number } | null {
+function computeEndPositionAndHeading(
+  planView: readonly OdrGeometry[],
+): { x: number; y: number; hdg: number } | null {
   if (planView.length === 0) return null;
 
   const last = planView[planView.length - 1];
@@ -51,6 +55,7 @@ function computeEndPosition(planView: readonly OdrGeometry[]): { x: number; y: n
     return {
       x: last.x + r * (Math.sin(endHdg) - Math.sin(last.hdg)),
       y: last.y + r * (-Math.cos(endHdg) + Math.cos(last.hdg)),
+      hdg: endHdg,
     };
   }
 
@@ -58,6 +63,7 @@ function computeEndPosition(planView: readonly OdrGeometry[]): { x: number; y: n
   return {
     x: last.x + Math.cos(last.hdg) * last.length,
     y: last.y + Math.sin(last.hdg) * last.length,
+    hdg: last.hdg,
   };
 }
 
@@ -91,11 +97,12 @@ export function snapToEndpoint(
         snapType: 'endpoint',
         snapRoadId: road.id,
         snapContactPoint: 'start',
+        snapHeading: start.hdg,
       };
     }
 
     // Check end point
-    const end = computeEndPosition(road.planView);
+    const end = computeEndPositionAndHeading(road.planView);
     if (end) {
       const dEnd = Math.hypot(x - end.x, y - end.y);
       if (dEnd < bestDist) {
@@ -107,6 +114,7 @@ export function snapToEndpoint(
           snapType: 'endpoint',
           snapRoadId: road.id,
           snapContactPoint: 'end',
+          snapHeading: end.hdg,
         };
       }
     }
@@ -138,4 +146,23 @@ export function applySnap(
   }
 
   return { x, y, snapped: false };
+}
+
+/**
+ * Compute the aligned heading for a snap connection.
+ *
+ * Same-direction (end→start, start→end): headings match.
+ * Opposite-direction (end→end, start→start): headings differ by π.
+ */
+export function computeAlignedHeading(
+  sourceEndType: 'start' | 'end',
+  targetContactPoint: 'start' | 'end',
+  targetHeading: number,
+): number {
+  if (sourceEndType === targetContactPoint) {
+    // Opposite-direction connection (end→end or start→start)
+    return targetHeading + Math.PI;
+  }
+  // Same-direction connection (end→start or start→end)
+  return targetHeading;
 }

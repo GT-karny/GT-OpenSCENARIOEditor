@@ -63,6 +63,114 @@ export function solveFromEndpoint(
 }
 
 /**
+ * Solve geometry params when the END point is dragged with a heading constraint.
+ * Used for snap connections where both position and heading must match.
+ *
+ * Solves a circular arc from start (fixed) to end with desired end heading.
+ * Line geometry is promoted to arc when heading constraint requires curvature.
+ */
+export function solveFromEndpointWithHeading(
+  geo: OdrGeometry,
+  endX: number,
+  endY: number,
+  endHdg: number,
+): { hdg?: number; length: number; curvature?: number; type?: 'line' | 'arc' } {
+  const dx = endX - geo.x;
+  const dy = endY - geo.y;
+  const chord = Math.sqrt(dx * dx + dy * dy);
+
+  if (chord < 0.01) return { length: 0.01 };
+
+  // Desired heading change from start to end
+  let deltaHdg = endHdg - geo.hdg;
+  while (deltaHdg > Math.PI) deltaHdg -= 2 * Math.PI;
+  while (deltaHdg < -Math.PI) deltaHdg += 2 * Math.PI;
+
+  if (Math.abs(deltaHdg) < 1e-6) {
+    // Straight line case — no curvature needed
+    return { hdg: Math.atan2(dy, dx), length: chord, curvature: 0, type: 'line' };
+  }
+
+  // Arc: L = chord * deltaHdg / (2 * sin(deltaHdg / 2))
+  const halfDelta = deltaHdg / 2;
+  const sinHalf = Math.sin(halfDelta);
+  if (Math.abs(sinHalf) < 1e-10) {
+    return { length: chord, curvature: 0 };
+  }
+
+  const arcLength = (chord * halfDelta) / sinHalf;
+  const curvature = deltaHdg / arcLength;
+  const clampedCurvature = Math.max(-MAX_CURVATURE, Math.min(MAX_CURVATURE, curvature));
+
+  // Start heading: for arc, chordAngle = hdg + deltaHdg/2
+  const chordAngle = Math.atan2(dy, dx);
+  const startHdg = chordAngle - halfDelta;
+
+  return {
+    hdg: startHdg,
+    length: Math.abs(arcLength),
+    curvature: clampedCurvature,
+    type: 'arc',
+  };
+}
+
+/**
+ * Solve geometry params when the START point is dragged with a heading constraint.
+ * Used for snap connections where both position and heading must match.
+ */
+export function solveFromStartpointWithHeading(
+  geo: OdrGeometry,
+  newX: number,
+  newY: number,
+  startHdg: number,
+): { x: number; y: number; hdg: number; length: number; curvature?: number; type?: 'line' | 'arc' } {
+  const [endX, endY] = computeEndpoint(geo);
+  const dx = endX - newX;
+  const dy = endY - newY;
+  const chord = Math.sqrt(dx * dx + dy * dy);
+
+  if (chord < 0.01) {
+    return { x: newX, y: newY, hdg: startHdg, length: 0.01 };
+  }
+
+  // Compute end heading from existing geometry
+  let existingEndHdg: number;
+  if (geo.type === 'arc' && geo.curvature !== undefined && Math.abs(geo.curvature) > 1e-10) {
+    existingEndHdg = geo.hdg + geo.curvature * geo.length;
+  } else {
+    existingEndHdg = geo.hdg;
+  }
+
+  // Desired heading change
+  let deltaHdg = existingEndHdg - startHdg;
+  while (deltaHdg > Math.PI) deltaHdg -= 2 * Math.PI;
+  while (deltaHdg < -Math.PI) deltaHdg += 2 * Math.PI;
+
+  if (Math.abs(deltaHdg) < 1e-6) {
+    return { x: newX, y: newY, hdg: startHdg, length: chord, curvature: 0, type: 'line' };
+  }
+
+  const halfDelta = deltaHdg / 2;
+  const sinHalf = Math.sin(halfDelta);
+  if (Math.abs(sinHalf) < 1e-10) {
+    return { x: newX, y: newY, hdg: startHdg, length: chord, curvature: 0 };
+  }
+
+  const arcLength = (chord * halfDelta) / sinHalf;
+  const curvature = deltaHdg / arcLength;
+  const clampedCurvature = Math.max(-MAX_CURVATURE, Math.min(MAX_CURVATURE, curvature));
+
+  return {
+    x: newX,
+    y: newY,
+    hdg: startHdg,
+    length: Math.abs(arcLength),
+    curvature: clampedCurvature,
+    type: 'arc',
+  };
+}
+
+/**
  * Solve geometry params when the START point is dragged (end position fixed).
  *
  * Line: recompute hdg + length from new start → existing end.

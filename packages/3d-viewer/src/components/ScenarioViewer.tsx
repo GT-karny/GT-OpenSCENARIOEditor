@@ -187,6 +187,8 @@ export interface ScenarioViewerProps {
     targetRoadId: string,
     targetContactPoint: 'start' | 'end',
   ) => void;
+  /** Callback when a road endpoint is unsnapped (dragged away from connection) */
+  onRoadLinkUnset?: (roadId: string, linkType: 'predecessor' | 'successor') => void;
   /** Callback when endpoint is right-clicked */
   onRoadEndpointContextMenu?: (
     roadId: string,
@@ -243,6 +245,7 @@ function ScenarioViewerScene({
   onRoadGeometryShiftClick,
   roadEditSelectedGeometryIndices,
   onRoadLinkSet,
+  onRoadLinkUnset,
   onRoadEndpointContextMenu,
 }: {
   scenarioStore: ScenarioViewerProps['scenarioStore'];
@@ -288,6 +291,7 @@ function ScenarioViewerScene({
   onRoadGeometryShiftClick?: ScenarioViewerProps['onRoadGeometryShiftClick'];
   roadEditSelectedGeometryIndices?: Set<number>;
   onRoadLinkSet?: ScenarioViewerProps['onRoadLinkSet'];
+  onRoadLinkUnset?: ScenarioViewerProps['onRoadLinkUnset'];
   onRoadEndpointContextMenu?: ScenarioViewerProps['onRoadEndpointContextMenu'];
 }) {
   const cameraMode = useViewerStore(viewerStore, (s) => s.cameraMode);
@@ -563,6 +567,7 @@ function ScenarioViewerScene({
             onGeometryShiftClick={onRoadGeometryShiftClick}
             selectedGeometryIndices={roadEditSelectedGeometryIndices}
             onRoadLinkSet={onRoadLinkSet}
+            onRoadLinkUnset={onRoadLinkUnset}
             onEndpointContextMenu={onRoadEndpointContextMenu}
           />
         </group>
@@ -646,6 +651,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   onRoadGeometryShiftClick,
   roadEditSelectedGeometryIndices,
   onRoadLinkSet,
+  onRoadLinkUnset,
   onRoadEndpointContextMenu,
 }) => {
   const viewerStoreRef = useRef<ReturnType<typeof createViewerStore> | null>(null);
@@ -916,6 +922,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           onRoadGeometryShiftClick={onRoadGeometryShiftClick}
           roadEditSelectedGeometryIndices={roadEditSelectedGeometryIndices}
           onRoadLinkSet={onRoadLinkSet}
+          onRoadLinkUnset={onRoadLinkUnset}
           onRoadEndpointContextMenu={onRoadEndpointContextMenu}
         />
       </ViewerCanvas>

@@ -226,7 +226,7 @@ export function RoadNetworkEditorLayout() {
     (
       roadId: string,
       geometryIndex: number,
-      updates: { hdg?: number; length: number; curvature?: number },
+      updates: { hdg?: number; length: number; curvature?: number; type?: 'line' | 'arc' },
     ) => {
       const road = odrDocument.roads.find((r) => r.id === roadId);
       if (!road) return;
@@ -236,6 +236,7 @@ export function RoadNetworkEditorLayout() {
         const patch: Record<string, unknown> = { length: updates.length };
         if (updates.hdg !== undefined) patch.hdg = updates.hdg;
         if (updates.curvature !== undefined) patch.curvature = updates.curvature;
+        if (updates.type !== undefined) patch.type = updates.type;
         updatedPlanView[geometryIndex] = { ...geo, ...patch };
 
         // Recalculate s values after length change
@@ -258,7 +259,7 @@ export function RoadNetworkEditorLayout() {
     (
       roadId: string,
       geometryIndex: number,
-      updates: { x: number; y: number; hdg: number; length: number; curvature?: number },
+      updates: { x: number; y: number; hdg: number; length: number; curvature?: number; type?: 'line' | 'arc' },
     ) => {
       const road = odrDocument.roads.find((r) => r.id === roadId);
       if (!road) return;
@@ -272,6 +273,7 @@ export function RoadNetworkEditorLayout() {
           length: updates.length,
         };
         if (updates.curvature !== undefined) patch.curvature = updates.curvature;
+        if (updates.type !== undefined) patch.type = updates.type;
         updatedPlanView[geometryIndex] = { ...geo, ...patch };
 
         // Recalculate s values after length change
@@ -443,6 +445,29 @@ export function RoadNetworkEditorLayout() {
     [odrStoreApi, odrDocument.roads],
   );
 
+  // --- Road link unset (on gizmo drag away from snap) ---
+  const handleRoadLinkUnset = useCallback(
+    (roadId: string, linkType: 'predecessor' | 'successor') => {
+      const store = odrStoreApi.getState();
+      const road = odrDocument.roads.find((r) => r.id === roadId);
+      if (!road?.link) return;
+
+      const existingLink = road.link[linkType];
+      if (existingLink) {
+        // Clear the link on the source road
+        store.setRoadLink(roadId, linkType, undefined);
+
+        // Clear the reverse link on the target road
+        if (existingLink.contactPoint) {
+          const reverseType: 'predecessor' | 'successor' =
+            existingLink.contactPoint === 'start' ? 'predecessor' : 'successor';
+          store.setRoadLink(existingLink.elementId, reverseType, undefined);
+        }
+      }
+    },
+    [odrStoreApi, odrDocument.roads],
+  );
+
   // --- Store-connected callbacks for property editor ---
   const handleUpdateRoad = useCallback(
     (roadId: string, updates: Partial<OdrRoad>) => {
@@ -529,6 +554,7 @@ export function RoadNetworkEditorLayout() {
                   onRoadGeometryShiftClick={handleGeometryShiftClick}
                   roadEditSelectedGeometryIndices={selectedGeometryIndices}
                   onRoadLinkSet={handleRoadLinkSet}
+                  onRoadLinkUnset={handleRoadLinkUnset}
                   onRoadEndpointContextMenu={handleEndpointContextMenu}
                 />
               </ErrorBoundary>

@@ -61,6 +61,8 @@ interface RoadEditingLayerProps {
     targetRoadId: string,
     targetContactPoint: 'start' | 'end',
   ) => void;
+  /** Callback when a road endpoint is unsnapped (dragged away from connection) */
+  onRoadLinkUnset?: (roadId: string, linkType: 'predecessor' | 'successor') => void;
   /** Callback when endpoint is right-clicked */
   onEndpointContextMenu?: (
     roadId: string,
@@ -87,6 +89,7 @@ export function RoadEditingLayer({
   onGeometryShiftClick,
   selectedGeometryIndices,
   onRoadLinkSet,
+  onRoadLinkUnset,
   onEndpointContextMenu,
 }: RoadEditingLayerProps) {
   const selectedRoad = useMemo(
@@ -174,6 +177,13 @@ export function RoadEditingLayer({
     [onRoadLinkSet],
   );
 
+  const handleSnapUnlink = useCallback(
+    (roadId: string, linkType: 'predecessor' | 'successor') => {
+      onRoadLinkUnset?.(roadId, linkType);
+    },
+    [onRoadLinkUnset],
+  );
+
   const handleEndpointContextMenu = useCallback(
     (contactPoint: 'start' | 'end', screenX: number, screenY: number) => {
       if (selectedRoadId) {
@@ -222,6 +232,7 @@ export function RoadEditingLayer({
                 openDriveDocument={openDriveDocument}
                 roadId={selectedRoadId!}
                 onSnapLink={handleSnapLink}
+                onSnapUnlink={handleSnapUnlink}
               />
               <TangentHandle
                 geometry={geometry}
@@ -248,6 +259,7 @@ export function RoadEditingLayer({
                 roadId={selectedRoadId!}
                 isLastGeometry={i === selectedRoad.planView.length - 1}
                 onSnapLink={handleSnapLink}
+                onSnapUnlink={handleSnapUnlink}
               />
             </React.Fragment>
           ))}
