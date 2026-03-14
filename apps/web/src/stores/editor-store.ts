@@ -61,15 +61,35 @@ export interface EditorState {
   panelVisibility: Record<EditorPanel, boolean>;
   togglePanel: (panel: EditorPanel) => void;
 
-  // File state
+  // File state (.xosc)
   currentFileName: string | null;
   setCurrentFileName: (name: string | null) => void;
   isDirty: boolean;
   setDirty: (dirty: boolean) => void;
 
+  // File state (.xodr)
+  roadNetworkFileName: string | null;
+  setRoadNetworkFileName: (name: string | null) => void;
+  isRoadNetworkDirty: boolean;
+  setRoadNetworkDirty: (dirty: boolean) => void;
+
+  // File handles for overwrite-save (File System Access API)
+  xoscFileHandle: FileSystemFileHandle | null;
+  setXoscFileHandle: (handle: FileSystemFileHandle | null) => void;
+  xodrFileHandle: FileSystemFileHandle | null;
+  setXodrFileHandle: (handle: FileSystemFileHandle | null) => void;
+
+  // Electron file paths for overwrite-save
+  xoscFilePath: string | null;
+  setXoscFilePath: (path: string | null) => void;
+  xodrFilePath: string | null;
+  setXodrFilePath: (path: string | null) => void;
+
   // SaveAs dialog
   showSaveAs: boolean;
   setShowSaveAs: (show: boolean) => void;
+  saveAsFileType: 'xosc' | 'xodr';
+  setSaveAsFileType: (type: 'xosc' | 'xodr') => void;
 
   // Entity property tab persistence
   entityPropertyTab: 'definition' | 'initialState';
@@ -174,15 +194,35 @@ export const useEditorStore = create<EditorState>()(
           },
         })),
 
-      // File state
+      // File state (.xosc)
       currentFileName: null,
       setCurrentFileName: (name) => set({ currentFileName: name }),
       isDirty: false,
       setDirty: (dirty) => set({ isDirty: dirty }),
 
+      // File state (.xodr)
+      roadNetworkFileName: null,
+      setRoadNetworkFileName: (name) => set({ roadNetworkFileName: name }),
+      isRoadNetworkDirty: false,
+      setRoadNetworkDirty: (dirty) => set({ isRoadNetworkDirty: dirty }),
+
+      // File handles (not persisted)
+      xoscFileHandle: null,
+      setXoscFileHandle: (handle) => set({ xoscFileHandle: handle }),
+      xodrFileHandle: null,
+      setXodrFileHandle: (handle) => set({ xodrFileHandle: handle }),
+
+      // Electron file paths (not persisted)
+      xoscFilePath: null,
+      setXoscFilePath: (path) => set({ xoscFilePath: path }),
+      xodrFilePath: null,
+      setXodrFilePath: (path) => set({ xodrFilePath: path }),
+
       // SaveAs dialog
       showSaveAs: false,
       setShowSaveAs: (show) => set({ showSaveAs: show }),
+      saveAsFileType: 'xosc' as const,
+      setSaveAsFileType: (type) => set({ saveAsFileType: type }),
 
       // Entity property tab persistence
       entityPropertyTab: 'definition',

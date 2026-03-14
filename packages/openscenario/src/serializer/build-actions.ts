@@ -266,7 +266,7 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
       };
 
     case 'appearanceAction': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const { type: _type, ...rest } = action;
       return { AppearanceAction: rest };
     }
@@ -412,7 +412,7 @@ export function buildGlobalAction(action: GlobalAction, elementBindings: Record<
       };
 
     case 'trafficAction': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const { type: _type, ...rest } = action;
       return { TrafficAction: rest };
     }

@@ -10,10 +10,23 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import { useFileOperations } from '../../hooks/use-file-operations';
+import { useEditorStore } from '../../stores/editor-store';
 
 export function FileMenu() {
   const { t } = useTranslation('common');
-  const { newScenario, openXosc, saveXosc, saveAsXosc } = useFileOperations();
+  const editorMode = useEditorStore((s) => s.editorMode);
+  const {
+    newScenario,
+    openXosc,
+    saveXosc,
+    saveAsXosc,
+    newOpenDrive,
+    loadXodr,
+    saveXodr,
+    saveAsXodr,
+  } = useFileOperations();
+
+  const isRoadNetwork = editorMode === 'roadNetwork';
 
   return (
     <DropdownMenu>
@@ -23,24 +36,24 @@ export function FileMenu() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
-        <DropdownMenuItem onClick={newScenario}>
+        <DropdownMenuItem onClick={isRoadNetwork ? newOpenDrive : newScenario}>
           <FilePlus />
           New
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={openXosc}>
+        <DropdownMenuItem onClick={isRoadNetwork ? loadXodr : openXosc}>
           <FolderOpen />
-          Open .xosc
+          Open {isRoadNetwork ? '.xodr' : '.xosc'}
           <DropdownMenuShortcut>Ctrl+O</DropdownMenuShortcut>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={saveXosc}>
+        <DropdownMenuItem onClick={isRoadNetwork ? saveXodr : saveXosc}>
           <Save />
-          {t('buttons.save')} .xosc
+          {t('buttons.save')} {isRoadNetwork ? '.xodr' : '.xosc'}
           <DropdownMenuShortcut>Ctrl+S</DropdownMenuShortcut>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={saveAsXosc}>
+        <DropdownMenuItem onClick={isRoadNetwork ? saveAsXodr : saveAsXosc}>
           <SaveAll />
-          {t('buttons.saveAs')} .xosc
+          {t('buttons.saveAs')} {isRoadNetwork ? '.xodr' : '.xosc'}
           <DropdownMenuShortcut>Ctrl+Shift+S</DropdownMenuShortcut>
         </DropdownMenuItem>
       </DropdownMenuContent>

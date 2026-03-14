@@ -189,7 +189,8 @@ export function EditorLayout() {
   // --- SaveAs dialog ---
   const showSaveAs = useEditorStore((s) => s.showSaveAs);
   const setShowSaveAs = useEditorStore((s) => s.setShowSaveAs);
-  const { handleSaveAs } = useFileOperations();
+  const saveAsFileType = useEditorStore((s) => s.saveAsFileType);
+  const { handleSaveAs, handleSaveAsXodr } = useFileOperations();
 
   // --- Auto-load project catalogs ---
   const { autoLoadProjectCatalogs } = useProjectFileOperations();
@@ -553,7 +554,8 @@ export function EditorLayout() {
           <SaveAsDialog
             open={showSaveAs}
             onOpenChange={setShowSaveAs}
-            onSave={handleSaveAs}
+            onSave={saveAsFileType === 'xodr' ? handleSaveAsXodr : handleSaveAs}
+            fileType={saveAsFileType}
           />
         </>
       ) : (

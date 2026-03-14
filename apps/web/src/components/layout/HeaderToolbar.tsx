@@ -6,7 +6,6 @@ import { FileMenu } from '../toolbar/FileMenu';
 import { UndoRedoButtons } from '../toolbar/UndoRedoButtons';
 import { ValidateButton } from '../toolbar/ValidateButton';
 import { LanguageToggle } from '../toolbar/LanguageToggle';
-import { RoadNetworkButton } from '../toolbar/RoadNetworkButton';
 import { ScenarioPropertiesButton } from '../toolbar/ScenarioPropertiesButton';
 import { SimulationButtons } from '../toolbar/SimulationButtons';
 import { CatalogButton } from '../toolbar/CatalogButton';
@@ -112,7 +111,6 @@ export function HeaderToolbar() {
       <UndoRedoButtons />
       <Separator orientation="vertical" className="h-5 bg-[var(--color-glass-edge-bright)]" />
       <ScenarioPropertiesButton />
-      <RoadNetworkButton />
       <CatalogButton />
       <ValidateButton />
       <Separator orientation="vertical" className="h-5 bg-[var(--color-glass-edge-bright)]" />

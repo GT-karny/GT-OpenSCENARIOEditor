@@ -1,4 +1,5 @@
-import { ipcMain, dialog, BrowserWindow } from 'electron';
+import type { BrowserWindow } from 'electron';
+import { ipcMain, dialog } from 'electron';
 import fs from 'node:fs/promises';
 import { getRecentFiles, addRecentFile, clearRecentFiles } from './recent-files.js';
 

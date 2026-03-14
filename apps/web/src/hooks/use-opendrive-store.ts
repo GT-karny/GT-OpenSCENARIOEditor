@@ -18,7 +18,7 @@ import { useEditorStore } from '../stores/editor-store';
 
 let storeInstance: ReturnType<typeof createOpenDriveStore> | null = null;
 
-function getOpenDriveStoreApi() {
+export function getOpenDriveStoreApi() {
   if (!storeInstance) {
     storeInstance = createOpenDriveStore();
   }

@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { XoscParser, XoscSerializer } from '@osce/openscenario';
 import { XodrParser, XodrSerializer } from '@osce/opendrive';
+import { createDefaultDocument } from '@osce/opendrive-engine';
 import type { CatalogLocations } from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
 import { toast } from 'sonner';
@@ -27,10 +28,22 @@ declare global {
   }
 }
 
-async function readFileFromDisk(
-  accept: string,
-  extensions: string[],
-): Promise<{ text: string; name: string; filePath?: string }> {
+/** Result from reading a file */
+interface ReadResult {
+  text: string;
+  name: string;
+  filePath?: string;
+  handle?: FileSystemFileHandle;
+}
+
+/** Result from writing a file */
+interface WriteResult {
+  handle?: FileSystemFileHandle;
+  filePath?: string;
+  fileName: string;
+}
+
+async function readFileFromDisk(accept: string, extensions: string[]): Promise<ReadResult> {
   // Electron: use native dialog + Node.js fs
   if (window.electronAPI?.isElectron) {
     const result = await window.electronAPI.showOpenDialog({
@@ -59,7 +72,7 @@ async function readFileFromDisk(
     });
     const file = await handle.getFile();
     const text = await file.text();
-    return { text, name: file.name };
+    return { text, name: file.name, handle };
   }
 
   // Fallback: hidden file input
@@ -83,26 +96,48 @@ async function readFileFromDisk(
 async function writeFileToDisk(
   content: string,
   extension: string,
-  suggestedName?: string | null,
-): Promise<void> {
+  options?: {
+    suggestedName?: string | null;
+    existingHandle?: FileSystemFileHandle | null;
+    existingFilePath?: string | null;
+  },
+): Promise<WriteResult> {
+  const suggestedName = options?.suggestedName;
+  const existingHandle = options?.existingHandle;
+  const existingFilePath = options?.existingFilePath;
+  const defaultName = suggestedName ?? `file${extension}`;
+
   // Electron: use native dialog + Node.js fs
   if (window.electronAPI?.isElectron) {
+    // Overwrite-save: reuse existing file path
+    if (existingFilePath) {
+      await window.electronAPI.writeFile(existingFilePath, content);
+      const fileName = existingFilePath.split(/[/\\]/).pop() ?? defaultName;
+      return { filePath: existingFilePath, fileName };
+    }
     const result = await window.electronAPI.showSaveDialog({
-      defaultPath: suggestedName ?? `scenario${extension}`,
-      filters: [
-        { name: `${extension} file`, extensions: [extension.replace('.', '')] },
-      ],
+      defaultPath: defaultName,
+      filters: [{ name: `${extension} file`, extensions: [extension.replace('.', '')] }],
     });
     if (result.canceled || !result.filePath) throw new Error('Cancelled');
     await window.electronAPI.writeFile(result.filePath, content);
     window.electronAPI.addRecentFile(result.filePath);
-    return;
+    const fileName = result.filePath.split(/[/\\]/).pop() ?? defaultName;
+    return { filePath: result.filePath, fileName };
   }
 
-  // Try File System Access API first (Chromium)
+  // File System Access API (Chromium)
   if (window.showSaveFilePicker) {
+    // Overwrite-save: reuse existing handle
+    if (existingHandle) {
+      const writable = await existingHandle.createWritable();
+      await writable.write(content);
+      await writable.close();
+      const file = await existingHandle.getFile();
+      return { handle: existingHandle, fileName: file.name };
+    }
     const handle = await window.showSaveFilePicker({
-      suggestedName: suggestedName ?? `scenario${extension}`,
+      suggestedName: defaultName,
       types: [
         {
           description: `${extension} file`,
@@ -113,7 +148,8 @@ async function writeFileToDisk(
     const writable = await handle.createWritable();
     await writable.write(content);
     await writable.close();
-    return;
+    const file = await handle.getFile();
+    return { handle, fileName: file.name };
   }
 
   // Fallback: download link
@@ -121,9 +157,10 @@ async function writeFileToDisk(
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = suggestedName ?? `scenario${extension}`;
+  a.download = defaultName;
   a.click();
   URL.revokeObjectURL(url);
+  return { fileName: defaultName };
 }
 
 function resolvePath(base: string, relative: string): string {
@@ -198,11 +235,13 @@ export function useFileOperations() {
     setDirty(false);
     setValidationResult(null);
     setRoadNetwork(null, null);
+    useEditorStore.getState().setXoscFileHandle(null);
+    useEditorStore.getState().setXoscFilePath(null);
   }, [storeApi, setCurrentFileName, setDirty, setValidationResult, setRoadNetwork]);
 
   const openXosc = useCallback(async () => {
     try {
-      const { text, name, filePath } = await readFileFromDisk('OpenSCENARIO', ['.xosc']);
+      const { text, name, filePath, handle } = await readFileFromDisk('OpenSCENARIO', ['.xosc']);
       const parser = new XoscParser();
       const doc = parser.parse(text);
 
@@ -212,6 +251,10 @@ export function useFileOperations() {
       setCurrentFileName(name);
       setDirty(false);
       setValidationResult(null);
+
+      // Store handle/path for overwrite-save
+      useEditorStore.getState().setXoscFileHandle(handle ?? null);
+      useEditorStore.getState().setXoscFilePath(filePath ?? null);
 
       // Electron: auto-load catalogs from CatalogLocations
       if (filePath && window.electronAPI?.isElectron) {
@@ -244,17 +287,25 @@ export function useFileOperations() {
 
     // Project mode without file path: open SaveAs dialog
     if (currentProject) {
+      useEditorStore.getState().setSaveAsFileType('xosc');
       setShowSaveAs(true);
       return;
     }
 
-    // Standalone mode: save to disk via file picker
+    // Standalone mode: save to disk (overwrite if handle/path exists)
     try {
       const doc = storeApi.getState().document;
       const serializer = new XoscSerializer();
       const xml = serializer.serializeFormatted(doc);
-      const currentName = useEditorStore.getState().currentFileName;
-      await writeFileToDisk(xml, '.xosc', currentName);
+      const state = useEditorStore.getState();
+      const result = await writeFileToDisk(xml, '.xosc', {
+        suggestedName: state.currentFileName,
+        existingHandle: state.xoscFileHandle,
+        existingFilePath: state.xoscFilePath,
+      });
+      setCurrentFileName(result.fileName);
+      if (result.handle) useEditorStore.getState().setXoscFileHandle(result.handle);
+      if (result.filePath) useEditorStore.getState().setXoscFilePath(result.filePath);
       setDirty(false);
       toast.success(t('labels.fileSaved'));
     } catch (err) {
@@ -264,7 +315,39 @@ export function useFileOperations() {
         toast.error(t('labels.serializeFailed'));
       }
     }
-  }, [storeApi, setDirty, setShowSaveAs, t]);
+  }, [storeApi, setCurrentFileName, setDirty, setShowSaveAs, t]);
+
+  const saveAsXosc = useCallback(async () => {
+    const currentProject = useProjectStore.getState().currentProject;
+
+    // Project mode: open SaveAs dialog
+    if (currentProject) {
+      useEditorStore.getState().setSaveAsFileType('xosc');
+      setShowSaveAs(true);
+      return;
+    }
+
+    // Standalone mode: always show file picker (no handle reuse)
+    try {
+      const doc = storeApi.getState().document;
+      const serializer = new XoscSerializer();
+      const xml = serializer.serializeFormatted(doc);
+      const state = useEditorStore.getState();
+      const result = await writeFileToDisk(xml, '.xosc', {
+        suggestedName: state.currentFileName,
+      });
+      setCurrentFileName(result.fileName);
+      if (result.handle) useEditorStore.getState().setXoscFileHandle(result.handle);
+      if (result.filePath) useEditorStore.getState().setXoscFilePath(result.filePath);
+      setDirty(false);
+      toast.success(t('labels.fileSaved'));
+    } catch (err) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        console.error('Save As failed:', err);
+        toast.error(t('labels.serializeFailed'));
+      }
+    }
+  }, [storeApi, setCurrentFileName, setDirty, setShowSaveAs, t]);
 
   const handleSaveAs = useCallback(
     async (relativePath: string) => {
@@ -291,16 +374,27 @@ export function useFileOperations() {
     [storeApi, setCurrentFileName, setDirty, t],
   );
 
-  const saveAsXosc = useCallback(() => {
-    setShowSaveAs(true);
-  }, [setShowSaveAs]);
+  // ---- OpenDRIVE (.xodr) operations ----
+
+  const newOpenDrive = useCallback(() => {
+    const doc = createDefaultDocument();
+    setRoadNetwork(doc, null);
+    useEditorStore.getState().setRoadNetworkFileName(null);
+    useEditorStore.getState().setRoadNetworkDirty(false);
+    useEditorStore.getState().setXodrFileHandle(null);
+    useEditorStore.getState().setXodrFilePath(null);
+  }, [setRoadNetwork]);
 
   const loadXodr = useCallback(async () => {
     try {
-      const { text } = await readFileFromDisk('OpenDRIVE', ['.xodr']);
+      const { text, name, filePath, handle } = await readFileFromDisk('OpenDRIVE', ['.xodr']);
       const parser = new XodrParser();
       const doc = parser.parse(text);
       setRoadNetwork(doc, text);
+      useEditorStore.getState().setRoadNetworkFileName(name);
+      useEditorStore.getState().setRoadNetworkDirty(false);
+      useEditorStore.getState().setXodrFileHandle(handle ?? null);
+      useEditorStore.getState().setXodrFilePath(filePath ?? null);
     } catch {
       // User cancelled the file picker
     }
@@ -313,10 +407,45 @@ export function useFileOperations() {
       return;
     }
 
+    const currentProject = useProjectStore.getState().currentProject;
+    const currentXodrPath = useProjectStore.getState().currentXodrPath;
+
+    // Project mode with known file: save via API (overwrite)
+    if (currentProject && currentXodrPath) {
+      try {
+        const serializer = new XodrSerializer();
+        const xml = serializer.serializeFormatted(roadNetwork);
+        await api.writeProjectFile(currentProject.meta.id, currentXodrPath, xml);
+        useEditorStore.getState().setRoadNetworkDirty(false);
+        toast.success(t('labels.fileSaved'));
+      } catch (err) {
+        console.error('Save .xodr failed:', err);
+        toast.error(t('labels.serializeFailed'));
+      }
+      return;
+    }
+
+    // Project mode without file path: open SaveAs dialog
+    if (currentProject) {
+      useEditorStore.getState().setSaveAsFileType('xodr');
+      setShowSaveAs(true);
+      return;
+    }
+
+    // Standalone mode: save to disk (overwrite if handle/path exists)
     try {
       const serializer = new XodrSerializer();
       const xml = serializer.serializeFormatted(roadNetwork);
-      await writeFileToDisk(xml, '.xodr', null);
+      const state = useEditorStore.getState();
+      const result = await writeFileToDisk(xml, '.xodr', {
+        suggestedName: state.roadNetworkFileName,
+        existingHandle: state.xodrFileHandle,
+        existingFilePath: state.xodrFilePath,
+      });
+      useEditorStore.getState().setRoadNetworkFileName(result.fileName);
+      if (result.handle) useEditorStore.getState().setXodrFileHandle(result.handle);
+      if (result.filePath) useEditorStore.getState().setXodrFilePath(result.filePath);
+      useEditorStore.getState().setRoadNetworkDirty(false);
       toast.success(t('labels.fileSaved'));
     } catch (err) {
       if (err instanceof Error && err.name !== 'AbortError') {
@@ -324,7 +453,82 @@ export function useFileOperations() {
         toast.error(t('labels.serializeFailed'));
       }
     }
-  }, [t]);
+  }, [setShowSaveAs, t]);
 
-  return { newScenario, openXosc, saveXosc, saveAsXosc, loadXodr, saveXodr, handleSaveAs };
+  const saveAsXodr = useCallback(async () => {
+    const roadNetwork = useEditorStore.getState().roadNetwork;
+    if (!roadNetwork) {
+      toast.error('No road network to save');
+      return;
+    }
+
+    const currentProject = useProjectStore.getState().currentProject;
+
+    // Project mode: open SaveAs dialog
+    if (currentProject) {
+      useEditorStore.getState().setSaveAsFileType('xodr');
+      setShowSaveAs(true);
+      return;
+    }
+
+    // Standalone mode: always show file picker (no handle reuse)
+    try {
+      const serializer = new XodrSerializer();
+      const xml = serializer.serializeFormatted(roadNetwork);
+      const state = useEditorStore.getState();
+      const result = await writeFileToDisk(xml, '.xodr', {
+        suggestedName: state.roadNetworkFileName,
+      });
+      useEditorStore.getState().setRoadNetworkFileName(result.fileName);
+      if (result.handle) useEditorStore.getState().setXodrFileHandle(result.handle);
+      if (result.filePath) useEditorStore.getState().setXodrFilePath(result.filePath);
+      useEditorStore.getState().setRoadNetworkDirty(false);
+      toast.success(t('labels.fileSaved'));
+    } catch (err) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        console.error('Save As .xodr failed:', err);
+        toast.error(t('labels.serializeFailed'));
+      }
+    }
+  }, [setShowSaveAs, t]);
+
+  const handleSaveAsXodr = useCallback(
+    async (relativePath: string) => {
+      const currentProject = useProjectStore.getState().currentProject;
+      if (!currentProject) return;
+
+      const roadNetwork = useEditorStore.getState().roadNetwork;
+      if (!roadNetwork) return;
+
+      const serializer = new XodrSerializer();
+      const xml = serializer.serializeFormatted(roadNetwork);
+
+      await api.writeProjectFile(currentProject.meta.id, relativePath, xml);
+
+      // Update state to track the saved file path
+      useProjectStore.setState({ currentXodrPath: relativePath });
+      const fileName = relativePath.split('/').pop() ?? relativePath;
+      useEditorStore.getState().setRoadNetworkFileName(fileName);
+      useEditorStore.getState().setRoadNetworkDirty(false);
+
+      // Refresh project file list
+      await useProjectStore.getState().refreshProject();
+
+      toast.success(t('labels.fileSaved'));
+    },
+    [t],
+  );
+
+  return {
+    newScenario,
+    openXosc,
+    saveXosc,
+    saveAsXosc,
+    loadXodr,
+    saveXodr,
+    saveAsXodr,
+    handleSaveAs,
+    handleSaveAsXodr,
+    newOpenDrive,
+  };
 }

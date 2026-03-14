@@ -1,4 +1,12 @@
 {
+  "allowedTools": [
+    "Bash(pnpm lint*)",
+    "Bash(pnpm typecheck*)",
+    "Bash(pnpm test*)",
+    "Bash(pnpm build*)",
+    "Bash(pnpm clean*)",
+    "Bash(pnpm format*)"
+  ],
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": true,
     "github@claude-plugins-official": true,
