@@ -145,6 +145,9 @@ export function useAutoJunctionDetection({
       }
 
       // --- Cleanup: validate existing auto-junctions ---
+      // NOTE: Use odrStoreApi.getState() for fresh state access throughout,
+      // because store mutations (removeRoad, addRoad, etc.) create new Zustand
+      // state objects, making any cached snapshot stale.
       const store = odrStoreApi.getState();
       const metaStore = editorMetadataStoreApi.getState();
       const autoJunctionMetas = metaStore.metadata.junctionMetadata.filter(
@@ -153,10 +156,17 @@ export function useAutoJunctionDetection({
 
       // Track which pair keys are already handled by surviving auto-junctions
       const handledPairKeys = new Set<string>();
+      // Track auto-created junction IDs for filtering manualJunctionPairs
+      const autoJunctionIds = new Set<string>();
 
       for (const meta of autoJunctionMetas) {
+        autoJunctionIds.add(meta.junctionId);
+
+        // Always read fresh document after potential mutations
+        const freshDoc = odrStoreApi.getState().document;
+
         // Check if the junction itself still exists in the document
-        const junctionExists = store.document.junctions.some(
+        const junctionExists = freshDoc.junctions.some(
           (j) => j.id === meta.junctionId,
         );
         if (!junctionExists) {
@@ -177,13 +187,13 @@ export function useAutoJunctionDetection({
         // Check if segment roads still exist — if roads were split, originals are gone
         // but segments should still be present. If segments exist, the junction is valid.
         const segmentsExist = segmentRoadIds.length > 0 &&
-          segmentRoadIds.some((id) => store.document.roads.some((r) => r.id === id));
+          segmentRoadIds.some((id) => freshDoc.roads.some((r) => r.id === id));
 
         if (segmentsExist) {
           // Junction is valid (roads were split and segments exist) — keep it.
           // Mark all pair keys involving this junction's incoming roads as handled.
           const incomingRoadIds = new Set<string>();
-          const junction = store.document.junctions.find((j) => j.id === meta.junctionId);
+          const junction = freshDoc.junctions.find((j) => j.id === meta.junctionId);
           if (junction) {
             for (const conn of junction.connections) {
               incomingRoadIds.add(conn.incomingRoad);
@@ -212,10 +222,11 @@ export function useAutoJunctionDetection({
       }
 
       // --- Create: add junctions for new intersections ---
-      // Also check manually-created junctions
-      const refreshedDoc = store.document;
+      // Check manually-created junctions (exclude auto-created ones already in handledPairKeys)
+      const refreshedDoc = odrStoreApi.getState().document;
       const manualJunctionPairs = new Set<string>();
       for (const junction of refreshedDoc.junctions) {
+        if (autoJunctionIds.has(junction.id)) continue;
         const roadIds = new Set<string>();
         for (const conn of junction.connections) {
           roadIds.add(conn.incomingRoad);
@@ -241,7 +252,8 @@ export function useAutoJunctionDetection({
         }
 
         // Plan junction creation (includes road splitting)
-        const currentDoc = store.document;
+        // Always use fresh document for planning
+        const currentDoc = odrStoreApi.getState().document;
         const plan = planJunctionCreation(currentDoc, {
           intersection: hit,
           routingConfig,
@@ -262,22 +274,22 @@ export function useAutoJunctionDetection({
           store.addRoad(split.afterSegment);
         }
 
-        // 2. Add connecting roads
-        const addedConnRoadIds: string[] = [];
-        for (const connRoad of plan.connectingRoads) {
-          const added = store.addRoad({
-            ...connRoad,
-            junction: plan.junction.id,
-          });
-          addedConnRoadIds.push(added.id);
-        }
-
-        // 3. Add junction
+        // 2. Add junction FIRST to get the actual junction ID
         const addedJunction = store.addJunction({
           name: plan.junction.name,
           type: 'default',
           connections: plan.junction.connections,
         });
+
+        // 3. Add connecting roads with the actual junction ID
+        const addedConnRoadIds: string[] = [];
+        for (const connRoad of plan.connectingRoads) {
+          const added = store.addRoad({
+            ...connRoad,
+            junction: addedJunction.id,
+          });
+          addedConnRoadIds.push(added.id);
+        }
 
         // 4. Set road links on segment roads pointing to the junction
         for (const ep of plan.incomingEndpoints) {
@@ -300,6 +312,9 @@ export function useAutoJunctionDetection({
           connectingRoadIds: addedConnRoadIds,
           autoCreated: true,
         });
+
+        // 6. Mark this pair as handled so subsequent iterations don't re-process it
+        handledPairKeys.add(pairKey);
       }
     },
     [enabled, odrStoreApi, editorMetadataStoreApi],
