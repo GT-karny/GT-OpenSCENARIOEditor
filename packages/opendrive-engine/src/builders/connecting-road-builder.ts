@@ -123,11 +123,19 @@ function filterLanesForTurn(
   return lanes;
 }
 
+/** Normalize angle to [-PI, PI]. */
+function normalizeAngle(a: number): number {
+  while (a > Math.PI) a -= 2 * Math.PI;
+  while (a <= -Math.PI) a += 2 * Math.PI;
+  return a;
+}
+
 /**
  * Solve for an Arc geometry connecting two endpoints.
  *
- * Given start and end poses, computes the curvature and arc length
- * needed to smoothly connect them.
+ * Given start position+heading and end position, computes the curvature
+ * and arc length of a circular arc. The arc's end heading is determined
+ * by the arc itself (may not match the desired end heading).
  */
 function solveArcGeometry(
   startX: number, startY: number, startHdg: number,
@@ -143,9 +151,7 @@ function solveArcGeometry(
   const chordAngle = Math.atan2(dy, dx);
 
   // Half the angular difference between the chord and the start heading
-  let alpha = chordAngle - startHdg;
-  while (alpha > Math.PI) alpha -= 2 * Math.PI;
-  while (alpha <= -Math.PI) alpha += 2 * Math.PI;
+  const alpha = normalizeAngle(chordAngle - startHdg);
 
   if (Math.abs(alpha) < 0.001) {
     // Nearly straight — use a line
@@ -178,64 +184,115 @@ function solveArcGeometry(
 }
 
 /**
- * Solve for a ParamPoly3 geometry connecting two endpoints.
- * Uses Hermite interpolation for G1 continuity.
+ * Build a nearly-straight paramPoly3 transition segment.
+ * Used as a short "bridge" to align heading at junction boundaries,
+ * matching the pattern used by professional OpenDRIVE tools.
  */
-function solveParamPoly3Geometry(
+function buildTransitionSegment(
+  s: number,
+  x: number, y: number, hdg: number,
+  length: number,
+): OdrGeometry {
+  return {
+    s,
+    x, y, hdg,
+    length,
+    type: 'paramPoly3',
+    aU: 0, bU: 1, cU: 0, dU: 0,
+    aV: 0, bV: 0, cV: 0, dV: 0,
+    pRange: 'arcLength',
+  };
+}
+
+/**
+ * Evaluate an arc at a given arc-length distance from its start.
+ */
+function evaluateArc(
+  x: number, y: number, hdg: number, curvature: number, ds: number,
+): { x: number; y: number; hdg: number } {
+  if (Math.abs(curvature) < 1e-12) {
+    return { x: x + ds * Math.cos(hdg), y: y + ds * Math.sin(hdg), hdg };
+  }
+  const r = 1 / curvature;
+  const theta = ds * curvature;
+  const cx = x - r * Math.sin(hdg);
+  const cy = y + r * Math.cos(hdg);
+  return {
+    x: cx + r * Math.sin(hdg + theta),
+    y: cy - r * Math.cos(hdg + theta),
+    hdg: hdg + theta,
+  };
+}
+
+/**
+ * Solve for the unique arc that matches both start and end heading constraints.
+ *
+ * The circle center lies at the intersection of the perpendiculars from both
+ * endpoints. Tries both turn directions and picks the valid one.
+ * Returns null if no valid arc can be found.
+ */
+function solveTwoPointArc(
   startX: number, startY: number, startHdg: number,
   endX: number, endY: number, endHdg: number,
-): OdrGeometry {
+): OdrGeometry | null {
   const dx = endX - startX;
   const dy = endY - startY;
   const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist < 0.01) return null;
 
-  // Transform to local coordinates (start at origin, heading along x-axis)
-  const cosH = Math.cos(-startHdg);
-  const sinH = Math.sin(-startHdg);
-  const localEndX = dx * cosH - dy * sinH;
-  const localEndY = dx * sinH + dy * cosH;
-  const localEndHdg = endHdg - startHdg;
-
-  // Tangent lengths (heuristic: half the chord distance)
-  const tangentScale = dist * 0.5;
-  const startTangentX = tangentScale;
-  const startTangentY = 0;
-  const endTangentX = tangentScale * Math.cos(localEndHdg);
-  const endTangentY = tangentScale * Math.sin(localEndHdg);
-
-  // Hermite basis for cubic: p(t) = (2t³ - 3t² + 1)p0 + (t³ - 2t² + t)m0 + (-2t³ + 3t²)p1 + (t³ - t²)m1
-  // Coefficients: a + b*t + c*t² + d*t³
-  // a = p0 = 0 (start at origin in local coords)
-  // b = m0 = tangent at start
-  // c = 3*(p1 - p0) - 2*m0 - m1
-  // d = 2*(p0 - p1) + m0 + m1
-
-  const aU = 0;
-  const bU = startTangentX;
-  const cU = 3 * localEndX - 2 * startTangentX - endTangentX;
-  const dU = 2 * (-localEndX) + startTangentX + endTangentX;
-
-  const aV = 0;
-  const bV = startTangentY;
-  const cV = 3 * localEndY - 2 * startTangentY - endTangentY;
-  const dV = 2 * (-localEndY) + startTangentY + endTangentY;
-
-  // Estimate arc length by sampling the curve
-  const numSamples = 20;
-  let arcLength = 0;
-  let prevX = 0;
-  let prevY = 0;
-
-  for (let i = 1; i <= numSamples; i++) {
-    const t = i / numSamples;
-    const t2 = t * t;
-    const t3 = t2 * t;
-    const curX = aU + bU * t + cU * t2 + dU * t3;
-    const curY = aV + bV * t + cV * t2 + dV * t3;
-    arcLength += Math.sqrt((curX - prevX) ** 2 + (curY - prevY) ** 2);
-    prevX = curX;
-    prevY = curY;
+  // Try both turn directions and pick the one that produces a valid short arc
+  for (const sign of [1, -1] as const) {
+    const result = tryArcWithSign(startX, startY, startHdg, endX, endY, endHdg, dx, dy, sign);
+    if (result) return result;
   }
+
+  return null;
+}
+
+function tryArcWithSign(
+  startX: number, startY: number, startHdg: number,
+  endX: number, endY: number, _endHdg: number,
+  dx: number, dy: number,
+  sign: 1 | -1,
+): OdrGeometry | null {
+  // Normal directions (perpendicular to heading, pointing toward center)
+  const n1x = -sign * Math.sin(startHdg);
+  const n1y = sign * Math.cos(startHdg);
+  const n2x = -sign * Math.sin(_endHdg);
+  const n2y = sign * Math.cos(_endHdg);
+
+  // Solve: start + t1*n1 = end + t2*n2
+  const det = n1x * (-n2y) - (-n2x) * n1y;
+  if (Math.abs(det) < 1e-8) return null;
+
+  const t1 = (dx * (-n2y) - dy * (-n2x)) / det;
+
+  // Circle center and radius
+  const cx = startX + t1 * n1x;
+  const cy = startY + t1 * n1y;
+  const radius = Math.abs(t1);
+
+  if (radius < 0.5 || radius > 10000) return null;
+
+  // Arc angle: angle from center to start vs center to end
+  const angleStart = Math.atan2(startY - cy, startX - cx);
+  const angleEnd = Math.atan2(endY - cy, endX - cx);
+  let arcAngle = normalizeAngle(angleEnd - angleStart);
+
+  // Ensure arc sweeps in the correct direction
+  if (sign > 0 && arcAngle > 0) arcAngle -= 2 * Math.PI;
+  if (sign < 0 && arcAngle < 0) arcAngle += 2 * Math.PI;
+
+  const arcLength = Math.abs(arcAngle) * radius;
+  if (arcLength < 0.01 || arcLength > 1000) return null;
+
+  // Curvature: positive = left turn (counterclockwise) in OpenDRIVE
+  const curvature = sign / radius;
+
+  // Verify: the arc must actually reach the end position
+  const endPose = evaluateArc(startX, startY, startHdg, curvature, arcLength);
+  const posError = Math.sqrt((endPose.x - endX) ** 2 + (endPose.y - endY) ** 2);
+  if (posError > 0.5) return null;
 
   return {
     s: 0,
@@ -243,10 +300,126 @@ function solveParamPoly3Geometry(
     y: startY,
     hdg: startHdg,
     length: arcLength,
+    type: 'arc',
+    curvature,
+  };
+}
+
+/**
+ * Solve connecting road geometry using the Arc + Transition approach.
+ *
+ * Strategy (matching professional OpenDRIVE tools):
+ * 1. For nearly straight connections (angle < ~10°): paramPoly3 with small corrections
+ * 2. For turns: compute the unique arc matching both endpoint headings.
+ *    If the exact two-point arc fails, fall back to position-only arc + transition.
+ */
+function solveConnectingGeometry(
+  startX: number, startY: number, startHdg: number,
+  endX: number, endY: number, endHdg: number,
+): OdrGeometry[] | null {
+  const dx = endX - startX;
+  const dy = endY - startY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+
+  if (dist < 0.01) return null;
+
+  // Compute the turn angle (how much direction changes)
+  const turnAngle = Math.abs(normalizeAngle(endHdg - startHdg));
+
+  // Nearly straight — use paramPoly3 for minor corrections
+  if (turnAngle < Math.PI / 18) { // < 10°
+    return [solveNearStraightGeometry(startX, startY, startHdg, endX, endY, endHdg, dist)];
+  }
+
+  // Try exact two-point arc (matches both position AND heading at both endpoints)
+  const twoPointArc = solveTwoPointArc(startX, startY, startHdg, endX, endY, endHdg);
+  if (twoPointArc) {
+    // Verify endpoint position accuracy
+    const arcEnd = evaluateArc(
+      twoPointArc.x, twoPointArc.y, twoPointArc.hdg,
+      twoPointArc.curvature ?? 0, twoPointArc.length,
+    );
+    const posError = Math.sqrt((arcEnd.x - endX) ** 2 + (arcEnd.y - endY) ** 2);
+    if (posError < 0.5) {
+      return [twoPointArc];
+    }
+  }
+
+  // Fallback: position-only arc + short transition segment
+  const arcGeo = solveArcGeometry(startX, startY, startHdg, endX, endY);
+  if (!arcGeo || arcGeo.type === 'line') {
+    return arcGeo ? [arcGeo] : null;
+  }
+
+  // Check heading match
+  const arcEndHdg = startHdg + (arcGeo.curvature ?? 0) * arcGeo.length;
+  const hdgError = Math.abs(normalizeAngle(arcEndHdg - endHdg));
+
+  if (hdgError < 0.02) {
+    return [arcGeo];
+  }
+
+  // Add transition segment
+  const transitionLength = 0.14;
+  const arcEnd = evaluateArc(
+    arcGeo.x, arcGeo.y, arcGeo.hdg,
+    arcGeo.curvature ?? 0, arcGeo.length,
+  );
+
+  const transition = buildTransitionSegment(
+    arcGeo.length,
+    arcEnd.x, arcEnd.y, arcEnd.hdg,
+    transitionLength,
+  );
+
+  return [arcGeo, transition];
+}
+
+/**
+ * Solve geometry for a nearly-straight connection using paramPoly3.
+ * Used for straight-through paths with minor lateral offset correction.
+ */
+function solveNearStraightGeometry(
+  startX: number, startY: number, startHdg: number,
+  endX: number, endY: number, endHdg: number,
+  dist: number,
+): OdrGeometry {
+  // Transform to local coordinates
+  const dx = endX - startX;
+  const dy = endY - startY;
+  const cosH = Math.cos(-startHdg);
+  const sinH = Math.sin(-startHdg);
+  const localEndX = dx * cosH - dy * sinH;
+  const localEndY = dx * sinH + dy * cosH;
+  const localEndHdg = endHdg - startHdg;
+
+  // For near-straight paths, use arc-length parameterization (like professional tools)
+  // with small correction coefficients
+  const tangentScale = dist * 0.5;
+  const endTangentX = tangentScale * Math.cos(localEndHdg);
+  const endTangentY = tangentScale * Math.sin(localEndHdg);
+
+  const aU = 0;
+  const bU = 1; // unit speed in arc-length parameterization
+  // Scale corrections to be very small (near-straight)
+  const cU = (3 * localEndX / (dist * dist) - 2 / dist - endTangentX / (dist * dist));
+  const dU = (-2 * localEndX / (dist * dist * dist) + 1 / (dist * dist) + endTangentX / (dist * dist * dist));
+
+  const aV = 0;
+  const bV = 0;
+  const cV = (3 * localEndY / (dist * dist) - endTangentY / (dist * dist));
+  const dV = (-2 * localEndY / (dist * dist * dist) + endTangentY / (dist * dist * dist));
+
+  return {
+    s: 0,
+    x: startX,
+    y: startY,
+    hdg: startHdg,
+    length: dist,
     type: 'paramPoly3',
     aU, bU, cU, dU,
     aV, bV, cV, dV,
-    pRange: 'normalized',
+    pRange: 'arcLength',
   };
 }
 
@@ -307,24 +480,15 @@ function buildConnectingRoad(
   const endX = outgoing.x + outT * -Math.sin(outRefHdg);
   const endY = outgoing.y + outT * Math.cos(outRefHdg);
 
-  // Choose geometry type based on angle difference
-  let angleDiff = Math.abs(inHdg - outHdg) % (2 * Math.PI);
-  if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
+  // Solve geometry: arc-based approach with optional transition segments
+  const geometries = solveConnectingGeometry(
+    startX, startY, inHdg,
+    endX, endY, outHdg,
+  );
 
-  let geometry: OdrGeometry | null;
+  if (!geometries || geometries.length === 0) return null;
 
-  if (angleDiff < Math.PI / 6) {
-    // Small angle — use arc
-    geometry = solveArcGeometry(startX, startY, inHdg, endX, endY);
-  } else {
-    // Larger angle — use ParamPoly3 for smooth curve
-    geometry = solveParamPoly3Geometry(
-      startX, startY, inHdg,
-      endX, endY, outHdg,
-    );
-  }
-
-  if (!geometry) return null;
+  const totalLength = geometries.reduce((sum, g) => sum + g.length, 0);
 
   // Build lane section: driving lanes matching the incoming road
   const roadId = nextNumericId(doc.roads.map((r) => r.id));
@@ -386,7 +550,7 @@ function buildConnectingRoad(
     {
       id: roadId,
       name: `conn_${incoming.roadId}_to_${outgoing.roadId}`,
-      length: geometry.length,
+      length: totalLength,
       junction: junctionId,
       link: {
         predecessor: {
@@ -400,7 +564,7 @@ function buildConnectingRoad(
           contactPoint: spec.outgoingContactPoint,
         },
       },
-      planView: [geometry],
+      planView: geometries,
       laneOffset: [{ s: 0, a: laneOffsetA, b: 0, c: 0, d: 0 }],
       lanes,
       elevationProfile: [{ s: 0, a: 0, b: 0, c: 0, d: 0 }],

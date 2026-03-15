@@ -47,6 +47,28 @@ function evaluateLineAtS(
       hdg: geo.hdg + theta,
     };
   }
+  if (geo.type === 'paramPoly3') {
+    const g = geo as unknown as {
+      aU: number; bU: number; cU: number; dU: number;
+      aV: number; bV: number; cV: number; dV: number;
+      pRange?: string;
+    };
+    const p = g.pRange === 'normalized' ? ds / geo.length : ds;
+    const p2 = p * p;
+    const p3 = p2 * p;
+    const localX = g.aU + g.bU * p + g.cU * p2 + g.dU * p3;
+    const localY = g.aV + g.bV * p + g.cV * p2 + g.dV * p3;
+    const duDp = g.bU + 2 * g.cU * p + 3 * g.dU * p2;
+    const dvDp = g.bV + 2 * g.cV * p + 3 * g.dV * p2;
+    const localHdg = Math.atan2(dvDp, duDp);
+    const cosH = Math.cos(geo.hdg);
+    const sinH = Math.sin(geo.hdg);
+    return {
+      x: geo.x + localX * cosH - localY * sinH,
+      y: geo.y + localX * sinH + localY * cosH,
+      hdg: geo.hdg + localHdg,
+    };
+  }
   // Fallback
   return { x: geo.x, y: geo.y, hdg: geo.hdg };
 }
@@ -315,12 +337,14 @@ describe('connecting-road-builder', () => {
       const result = generateConnectingRoads([epA, epB], 'junc-4', anyRouting, doc);
 
       for (const road of result.roads) {
-        expect(road.planView).toHaveLength(1);
-        const geo = road.planView[0];
-        expect(['line', 'arc', 'paramPoly3']).toContain(geo.type);
-        expect(geo.length).toBeGreaterThan(0);
+        expect(road.planView.length).toBeGreaterThanOrEqual(1);
+        for (const geo of road.planView) {
+          expect(['line', 'arc', 'paramPoly3']).toContain(geo.type);
+          expect(geo.length).toBeGreaterThan(0);
+        }
         expect(road.length).toBeGreaterThan(0);
-        expect(road.length).toBeCloseTo(geo.length, 4);
+        const totalGeoLength = road.planView.reduce((s, g) => s + g.length, 0);
+        expect(road.length).toBeCloseTo(totalGeoLength, 4);
       }
     });
 
@@ -380,6 +404,95 @@ describe('connecting-road-builder', () => {
       // Result should not throw and should produce some roads (or none for U-turns)
       expect(result.roads).toBeDefined();
       expect(result.connections).toBeDefined();
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // G1 continuity & smoothness
+  // -----------------------------------------------------------------------
+  describe('G1 continuity of connecting road geometry', () => {
+    /** Normalize angle to [-PI, PI]. */
+    function normalizeAngle(a: number): number {
+      while (a > Math.PI) a -= 2 * Math.PI;
+      while (a <= -Math.PI) a += 2 * Math.PI;
+      return a;
+    }
+
+    /**
+     * For a 90-degree turn with realistic separation, verify the connecting
+     * road's end heading is aligned with the outgoing road direction.
+     */
+    it('arc end heading matches outgoing direction for 90° turn', () => {
+      // Road A goes east, ends at (0,0). Road B starts at (15, -15) going south.
+      // This gives ~21m separation — realistic for a junction.
+      const roadA = makeLineRoad('80', -50, 0, 0, 50);
+      const roadB = makeBidirectionalRoad('81', 15, -15, -Math.PI / 2, 50);
+
+      const epA = computeRoadEndpoint(roadA, 'end', evaluateLineAtS);
+      const epB = computeRoadEndpoint(roadB, 'start', evaluateLineAtS);
+
+      const doc = makeDocWithJunction([roadA, roadB], 'junc-g1');
+      const result = generateConnectingRoads([epA, epB], 'junc-g1', anyRouting, doc);
+
+      const connFromA = result.connections.filter((c) => c.incomingRoad === '80');
+      expect(connFromA.length).toBeGreaterThan(0);
+
+      for (const conn of connFromA) {
+        const road = result.roads.find((r) => r.id === conn.connectingRoad)!;
+        // Evaluate the curve at its end
+        const endPose = evaluateLineAtS(road.planView, road.length);
+        // The outgoing road heading (reversed) is the expected end heading
+        const expectedEndHdg = epB.hdg + Math.PI;
+        const hdgError = Math.abs(normalizeAngle(endPose.hdg - expectedEndHdg));
+        // Arc-based geometry should achieve good heading match (< ~10°)
+        expect(hdgError).toBeLessThan(0.18);
+      }
+    });
+
+    it('generates smooth curves for 45°, 90°, and 135° turns', () => {
+      const angles = [Math.PI / 4, Math.PI / 2, (3 * Math.PI) / 4];
+
+      for (const angle of angles) {
+        // Place roads with enough separation for a natural curve
+        const separation = 30;
+        const bx = separation * Math.cos(-angle / 2);
+        const by = separation * Math.sin(-angle / 2);
+        const roadA = makeLineRoad('90', -50, 0, 0, 50);
+        const roadB = makeBidirectionalRoad('91', bx, by, -angle, 50);
+
+        const epA = computeRoadEndpoint(roadA, 'end', evaluateLineAtS);
+        const epB = computeRoadEndpoint(roadB, 'start', evaluateLineAtS);
+
+        const doc = makeDocWithJunction([roadA, roadB], 'junc-smooth');
+        const result = generateConnectingRoads([epA, epB], 'junc-smooth', anyRouting, doc);
+
+        // Should produce at least one road
+        expect(result.roads.length).toBeGreaterThan(0);
+
+        // Each road's geometry should have positive length
+        for (const road of result.roads) {
+          expect(road.planView[0].length).toBeGreaterThan(0);
+
+          // Sample the curve and verify heading changes monotonically
+          // (no sudden reversals = smooth curve)
+          const numSamples = 20;
+          const headings: number[] = [];
+          for (let k = 0; k <= numSamples; k++) {
+            const s = (k / numSamples) * road.length;
+            const pose = evaluateLineAtS(road.planView, s);
+            headings.push(pose.hdg);
+          }
+
+          // Check that the maximum heading jump per step is bounded relative to total change
+          const totalHdgChange = Math.abs(normalizeAngle(headings[headings.length - 1] - headings[0]));
+          for (let k = 1; k < headings.length; k++) {
+            const hdgDelta = Math.abs(normalizeAngle(headings[k] - headings[k - 1]));
+            // No single step should exceed 40% of the total heading change
+            // (a smooth curve distributes the change evenly)
+            expect(hdgDelta).toBeLessThan(Math.max(totalHdgChange * 0.4, 0.1));
+          }
+        }
+      }
     });
   });
 });
