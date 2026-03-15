@@ -6,7 +6,7 @@
  * Lives inside the OpenDRIVE rotation group (x/y/z = odr coords).
  */
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import type { OpenDriveDocument } from '@osce/shared';
 import { applySnap } from './snap-utils.js';
@@ -64,11 +64,23 @@ export function RoadCreationInteraction({
   const planeRef = useRef<THREE.Mesh>(null);
   const pointerDownRef = useRef<{ x: number; y: number; odrX: number; odrY: number } | null>(null);
 
+  // Clear pending pointer state when phase resets to idle (e.g. Escape key)
+  useEffect(() => {
+    if (phase === 'idle') {
+      pointerDownRef.current = null;
+    }
+  }, [phase]);
+
   const getOdrPoint = useCallback(
     (e: THREE.Event & { point: THREE.Vector3 }) => {
-      // e.point is in local coordinates of the mesh (inside the rotation group)
+      // e.point is in world coordinates — convert to rotation group's local space (OpenDRIVE coords)
       let odrX = e.point.x;
       let odrY = e.point.y;
+      if (planeRef.current?.parent) {
+        const local = planeRef.current.parent.worldToLocal(e.point.clone());
+        odrX = local.x;
+        odrY = local.y;
+      }
 
       const snapResult = applySnap(odrX, odrY, openDriveDocument, { gridSnap });
       odrX = snapResult.x;

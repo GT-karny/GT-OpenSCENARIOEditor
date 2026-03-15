@@ -40,7 +40,11 @@ function buildLaneSectionFromPreset(preset: LanePreset): OdrLaneSection {
  */
 export function createRoadFromPartial(partial: Partial<OdrRoad>, preset?: LanePreset, doc?: OpenDriveDocument): OdrRoad {
   const id = partial.id ?? generateRoadId(doc ?? createDefaultDocument());
-  const length = partial.length ?? 100;
+  // Derive length from planView if provided but length is not
+  const length = partial.length ??
+    (partial.planView
+      ? partial.planView.reduce((sum, g) => sum + g.length, 0)
+      : 100);
 
   const lanes: OdrLaneSection[] = partial.lanes ??
     (preset ? [buildLaneSectionFromPreset(preset)] : [{
