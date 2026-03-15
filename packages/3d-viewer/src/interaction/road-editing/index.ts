@@ -7,3 +7,5 @@ export { SnapIndicator } from './SnapIndicator.js';
 export { ArcCurvatureHandle } from './ArcCurvatureHandle.js';
 export { EndPointGizmo } from './EndPointGizmo.js';
 export { applySnap, snapToGrid, snapToEndpoint } from './snap-utils.js';
+export { computeAutoArc, computeGeometryEndpoint } from './arc-math.js';
+export type { AutoArcResult } from './arc-math.js';

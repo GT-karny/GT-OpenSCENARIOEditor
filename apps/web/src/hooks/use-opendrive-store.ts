@@ -44,12 +44,52 @@ interface OdrSidebarSelection {
   roadId?: string;
 }
 
+export type RoadToolMode = 'select' | 'road-create';
+
+export interface RoadCreationState {
+  phase: 'idle' | 'startPlaced';
+  startX: number;
+  startY: number;
+  startHdg: number;
+  startSnap?: { roadId: string; contactPoint: 'start' | 'end' };
+  selectedPreset: string;
+  /** Live cursor position during creation (updated on mouse move) */
+  cursorX: number;
+  cursorY: number;
+}
+
+const DEFAULT_ROAD_CREATION: RoadCreationState = {
+  phase: 'idle',
+  startX: 0,
+  startY: 0,
+  startHdg: 0,
+  selectedPreset: '2-lane',
+  cursorX: 0,
+  cursorY: 0,
+};
+
 interface OpenDriveSidebarState {
   selection: OdrSidebarSelection;
   setSelection: (sel: OdrSidebarSelection) => void;
   clearSelection: () => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+
+  // Road editing toolbar
+  activeTool: RoadToolMode;
+  setActiveTool: (tool: RoadToolMode) => void;
+
+  // Road creation state machine
+  roadCreation: RoadCreationState;
+  setRoadCreationStart: (
+    x: number,
+    y: number,
+    hdg: number,
+    snap?: { roadId: string; contactPoint: 'start' | 'end' },
+  ) => void;
+  resetRoadCreation: () => void;
+  setSelectedPreset: (name: string) => void;
+  setRoadCreationCursor: (x: number, y: number) => void;
 }
 
 export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
@@ -58,6 +98,41 @@ export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
   clearSelection: () => set({ selection: { type: null, id: null } }),
   searchQuery: '',
   setSearchQuery: (query) => set({ searchQuery: query }),
+
+  // Road editing toolbar
+  activeTool: 'select' as RoadToolMode,
+  setActiveTool: (tool) =>
+    set((state) => ({
+      activeTool: tool,
+      // Reset creation state when switching tools
+      roadCreation: tool !== 'road-create' ? DEFAULT_ROAD_CREATION : state.roadCreation,
+    })),
+
+  // Road creation state machine
+  roadCreation: DEFAULT_ROAD_CREATION,
+  setRoadCreationStart: (x, y, hdg, snap) =>
+    set((state) => ({
+      roadCreation: {
+        ...state.roadCreation,
+        phase: 'startPlaced' as const,
+        startX: x,
+        startY: y,
+        startHdg: hdg,
+        startSnap: snap,
+      },
+    })),
+  resetRoadCreation: () =>
+    set((state) => ({
+      roadCreation: { ...DEFAULT_ROAD_CREATION, selectedPreset: state.roadCreation.selectedPreset },
+    })),
+  setSelectedPreset: (name) =>
+    set((state) => ({
+      roadCreation: { ...state.roadCreation, selectedPreset: name },
+    })),
+  setRoadCreationCursor: (x, y) =>
+    set((state) => ({
+      roadCreation: { ...state.roadCreation, cursorX: x, cursorY: y },
+    })),
 }));
 
 // ---- Derived Data Selectors ----

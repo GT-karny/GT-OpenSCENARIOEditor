@@ -157,13 +157,36 @@ export interface ScenarioViewerProps {
   onRoadGeometrySelect?: (roadId: string, geometryIndex: number) => void;
   /** Whether road creation mode is active (click ground to create) */
   roadCreationModeActive?: boolean;
-  /** Callback when user clicks ground to create a road */
-  onRoadCreate?: (
+  /** Current creation phase */
+  roadCreationPhase?: 'idle' | 'startPlaced';
+  /** Start position (valid when phase === 'startPlaced') */
+  roadCreationStartX?: number;
+  roadCreationStartY?: number;
+  roadCreationStartHdg?: number;
+  /** Cursor position for ghost preview */
+  roadCreationCursorX?: number;
+  roadCreationCursorY?: number;
+  /** Lane sections for ghost preview */
+  roadCreationLanes?: import('@osce/shared').OdrLaneSection[];
+  /** Callback when user clicks to place start point */
+  onRoadCreationStartPlace?: (
     x: number,
     y: number,
     hdg: number,
+    snap?: { roadId: string; contactPoint: 'start' | 'end' },
+  ) => void;
+  /** Callback when user clicks to create a road (2-point) */
+  onRoadCreate?: (
+    startX: number,
+    startY: number,
+    startHdg: number,
+    endX: number,
+    endY: number,
+    curvature: number,
     snapInfo?: { roadId: string; contactPoint: 'start' | 'end' },
   ) => void;
+  /** Callback to update cursor position during creation */
+  onRoadCreationCursorMove?: (x: number, y: number) => void;
   /** Whether grid snap is enabled for road editing */
   roadGridSnap?: boolean;
   /** Callback when a tangent handle is dragged to change heading */
@@ -196,6 +219,12 @@ export interface ScenarioViewerProps {
     screenX: number,
     screenY: number,
   ) => void;
+  /** Whether road creation has a heading constraint at start */
+  roadCreationHasStartConstraint?: boolean;
+  /** Whether road select mode is active (click road meshes to select) */
+  roadSelectModeActive?: boolean;
+  /** Callback when a road is selected via click in the 3D viewer */
+  onRoadSelect?: (roadId: string) => void;
 
   // ---- Junction Editing ----
   /** Currently selected junction ID (renders with highlight) */
@@ -247,7 +276,16 @@ function ScenarioViewerScene({
   onRoadStartpointDragEnd,
   onRoadGeometrySelect,
   roadCreationModeActive,
+  roadCreationPhase,
+  roadCreationStartX,
+  roadCreationStartY,
+  roadCreationStartHdg,
+  roadCreationCursorX,
+  roadCreationCursorY,
+  roadCreationLanes,
+  onRoadCreationStartPlace,
   onRoadCreate,
+  onRoadCreationCursorMove,
   roadGridSnap,
   onRoadHeadingDragEnd,
   onRoadCurvatureDragEnd,
@@ -257,6 +295,9 @@ function ScenarioViewerScene({
   onRoadLinkSet,
   onRoadLinkUnset,
   onRoadEndpointContextMenu,
+  roadCreationHasStartConstraint,
+  roadSelectModeActive,
+  onRoadSelect,
   selectedJunctionId,
   ghostJunctionSurface,
   onJunctionClick,
@@ -297,7 +338,16 @@ function ScenarioViewerScene({
   onRoadStartpointDragEnd?: ScenarioViewerProps['onRoadStartpointDragEnd'];
   onRoadGeometrySelect?: ScenarioViewerProps['onRoadGeometrySelect'];
   roadCreationModeActive?: boolean;
+  roadCreationPhase?: 'idle' | 'startPlaced';
+  roadCreationStartX?: number;
+  roadCreationStartY?: number;
+  roadCreationStartHdg?: number;
+  roadCreationCursorX?: number;
+  roadCreationCursorY?: number;
+  roadCreationLanes?: ScenarioViewerProps['roadCreationLanes'];
+  onRoadCreationStartPlace?: ScenarioViewerProps['onRoadCreationStartPlace'];
   onRoadCreate?: ScenarioViewerProps['onRoadCreate'];
+  onRoadCreationCursorMove?: ScenarioViewerProps['onRoadCreationCursorMove'];
   roadGridSnap?: boolean;
   onRoadHeadingDragEnd?: ScenarioViewerProps['onRoadHeadingDragEnd'];
   onRoadCurvatureDragEnd?: ScenarioViewerProps['onRoadCurvatureDragEnd'];
@@ -307,6 +357,9 @@ function ScenarioViewerScene({
   onRoadLinkSet?: ScenarioViewerProps['onRoadLinkSet'];
   onRoadLinkUnset?: ScenarioViewerProps['onRoadLinkUnset'];
   onRoadEndpointContextMenu?: ScenarioViewerProps['onRoadEndpointContextMenu'];
+  roadCreationHasStartConstraint?: boolean;
+  roadSelectModeActive?: boolean;
+  onRoadSelect?: (roadId: string) => void;
   selectedJunctionId?: string | null;
   ghostJunctionSurface?: ScenarioViewerProps['ghostJunctionSurface'];
   onJunctionClick?: ScenarioViewerProps['onJunctionClick'];
@@ -581,7 +634,16 @@ function ScenarioViewerScene({
             onGeometrySelect={onRoadGeometrySelect}
             orbitControlsRef={cameraRef.current?.orbitControls}
             creationModeActive={roadCreationModeActive}
-            onCreateRoad={onRoadCreate}
+            creationPhase={roadCreationPhase}
+            creationStartX={roadCreationStartX}
+            creationStartY={roadCreationStartY}
+            creationStartHdg={roadCreationStartHdg}
+            creationCursorX={roadCreationCursorX}
+            creationCursorY={roadCreationCursorY}
+            creationLanes={roadCreationLanes}
+            onCreationStartPlace={onRoadCreationStartPlace}
+            onRoadCreate={onRoadCreate}
+            onCreationCursorMove={onRoadCreationCursorMove}
             gridSnap={roadGridSnap}
             onHeadingDragEnd={onRoadHeadingDragEnd}
             onCurvatureDragEnd={onRoadCurvatureDragEnd}
@@ -591,6 +653,10 @@ function ScenarioViewerScene({
             onRoadLinkSet={onRoadLinkSet}
             onRoadLinkUnset={onRoadLinkUnset}
             onEndpointContextMenu={onRoadEndpointContextMenu}
+            creationHasStartConstraint={roadCreationHasStartConstraint}
+            selectModeActive={roadSelectModeActive}
+            roadGroupRef={roadGroupRef}
+            onRoadSelect={onRoadSelect}
           />
         </group>
       )}
@@ -665,7 +731,16 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   onRoadStartpointDragEnd,
   onRoadGeometrySelect,
   roadCreationModeActive,
+  roadCreationPhase,
+  roadCreationStartX,
+  roadCreationStartY,
+  roadCreationStartHdg,
+  roadCreationCursorX,
+  roadCreationCursorY,
+  roadCreationLanes,
+  onRoadCreationStartPlace,
   onRoadCreate,
+  onRoadCreationCursorMove,
   roadGridSnap,
   onRoadHeadingDragEnd,
   onRoadCurvatureDragEnd,
@@ -675,6 +750,9 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   onRoadLinkSet,
   onRoadLinkUnset,
   onRoadEndpointContextMenu,
+  roadCreationHasStartConstraint,
+  roadSelectModeActive,
+  onRoadSelect,
   selectedJunctionId,
   ghostJunctionSurface,
   onJunctionClick,
@@ -940,7 +1018,16 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           onRoadStartpointDragEnd={onRoadStartpointDragEnd}
           onRoadGeometrySelect={onRoadGeometrySelect}
           roadCreationModeActive={roadCreationModeActive}
+          roadCreationPhase={roadCreationPhase}
+          roadCreationStartX={roadCreationStartX}
+          roadCreationStartY={roadCreationStartY}
+          roadCreationStartHdg={roadCreationStartHdg}
+          roadCreationCursorX={roadCreationCursorX}
+          roadCreationCursorY={roadCreationCursorY}
+          roadCreationLanes={roadCreationLanes}
+          onRoadCreationStartPlace={onRoadCreationStartPlace}
           onRoadCreate={onRoadCreate}
+          onRoadCreationCursorMove={onRoadCreationCursorMove}
           roadGridSnap={roadGridSnap}
           onRoadHeadingDragEnd={onRoadHeadingDragEnd}
           onRoadCurvatureDragEnd={onRoadCurvatureDragEnd}
@@ -950,6 +1037,9 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           onRoadLinkSet={onRoadLinkSet}
           onRoadLinkUnset={onRoadLinkUnset}
           onRoadEndpointContextMenu={onRoadEndpointContextMenu}
+          roadCreationHasStartConstraint={roadCreationHasStartConstraint}
+          roadSelectModeActive={roadSelectModeActive}
+          onRoadSelect={onRoadSelect}
           selectedJunctionId={selectedJunctionId}
           ghostJunctionSurface={ghostJunctionSurface}
           onJunctionClick={onJunctionClick}

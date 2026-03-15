@@ -1,7 +1,6 @@
 import { useCallback, useState } from 'react';
-import { Plus, Route, Trash2, Copy, Pencil } from 'lucide-react';
+import { Route, Trash2, Copy, Pencil } from 'lucide-react';
 import type { OdrRoad } from '@osce/shared';
-import { DEFAULT_PRESETS, createRoadFromPartial } from '@osce/opendrive-engine';
 import { Button } from '../../ui/button';
 import { ScrollArea } from '../../ui/scroll-area';
 import {
@@ -11,12 +10,6 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '../../ui/context-menu';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '../../ui/dropdown-menu';
 import {
   useOdrRoads,
   useOdrSidebarStore,
@@ -93,53 +86,13 @@ export function RoadListPanel({ searchQuery }: RoadListPanelProps) {
     [odrStoreApi, setSelection],
   );
 
-  const handleAddRoad = useCallback(
-    (presetName: string) => {
-      const preset = DEFAULT_PRESETS.find((p) => p.name === presetName);
-      const existingCount = odrStoreApi.getState().document.roads.length;
-      const offsetX = existingCount * 20;
-      // Build a template road with preset lanes, then pass lanes explicitly to addRoad
-      const template = createRoadFromPartial({}, preset);
-      const newRoad = odrStoreApi.getState().addRoad({
-        name: `Road ${existingCount + 1}`,
-        planView: [{ s: 0, x: offsetX, y: 0, hdg: 0, length: 100, type: 'line' as const }],
-        lanes: template.lanes,
-      });
-      setSelection({ type: 'road', id: newRoad.id });
-    },
-    [odrStoreApi, setSelection],
-  );
-
   return (
     <div className="flex flex-col h-full">
-      {/* Header with Add Road dropdown */}
+      {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--color-glass-edge)]">
         <span className="text-[11px] font-medium text-[var(--color-text-muted)]">
           {filteredRoads.length} road{filteredRoads.length !== 1 ? 's' : ''}
         </span>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              aria-label="Add new road"
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => handleAddRoad('2-lane')}>
-              2-Lane Road
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleAddRoad('4-lane')}>
-              4-Lane Road
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleAddRoad('2-lane+shoulder')}>
-              2-Lane + Shoulder
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
       {/* Road list */}
@@ -163,7 +116,7 @@ export function RoadListPanel({ searchQuery }: RoadListPanelProps) {
           ))}
           {filteredRoads.length === 0 && (
             <p className="p-4 text-center text-xs text-[var(--color-text-muted)]">
-              {searchQuery ? 'No roads match filter.' : 'No roads. Click + to add.'}
+              {searchQuery ? 'No roads match filter.' : 'No roads. Use the Road tool in the toolbar.'}
             </p>
           )}
         </div>

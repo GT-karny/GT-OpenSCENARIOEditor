@@ -5,15 +5,18 @@
  */
 
 import React, { useCallback, useMemo } from 'react';
+import type * as THREE from 'three';
 import type { OpenDriveDocument } from '@osce/shared';
 import { ControlPointGizmo } from './ControlPointGizmo.js';
 import { TangentHandle } from './TangentHandle.js';
 import { RoadEndpointMarkers } from './RoadEndpointMarkers.js';
-import { RoadCreationTool } from './RoadCreationTool.js';
+import { RoadCreationInteraction } from './RoadCreationInteraction.js';
+import { RoadGhostPreview } from './RoadGhostPreview.js';
 import { SnapIndicator } from './SnapIndicator.js';
 import { ArcCurvatureHandle } from './ArcCurvatureHandle.js';
 import { EndPointGizmo } from './EndPointGizmo.js';
 import { RoadLinkLines } from './RoadLinkLines.js';
+import { RoadSelectHandler } from './RoadSelectHandler.js';
 
 interface RoadEditingLayerProps {
   /** Full OpenDRIVE document */
@@ -36,8 +39,36 @@ interface RoadEditingLayerProps {
   orbitControlsRef?: React.RefObject<{ enabled: boolean } | null>;
   /** Whether road creation mode is active */
   creationModeActive?: boolean;
-  /** Callback when user clicks to create a road */
-  onCreateRoad?: (x: number, y: number, hdg: number) => void;
+  /** Current creation phase */
+  creationPhase?: 'idle' | 'startPlaced';
+  /** Start position (valid when creationPhase === 'startPlaced') */
+  creationStartX?: number;
+  creationStartY?: number;
+  creationStartHdg?: number;
+  /** Cursor position for ghost preview */
+  creationCursorX?: number;
+  creationCursorY?: number;
+  /** Lane sections for ghost preview */
+  creationLanes?: import('@osce/shared').OdrLaneSection[];
+  /** Callback when user clicks to place start point */
+  onCreationStartPlace?: (
+    x: number,
+    y: number,
+    hdg: number,
+    snap?: { roadId: string; contactPoint: 'start' | 'end' },
+  ) => void;
+  /** Callback when user clicks to create a road (2-point) */
+  onRoadCreate?: (
+    startX: number,
+    startY: number,
+    startHdg: number,
+    endX: number,
+    endY: number,
+    curvature: number,
+    snapInfo?: { roadId: string; contactPoint: 'start' | 'end' },
+  ) => void;
+  /** Callback to update cursor position during creation */
+  onCreationCursorMove?: (x: number, y: number) => void;
   /** Whether grid snap is enabled */
   gridSnap?: boolean;
   /** Callback when a tangent handle is dragged to change heading */
@@ -70,6 +101,14 @@ interface RoadEditingLayerProps {
     screenX: number,
     screenY: number,
   ) => void;
+  /** Whether road creation has a heading constraint at start */
+  creationHasStartConstraint?: boolean;
+  /** Whether select mode is active (click road meshes to select) */
+  selectModeActive?: boolean;
+  /** Ref to the road network group (for raycast selection) */
+  roadGroupRef?: React.RefObject<THREE.Group | null>;
+  /** Callback when a road is selected via click */
+  onRoadSelect?: (roadId: string) => void;
 }
 
 export function RoadEditingLayer({
@@ -81,7 +120,16 @@ export function RoadEditingLayer({
   selectedGeometryIndex,
   orbitControlsRef,
   creationModeActive = false,
-  onCreateRoad,
+  creationPhase = 'idle',
+  creationStartX = 0,
+  creationStartY = 0,
+  creationStartHdg = 0,
+  creationCursorX = 0,
+  creationCursorY = 0,
+  creationLanes,
+  onCreationStartPlace,
+  onRoadCreate,
+  onCreationCursorMove,
   gridSnap = false,
   onHeadingDragEnd,
   onCurvatureDragEnd,
@@ -91,6 +139,10 @@ export function RoadEditingLayer({
   onRoadLinkSet,
   onRoadLinkUnset,
   onEndpointContextMenu,
+  creationHasStartConstraint = false,
+  selectModeActive = false,
+  roadGroupRef,
+  onRoadSelect,
 }: RoadEditingLayerProps) {
   const selectedRoad = useMemo(
     () => openDriveDocument.roads.find((r) => r.id === selectedRoadId) ?? null,
@@ -195,16 +247,45 @@ export function RoadEditingLayer({
 
   return (
     <group>
+      {/* Road mesh click selection (raycast-based) */}
+      {selectModeActive && roadGroupRef && onRoadSelect && (
+        <RoadSelectHandler
+          active={selectModeActive}
+          roadGroupRef={roadGroupRef}
+          onRoadSelect={onRoadSelect}
+        />
+      )}
+
       {/* Road link connection lines */}
       <RoadLinkLines openDriveDocument={openDriveDocument} />
 
-      {/* Road creation tool (invisible ground plane for click-to-create) */}
-      {creationModeActive && onCreateRoad && (
-        <RoadCreationTool
+      {/* Road creation interaction (2-point click-to-create) */}
+      {creationModeActive && onCreationStartPlace && onRoadCreate && (
+        <RoadCreationInteraction
           active={creationModeActive}
+          phase={creationPhase}
+          startX={creationStartX}
+          startY={creationStartY}
+          startHdg={creationStartHdg}
+          hasStartConstraint={creationHasStartConstraint}
           openDriveDocument={openDriveDocument}
-          onCreateRoad={onCreateRoad}
+          onStartPlace={onCreationStartPlace}
+          onRoadCreate={onRoadCreate}
+          onCursorMove={onCreationCursorMove}
           gridSnap={gridSnap}
+        />
+      )}
+
+      {/* Ghost preview during road creation */}
+      {creationModeActive && creationPhase === 'startPlaced' && creationLanes && (
+        <RoadGhostPreview
+          startX={creationStartX}
+          startY={creationStartY}
+          startHdg={creationStartHdg}
+          endX={creationCursorX}
+          endY={creationCursorY}
+          lanes={creationLanes}
+          headingConstrained={creationHasStartConstraint}
         />
       )}
 

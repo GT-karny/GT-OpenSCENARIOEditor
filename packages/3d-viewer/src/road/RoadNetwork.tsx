@@ -118,12 +118,13 @@ export const RoadNetwork = forwardRef<THREE.Group, RoadNetworkProps>(
     return (
       <group ref={ref} rotation={[-Math.PI / 2, 0, 0]}>
         {roadMeshes.map(({ road, meshData }) => (
-          <RoadMesh
-            key={road.id}
-            road={road}
-            roadMeshData={meshData}
-            showRoadMarks={showRoadMarks}
-          />
+          <group key={road.id} userData={{ roadId: road.id }}>
+            <RoadMesh
+              road={road}
+              roadMeshData={meshData}
+              showRoadMarks={showRoadMarks}
+            />
+          </group>
         ))}
         {/* Junction surface fills (rendered behind roads via polygonOffset) */}
         {junctionSurfaces.map((surface) => (

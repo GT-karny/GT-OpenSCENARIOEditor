@@ -13,13 +13,17 @@ import { ElevationGraphEditor } from './elevation/ElevationGraphEditor';
 import { RoadEndpointContextMenu } from './RoadEndpointContextMenu';
 import { JunctionContextMenu } from './JunctionContextMenu';
 import { LaneLinkEditor } from './lane-link/LaneLinkEditor';
+import { RoadNetworkToolbar } from './toolbar/RoadNetworkToolbar';
+import { RoadStylePanel } from './toolbar/RoadStylePanel';
 import { useAutoJunctionDetection } from '../../hooks/use-auto-junction-detection';
 import { evaluateReferenceLineAtS } from '@osce/opendrive';
 import {
   generateConnectingRoads,
   computeRoadEndpoint,
   createDefaultLaneRoutingConfig,
+  DEFAULT_PRESETS,
 } from '@osce/opendrive-engine';
+import { computeAutoArc, computeGeometryEndpoint } from '@osce/3d-viewer';
 import { ValidationPanel } from '../panels/ValidationPanel';
 import { useEditorStore } from '../../stores/editor-store';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
@@ -96,7 +100,11 @@ export function RoadNetworkEditorLayout() {
 
   const [centerTab, setCenterTab] = useState<'crossSection' | 'elevation' | 'laneLinks'>('crossSection');
   const [sPosition, setSPosition] = useState(0);
-  const [roadCreationMode, setRoadCreationMode] = useState(false);
+
+  // Road editing toolbar state from store
+  const activeTool = useOdrSidebarStore((s) => s.activeTool);
+  const roadCreation = useOdrSidebarStore((s) => s.roadCreation);
+  const roadCreationMode = activeTool === 'road-create';
 
   // Auto-junction detection on road geometry changes
   const { checkForIntersections } = useAutoJunctionDetection({
@@ -194,6 +202,28 @@ export function RoadNetworkEditorLayout() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [handleDeleteSelectedGeometry]);
+
+  // Escape key: cancel creation or switch back to select tool
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
+
+      const store = useOdrSidebarStore.getState();
+      if (store.activeTool === 'road-create') {
+        if (store.roadCreation.phase === 'startPlaced') {
+          // Cancel current creation (back to idle)
+          store.resetRoadCreation();
+        } else {
+          // Switch back to select tool
+          store.setActiveTool('select');
+        }
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   const handleGeometryDragEnd = useCallback(
     (roadId: string, geometryIndex: number, newX: number, newY: number) => {
@@ -343,32 +373,122 @@ export function RoadNetworkEditorLayout() {
     [odrStoreApi],
   );
 
-  // --- Road creation from 3D click ---
-  const handleRoadCreate = useCallback(
+  // --- Road creation: start point placement ---
+  const handleCreationStartPlace = useCallback(
     (
       x: number,
       y: number,
       hdg: number,
+      snap?: { roadId: string; contactPoint: 'start' | 'end' },
+    ) => {
+      useOdrSidebarStore.getState().setRoadCreationStart(x, y, hdg, snap);
+    },
+    [],
+  );
+
+  // --- Road creation: cursor move (for ghost preview + numeric display) ---
+  const handleCreationCursorMove = useCallback(
+    (x: number, y: number) => {
+      useOdrSidebarStore.getState().setRoadCreationCursor(x, y);
+    },
+    [],
+  );
+
+  // --- Road creation lanes from selected preset ---
+  const creationLanes = useMemo(() => {
+    const presetName = roadCreation.selectedPreset;
+    const preset = DEFAULT_PRESETS.find((p) => p.name === presetName);
+    const template = createRoadFromPartial({}, preset);
+    return template.lanes;
+  }, [roadCreation.selectedPreset]);
+
+  // --- Road creation from 2-point click ---
+  const handleRoadCreate = useCallback(
+    (
+      startX: number,
+      startY: number,
+      startHdg: number,
+      endX: number,
+      endY: number,
+      _curvature: number,
       snapInfo?: { roadId: string; contactPoint: 'start' | 'end' },
     ) => {
-      const template = createRoadFromPartial({});
+      const chord = Math.hypot(endX - startX, endY - startY);
+      if (chord < 0.5) return;
+
+      const startSnap = useOdrSidebarStore.getState().roadCreation.startSnap;
+      const headingConstrained = !!startSnap;
+
+      // Compute arc/line geometry from start heading and endpoint
+      const arc = computeAutoArc(startX, startY, startHdg, endX, endY, headingConstrained);
+
+      const presetName = useOdrSidebarStore.getState().roadCreation.selectedPreset;
+      const preset = DEFAULT_PRESETS.find((p) => p.name === presetName);
+      const template = createRoadFromPartial({}, preset);
+
       const newRoad = odrStoreApi.getState().addRoad({
         name: `Road ${odrDocument.roads.length + 1}`,
-        planView: [{ s: 0, x, y, hdg, length: 100, type: 'line' as const }],
+        planView: [{
+          s: 0,
+          x: startX,
+          y: startY,
+          hdg: arc.hdg,
+          length: arc.arcLength,
+          type: arc.type,
+          ...(arc.type === 'arc' ? { curvature: arc.curvature } : {}),
+        }],
         lanes: template.lanes,
       });
 
-      // If snapped to an existing road endpoint, set bidirectional links
-      if (snapInfo) {
-        handleRoadLinkSet(newRoad.id, 'predecessor', snapInfo.roadId, snapInfo.contactPoint);
+      // Link to snapped start endpoint
+      if (startSnap) {
+        handleRoadLinkSet(newRoad.id, 'predecessor', startSnap.roadId, startSnap.contactPoint);
       }
 
-      useOdrSidebarStore.getState().setSelection({ type: 'road', id: newRoad.id });
-      setRoadCreationMode(false);
+      // Link to snapped end endpoint
+      if (snapInfo) {
+        handleRoadLinkSet(newRoad.id, 'successor', snapInfo.roadId, snapInfo.contactPoint);
+      }
+
+      // Chaining: if end point is NOT snapped, auto-set next start to this road's endpoint
+      if (snapInfo) {
+        // End snapped to existing road → complete, reset to idle
+        useOdrSidebarStore.getState().resetRoadCreation();
+      } else {
+        // Chain: compute new road's endpoint, use as next start
+        const endpoint = computeGeometryEndpoint(
+          startX, startY, arc.hdg, arc.arcLength,
+          arc.type === 'arc' ? arc.curvature : 0,
+        );
+        useOdrSidebarStore.getState().setRoadCreationStart(
+          endpoint.x, endpoint.y, endpoint.hdg,
+          { roadId: newRoad.id, contactPoint: 'end' },
+        );
+        useOdrSidebarStore.getState().setRoadCreationCursor(endpoint.x, endpoint.y);
+      }
+
       checkForIntersections(odrStoreApi.getState().document);
     },
     [odrStoreApi, odrDocument.roads.length, handleRoadLinkSet, checkForIntersections],
   );
+
+  // Whether the start heading is constrained (snapped or chained)
+  const hasStartConstraint = roadCreation.phase === 'startPlaced' && !!roadCreation.startSnap;
+
+  // --- Road creation cursor info for toolbar display ---
+  const cursorInfo = useMemo(() => {
+    if (roadCreation.phase !== 'startPlaced') return null;
+    const dx = roadCreation.cursorX - roadCreation.startX;
+    const dy = roadCreation.cursorY - roadCreation.startY;
+    const length = Math.hypot(dx, dy);
+    const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+    return {
+      x: roadCreation.cursorX,
+      y: roadCreation.cursorY,
+      length,
+      angle: ((angle % 360) + 360) % 360,
+    };
+  }, [roadCreation]);
 
   // --- Endpoint context menu ---
   const [endpointContextMenu, setEndpointContextMenu] = useState<{
@@ -464,6 +584,14 @@ export function RoadNetworkEditorLayout() {
       setEndpointContextMenu(null);
     },
     [odrStoreApi, odrDocument.roads],
+  );
+
+  // --- Road click selection from 3D viewer ---
+  const handleRoadSelect = useCallback(
+    (roadId: string) => {
+      useOdrSidebarStore.getState().setSelection({ type: 'road', id: roadId });
+    },
+    [],
   );
 
   // --- Junction click selection ---
@@ -656,7 +784,9 @@ export function RoadNetworkEditorLayout() {
         <PanelGroup direction="vertical">
           {/* 3D Viewer */}
           <Panel defaultSize={55} minSize={20}>
-            <div className="h-full bg-[var(--color-bg-deep)] enter d5">
+            <div className="flex flex-col h-full bg-[var(--color-bg-deep)] enter d5">
+              <RoadNetworkToolbar cursorInfo={cursorInfo} />
+              <div className="flex-1 min-h-0">
               <ErrorBoundary fallbackTitle="3D Viewer Error">
                 <ScenarioViewer
                   scenarioStore={scenarioStoreApi}
@@ -679,7 +809,16 @@ export function RoadNetworkEditorLayout() {
                   onRoadStartpointDragEnd={handleStartpointDragEnd}
                   onRoadGeometrySelect={handleGeometrySelect}
                   roadCreationModeActive={roadCreationMode}
+                  roadCreationPhase={roadCreation.phase}
+                  roadCreationStartX={roadCreation.startX}
+                  roadCreationStartY={roadCreation.startY}
+                  roadCreationStartHdg={roadCreation.startHdg}
+                  roadCreationCursorX={roadCreation.cursorX}
+                  roadCreationCursorY={roadCreation.cursorY}
+                  roadCreationLanes={creationLanes}
+                  onRoadCreationStartPlace={handleCreationStartPlace}
                   onRoadCreate={handleRoadCreate}
+                  onRoadCreationCursorMove={handleCreationCursorMove}
                   onRoadHeadingDragEnd={handleHeadingDragEnd}
                   onRoadCurvatureDragEnd={handleCurvatureDragEnd}
                   onRoadEndpointDragEnd={handleEndpointDragEnd}
@@ -688,11 +827,15 @@ export function RoadNetworkEditorLayout() {
                   onRoadLinkSet={handleRoadLinkSet}
                   onRoadLinkUnset={handleRoadLinkUnset}
                   onRoadEndpointContextMenu={handleEndpointContextMenu}
+                  roadCreationHasStartConstraint={hasStartConstraint}
+                  roadSelectModeActive={activeTool === 'select'}
+                  onRoadSelect={handleRoadSelect}
                   selectedJunctionId={selectedJunctionId}
                   onJunctionClick={handleJunctionClick}
                   onJunctionContextMenu={handleJunctionContextMenu}
                 />
               </ErrorBoundary>
+              </div>
               {endpointContextMenu && (
                 <RoadEndpointContextMenu
                   position={{ x: endpointContextMenu.screenX, y: endpointContextMenu.screenY }}
@@ -825,19 +968,23 @@ export function RoadNetworkEditorLayout() {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="properties" className="flex-1 overflow-hidden mt-0">
-              <OdrPropertyEditor
-                document={odrDocument}
-                selectedRoadId={selectedRoadId}
-                selectedJunctionId={selectedJunctionId}
-                selectedSignalId={selectedSignalId}
-                selectedLaneId={selectedLaneId}
-                selectedGeometryIndex={selectedGeometryIndex}
-                onUpdateRoad={handleUpdateRoad}
-                onUpdateLane={handleUpdateLane}
-                onUpdateSignal={handleUpdateSignal}
-                onUpdateJunction={handleUpdateJunction}
-                onUpdateHeader={handleUpdateHeader}
-              />
+              {roadCreationMode ? (
+                <RoadStylePanel />
+              ) : (
+                <OdrPropertyEditor
+                  document={odrDocument}
+                  selectedRoadId={selectedRoadId}
+                  selectedJunctionId={selectedJunctionId}
+                  selectedSignalId={selectedSignalId}
+                  selectedLaneId={selectedLaneId}
+                  selectedGeometryIndex={selectedGeometryIndex}
+                  onUpdateRoad={handleUpdateRoad}
+                  onUpdateLane={handleUpdateLane}
+                  onUpdateSignal={handleUpdateSignal}
+                  onUpdateJunction={handleUpdateJunction}
+                  onUpdateHeader={handleUpdateHeader}
+                />
+              )}
             </TabsContent>
             <TabsContent value="validation" className="flex-1 overflow-hidden mt-0">
               <ValidationPanel />

@@ -60,6 +60,8 @@ export { resolveSignalPosition } from './utils/signal-position-resolver.js';
 
 // Road editing gizmos
 export { RoadEditingLayer } from './interaction/road-editing/index.js';
+export { computeAutoArc, computeGeometryEndpoint } from './interaction/road-editing/index.js';
+export type { AutoArcResult } from './interaction/road-editing/index.js';
 
 // Sub-components (for composition)
 export { RoadNetwork } from './road/RoadNetwork.js';
