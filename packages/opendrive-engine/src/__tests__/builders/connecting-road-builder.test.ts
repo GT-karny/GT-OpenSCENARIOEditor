@@ -51,7 +51,7 @@ function evaluateLineAtS(
   return { x: geo.x, y: geo.y, hdg: geo.hdg };
 }
 
-/** Create a simple line road along a given heading. */
+/** Create a simple line road along a given heading (right lanes only). */
 function makeLineRoad(id: string, x: number, y: number, hdg: number, length: number): OdrRoad {
   return createTestRoad({
     id,
@@ -67,6 +67,24 @@ function makeLineRoad(id: string, x: number, y: number, hdg: number, length: num
           makeDrivingLane(-1),
           makeDrivingLane(-2),
         ],
+      },
+    ],
+  });
+}
+
+/** Create a bidirectional line road (left + right driving lanes). */
+function makeBidirectionalRoad(id: string, x: number, y: number, hdg: number, length: number): OdrRoad {
+  return createTestRoad({
+    id,
+    name: `Road_${id}`,
+    length,
+    planView: [{ s: 0, x, y, hdg, length, type: 'line' }],
+    lanes: [
+      {
+        s: 0,
+        leftLanes: [makeDrivingLane(1)],
+        centerLane: { id: 0, type: 'none', width: [], roadMarks: [] },
+        rightLanes: [makeDrivingLane(-1)],
       },
     ],
   });
@@ -147,7 +165,22 @@ describe('connecting-road-builder', () => {
       expect(ep.y).toBeCloseTo(20);
       // start contact point heading is flipped (+PI) from the road heading
       expect(ep.hdg).toBeCloseTo(Math.PI);
-      expect(ep.drivingLanes).toHaveLength(2);
+      // Right-lanes-only road: start endpoint returns left lanes (none here)
+      expect(ep.drivingLanes).toHaveLength(0);
+    });
+
+    it('returns only lanes traveling toward the junction', () => {
+      const road = makeBidirectionalRoad('1b', 0, 0, 0, 100);
+
+      // contactPoint='end' → right lanes only (negative IDs, travel toward end)
+      const epEnd = computeRoadEndpoint(road, 'end', evaluateLineAtS);
+      expect(epEnd.drivingLanes).toHaveLength(1);
+      expect(epEnd.drivingLanes.every((l) => l.id < 0)).toBe(true);
+
+      // contactPoint='start' → left lanes only (positive IDs, travel toward start)
+      const epStart = computeRoadEndpoint(road, 'start', evaluateLineAtS);
+      expect(epStart.drivingLanes).toHaveLength(1);
+      expect(epStart.drivingLanes.every((l) => l.id > 0)).toBe(true);
     });
 
     it('extracts end endpoint from a line road', () => {
@@ -156,7 +189,7 @@ describe('connecting-road-builder', () => {
 
       expect(ep.roadId).toBe('2');
       expect(ep.contactPoint).toBe('end');
-      // End of a 50m road at 45 degrees
+      // End of a 50m road at 45 degrees (reference line position)
       const expectedX = 50 * Math.cos(Math.PI / 4);
       const expectedY = 50 * Math.sin(Math.PI / 4);
       expect(ep.x).toBeCloseTo(expectedX, 4);
@@ -211,7 +244,7 @@ describe('connecting-road-builder', () => {
     it('generates connecting roads for two endpoints at 90 degrees', () => {
       // Road A goes east (hdg=0), Road B goes north (hdg=PI/2)
       const roadA = makeLineRoad('10', 0, 0, 0, 100);
-      const roadB = makeLineRoad('11', 100, 0, Math.PI / 2, 100);
+      const roadB = makeBidirectionalRoad('11', 100, 0, Math.PI / 2, 100);
 
       const epA = computeRoadEndpoint(roadA, 'end', evaluateLineAtS);
       const epB = computeRoadEndpoint(roadB, 'start', evaluateLineAtS);
@@ -253,7 +286,7 @@ describe('connecting-road-builder', () => {
     it('filters to outermost lane for right turns with default routing', () => {
       // Road A goes east, Road B goes south — right turn from A to B
       const roadA = makeLineRoad('30', 0, 0, 0, 50);
-      const roadB = makeLineRoad('31', 50, 0, -Math.PI / 2, 50);
+      const roadB = makeBidirectionalRoad('31', 50, 0, -Math.PI / 2, 50);
 
       const epA = computeRoadEndpoint(roadA, 'end', evaluateLineAtS);
       const epB = computeRoadEndpoint(roadB, 'start', evaluateLineAtS);
@@ -314,7 +347,7 @@ describe('connecting-road-builder', () => {
 
     it('connecting roads are marked as belonging to the junction', () => {
       const roadA = makeLineRoad('60', 0, 0, 0, 50);
-      const roadB = makeLineRoad('61', 50, 0, Math.PI / 2, 50);
+      const roadB = makeBidirectionalRoad('61', 50, 0, Math.PI / 2, 50);
 
       const epA = computeRoadEndpoint(roadA, 'end', evaluateLineAtS);
       const epB = computeRoadEndpoint(roadB, 'start', evaluateLineAtS);
@@ -330,12 +363,8 @@ describe('connecting-road-builder', () => {
     it('does not generate U-turn roads when generateUturn is false', () => {
       // Two endpoints with nearly opposite headings from the same direction
       const roadA = makeLineRoad('70', 0, 0, 0, 50);
-      const roadB = makeLineRoad('71', 0, 5, Math.PI, 50);
+      const roadB = makeBidirectionalRoad('71', 0, 5, Math.PI, 50);
 
-      // A's end faces east, B's start faces west+PI = east — nearly the same direction
-      // Actually: B's start hdg = PI + PI = 2PI ≈ 0, so they point the same way
-      // This means the "outgoing" direction from A's end is ~0, and from B's start is ~2PI
-      // These would be classified differently depending on exact angles
       const epA = computeRoadEndpoint(roadA, 'end', evaluateLineAtS);
       const epB = computeRoadEndpoint(roadB, 'start', evaluateLineAtS);
 

@@ -164,7 +164,11 @@ async function computeCrossRoadSegment(
 
       if (i === 0) {
         entryS = parseFloat(String(from.s));
-        exitS = road ? road.length : seg.wasmS;
+        // Use WASM-computed exit s value instead of assuming road.length.
+        // For roads whose junction is at s=0 (predecessor=junction), the exit
+        // is toward s=0, not road.length. seg.wasmS holds the last s value
+        // esmini sampled on this road, which is the correct exit point.
+        exitS = seg.wasmS;
         if (Math.abs(exitS - entryS) < 0.1) {
           const p = roadCoordsToWorld(odrDoc, roadIdStr, seg.laneId, entryS);
           if (p) {

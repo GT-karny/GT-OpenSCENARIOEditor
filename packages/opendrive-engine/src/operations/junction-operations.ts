@@ -15,10 +15,13 @@ import type {
   OdrRoad,
   OdrJunction,
   OdrGeometry,
-  OdrLane,
+  OdrLaneSection,
+  OdrElevation,
+  OdrSuperelevation,
 } from '@osce/shared';
 import type { LaneRoutingConfig, JunctionMetadata, VirtualRoad } from '../store/editor-metadata-types.js';
 import { nextNumericId } from '../utils/id-generator.js';
+import { createRoadFromPartial } from '../builders/road-builder.js';
 
 /**
  * Intersection detection result (mirrors @osce/opendrive's IntersectionResult
@@ -33,7 +36,12 @@ export interface IntersectionResult {
   angle: number;
 }
 import type { RoadEndpoint } from '../builders/connecting-road-builder.js';
-import { generateConnectingRoads } from '../builders/connecting-road-builder.js';
+import { computeRoadEndpoint, generateConnectingRoads } from '../builders/connecting-road-builder.js';
+
+type EvaluateAtS = (
+  planView: readonly OdrGeometry[],
+  s: number,
+) => { x: number; y: number; hdg: number };
 
 /**
  * Parameters for creating a junction from an intersection detection result.
@@ -41,7 +49,19 @@ import { generateConnectingRoads } from '../builders/connecting-road-builder.js'
 export interface CreateJunctionParams {
   intersection: IntersectionResult;
   routingConfig: LaneRoutingConfig;
-  evaluateAtS: (planView: readonly OdrGeometry[], s: number) => { x: number; y: number; hdg: number };
+  evaluateAtS: EvaluateAtS;
+}
+
+/**
+ * Information about how an original road is split into segments at junction boundaries.
+ */
+export interface RoadSplitInfo {
+  /** ID of the original road being split. */
+  originalRoadId: string;
+  /** Segment before the junction (s=0 to splitStart). */
+  beforeSegment: OdrRoad;
+  /** Segment after the junction (splitEnd to original length). */
+  afterSegment: OdrRoad;
 }
 
 /**
@@ -53,11 +73,15 @@ export interface JunctionCreationPlan {
   junction: OdrJunction;
   connectingRoads: OdrRoad[];
   junctionMetadata: JunctionMetadata;
-  /** Incoming road endpoints at the junction boundary (for setting road links). */
+  /** Incoming road segment endpoints at the junction boundary (for setting road links). */
   incomingEndpoints: Array<{
     roadId: string;
     contactPoint: 'start' | 'end';
   }>;
+  /** Road splits: original roads split into before/after segments. */
+  roadSplits: RoadSplitInfo[];
+  /** Virtual road mappings (original road → segment IDs). */
+  virtualRoads: VirtualRoad[];
 }
 
 /**
@@ -81,36 +105,152 @@ function computeSplitDistance(road: OdrRoad, angle: number): number {
   return Math.max(baseDist + 2, 8);
 }
 
-/**
- * Compute endpoint data at an arbitrary s-coordinate along a road.
- * Unlike computeRoadEndpoint (which only handles start/end), this evaluates
- * at the intersection point to get the correct lane section and geometry.
- */
-function computeEndpointDataAtS(
-  road: OdrRoad,
-  s: number,
-  evaluateAtS: (planView: readonly OdrGeometry[], s: number) => { x: number; y: number; hdg: number },
-): { x: number; y: number; hdg: number; drivingLanes: OdrLane[] } {
-  const pose = evaluateAtS(road.planView, s);
+// ---------------------------------------------------------------------------
+// Geometry / lane splitting helpers
+// ---------------------------------------------------------------------------
 
-  // Find the lane section active at this s-coordinate
-  let section = road.lanes[0];
-  for (const ls of road.lanes) {
-    if (ls.s <= s) section = ls;
-    else break;
+/**
+ * Extract geometry elements for a sub-range [sStart, sEnd] of a road.
+ * Recalculates start positions using evaluateAtS for accuracy.
+ */
+function extractGeometryRange(
+  planView: readonly OdrGeometry[],
+  sStart: number,
+  sEnd: number,
+  evaluateAtS: EvaluateAtS,
+): OdrGeometry[] {
+  const result: OdrGeometry[] = [];
+
+  for (const geo of planView) {
+    const geoEnd = geo.s + geo.length;
+
+    // Skip if entirely outside range
+    if (geoEnd <= sStart || geo.s >= sEnd) continue;
+
+    const effectiveStart = Math.max(geo.s, sStart);
+    const effectiveEnd = Math.min(geoEnd, sEnd);
+    const effectiveLength = effectiveEnd - effectiveStart;
+    if (effectiveLength <= 0) continue;
+
+    // Evaluate the correct start position on the reference line
+    const pose = evaluateAtS(planView, effectiveStart);
+
+    const newGeo: OdrGeometry = {
+      ...structuredClone(geo),
+      s: effectiveStart - sStart,
+      x: pose.x,
+      y: pose.y,
+      hdg: pose.hdg,
+      length: effectiveLength,
+    };
+
+    result.push(newGeo);
   }
 
-  const drivingLanes = section
-    ? [...section.leftLanes, ...section.rightLanes].filter(
-        (l) => l.type === 'driving' || l.type === 'bidirectional',
-      )
-    : [];
+  return result;
+}
 
-  return { ...pose, drivingLanes };
+/**
+ * Extract lane sections for a sub-range [sStart, sEnd].
+ * Shifts s-offsets so the segment starts at s=0.
+ */
+function extractLaneSections(
+  lanes: readonly OdrLaneSection[],
+  sStart: number,
+  sEnd: number,
+): OdrLaneSection[] {
+  const result: OdrLaneSection[] = [];
+
+  for (const ls of lanes) {
+    if (ls.s >= sEnd) continue;
+    // Find the last section before sEnd
+    if (ls.s < sStart) {
+      // This section spans into our range — include it starting at 0
+      if (result.length === 0) {
+        result.push({ ...structuredClone(ls), s: 0 });
+      }
+    } else {
+      result.push({ ...structuredClone(ls), s: ls.s - sStart });
+    }
+  }
+
+  // Ensure at least one section
+  if (result.length === 0 && lanes.length > 0) {
+    result.push({ ...structuredClone(lanes[0]), s: 0 });
+  }
+
+  return result;
+}
+
+/**
+ * Extract elevation/superelevation profiles for a sub-range.
+ */
+function extractPolynomials<T extends { s: number }>(
+  profiles: readonly T[],
+  sStart: number,
+  sEnd: number,
+): T[] {
+  const result: T[] = [];
+
+  for (const p of profiles) {
+    if (p.s >= sEnd) continue;
+    if (p.s < sStart) {
+      if (result.length === 0) {
+        result.push({ ...structuredClone(p), s: 0 } as T);
+      }
+    } else {
+      result.push({ ...structuredClone(p), s: p.s - sStart } as T);
+    }
+  }
+
+  if (result.length === 0 && profiles.length > 0) {
+    result.push({ ...structuredClone(profiles[0]), s: 0 } as T);
+  }
+
+  return result;
+}
+
+/**
+ * Create a road segment from a sub-range of an existing road.
+ */
+function createRoadSegment(
+  road: OdrRoad,
+  sStart: number,
+  sEnd: number,
+  evaluateAtS: EvaluateAtS,
+  usedIds: string[],
+): OdrRoad {
+  const length = sEnd - sStart;
+  const geometry = extractGeometryRange(road.planView, sStart, sEnd, evaluateAtS);
+  const lanes = extractLaneSections(road.lanes, sStart, sEnd);
+  const elevation = extractPolynomials<OdrElevation>(road.elevationProfile, sStart, sEnd);
+  const lateral = extractPolynomials<OdrSuperelevation>(road.lateralProfile, sStart, sEnd);
+
+  const segId = nextNumericId(usedIds);
+  usedIds.push(segId);
+
+  return createRoadFromPartial({
+    id: segId,
+    name: road.name,
+    length,
+    junction: '-1',
+    planView: geometry,
+    lanes,
+    elevationProfile: elevation,
+    lateralProfile: lateral,
+    laneOffset: road.laneOffset.length > 0
+      ? extractPolynomials(road.laneOffset, sStart, sEnd)
+      : [],
+    objects: [],
+    signals: [],
+  });
 }
 
 /**
  * Plan a junction creation from an intersection result.
+ *
+ * Splits each intersecting road into before/after segments at the junction
+ * boundaries, then generates connecting roads linking the segments.
  * This prepares all the data but does NOT modify the document.
  */
 export function planJunctionCreation(
@@ -128,7 +268,6 @@ export function planJunctionCreation(
   const splitDistB = computeSplitDistance(roadB, intersection.angle);
 
   // Compute s-coordinates at the 4 junction boundary points
-  // Each road has two arms: one toward its end and one toward its start
   const sA_end = Math.min(intersection.sA + splitDistA, roadA.length);
   const sA_start = Math.max(intersection.sA - splitDistA, 0);
   const sB_end = Math.min(intersection.sB + splitDistB, roadB.length);
@@ -137,58 +276,32 @@ export function planJunctionCreation(
   // Guard: skip if road is too short for a junction
   if (sA_end - sA_start < 2 || sB_end - sB_start < 2) return null;
 
+  // Guard: skip if segments would be too short (< 1m)
+  const minSegLen = 1;
+  if (sA_start < minSegLen || roadA.length - sA_end < minSegLen) return null;
+  if (sB_start < minSegLen || roadB.length - sB_end < minSegLen) return null;
+
   // Create the junction
   const junctionId = nextNumericId(doc.junctions.map((j) => j.id));
   const junctionName = `Junction ${junctionId}`;
 
-  // Compute endpoint data at each of the 4 boundary positions
-  const dataA_end = computeEndpointDataAtS(roadA, sA_end, evaluateAtS);
-  const dataA_start = computeEndpointDataAtS(roadA, sA_start, evaluateAtS);
-  const dataB_end = computeEndpointDataAtS(roadB, sB_end, evaluateAtS);
-  const dataB_start = computeEndpointDataAtS(roadB, sB_start, evaluateAtS);
+  // Track used IDs for unique generation
+  const usedIds = doc.roads.map((r) => r.id);
 
-  // Generate connecting roads — 4 endpoints at the junction boundaries.
-  // Each road contributes two arms (toward-end and toward-start).
-  // hdg convention: direction pointing INTO the junction (toward center).
-  //   'end' arm:   road heading + π  (reverse of road direction)
-  //   'start' arm: road heading      (same as road direction = toward center)
+  // --- Split roads into before/after segments ---
+  const segA_before = createRoadSegment(roadA, 0, sA_start, evaluateAtS, usedIds);
+  const segA_after = createRoadSegment(roadA, sA_end, roadA.length, evaluateAtS, usedIds);
+  const segB_before = createRoadSegment(roadB, 0, sB_start, evaluateAtS, usedIds);
+  const segB_after = createRoadSegment(roadB, sB_end, roadB.length, evaluateAtS, usedIds);
+
+  // --- Build endpoints from segment roads ---
+  // segX_before: its END faces the junction
+  // segX_after:  its START faces the junction
   const endpoints: RoadEndpoint[] = [
-    {
-      roadId: roadA.id,
-      contactPoint: 'end',
-      x: dataA_end.x,
-      y: dataA_end.y,
-      hdg: dataA_end.hdg + Math.PI,
-      drivingLanes: dataA_end.drivingLanes,
-      road: roadA,
-    },
-    {
-      roadId: roadB.id,
-      contactPoint: 'end',
-      x: dataB_end.x,
-      y: dataB_end.y,
-      hdg: dataB_end.hdg + Math.PI,
-      drivingLanes: dataB_end.drivingLanes,
-      road: roadB,
-    },
-    {
-      roadId: roadA.id,
-      contactPoint: 'start',
-      x: dataA_start.x,
-      y: dataA_start.y,
-      hdg: dataA_start.hdg,
-      drivingLanes: dataA_start.drivingLanes,
-      road: roadA,
-    },
-    {
-      roadId: roadB.id,
-      contactPoint: 'start',
-      x: dataB_start.x,
-      y: dataB_start.y,
-      hdg: dataB_start.hdg,
-      drivingLanes: dataB_start.drivingLanes,
-      road: roadB,
-    },
+    computeRoadEndpoint(segA_after, 'start', evaluateAtS),
+    computeRoadEndpoint(segB_after, 'start', evaluateAtS),
+    computeRoadEndpoint(segA_before, 'end', evaluateAtS),
+    computeRoadEndpoint(segB_before, 'end', evaluateAtS),
   ];
 
   const junction: OdrJunction = {
@@ -197,18 +310,25 @@ export function planJunctionCreation(
     connections: [],
   };
 
+  // Include segment roads in the doc used for ID generation
+  const augmentedDoc: OpenDriveDocument = {
+    ...doc,
+    roads: [...doc.roads, segA_before, segA_after, segB_before, segB_after],
+    junctions: [...doc.junctions, junction],
+  };
+
   const { roads: connectingRoads, connections } = generateConnectingRoads(
     endpoints,
     junctionId,
     routingConfig,
-    { ...doc, junctions: [...doc.junctions, junction] },
+    augmentedDoc,
   );
 
   junction.connections = connections;
 
   const junctionMeta: JunctionMetadata = {
     junctionId,
-    intersectingVirtualRoadIds: [],
+    intersectingVirtualRoadIds: [roadA.id, roadB.id],
     connectingRoadIds: connectingRoads.map((r) => r.id),
     autoCreated: true,
   };
@@ -224,11 +344,23 @@ export function planJunctionCreation(
     }
   }
 
+  const roadSplits: RoadSplitInfo[] = [
+    { originalRoadId: roadA.id, beforeSegment: segA_before, afterSegment: segA_after },
+    { originalRoadId: roadB.id, beforeSegment: segB_before, afterSegment: segB_after },
+  ];
+
+  const virtualRoads: VirtualRoad[] = [
+    { virtualRoadId: roadA.id, segmentRoadIds: [segA_before.id, segA_after.id] },
+    { virtualRoadId: roadB.id, segmentRoadIds: [segB_before.id, segB_after.id] },
+  ];
+
   return {
     junction,
     connectingRoads,
     junctionMetadata: junctionMeta,
     incomingEndpoints,
+    roadSplits,
+    virtualRoads,
   };
 }
 

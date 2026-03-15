@@ -79,6 +79,10 @@ export function buildJunctionSurfaceMesh(
   }
 
   // --- 2. Connecting road boundary points (both sides, dense sampling) ---
+  // Also collect reference-line (centerline) points for stable centroid computation.
+  // Connecting roads have only right lanes, so boundary points are biased to one side.
+  // Using centerline points for the centroid avoids this asymmetry.
+  const centerlinePoints: Point3[] = [];
   const visitedConnecting = new Set<string>();
   for (const conn of junction.connections) {
     if (visitedConnecting.has(conn.connectingRoad)) continue;
@@ -89,6 +93,10 @@ export function buildJunctionSurfaceMesh(
 
     for (let i = 0; i <= CONNECTING_SAMPLES; i++) {
       const s = (road.length * i) / CONNECTING_SAMPLES;
+      const pose = evaluateReferenceLineAtS(road.planView, s);
+      const z = evaluateElevation(road.elevationProfile, s);
+      centerlinePoints.push({ x: pose.x, y: pose.y, z });
+
       const bp = getBoundaryPair(road, s);
       if (!bp) continue;
       // Add BOTH sides — the bin filter will keep only the farthest
@@ -100,18 +108,21 @@ export function buildJunctionSurfaceMesh(
   // Need enough boundary points to form a surface
   if (candidates.length < 4) return null;
 
-  // --- 3. Compute centroid ---
+  // --- 3. Compute centroid from centerline points (not boundary points) ---
+  // This ensures the centroid is at the geometric center of the junction,
+  // unbiased by one-sided lane configurations on connecting roads.
+  const centroidSource = centerlinePoints.length >= 4 ? centerlinePoints : candidates;
   let cx = 0;
   let cy = 0;
   let cz = 0;
-  for (const p of candidates) {
+  for (const p of centroidSource) {
     cx += p.x;
     cy += p.y;
     cz += p.z;
   }
-  cx /= candidates.length;
-  cy /= candidates.length;
-  cz /= candidates.length;
+  cx /= centroidSource.length;
+  cy /= centroidSource.length;
+  cz /= centroidSource.length;
 
   // --- 4. Fixed-width angular bins: keep farthest point per bin ---
   interface BinEntry {

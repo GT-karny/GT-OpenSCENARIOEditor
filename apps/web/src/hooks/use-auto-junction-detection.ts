@@ -3,8 +3,9 @@
  *
  * After any road geometry change (drag end, road creation), this hook:
  * 1. Runs intersection detection on the affected roads
- * 2. For new intersections, creates a junction with connecting roads
- * 3. When an intersection no longer exists, removes the junction and its connecting roads
+ * 2. For new intersections, splits roads at junction boundaries and creates
+ *    connecting roads between the resulting segments
+ * 3. When an intersection no longer exists, removes the junction, reconnects segments
  * 4. When an intersection moves (road dragged), rebuilds the junction at the new position
  */
 
@@ -35,13 +36,17 @@ const MOVE_THRESHOLD = 1.0;
 interface AutoJunctionRecord {
   junctionId: string;
   connectingRoadIds: string[];
+  /** IDs of segment roads created by splitting (for cleanup). */
+  segmentRoadIds: string[];
+  /** IDs of original roads that were split (for restoration). */
+  originalRoadIds: string[];
   pairKey: string;
   /** Intersection point at the time of creation. */
   point: { x: number; y: number };
 }
 
 /**
- * Remove an auto-created junction and its connecting roads from the store.
+ * Remove an auto-created junction, its connecting roads, and segment roads from the store.
  */
 function removeAutoJunction(store: OpenDriveStore, record: AutoJunctionRecord): void {
   // Clear road links pointing to this junction before removing it
@@ -60,11 +65,21 @@ function removeAutoJunction(store: OpenDriveStore, record: AutoJunctionRecord): 
     }
   }
 
+  // Remove connecting roads
   for (const connRoadId of record.connectingRoadIds) {
     if (store.document.roads.some((r) => r.id === connRoadId)) {
       store.removeRoad(connRoadId);
     }
   }
+
+  // Remove segment roads
+  for (const segId of record.segmentRoadIds) {
+    if (store.document.roads.some((r) => r.id === segId)) {
+      store.removeRoad(segId);
+    }
+  }
+
+  // Remove junction
   if (store.document.junctions.some((j) => j.id === record.junctionId)) {
     store.removeJunction(record.junctionId);
   }
@@ -86,22 +101,22 @@ export function useAutoJunctionDetection({
     (document: OpenDriveDocument) => {
       if (!enabled) return;
 
-      // Collect connecting road IDs to exclude from detection
-      const connectingRoadIds = new Set<string>();
+      // Collect connecting road IDs and segment road IDs to exclude from detection
+      const excludeRoadIds = new Set<string>();
       for (const junction of document.junctions) {
         for (const conn of junction.connections) {
-          connectingRoadIds.add(conn.connectingRoad);
+          excludeRoadIds.add(conn.connectingRoad);
         }
       }
       for (const road of document.roads) {
         if (road.junction !== '-1') {
-          connectingRoadIds.add(road.id);
+          excludeRoadIds.add(road.id);
         }
       }
 
       // Detect current intersections
       const intersections = detectRoadIntersections(document.roads, {
-        excludeRoadIds: connectingRoadIds,
+        excludeRoadIds,
       });
 
       // Build map of current intersection results by pair key
@@ -165,7 +180,7 @@ export function useAutoJunctionDetection({
           continue;
         }
 
-        // Plan junction creation
+        // Plan junction creation (includes road splitting)
         const currentDoc = store.document;
         const plan = planJunctionCreation(currentDoc, {
           intersection: hit,
@@ -175,7 +190,25 @@ export function useAutoJunctionDetection({
 
         if (!plan) continue;
 
-        // Execute: add connecting roads, then junction
+        // --- Execute the plan ---
+
+        // 1. Replace original roads with split segments
+        const segmentRoadIds: string[] = [];
+        const originalRoadIds: string[] = [];
+
+        for (const split of plan.roadSplits) {
+          originalRoadIds.push(split.originalRoadId);
+
+          // Remove the original road
+          store.removeRoad(split.originalRoadId);
+
+          // Add the before and after segments
+          const addedBefore = store.addRoad(split.beforeSegment);
+          const addedAfter = store.addRoad(split.afterSegment);
+          segmentRoadIds.push(addedBefore.id, addedAfter.id);
+        }
+
+        // 2. Add connecting roads
         const addedConnRoadIds: string[] = [];
         for (const connRoad of plan.connectingRoads) {
           const added = store.addRoad({
@@ -185,13 +218,14 @@ export function useAutoJunctionDetection({
           addedConnRoadIds.push(added.id);
         }
 
+        // 3. Add junction
         const addedJunction = store.addJunction({
           name: plan.junction.name,
           type: 'default',
           connections: plan.junction.connections,
         });
 
-        // Set road links on incoming roads pointing to the junction
+        // 4. Set road links on segment roads pointing to the junction
         for (const ep of plan.incomingEndpoints) {
           const linkType: 'predecessor' | 'successor' =
             ep.contactPoint === 'end' ? 'successor' : 'predecessor';
@@ -205,6 +239,8 @@ export function useAutoJunctionDetection({
         autoJunctionsRef.current.push({
           junctionId: addedJunction.id,
           connectingRoadIds: addedConnRoadIds,
+          segmentRoadIds,
+          originalRoadIds,
           pairKey,
           point: { x: hit.point.x, y: hit.point.y },
         });

@@ -121,6 +121,7 @@ export {
 export type {
   CreateJunctionParams,
   JunctionCreationPlan,
+  RoadSplitInfo,
 } from './operations/junction-operations.js';
 
 // Virtual junction operations

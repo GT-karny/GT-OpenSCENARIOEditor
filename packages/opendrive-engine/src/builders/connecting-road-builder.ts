@@ -59,8 +59,11 @@ export function computeRoadEndpoint(
     ? road.lanes[0]
     : road.lanes[road.lanes.length - 1];
 
+  // Only include lanes traveling TOWARD the junction:
+  //   contactPoint='end'  → right lanes (negative IDs, travel with ref direction toward end)
+  //   contactPoint='start' → left lanes (positive IDs, travel against ref direction toward start)
   const drivingLanes = section
-    ? [...section.leftLanes, ...section.rightLanes].filter(
+    ? (contactPoint === 'end' ? section.rightLanes : section.leftLanes).filter(
         (l) => l.type === 'driving' || l.type === 'bidirectional',
       )
     : [];
@@ -259,29 +262,65 @@ function buildConnectingRoad(
   doc: OpenDriveDocument,
   outerRoadMark: boolean,
 ): GeneratedConnectingRoad | null {
-  // Compute outgoing heading (reverse if entering from end)
-  const outHdg =
-    outgoing.contactPoint === 'start'
-      ? outgoing.hdg + Math.PI // flip: we want direction INTO the outgoing road
-      : outgoing.hdg;
+  // Outgoing heading: reverse the "into junction" direction to get "into the road arm"
+  const outHdg = outgoing.hdg + Math.PI;
 
   // Compute incoming heading (direction leaving the incoming road into the junction)
   const inHdg = incoming.hdg;
 
+  // Offset reference line positions to driving lane centers.
+  // The connecting road's lane center sits at t=0 (via laneOffset), so the geometry
+  // must start/end at the correct lane centers on the incoming/outgoing roads.
+  //
+  // Incoming lanes (flowing INTO the junction):
+  //   contactPoint='end'  → right lanes, center at t = -(totalWidth/2)
+  //   contactPoint='start' → left lanes, center at t = +(totalWidth/2)
+  //
+  // Outgoing lanes (RECEIVING traffic from the junction) — opposite side:
+  //   contactPoint='start' → right lanes, center at t = -(totalWidth/2)
+  //   contactPoint='end'   → left lanes, center at t = +(totalWidth/2)
+  const incomingWidth = incoming.drivingLanes.reduce(
+    (sum, l) => sum + (l.width[0]?.a ?? 3.5), 0,
+  );
+  const inT = incoming.contactPoint === 'end'
+    ? -(incomingWidth / 2)
+    : incomingWidth / 2;
+  // incoming.hdg is already the "into junction" direction; ref line hdg is the road's own hdg
+  const inRefHdg = incoming.contactPoint === 'end'
+    ? inHdg          // end: hdg = pose.hdg (no flip)
+    : inHdg - Math.PI; // start: hdg was flipped by +π, undo for perpendicular calc
+  const startX = incoming.x + inT * -Math.sin(inRefHdg);
+  const startY = incoming.y + inT * Math.cos(inRefHdg);
+
+  // For outgoing, we need the RECEIVING lane center (opposite side from drivingLanes).
+  // outgoing.drivingLanes are lanes flowing INTO the junction from this road;
+  // the receiving lanes are on the opposite side with matching width.
+  const outgoingWidth = outgoing.drivingLanes.reduce(
+    (sum, l) => sum + (l.width[0]?.a ?? 3.5), 0,
+  );
+  const outT = outgoing.contactPoint === 'start'
+    ? -(outgoingWidth / 2)  // receiving → right lanes
+    : outgoingWidth / 2;    // receiving → left lanes
+  const outRefHdg = outgoing.contactPoint === 'end'
+    ? outgoing.hdg           // end: hdg = pose.hdg
+    : outgoing.hdg - Math.PI; // start: undo the +π flip
+  const endX = outgoing.x + outT * -Math.sin(outRefHdg);
+  const endY = outgoing.y + outT * Math.cos(outRefHdg);
+
   // Choose geometry type based on angle difference
-  let angleDiff = Math.abs(inHdg - outHdg);
-  while (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
+  let angleDiff = Math.abs(inHdg - outHdg) % (2 * Math.PI);
+  if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
 
   let geometry: OdrGeometry | null;
 
   if (angleDiff < Math.PI / 6) {
     // Small angle — use arc
-    geometry = solveArcGeometry(incoming.x, incoming.y, inHdg, outgoing.x, outgoing.y);
+    geometry = solveArcGeometry(startX, startY, inHdg, endX, endY);
   } else {
     // Larger angle — use ParamPoly3 for smooth curve
     geometry = solveParamPoly3Geometry(
-      incoming.x, incoming.y, inHdg,
-      outgoing.x, outgoing.y, outHdg,
+      startX, startY, inHdg,
+      endX, endY, outHdg,
     );
   }
 
@@ -295,6 +334,16 @@ function buildConnectingRoad(
     const laneId = -(i + 1);
     const isOutermost = i === laneCount - 1;
 
+    // Lane-level predecessor/successor links for esmini routing:
+    //   predecessorId = incoming road lane ID that feeds this connecting lane
+    //   successorId = outgoing road lane ID where traffic exits
+    const predecessorId = incoming.drivingLanes[i]?.id;
+    // Outgoing lane depends on contact point:
+    //   'start' → vehicle enters going in ref direction → right lane -(i+1)
+    //   'end'   → vehicle enters going against ref direction → left lane (i+1)
+    const successorId =
+      spec.outgoingContactPoint === 'start' ? -(i + 1) : i + 1;
+
     rightLanes.push({
       id: laneId,
       type: 'driving',
@@ -306,6 +355,10 @@ function buildConnectingRoad(
           color: 'standard',
         },
       ],
+      link: {
+        ...(predecessorId !== undefined ? { predecessorId } : {}),
+        successorId,
+      },
     });
   }
 
@@ -323,13 +376,32 @@ function buildConnectingRoad(
     },
   ];
 
+  // Compute laneOffset so the reference line runs through the driving lane center.
+  // The right lane extends from t=laneOffset to t=laneOffset-width, so setting
+  // laneOffset = width/2 centers the lane on the reference line (t=0).
+  const laneWidth = rightLanes[0]?.width[0]?.a ?? 3.5;
+  const laneOffsetA = (laneWidth * laneCount) / 2;
+
   const road = createRoadFromPartial(
     {
       id: roadId,
       name: `conn_${incoming.roadId}_to_${outgoing.roadId}`,
       length: geometry.length,
       junction: junctionId,
+      link: {
+        predecessor: {
+          elementType: 'road',
+          elementId: spec.incomingRoadId,
+          contactPoint: spec.incomingContactPoint,
+        },
+        successor: {
+          elementType: 'road',
+          elementId: spec.outgoingRoadId,
+          contactPoint: spec.outgoingContactPoint,
+        },
+      },
       planView: [geometry],
+      laneOffset: [{ s: 0, a: laneOffsetA, b: 0, c: 0, d: 0 }],
       lanes,
       elevationProfile: [{ s: 0, a: 0, b: 0, c: 0, d: 0 }],
       lateralProfile: [{ s: 0, a: 0, b: 0, c: 0, d: 0 }],
@@ -389,14 +461,18 @@ export function generateConnectingRoads(
 
       const outgoing = endpoints[j];
 
-      // Skip same-road connections (U-turns)
+      // Skip same-road connections: straight-throughs are handled by the
+      // original (unsplit) road, and U-turns are not needed.
       if (incoming.roadId === outgoing.roadId) continue;
-      const turnType = classifyTurn(incoming.hdg, outgoing.hdg);
 
-      // Skip U-turns unless configured
-      if (turnType === 'straight' && Math.abs(incoming.hdg - outgoing.hdg) > Math.PI * 0.8) {
-        if (!routingConfig.generateUturn) continue;
-      }
+      // Compute actual connecting road directions:
+      //   inHdg  = incoming.hdg           (into junction = connecting road start heading)
+      //   outHdg = outgoing.hdg + π       (out of junction = connecting road end heading)
+      const inHdg = incoming.hdg;
+      const outHdg = outgoing.hdg + Math.PI;
+
+      // Classify turn using the connecting road's actual travel directions
+      const turnType = classifyTurn(inHdg, outHdg);
 
       // Filter lanes based on routing rules
       const eligibleLanes = filterLanesForTurn(
