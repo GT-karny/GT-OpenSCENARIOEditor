@@ -140,10 +140,10 @@ function makeArcRoad(id: string, x: number, y: number, hdg: number, length: numb
   });
 }
 
-/** Default routing config: outermost right, innermost left, no U-turn. */
+/** Default routing config: all lanes for all turns, no U-turn. */
 const defaultRouting: LaneRoutingConfig = {
-  rightTurnLanes: 'outermost',
-  leftTurnLanes: 'innermost',
+  rightTurnLanes: 'any',
+  leftTurnLanes: 'any',
   generateUturn: false,
 };
 
@@ -469,20 +469,20 @@ describe('connecting-road-builder', () => {
 
       // epA has 2 driving lanes (right: -1, -2)
       // epB_start has 2 driving lanes (left: 1, 2)
-      // A(end,hdg=0) → B(start): outHdg = 3PI/2+PI = PI/2, diff=PI/2 > 0 → left turn
-      //   → innermost only (lane -1, |id|=1) → 1 connecting road
-      // B(start,hdg=3PI/2) → A(end): outHdg = 0+PI = PI, diff=PI-3PI/2=-PI/2 → right turn
-      //   → outermost only (lane 2, |id|=2) → 1 connecting road
+      // A(end,hdg=0) → B(start): left turn, 'any' → both lanes → 2 connecting roads
+      // B(start,hdg=3PI/2) → A(end): right turn, 'any' → both lanes → 2 connecting roads
       const fromA = result.connections.filter((c) => c.incomingRoad === '110');
       const fromB = result.connections.filter((c) => c.incomingRoad === '111');
 
-      // Left turn from A: innermost lane only
-      expect(fromA).toHaveLength(1);
-      expect(fromA[0].laneLinks[0].from).toBe(-1); // innermost right lane
+      // Left turn from A: both lanes (inner→inner, outer→outer)
+      expect(fromA).toHaveLength(2);
+      const fromALanes = fromA.map((c) => c.laneLinks[0].from).sort((a, b) => a - b);
+      expect(fromALanes).toEqual([-2, -1]);
 
-      // Right turn from B: outermost lane only
-      expect(fromB).toHaveLength(1);
-      expect(fromB[0].laneLinks[0].from).toBe(2); // outermost left lane
+      // Right turn from B: both lanes (inner→inner, outer→outer)
+      expect(fromB).toHaveLength(2);
+      const fromBLanes = fromB.map((c) => c.laneLinks[0].from).sort((a, b) => a - b);
+      expect(fromBLanes).toEqual([1, 2]);
     });
 
     it('generates 4 connecting roads per direction for 4-lane 4-way intersection', () => {
@@ -504,17 +504,54 @@ describe('connecting-road-builder', () => {
         [epA, epB, epC, epD], 'junc-ml-3', defaultRouting, doc,
       );
 
-      // Per incoming direction (2 lanes):
+      // Per incoming direction (2 lanes) with 'any' routing:
       //   straight (all lanes): 2 connecting roads
-      //   right turn (outermost): 1 connecting road
-      //   left turn (innermost): 1 connecting road
-      // Total per direction: 4, total: 16
-      expect(result.roads).toHaveLength(16);
-      expect(result.connections).toHaveLength(16);
+      //   right turn (all lanes): 2 connecting roads
+      //   left turn (all lanes): 2 connecting roads
+      // Total per direction: 6, total: 24
+      expect(result.roads).toHaveLength(24);
+      expect(result.connections).toHaveLength(24);
 
       // Every connecting road should have exactly 1 driving lane
       for (const road of result.roads) {
         expect(road.lanes[0].rightLanes).toHaveLength(1);
+      }
+    });
+
+    it('caps lane pairs at the smaller lane count for asymmetric roads', () => {
+      // 3-lane incoming road (right lanes -1, -2, -3)
+      const road3Lane = createTestRoad({
+        id: '140',
+        name: 'Road_140',
+        length: 40,
+        planView: [{ s: 0, x: 0, y: 0, hdg: 0, length: 40, type: 'line' }],
+        lanes: [{
+          s: 0,
+          leftLanes: [],
+          centerLane: { id: 0, type: 'none', width: [], roadMarks: [] },
+          rightLanes: [makeDrivingLane(-1), makeDrivingLane(-2), makeDrivingLane(-3)],
+        }],
+      });
+
+      // 2-lane outgoing road
+      const road2Lane = make4LaneRoad('141', 100, 0, Math.PI, 40);
+
+      const ep3 = computeRoadEndpoint(road3Lane, 'end', evaluateLineAtS);
+      const ep2 = computeRoadEndpoint(road2Lane, 'end', evaluateLineAtS);
+
+      const doc = makeDocWithJunction([road3Lane, road2Lane], 'junc-asym');
+      const result = generateConnectingRoads([ep3, ep2], 'junc-asym', anyRouting, doc);
+
+      // 3 incoming lanes → 2 outgoing lanes: should generate 2 pairs (capped at min)
+      const from3Lane = result.connections.filter((c) => c.incomingRoad === '140');
+      expect(from3Lane).toHaveLength(2);
+
+      // Verify lane links reference valid outgoing lanes (1 and 2, not 3)
+      for (const conn of from3Lane) {
+        const road = result.roads.find((r) => r.id === conn.connectingRoad)!;
+        const drivingLane = road.lanes[0].rightLanes[0];
+        const successorId = Math.abs(drivingLane.link?.successorId ?? 0);
+        expect(successorId).toBeLessThanOrEqual(2);
       }
     });
 
@@ -632,6 +669,75 @@ describe('connecting-road-builder', () => {
             expect(hdgDelta).toBeLessThan(Math.max(totalHdgChange * 0.4, 0.1));
           }
         }
+      }
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Heading match at connecting road endpoints
+  // -----------------------------------------------------------------------
+  describe('endpoint heading accuracy', () => {
+    /** Normalize angle to [-PI, PI]. */
+    function normalizeAngle(a: number): number {
+      while (a > Math.PI) a -= 2 * Math.PI;
+      while (a <= -Math.PI) a += 2 * Math.PI;
+      return a;
+    }
+
+    it('all connecting road end headings match outgoing road within 5°', () => {
+      // Helper: 4-lane road (2 left + 2 right driving lanes)
+      function mk4Lane(id: string, x: number, y: number, hdg: number, length: number): OdrRoad {
+        return createTestRoad({
+          id, name: `Road_${id}`, length,
+          planView: [{ s: 0, x, y, hdg, length, type: 'line' }],
+          lanes: [{
+            s: 0,
+            leftLanes: [makeDrivingLane(1), makeDrivingLane(2)],
+            centerLane: { id: 0, type: 'none', width: [], roadMarks: [] },
+            rightLanes: [makeDrivingLane(-1), makeDrivingLane(-2)],
+          }],
+        });
+      }
+
+      // Y-intersection similar to test11.xodr: 2 roads at ~65° angle
+      const roadA = mk4Lane('150', -60, 0, 0.11, 50);
+      const roadB = mk4Lane('151', 60, 0, Math.PI + 0.11, 50);
+      const roadC = mk4Lane('152', -10, 60, -1.03, 70);
+      const roadD = mk4Lane('153', 10, -30, Math.PI - 1.03, 30);
+
+      const epA = computeRoadEndpoint(roadA, 'end', evaluateLineAtS);
+      const epB = computeRoadEndpoint(roadB, 'end', evaluateLineAtS);
+      const epC = computeRoadEndpoint(roadC, 'end', evaluateLineAtS);
+      const epD = computeRoadEndpoint(roadD, 'end', evaluateLineAtS);
+
+      const doc = makeDocWithJunction([roadA, roadB, roadC, roadD], 'junc-hdg');
+      const result = generateConnectingRoads(
+        [epA, epB, epC, epD], 'junc-hdg', anyRouting, doc,
+      );
+
+      expect(result.roads.length).toBeGreaterThan(0);
+
+      // Build endpoint lookup
+      const epMap: Record<string, { hdg: number }> = {
+        '150': epA, '151': epB, '152': epC, '153': epD,
+      };
+
+      for (const road of result.roads) {
+        const successorLink = road.link?.successor;
+        if (!successorLink || successorLink.elementType !== 'road') continue;
+
+        const outEp = epMap[successorLink.elementId];
+        if (!outEp) continue;
+
+        // Expected end heading: outgoing direction reversed (into outgoing road)
+        const expectedEndHdg = outEp.hdg + Math.PI;
+
+        // Evaluate connecting road at its end
+        const endPose = evaluateLineAtS(road.planView, road.length);
+        const hdgError = Math.abs(normalizeAngle(endPose.hdg - expectedEndHdg));
+
+        // All connecting roads must match heading within 5° (0.087 rad)
+        expect(hdgError).toBeLessThan(0.087);
       }
     });
   });

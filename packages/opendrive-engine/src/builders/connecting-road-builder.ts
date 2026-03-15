@@ -130,19 +130,23 @@ function filterLanesForTurn(
 
 /**
  * Map eligible incoming lanes to outgoing receiving lane IDs.
- * Pairs are sorted inner-to-outer (by ascending |id|).
+ * Pairs are sorted inner-to-outer (by ascending |id|) and capped
+ * at the smaller of incoming eligible lanes and outgoing driving lanes.
  */
 function mapLanePairs(
   eligibleLanes: OdrLane[],
-  outgoingContactPoint: 'start' | 'end',
+  outgoing: RoadEndpoint,
 ): LanePair[] {
   // Sort by |id| ascending (inner to outer)
   const sorted = [...eligibleLanes].sort((a, b) => Math.abs(a.id) - Math.abs(b.id));
 
-  return sorted.map((lane, i) => ({
+  // Cap at outgoing lane count to avoid referencing non-existent lanes
+  const maxPairs = Math.min(sorted.length, outgoing.drivingLanes.length);
+
+  return sorted.slice(0, maxPairs).map((lane, i) => ({
     incomingLane: lane,
     // Receiving lane: 'start' → right lanes (negative IDs), 'end' → left lanes (positive IDs)
-    outgoingLaneId: outgoingContactPoint === 'start' ? -(i + 1) : i + 1,
+    outgoingLaneId: outgoing.contactPoint === 'start' ? -(i + 1) : i + 1,
   }));
 }
 
@@ -272,80 +276,6 @@ function buildOuterEdgePairs(
 }
 
 /**
- * Solve for an Arc geometry connecting two endpoints.
- *
- * Given start position+heading and end position, computes the curvature
- * and arc length of a circular arc. The arc's end heading is determined
- * by the arc itself (may not match the desired end heading).
- */
-function solveArcGeometry(
-  startX: number, startY: number, startHdg: number,
-  endX: number, endY: number,
-): OdrGeometry | null {
-  const dx = endX - startX;
-  const dy = endY - startY;
-  const dist = Math.sqrt(dx * dx + dy * dy);
-
-  if (dist < 0.01) return null;
-
-  // Angle from start to end
-  const chordAngle = Math.atan2(dy, dx);
-
-  // Half the angular difference between the chord and the start heading
-  const alpha = normalizeAngle(chordAngle - startHdg);
-
-  if (Math.abs(alpha) < 0.001) {
-    // Nearly straight — use a line
-    return {
-      s: 0,
-      x: startX,
-      y: startY,
-      hdg: startHdg,
-      length: dist,
-      type: 'line',
-    };
-  }
-
-  // Curvature: kappa = 2 * sin(alpha) / dist
-  const curvature = (2 * Math.sin(alpha)) / dist;
-  const radius = 1 / Math.abs(curvature);
-
-  // Arc length = 2 * alpha * radius
-  const arcLength = Math.abs(2 * alpha) * radius;
-
-  return {
-    s: 0,
-    x: startX,
-    y: startY,
-    hdg: startHdg,
-    length: arcLength,
-    type: 'arc',
-    curvature,
-  };
-}
-
-/**
- * Build a nearly-straight paramPoly3 transition segment.
- * Used as a short "bridge" to align heading at junction boundaries,
- * matching the pattern used by professional OpenDRIVE tools.
- */
-function buildTransitionSegment(
-  s: number,
-  x: number, y: number, hdg: number,
-  length: number,
-): OdrGeometry {
-  return {
-    s,
-    x, y, hdg,
-    length,
-    type: 'paramPoly3',
-    aU: 0, bU: 1, cU: 0, dU: 0,
-    aV: 0, bV: 0, cV: 0, dV: 0,
-    pRange: 'arcLength',
-  };
-}
-
-/**
  * Evaluate an arc at a given arc-length distance from its start.
  */
 function evaluateArc(
@@ -408,10 +338,14 @@ function tryArcWithSign(
 
   const t1 = (dx * (-n2y) - dy * (-n2x)) / det;
 
+  // t1 > 0 means center is on the expected side for this sign direction.
+  // t1 < 0 means the arc center is on the wrong side — skip.
+  if (t1 < 0) return null;
+
   // Circle center and radius
   const cx = startX + t1 * n1x;
   const cy = startY + t1 * n1y;
-  const radius = Math.abs(t1);
+  const radius = t1; // t1 >= 0 guaranteed
 
   if (radius < 0.5 || radius > 10000) return null;
 
@@ -420,9 +354,11 @@ function tryArcWithSign(
   const angleEnd = Math.atan2(endY - cy, endX - cx);
   let arcAngle = normalizeAngle(angleEnd - angleStart);
 
-  // Ensure arc sweeps in the correct direction
-  if (sign > 0 && arcAngle > 0) arcAngle -= 2 * Math.PI;
-  if (sign < 0 && arcAngle < 0) arcAngle += 2 * Math.PI;
+  // Ensure arc sweeps in the correct direction:
+  //   sign=1 (left/CCW): arcAngle should be positive
+  //   sign=-1 (right/CW): arcAngle should be negative
+  if (sign > 0 && arcAngle < 0) arcAngle += 2 * Math.PI;
+  if (sign < 0 && arcAngle > 0) arcAngle -= 2 * Math.PI;
 
   const arcLength = Math.abs(arcAngle) * radius;
   if (arcLength < 0.01 || arcLength > 1000) return null;
@@ -486,34 +422,8 @@ function solveConnectingGeometry(
     }
   }
 
-  // Fallback: position-only arc + short transition segment
-  const arcGeo = solveArcGeometry(startX, startY, startHdg, endX, endY);
-  if (!arcGeo || arcGeo.type === 'line') {
-    return arcGeo ? [arcGeo] : null;
-  }
-
-  // Check heading match
-  const arcEndHdg = startHdg + (arcGeo.curvature ?? 0) * arcGeo.length;
-  const hdgError = Math.abs(normalizeAngle(arcEndHdg - endHdg));
-
-  if (hdgError < 0.02) {
-    return [arcGeo];
-  }
-
-  // Add transition segment
-  const transitionLength = 0.14;
-  const arcEnd = evaluateArc(
-    arcGeo.x, arcGeo.y, arcGeo.hdg,
-    arcGeo.curvature ?? 0, arcGeo.length,
-  );
-
-  const transition = buildTransitionSegment(
-    arcGeo.length,
-    arcEnd.x, arcEnd.y, arcEnd.hdg,
-    transitionLength,
-  );
-
-  return [arcGeo, transition];
+  // Fallback: Hermite paramPoly3 — matches both position AND heading at both endpoints
+  return [solveHermiteGeometry(startX, startY, startHdg, endX, endY, endHdg, dist)];
 }
 
 /**
@@ -561,6 +471,69 @@ function solveNearStraightGeometry(
     aU, bU, cU, dU,
     aV, bV, cV, dV,
     pRange: 'arcLength',
+  };
+}
+
+/**
+ * Solve geometry using Hermite cubic interpolation (paramPoly3).
+ * Matches position AND heading at both endpoints exactly.
+ * Used as fallback when no single circular arc can satisfy both heading constraints.
+ *
+ * Uses normalized parameterization (p ∈ [0,1]) for better numerical stability
+ * on larger turns where arc-length parameterization can diverge.
+ */
+function solveHermiteGeometry(
+  startX: number, startY: number, startHdg: number,
+  endX: number, endY: number, endHdg: number,
+  dist: number,
+): OdrGeometry {
+  // Transform to local coordinates (start = origin, start heading = +x)
+  const gdx = endX - startX;
+  const gdy = endY - startY;
+  const cosH = Math.cos(-startHdg);
+  const sinH = Math.sin(-startHdg);
+  const localEndX = gdx * cosH - gdy * sinH;
+  const localEndY = gdx * sinH + gdy * cosH;
+  const localEndHdg = normalizeAngle(endHdg - startHdg);
+
+  // Hermite cubic with normalized parameter p ∈ [0,1]:
+  //   P(0) = (0, 0), P(1) = (localEndX, localEndY)
+  //   P'(0) = tangentScale * (1, 0), P'(1) = tangentScale * (cos θ, sin θ)
+  //
+  // The tangent scale controls curve "tightness". Using dist works well
+  // for most turn angles; for very sharp turns, reduce to avoid loops.
+  const tangentScale = dist;
+  const endTangentX = tangentScale * Math.cos(localEndHdg);
+  const endTangentY = tangentScale * Math.sin(localEndHdg);
+
+  // Hermite basis in normalized form:
+  //   U(p) = aU + bU*p + cU*p² + dU*p³
+  //   V(p) = aV + bV*p + cV*p² + dV*p³
+  //
+  //   U(0) = 0,           U(1) = localEndX
+  //   U'(0) = tangentScale, U'(1) = endTangentX
+  //   V(0) = 0,           V(1) = localEndY
+  //   V'(0) = 0,          V'(1) = endTangentY
+  const aU = 0;
+  const bU = tangentScale;
+  const cU = 3 * localEndX - 2 * tangentScale - endTangentX;
+  const dU = -2 * localEndX + tangentScale + endTangentX;
+
+  const aV = 0;
+  const bV = 0;
+  const cV = 3 * localEndY - endTangentY;
+  const dV = -2 * localEndY + endTangentY;
+
+  return {
+    s: 0,
+    x: startX,
+    y: startY,
+    hdg: startHdg,
+    length: dist,
+    type: 'paramPoly3',
+    aU, bU, cU, dU,
+    aV, bV, cV, dV,
+    pRange: 'normalized',
   };
 }
 
@@ -762,7 +735,7 @@ export function generateConnectingRoads(
       );
 
       // Map eligible lanes to outgoing lane pairs and generate one road per pair
-      const pairs = mapLanePairs(eligibleLanes, outgoing.contactPoint);
+      const pairs = mapLanePairs(eligibleLanes, outgoing);
 
       for (let p = 0; p < pairs.length; p++) {
         // Augment the doc with already-created roads for ID generation

@@ -81,8 +81,8 @@ export const EDITOR_METADATA_VERSION = '1.0.0';
 /** Default lane routing configuration. */
 export function createDefaultLaneRoutingConfig(): LaneRoutingConfig {
   return {
-    rightTurnLanes: 'outermost',
-    leftTurnLanes: 'innermost',
+    rightTurnLanes: 'any',
+    leftTurnLanes: 'any',
     generateUturn: false,
   };
 }
