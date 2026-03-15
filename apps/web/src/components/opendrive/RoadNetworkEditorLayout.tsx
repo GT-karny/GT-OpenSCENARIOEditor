@@ -32,6 +32,7 @@ import {
   useOpenDriveStoreApi,
   useOdrSidebarStore,
 } from '../../hooks/use-opendrive-store';
+import { editorMetadataStoreApi } from '../../stores/editor-metadata-store-instance';
 
 function ResizeHandle() {
   return (
@@ -110,6 +111,7 @@ export function RoadNetworkEditorLayout() {
   const { checkForIntersections } = useAutoJunctionDetection({
     enabled: true,
     odrStoreApi,
+    editorMetadataStoreApi,
   });
 
   // Reset s-position when road changes
