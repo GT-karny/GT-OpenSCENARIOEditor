@@ -43,6 +43,11 @@ interface GeneratedConnectingRoad {
   connection: OdrJunctionConnection;
 }
 
+interface LanePair {
+  incomingLane: OdrLane;
+  outgoingLaneId: number;
+}
+
 /**
  * Compute the endpoint position and heading for a road's start or end.
  */
@@ -123,11 +128,147 @@ function filterLanesForTurn(
   return lanes;
 }
 
+/**
+ * Map eligible incoming lanes to outgoing receiving lane IDs.
+ * Pairs are sorted inner-to-outer (by ascending |id|).
+ */
+function mapLanePairs(
+  eligibleLanes: OdrLane[],
+  outgoingContactPoint: 'start' | 'end',
+): LanePair[] {
+  // Sort by |id| ascending (inner to outer)
+  const sorted = [...eligibleLanes].sort((a, b) => Math.abs(a.id) - Math.abs(b.id));
+
+  return sorted.map((lane, i) => ({
+    incomingLane: lane,
+    // Receiving lane: 'start' → right lanes (negative IDs), 'end' → left lanes (positive IDs)
+    outgoingLaneId: outgoingContactPoint === 'start' ? -(i + 1) : i + 1,
+  }));
+}
+
+/**
+ * Compute the t-offset of a specific incoming lane's center from the road reference line.
+ */
+function computeIncomingLaneCenterT(
+  allDrivingLanes: OdrLane[],
+  targetLane: OdrLane,
+  contactPoint: 'start' | 'end',
+): number {
+  // Sort by |id| ascending (inner to outer)
+  const sorted = [...allDrivingLanes].sort((a, b) => Math.abs(a.id) - Math.abs(b.id));
+  // end → right lanes (negative t), start → left lanes (positive t)
+  const sign = contactPoint === 'end' ? -1 : 1;
+
+  let offset = 0;
+  for (const lane of sorted) {
+    const w = lane.width[0]?.a ?? 3.5;
+    if (lane.id === targetLane.id) {
+      return sign * (offset + w / 2);
+    }
+    offset += w;
+  }
+  return sign * (offset + 1.75); // fallback
+}
+
+/**
+ * Compute the t-offset of a receiving lane's center on the outgoing road.
+ * Uses drivingLanes widths as proxy (symmetric road assumed).
+ */
+function computeReceivingLaneCenterT(
+  outgoing: RoadEndpoint,
+  receivingLaneId: number,
+): number {
+  const sign = receivingLaneId < 0 ? -1 : 1;
+  const targetAbsId = Math.abs(receivingLaneId);
+
+  const sorted = [...outgoing.drivingLanes].sort((a, b) => Math.abs(a.id) - Math.abs(b.id));
+  let offset = 0;
+  for (let i = 0; i < sorted.length; i++) {
+    const w = sorted[i].width[0]?.a ?? 3.5;
+    if (i + 1 === targetAbsId) {
+      return sign * (offset + w / 2);
+    }
+    offset += w;
+  }
+  return sign * (offset + 1.75); // fallback
+}
+
 /** Normalize angle to [-PI, PI]. */
 function normalizeAngle(a: number): number {
   while (a > Math.PI) a -= 2 * Math.PI;
   while (a <= -Math.PI) a += 2 * Math.PI;
   return a;
+}
+
+/**
+ * Build the set of directed (incoming→outgoing) road pairs whose outermost
+ * connecting-road lane traces the junction's outer perimeter.
+ *
+ * Algorithm:
+ *   1. Sort road arms by their angle from the junction centroid.
+ *   2. For each pair of adjacent arms in this ring, exactly ONE direction
+ *      of travel forms the outer boundary — the one that keeps the vehicle
+ *      on the outside of the junction.
+ *   3. In RHT the outer curve between adjacent arms Aᵢ and Aᵢ₊₁ (sorted
+ *      counter-clockwise) is the connecting road going Aᵢ₊₁ → Aᵢ (a right
+ *      turn that hugs the outside).  In LHT it's Aᵢ → Aᵢ₊₁.
+ *
+ * This works for any number of arms (3-way, 4-way, 5-way, …) and both
+ * traffic rules without special-casing turn types.
+ */
+function buildOuterEdgePairs(
+  endpoints: RoadEndpoint[],
+  trafficRule: 'RHT' | 'LHT' = 'RHT',
+): Set<string> {
+  // Deduplicate road arms (split roads share the same junction endpoint)
+  const armMap = new Map<string, { roadId: string; angle: number }>();
+  for (const ep of endpoints) {
+    if (!armMap.has(ep.roadId)) {
+      armMap.set(ep.roadId, { roadId: ep.roadId, angle: 0 });
+    }
+  }
+
+  // Compute junction centroid
+  let cx = 0;
+  let cy = 0;
+  for (const ep of endpoints) {
+    cx += ep.x;
+    cy += ep.y;
+  }
+  cx /= endpoints.length;
+  cy /= endpoints.length;
+
+  // Compute angle from centroid for each arm
+  for (const ep of endpoints) {
+    const arm = armMap.get(ep.roadId);
+    if (arm) {
+      arm.angle = Math.atan2(ep.y - cy, ep.x - cx);
+    }
+  }
+
+  // Sort arms counter-clockwise (ascending angle)
+  const arms = [...armMap.values()].sort((a, b) => a.angle - b.angle);
+
+  // For each pair of adjacent arms, determine which direction is the outer edge.
+  //
+  // Arms are sorted counter-clockwise: Aᵢ, Aᵢ₊₁.
+  //
+  // RHT: vehicles drive on the right → the outer-edge curve between
+  //   adjacent arms is the connecting road going Aᵢ → Aᵢ₊₁ (a right turn
+  //   that hugs the outside of the junction).
+  // LHT: mirror → the outer-edge curve is Aᵢ₊₁ → Aᵢ.
+  const pairs = new Set<string>();
+  for (let i = 0; i < arms.length; i++) {
+    const next = (i + 1) % arms.length;
+    if (trafficRule === 'RHT') {
+      // Outer edge: Aᵢ → Aᵢ₊₁  (right turn hugging the outside)
+      pairs.add(`${arms[i].roadId}:${arms[next].roadId}`);
+    } else {
+      // LHT: Aᵢ₊₁ → Aᵢ  (left turn hugging the outside)
+      pairs.add(`${arms[next].roadId}:${arms[i].roadId}`);
+    }
+  }
+  return pairs;
 }
 
 /**
@@ -424,16 +565,17 @@ function solveNearStraightGeometry(
 }
 
 /**
- * Build a single connecting road between two endpoints.
+ * Build a single connecting road for one lane pair between two endpoints.
+ * Each connecting road has exactly one driving lane.
  */
 function buildConnectingRoad(
   spec: ConnectingRoadSpec,
   incoming: RoadEndpoint,
   outgoing: RoadEndpoint,
   junctionId: string,
-  laneCount: number,
+  lanePair: LanePair,
   doc: OpenDriveDocument,
-  outerRoadMark: boolean,
+  outerEdge: boolean,
 ): GeneratedConnectingRoad | null {
   // Outgoing heading: reverse the "into junction" direction to get "into the road arm"
   const outHdg = outgoing.hdg + Math.PI;
@@ -441,23 +583,10 @@ function buildConnectingRoad(
   // Compute incoming heading (direction leaving the incoming road into the junction)
   const inHdg = incoming.hdg;
 
-  // Offset reference line positions to driving lane centers.
-  // The connecting road's lane center sits at t=0 (via laneOffset), so the geometry
-  // must start/end at the correct lane centers on the incoming/outgoing roads.
-  //
-  // Incoming lanes (flowing INTO the junction):
-  //   contactPoint='end'  → right lanes, center at t = -(totalWidth/2)
-  //   contactPoint='start' → left lanes, center at t = +(totalWidth/2)
-  //
-  // Outgoing lanes (RECEIVING traffic from the junction) — opposite side:
-  //   contactPoint='start' → right lanes, center at t = -(totalWidth/2)
-  //   contactPoint='end'   → left lanes, center at t = +(totalWidth/2)
-  const incomingWidth = incoming.drivingLanes.reduce(
-    (sum, l) => sum + (l.width[0]?.a ?? 3.5), 0,
+  // Offset reference line to the specific lane center (not the center of all lanes).
+  const inT = computeIncomingLaneCenterT(
+    incoming.drivingLanes, lanePair.incomingLane, incoming.contactPoint,
   );
-  const inT = incoming.contactPoint === 'end'
-    ? -(incomingWidth / 2)
-    : incomingWidth / 2;
   // incoming.hdg is already the "into junction" direction; ref line hdg is the road's own hdg
   const inRefHdg = incoming.contactPoint === 'end'
     ? inHdg          // end: hdg = pose.hdg (no flip)
@@ -465,15 +594,8 @@ function buildConnectingRoad(
   const startX = incoming.x + inT * -Math.sin(inRefHdg);
   const startY = incoming.y + inT * Math.cos(inRefHdg);
 
-  // For outgoing, we need the RECEIVING lane center (opposite side from drivingLanes).
-  // outgoing.drivingLanes are lanes flowing INTO the junction from this road;
-  // the receiving lanes are on the opposite side with matching width.
-  const outgoingWidth = outgoing.drivingLanes.reduce(
-    (sum, l) => sum + (l.width[0]?.a ?? 3.5), 0,
-  );
-  const outT = outgoing.contactPoint === 'start'
-    ? -(outgoingWidth / 2)  // receiving → right lanes
-    : outgoingWidth / 2;    // receiving → left lanes
+  // Offset to the specific receiving lane center on the outgoing road.
+  const outT = computeReceivingLaneCenterT(outgoing, lanePair.outgoingLaneId);
   const outRefHdg = outgoing.contactPoint === 'end'
     ? outgoing.hdg           // end: hdg = pose.hdg
     : outgoing.hdg - Math.PI; // start: undo the +π flip
@@ -490,41 +612,24 @@ function buildConnectingRoad(
 
   const totalLength = geometries.reduce((sum, g) => sum + g.length, 0);
 
-  // Build lane section: driving lanes matching the incoming road
+  // Build lane section: single driving lane
   const roadId = nextNumericId(doc.roads.map((r) => r.id));
-  const rightLanes: OdrLane[] = [];
+  const laneWidth = lanePair.incomingLane.width[0]?.a ?? 3.5;
 
-  for (let i = 0; i < laneCount; i++) {
-    const laneId = -(i + 1);
-    const isOutermost = i === laneCount - 1;
-
-    // Lane-level predecessor/successor links for esmini routing:
-    //   predecessorId = incoming road lane ID that feeds this connecting lane
-    //   successorId = outgoing road lane ID where traffic exits
-    const predecessorId = incoming.drivingLanes[i]?.id;
-    // Outgoing lane depends on contact point:
-    //   'start' → vehicle enters going in ref direction → right lane -(i+1)
-    //   'end'   → vehicle enters going against ref direction → left lane (i+1)
-    const successorId =
-      spec.outgoingContactPoint === 'start' ? -(i + 1) : i + 1;
-
-    rightLanes.push({
-      id: laneId,
+  const rightLanes: OdrLane[] = [
+    {
+      id: -1,
       type: 'driving',
-      width: [{ sOffset: 0, a: 3.5, b: 0, c: 0, d: 0 }],
+      width: [{ sOffset: 0, a: laneWidth, b: 0, c: 0, d: 0 }],
       roadMarks: [
-        {
-          sOffset: 0,
-          type: isOutermost && outerRoadMark ? 'solid' : 'none',
-          color: 'standard',
-        },
+        { sOffset: 0, type: outerEdge ? 'solid' : 'none', color: 'standard' },
       ],
       link: {
-        ...(predecessorId !== undefined ? { predecessorId } : {}),
-        successorId,
+        predecessorId: lanePair.incomingLane.id,
+        successorId: lanePair.outgoingLaneId,
       },
-    });
-  }
+    },
+  ];
 
   const lanes: OdrLaneSection[] = [
     {
@@ -540,16 +645,13 @@ function buildConnectingRoad(
     },
   ];
 
-  // Compute laneOffset so the reference line runs through the driving lane center.
-  // The right lane extends from t=laneOffset to t=laneOffset-width, so setting
-  // laneOffset = width/2 centers the lane on the reference line (t=0).
-  const laneWidth = rightLanes[0]?.width[0]?.a ?? 3.5;
-  const laneOffsetA = (laneWidth * laneCount) / 2;
+  // laneOffset centers the single lane on the reference line
+  const laneOffsetA = laneWidth / 2;
 
   const road = createRoadFromPartial(
     {
       id: roadId,
-      name: `conn_${incoming.roadId}_to_${outgoing.roadId}`,
+      name: `conn_${incoming.roadId}_L${lanePair.incomingLane.id}_to_${outgoing.roadId}`,
       length: totalLength,
       junction: junctionId,
       link: {
@@ -574,15 +676,8 @@ function buildConnectingRoad(
     doc,
   );
 
-  // Build lane links
-  const laneLinks: { from: number; to: number }[] = [];
-  for (let i = 0; i < laneCount; i++) {
-    // Incoming lane → connecting road lane
-    const fromLaneId = incoming.drivingLanes[i]?.id;
-    if (fromLaneId !== undefined) {
-      laneLinks.push({ from: fromLaneId, to: -(i + 1) });
-    }
-  }
+  // Single lane link: incoming lane → connecting road lane -1
+  const laneLinks = [{ from: lanePair.incomingLane.id, to: -1 as number }];
 
   const allConnIds = doc.junctions.flatMap((j) => j.connections.map((c) => c.id));
   const connId = nextNumericId(allConnIds);
@@ -615,6 +710,12 @@ export function generateConnectingRoads(
 ): { roads: OdrRoad[]; connections: OdrJunctionConnection[] } {
   const roads: OdrRoad[] = [];
   const connections: OdrJunctionConnection[] = [];
+
+  // Determine which directed connecting-road pairs trace the junction's
+  // outer perimeter.  Only these get road-edge markings on the outermost lane.
+  // Detect traffic rule from first endpoint's road, defaulting to RHT.
+  const trafficRule = endpoints[0]?.road.rule ?? 'RHT';
+  const outerEdgePairs = buildOuterEdgePairs(endpoints, trafficRule);
 
   // For each pair of endpoints, generate connecting roads
   for (let i = 0; i < endpoints.length; i++) {
@@ -655,31 +756,43 @@ export function generateConnectingRoads(
         turnType,
       };
 
-      // Augment the doc with already-created roads for ID generation
-      const augmentedDoc = {
-        ...doc,
-        roads: [...doc.roads, ...roads],
-        junctions: doc.junctions.map((j) =>
-          j.id === junctionId
-            ? { ...j, connections: [...j.connections, ...connections] }
-            : j,
-        ),
-      };
-
-      const isOutermost = turnType !== 'straight';
-      const result = buildConnectingRoad(
-        spec,
-        incoming,
-        outgoing,
-        junctionId,
-        eligibleLanes.length,
-        augmentedDoc,
-        isOutermost,
+      // Check if this connecting road traces the junction's outer boundary
+      const isOuterEdge = outerEdgePairs.has(
+        `${incoming.roadId}:${outgoing.roadId}`,
       );
 
-      if (result) {
-        roads.push(result.road);
-        connections.push(result.connection);
+      // Map eligible lanes to outgoing lane pairs and generate one road per pair
+      const pairs = mapLanePairs(eligibleLanes, outgoing.contactPoint);
+
+      for (let p = 0; p < pairs.length; p++) {
+        // Augment the doc with already-created roads for ID generation
+        const augmentedDoc = {
+          ...doc,
+          roads: [...doc.roads, ...roads],
+          junctions: doc.junctions.map((jn) =>
+            jn.id === junctionId
+              ? { ...jn, connections: [...jn.connections, ...connections] }
+              : jn,
+          ),
+        };
+
+        // Only the outermost lane pair gets the solid road mark
+        const isOutermostPair = p === pairs.length - 1;
+
+        const result = buildConnectingRoad(
+          spec,
+          incoming,
+          outgoing,
+          junctionId,
+          pairs[p],
+          augmentedDoc,
+          isOuterEdge && isOutermostPair,
+        );
+
+        if (result) {
+          roads.push(result.road);
+          connections.push(result.connection);
+        }
       }
     }
   }

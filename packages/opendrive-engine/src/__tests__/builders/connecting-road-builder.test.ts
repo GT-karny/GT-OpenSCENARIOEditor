@@ -408,6 +408,146 @@ describe('connecting-road-builder', () => {
   });
 
   // -----------------------------------------------------------------------
+  // Per-lane connecting roads for multi-lane roads
+  // -----------------------------------------------------------------------
+  describe('per-lane connecting roads', () => {
+    /** Create a 4-lane bidirectional road (2 left + 2 right driving lanes). */
+    function make4LaneRoad(id: string, x: number, y: number, hdg: number, length: number): OdrRoad {
+      return createTestRoad({
+        id,
+        name: `Road_${id}`,
+        length,
+        planView: [{ s: 0, x, y, hdg, length, type: 'line' }],
+        lanes: [
+          {
+            s: 0,
+            leftLanes: [makeDrivingLane(1), makeDrivingLane(2)],
+            centerLane: { id: 0, type: 'none', width: [], roadMarks: [] },
+            rightLanes: [makeDrivingLane(-1), makeDrivingLane(-2)],
+          },
+        ],
+      });
+    }
+
+    it('generates one connecting road per lane pair for straight connections', () => {
+      // Two 4-lane roads facing each other
+      const roadA = make4LaneRoad('100', 0, 0, 0, 40);
+      const roadB = make4LaneRoad('101', 100, 0, Math.PI, 40);
+
+      const epA = computeRoadEndpoint(roadA, 'end', evaluateLineAtS);
+      const epB = computeRoadEndpoint(roadB, 'end', evaluateLineAtS);
+
+      const doc = makeDocWithJunction([roadA, roadB], 'junc-ml-1');
+      const result = generateConnectingRoads([epA, epB], 'junc-ml-1', anyRouting, doc);
+
+      // A→B: 2 lanes straight = 2 connecting roads
+      // B→A: 2 lanes straight = 2 connecting roads
+      const fromA = result.connections.filter((c) => c.incomingRoad === '100');
+      const fromB = result.connections.filter((c) => c.incomingRoad === '101');
+      expect(fromA).toHaveLength(2);
+      expect(fromB).toHaveLength(2);
+
+      // Each connecting road should have exactly 1 driving lane
+      for (const conn of result.connections) {
+        const road = result.roads.find((r) => r.id === conn.connectingRoad)!;
+        expect(road.lanes[0].rightLanes).toHaveLength(1);
+      }
+    });
+
+    it('generates per-lane roads for a 4-lane T-intersection with default routing', () => {
+      // Road A goes east, Road B goes north (bidirectional 4-lane)
+      const roadA = make4LaneRoad('110', -50, 0, 0, 50);
+      const roadB = make4LaneRoad('111', 15, -15, Math.PI / 2, 50);
+
+      const epA = computeRoadEndpoint(roadA, 'end', evaluateLineAtS);
+      const epB_start = computeRoadEndpoint(roadB, 'start', evaluateLineAtS);
+
+      const doc = makeDocWithJunction([roadA, roadB], 'junc-ml-2');
+      const result = generateConnectingRoads(
+        [epA, epB_start], 'junc-ml-2', defaultRouting, doc,
+      );
+
+      // epA has 2 driving lanes (right: -1, -2)
+      // epB_start has 2 driving lanes (left: 1, 2)
+      // A(end,hdg=0) → B(start): outHdg = 3PI/2+PI = PI/2, diff=PI/2 > 0 → left turn
+      //   → innermost only (lane -1, |id|=1) → 1 connecting road
+      // B(start,hdg=3PI/2) → A(end): outHdg = 0+PI = PI, diff=PI-3PI/2=-PI/2 → right turn
+      //   → outermost only (lane 2, |id|=2) → 1 connecting road
+      const fromA = result.connections.filter((c) => c.incomingRoad === '110');
+      const fromB = result.connections.filter((c) => c.incomingRoad === '111');
+
+      // Left turn from A: innermost lane only
+      expect(fromA).toHaveLength(1);
+      expect(fromA[0].laneLinks[0].from).toBe(-1); // innermost right lane
+
+      // Right turn from B: outermost lane only
+      expect(fromB).toHaveLength(1);
+      expect(fromB[0].laneLinks[0].from).toBe(2); // outermost left lane
+    });
+
+    it('generates 4 connecting roads per direction for 4-lane 4-way intersection', () => {
+      // 4-way intersection: roads end at junction boundary with 15m gap
+      const gap = 15;
+      const roadLen = 60;
+      const roadA = make4LaneRoad('120', -gap - roadLen, 0, 0, roadLen);        // ends at (-15, 0)
+      const roadB = make4LaneRoad('121', gap + roadLen, 0, Math.PI, roadLen);    // ends at (15, 0)
+      const roadC = make4LaneRoad('122', 0, -gap - roadLen, Math.PI / 2, roadLen); // ends at (0, -15)
+      const roadD = make4LaneRoad('123', 0, gap + roadLen, -Math.PI / 2, roadLen); // ends at (0, 15)
+
+      const epA = computeRoadEndpoint(roadA, 'end', evaluateLineAtS);
+      const epB = computeRoadEndpoint(roadB, 'end', evaluateLineAtS);
+      const epC = computeRoadEndpoint(roadC, 'end', evaluateLineAtS);
+      const epD = computeRoadEndpoint(roadD, 'end', evaluateLineAtS);
+
+      const doc = makeDocWithJunction([roadA, roadB, roadC, roadD], 'junc-ml-3');
+      const result = generateConnectingRoads(
+        [epA, epB, epC, epD], 'junc-ml-3', defaultRouting, doc,
+      );
+
+      // Per incoming direction (2 lanes):
+      //   straight (all lanes): 2 connecting roads
+      //   right turn (outermost): 1 connecting road
+      //   left turn (innermost): 1 connecting road
+      // Total per direction: 4, total: 16
+      expect(result.roads).toHaveLength(16);
+      expect(result.connections).toHaveLength(16);
+
+      // Every connecting road should have exactly 1 driving lane
+      for (const road of result.roads) {
+        expect(road.lanes[0].rightLanes).toHaveLength(1);
+      }
+    });
+
+    it('correctly maps lane predecessors and successors per lane pair', () => {
+      const roadA = make4LaneRoad('130', 0, 0, 0, 40);
+      const roadB = make4LaneRoad('131', 100, 0, Math.PI, 40);
+
+      const epA = computeRoadEndpoint(roadA, 'end', evaluateLineAtS);
+      const epB = computeRoadEndpoint(roadB, 'end', evaluateLineAtS);
+
+      const doc = makeDocWithJunction([roadA, roadB], 'junc-ml-4');
+      const result = generateConnectingRoads([epA, epB], 'junc-ml-4', anyRouting, doc);
+
+      // From A(end, right lanes -1,-2) to B(end, receiving=left lanes 1,2)
+      const fromA = result.connections.filter((c) => c.incomingRoad === '130');
+      expect(fromA).toHaveLength(2);
+
+      // Check that lane links map correctly:
+      // inner lane -1 → connecting road lane -1 → successor 1
+      // outer lane -2 → connecting road lane -1 → successor 2
+      const laneFroms = fromA.map((c) => c.laneLinks[0].from).sort((a, b) => a - b);
+      expect(laneFroms).toEqual([-2, -1]);
+
+      for (const conn of fromA) {
+        const road = result.roads.find((r) => r.id === conn.connectingRoad)!;
+        const drivingLane = road.lanes[0].rightLanes[0];
+        expect(drivingLane.link?.predecessorId).toBe(conn.laneLinks[0].from);
+        expect(drivingLane.link?.successorId).toBeDefined();
+      }
+    });
+  });
+
+  // -----------------------------------------------------------------------
   // G1 continuity & smoothness
   // -----------------------------------------------------------------------
   describe('G1 continuity of connecting road geometry', () => {
