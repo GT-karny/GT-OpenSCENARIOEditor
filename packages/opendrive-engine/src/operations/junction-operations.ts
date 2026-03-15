@@ -85,24 +85,80 @@ export interface JunctionCreationPlan {
 }
 
 /**
- * Compute the split distance from an intersection point.
- * Takes into account lane widths and intersection angle.
+ * Compute the actual road width at a given s-coordinate by summing
+ * all lane widths (left + right) from the active lane section.
+ *
+ * Evaluates the cubic polynomial width(ds) = a + b·ds + c·ds² + d·ds³
+ * for each lane directly (no dependency on @osce/opendrive).
  */
-function computeSplitDistance(road: OdrRoad, angle: number): number {
-  // Get max lane width at the intersection
-  const section = road.lanes[0];
-  if (!section) return 10;
+export function computeRoadWidthAtS(road: OdrRoad, s: number): number {
+  // Find the active lane section at s
+  let section = road.lanes[0];
+  for (const ls of road.lanes) {
+    if (ls.s <= s) section = ls;
+    else break;
+  }
+  if (!section) return 7; // fallback: 2 lanes × 3.5m
 
-  const totalLanes = section.leftLanes.length + section.rightLanes.length;
-  const avgLaneWidth = 3.5;
-  const roadWidth = totalLanes * avgLaneWidth;
+  const ds = s - section.s;
+  let totalWidth = 0;
+  const allLanes = [...section.leftLanes, ...section.rightLanes];
+  for (const lane of allLanes) {
+    if (lane.width.length === 0) continue;
+    // Find the active width record at ds
+    let wr = lane.width[0];
+    for (const w of lane.width) {
+      if (w.sOffset <= ds) wr = w;
+      else break;
+    }
+    const dw = ds - wr.sOffset;
+    totalWidth += wr.a + dw * (wr.b + dw * (wr.c + dw * wr.d));
+  }
+  return Math.max(totalWidth, 3.5); // minimum 1-lane width
+}
 
-  // Wider junction for acute angles, tighter for perpendicular
-  const angleFactor = 1 / Math.max(Math.sin(angle), 0.3);
-  const baseDist = (roadWidth / 2) * angleFactor;
+/**
+ * Compute the split distance from an intersection point.
+ *
+ * Derived from three physical constraints:
+ *
+ * 1. **Minimum turning radius** — connecting roads need at least R_min radius
+ *    for vehicle traversal (practical minimum ≈ 5m for passenger cars).
+ *
+ * 2. **Edge clearance** — at distance d from the intersection along road A,
+ *    the perpendicular distance to road B's centerline is `d · sin(angle)`.
+ *    For road A's edge to fully clear road B's edge:
+ *      `d ≥ (ownWidth + otherWidth) / (2 · sin(angle))`
+ *    This is geometrically exact and necessary to prevent road surface overlap.
+ *
+ * 3. **Arm length cap** — for acute angles, edge clearance diverges because
+ *    near-parallel roads separate very slowly. The junction arm length is
+ *    capped at a multiple of the wider road's width. The junction surface
+ *    fill covers any residual edge overlap within the capped area.
+ */
+export function computeSplitDistance(
+  ownRoadWidth: number,
+  otherRoadWidth: number,
+  angle: number,
+): number {
+  // Physical constants
+  const R_MIN_TURN = 5; // minimum turning radius for passenger cars [m]
+  const ARM_FACTOR = 2.5; // max arm length as multiple of road width
 
-  // Add margin
-  return Math.max(baseDist + 2, 8);
+  // Constraint 1: minimum turning radius
+  const turnConstraint = R_MIN_TURN;
+
+  // Constraint 2: edge clearance (geometrically exact)
+  const totalHalfWidth = (ownRoadWidth + otherRoadWidth) / 2;
+  const sinAngle = Math.sin(angle);
+  const edgeClearance = sinAngle > 1e-6 ? totalHalfWidth / sinAngle : Infinity;
+
+  // Constraint 3: arm length cap (proportional to road width)
+  // Replaces the old arbitrary 50m cap and sin-clamp with a principled bound.
+  const maxArmLength = Math.max(ownRoadWidth, otherRoadWidth) * ARM_FACTOR;
+
+  // Final: satisfy constraints 1 & 2, capped by constraint 3
+  return Math.min(Math.max(turnConstraint, edgeClearance), maxArmLength);
 }
 
 // ---------------------------------------------------------------------------
@@ -263,9 +319,22 @@ export function planJunctionCreation(
   const roadB = doc.roads.find((r) => r.id === intersection.roadIdB);
   if (!roadA || !roadB) return null;
 
+  // Compute actual road widths at the intersection point
+  const widthA = computeRoadWidthAtS(roadA, intersection.sA);
+  const widthB = computeRoadWidthAtS(roadB, intersection.sB);
+
+  // Minimum angle guard: at the maximum arm length, the lateral gap must
+  // exceed half the total road width for connecting roads to physically fit.
+  // If even the capped arm length can't provide enough lateral clearance,
+  // the intersection is too shallow for a junction (should be a merge/diverge).
+  const ARM_FACTOR = 2.5;
+  const totalHalfWidth = (widthA + widthB) / 2;
+  const maxArm = Math.max(widthA, widthB) * ARM_FACTOR;
+  if (maxArm * Math.sin(intersection.angle) < totalHalfWidth) return null;
+
   // Compute split distances (half-width of junction area along each road)
-  const splitDistA = computeSplitDistance(roadA, intersection.angle);
-  const splitDistB = computeSplitDistance(roadB, intersection.angle);
+  const splitDistA = computeSplitDistance(widthA, widthB, intersection.angle);
+  const splitDistB = computeSplitDistance(widthB, widthA, intersection.angle);
 
   // Compute s-coordinates at the 4 junction boundary points
   const sA_end = Math.min(intersection.sA + splitDistA, roadA.length);
