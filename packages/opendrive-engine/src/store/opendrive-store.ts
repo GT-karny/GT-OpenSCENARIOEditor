@@ -82,6 +82,10 @@ export interface OpenDriveStore extends OpenDriveState {
   // Header operations
   updateHeader(updates: Partial<OdrHeader>): void;
 
+  // Batch operations (group multiple mutations into a single undo step)
+  beginBatch(description: string): void;
+  endBatch(): void;
+
   // Undo/Redo
   undo(): void;
   redo(): void;
@@ -95,6 +99,11 @@ export interface OpenDriveStore extends OpenDriveState {
 
 export function createOpenDriveStore() {
   const commandHistory = new CommandHistory();
+
+  // Batch state: used by beginBatch/endBatch to collapse multiple commands
+  let batchSnapshot: OpenDriveDocument | null = null;
+  let batchDescription = '';
+  let batchUndoStackSize = 0;
 
   const store = createStore<OpenDriveStore>()((set, get) => {
     const getDoc = (): OpenDriveDocument => get().document;
@@ -613,6 +622,36 @@ export function createOpenDriveStore() {
         const cmd = new UpdateHeaderCommand(updates, getDoc, setDoc);
         commandHistory.execute(cmd);
         syncUndoRedo();
+      },
+
+      // --- Batch operations ---
+      beginBatch: (description: string): void => {
+        batchDescription = description;
+        batchSnapshot = structuredClone(getDoc());
+        batchUndoStackSize = commandHistory.getUndoStack().length;
+      },
+
+      endBatch: (): void => {
+        if (!batchSnapshot) return;
+
+        const snapshot = batchSnapshot;
+        const commandsAdded =
+          commandHistory.getUndoStack().length - batchUndoStackSize;
+
+        // Collapse all individual commands added during the batch
+        // into a single undo entry that restores the pre-batch snapshot.
+        commandHistory.collapseUndo(commandsAdded, {
+          id: uuidv4(),
+          description: batchDescription,
+          execute: () => { /* already executed */ },
+          undo: () => {
+            setDoc(snapshot);
+          },
+        });
+        syncUndoRedo();
+
+        batchSnapshot = null;
+        batchDescription = '';
       },
 
       // --- Undo/Redo ---

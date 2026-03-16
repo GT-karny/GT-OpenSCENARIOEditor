@@ -376,6 +376,7 @@ export function planJunctionCreation(
   const junction: OdrJunction = {
     id: junctionId,
     name: junctionName,
+    type: 'default',
     connections: [],
   };
 

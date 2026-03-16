@@ -19,6 +19,8 @@ import type { IntersectionResult } from '@osce/opendrive';
 import {
   planJunctionCreation,
   createDefaultLaneRoutingConfig,
+  executeJunctionCreationPlan,
+  executeJunctionRemoval,
 } from '@osce/opendrive-engine';
 import type { OpenDriveStore, EditorMetadataStore } from '@osce/opendrive-engine';
 import type { StoreApi } from 'zustand';
@@ -32,58 +34,14 @@ interface UseAutoJunctionDetectionOptions {
   editorMetadataStoreApi: StoreApi<EditorMetadataStore>;
 }
 
-/**
- * Remove an auto-created junction, its connecting roads, and segment roads from the store.
- * Also cleans up the corresponding editor metadata.
- */
-function removeAutoJunction(
-  store: OpenDriveStore,
-  metaStore: EditorMetadataStore,
-  junctionId: string,
-  connectingRoadIds: string[],
-  segmentRoadIds: string[],
-  virtualRoadIds: string[],
-): void {
-  // Clear road links pointing to this junction before removing it
-  for (const road of store.document.roads) {
-    if (
-      road.link?.predecessor?.elementType === 'junction' &&
-      road.link.predecessor.elementId === junctionId
-    ) {
-      store.setRoadLink(road.id, 'predecessor', undefined);
-    }
-    if (
-      road.link?.successor?.elementType === 'junction' &&
-      road.link.successor.elementId === junctionId
-    ) {
-      store.setRoadLink(road.id, 'successor', undefined);
-    }
-  }
+// ---------------------------------------------------------------------------
+// Pair key helpers
+// ---------------------------------------------------------------------------
 
-  // Remove connecting roads
-  for (const connRoadId of connectingRoadIds) {
-    if (store.document.roads.some((r) => r.id === connRoadId)) {
-      store.removeRoad(connRoadId);
-    }
-  }
-
-  // Remove segment roads
-  for (const segId of segmentRoadIds) {
-    if (store.document.roads.some((r) => r.id === segId)) {
-      store.removeRoad(segId);
-    }
-  }
-
-  // Remove junction
-  if (store.document.junctions.some((j) => j.id === junctionId)) {
-    store.removeJunction(junctionId);
-  }
-
-  // Clean up editor metadata
-  metaStore.removeJunctionMetadata(junctionId);
-  for (const vrId of virtualRoadIds) {
-    metaStore.removeVirtualRoad(vrId);
-  }
+function makePairKey(hit: IntersectionResult): string {
+  const a = hit.roadIdA;
+  const b = hit.roadIdB;
+  return a < b ? `${a}:${b}` : `${b}:${a}`;
 }
 
 /**
@@ -103,6 +61,190 @@ function getSegmentRoadIdsForJunction(
   return segmentIds;
 }
 
+// ---------------------------------------------------------------------------
+// Phase 1: Cleanup stale auto-junctions
+// ---------------------------------------------------------------------------
+
+/**
+ * Validate existing auto-junctions and remove any whose segment roads
+ * no longer exist in the document.
+ */
+function cleanupStaleJunctions(
+  odrStoreApi: StoreApi<OpenDriveStore>,
+  metaStoreApi: StoreApi<EditorMetadataStore>,
+): void {
+  const metaStore = metaStoreApi.getState();
+  const autoJunctionMetas = metaStore.metadata.junctionMetadata.filter((m) => m.autoCreated);
+
+  for (const meta of autoJunctionMetas) {
+    // Always read fresh document after potential mutations
+    const store = odrStoreApi.getState();
+    const freshDoc = store.document;
+
+    // Check if the junction itself still exists in the document
+    const junctionExists = freshDoc.junctions.some((j) => j.id === meta.junctionId);
+    if (!junctionExists) {
+      // Junction was removed externally (e.g., manual delete) — clean up metadata only
+      metaStore.removeJunctionMetadata(meta.junctionId);
+      for (const vrId of meta.intersectingVirtualRoadIds) {
+        metaStore.removeVirtualRoad(vrId);
+      }
+      continue;
+    }
+
+    // Check if segment roads still exist
+    const segmentRoadIds = getSegmentRoadIdsForJunction(
+      metaStore,
+      meta.intersectingVirtualRoadIds,
+    );
+    const segmentsExist =
+      segmentRoadIds.length > 0 &&
+      segmentRoadIds.some((id) => freshDoc.roads.some((r) => r.id === id));
+
+    if (!segmentsExist) {
+      // No segment roads found — remove the junction and metadata
+      store.beginBatch(`Remove stale junction ${meta.junctionId}`);
+      executeJunctionRemoval(store, metaStore, meta.junctionId, meta);
+      store.endBatch();
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2: Build handled pair keys
+// ---------------------------------------------------------------------------
+
+/**
+ * Build sets of pair keys for intersections already handled by existing junctions.
+ * Returns both auto-junction pairs and manual-junction pairs.
+ */
+function buildHandledPairKeys(
+  doc: OpenDriveDocument,
+  metaStore: EditorMetadataStore,
+): { autoKeys: Set<string>; manualKeys: Set<string>; autoJunctionIds: Set<string> } {
+  const autoKeys = new Set<string>();
+  const manualKeys = new Set<string>();
+  const autoJunctionIds = new Set<string>();
+
+  for (const meta of metaStore.metadata.junctionMetadata.filter((m) => m.autoCreated)) {
+    autoJunctionIds.add(meta.junctionId);
+    const junc = doc.junctions.find((j) => j.id === meta.junctionId);
+    if (junc) {
+      addPairKeysFromConnections(junc.connections, autoKeys);
+    }
+  }
+
+  for (const junc of doc.junctions) {
+    if (autoJunctionIds.has(junc.id)) continue;
+    addPairKeysFromConnections(junc.connections, manualKeys);
+  }
+
+  return { autoKeys, manualKeys, autoJunctionIds };
+}
+
+function addPairKeysFromConnections(
+  connections: { incomingRoad: string }[],
+  keys: Set<string>,
+): void {
+  const ids = [...new Set(connections.map((c) => c.incomingRoad))];
+  for (let i = 0; i < ids.length; i++) {
+    for (let j = i + 1; j < ids.length; j++) {
+      keys.add(ids[i] < ids[j] ? `${ids[i]}:${ids[j]}` : `${ids[j]}:${ids[i]}`);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3: Detect and process new intersections
+// ---------------------------------------------------------------------------
+
+/**
+ * Build the set of road IDs that should be excluded from intersection detection
+ * (connecting roads and roads already belonging to a junction).
+ */
+function buildExcludeIds(doc: OpenDriveDocument): Set<string> {
+  const excludeIds = new Set<string>();
+  for (const junction of doc.junctions) {
+    for (const conn of junction.connections) {
+      excludeIds.add(conn.connectingRoad);
+    }
+  }
+  for (const road of doc.roads) {
+    if (road.junction !== '-1') {
+      excludeIds.add(road.id);
+    }
+  }
+  return excludeIds;
+}
+
+/** Maximum iterations to prevent infinite loops in junction creation. */
+const MAX_JUNCTION_ITERATIONS = 10;
+
+/**
+ * Iteratively detect new intersections and create junctions.
+ *
+ * Re-detects after each junction creation because road IDs change
+ * after splitting — old intersection hits would reference stale IDs.
+ * Processes one junction per iteration for correctness.
+ */
+function processNewIntersections(
+  odrStoreApi: StoreApi<OpenDriveStore>,
+  metaStoreApi: StoreApi<EditorMetadataStore>,
+): void {
+  const routingConfig = createDefaultLaneRoutingConfig();
+  let iterationCount = 0;
+
+  while (iterationCount < MAX_JUNCTION_ITERATIONS) {
+    iterationCount++;
+
+    const store = odrStoreApi.getState();
+    const freshDoc = store.document;
+    const metaStore = metaStoreApi.getState();
+
+    // Detect intersections, excluding connecting/junction roads
+    const excludeIds = buildExcludeIds(freshDoc);
+    const freshIntersections = detectRoadIntersections(freshDoc.roads, {
+      excludeRoadIds: excludeIds,
+    });
+
+    if (freshIntersections.length === 0) break;
+
+    // Build handled keys from current state
+    const { autoKeys, manualKeys } = buildHandledPairKeys(freshDoc, metaStore);
+
+    // Find and process the first valid unhandled intersection
+    let processedOne = false;
+    for (const hit of freshIntersections) {
+      const pairKey = makePairKey(hit);
+      if (autoKeys.has(pairKey) || manualKeys.has(pairKey)) continue;
+
+      // Plan junction creation with fresh document
+      const currentDoc = odrStoreApi.getState().document;
+      const plan = planJunctionCreation(currentDoc, {
+        intersection: hit,
+        routingConfig,
+        evaluateAtS: evaluateReferenceLineAtS,
+      });
+
+      if (!plan) continue;
+
+      // Execute the plan as a single undo step
+      store.beginBatch(`Create junction at intersection`);
+      executeJunctionCreationPlan(store, metaStore, plan);
+      store.endBatch();
+
+      processedOne = true;
+      break;
+    }
+
+    if (!processedOne) break;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Hook
+// ---------------------------------------------------------------------------
+
 /**
  * Returns a `checkForIntersections` callback that runs intersection detection
  * on the current document, auto-creates junctions for new crossings,
@@ -117,205 +259,14 @@ export function useAutoJunctionDetection({
   editorMetadataStoreApi,
 }: UseAutoJunctionDetectionOptions) {
   const checkForIntersections = useCallback(
-    (document: OpenDriveDocument) => {
+    (_document: OpenDriveDocument) => {
       if (!enabled) return;
 
-      // Collect connecting road IDs and segment road IDs to exclude from detection
-      const excludeRoadIds = new Set<string>();
-      for (const junction of document.junctions) {
-        for (const conn of junction.connections) {
-          excludeRoadIds.add(conn.connectingRoad);
-        }
-      }
-      for (const road of document.roads) {
-        if (road.junction !== '-1') {
-          excludeRoadIds.add(road.id);
-        }
-      }
+      // Phase 1: Validate and clean up stale auto-junctions
+      cleanupStaleJunctions(odrStoreApi, editorMetadataStoreApi);
 
-      // Detect current intersections
-      const intersections = detectRoadIntersections(document.roads, {
-        excludeRoadIds,
-      });
-
-      // Build map of current intersection results by pair key
-      const currentHitsByPairKey = new Map<string, IntersectionResult>();
-      for (const hit of intersections) {
-        currentHitsByPairKey.set(makePairKey(hit), hit);
-      }
-
-      // --- Cleanup: validate existing auto-junctions ---
-      // NOTE: Use odrStoreApi.getState() for fresh state access throughout,
-      // because store mutations (removeRoad, addRoad, etc.) create new Zustand
-      // state objects, making any cached snapshot stale.
-      const store = odrStoreApi.getState();
-      const metaStore = editorMetadataStoreApi.getState();
-      const autoJunctionMetas = metaStore.metadata.junctionMetadata.filter(
-        (m) => m.autoCreated,
-      );
-
-      // Track which pair keys are already handled by surviving auto-junctions
-      const handledPairKeys = new Set<string>();
-      // Track auto-created junction IDs for filtering manualJunctionPairs
-      const autoJunctionIds = new Set<string>();
-
-      for (const meta of autoJunctionMetas) {
-        autoJunctionIds.add(meta.junctionId);
-
-        // Always read fresh document after potential mutations
-        const freshDoc = odrStoreApi.getState().document;
-
-        // Check if the junction itself still exists in the document
-        const junctionExists = freshDoc.junctions.some(
-          (j) => j.id === meta.junctionId,
-        );
-        if (!junctionExists) {
-          // Junction was removed externally (e.g., manual delete) — clean up metadata only
-          metaStore.removeJunctionMetadata(meta.junctionId);
-          for (const vrId of meta.intersectingVirtualRoadIds) {
-            metaStore.removeVirtualRoad(vrId);
-          }
-          continue;
-        }
-
-        // Collect segment road IDs for this junction's virtual roads
-        const segmentRoadIds = getSegmentRoadIdsForJunction(
-          metaStore,
-          meta.intersectingVirtualRoadIds,
-        );
-
-        // Check if segment roads still exist — if roads were split, originals are gone
-        // but segments should still be present. If segments exist, the junction is valid.
-        const segmentsExist = segmentRoadIds.length > 0 &&
-          segmentRoadIds.some((id) => freshDoc.roads.some((r) => r.id === id));
-
-        if (segmentsExist) {
-          // Junction is valid (roads were split and segments exist) — keep it.
-          // Mark all pair keys involving this junction's incoming roads as handled.
-          const incomingRoadIds = new Set<string>();
-          const junction = freshDoc.junctions.find((j) => j.id === meta.junctionId);
-          if (junction) {
-            for (const conn of junction.connections) {
-              incomingRoadIds.add(conn.incomingRoad);
-            }
-          }
-          const ids = [...incomingRoadIds];
-          for (let i = 0; i < ids.length; i++) {
-            for (let j = i + 1; j < ids.length; j++) {
-              handledPairKeys.add(
-                ids[i] < ids[j] ? `${ids[i]}:${ids[j]}` : `${ids[j]}:${ids[i]}`,
-              );
-            }
-          }
-        } else {
-          // No segment roads found — junction's roads may have been fully removed.
-          // Remove the junction and metadata.
-          removeAutoJunction(
-            store,
-            metaStore,
-            meta.junctionId,
-            meta.connectingRoadIds,
-            segmentRoadIds,
-            meta.intersectingVirtualRoadIds,
-          );
-        }
-      }
-
-      // --- Create: add junctions for new intersections ---
-      // Check manually-created junctions (exclude auto-created ones already in handledPairKeys)
-      const refreshedDoc = odrStoreApi.getState().document;
-      const manualJunctionPairs = new Set<string>();
-      for (const junction of refreshedDoc.junctions) {
-        if (autoJunctionIds.has(junction.id)) continue;
-        const roadIds = new Set<string>();
-        for (const conn of junction.connections) {
-          roadIds.add(conn.incomingRoad);
-        }
-        const ids = [...roadIds];
-        for (let i = 0; i < ids.length; i++) {
-          for (let j = i + 1; j < ids.length; j++) {
-            manualJunctionPairs.add(
-              ids[i] < ids[j] ? `${ids[i]}:${ids[j]}` : `${ids[j]}:${ids[i]}`,
-            );
-          }
-        }
-      }
-
-      const routingConfig = createDefaultLaneRoutingConfig();
-
-      for (const hit of intersections) {
-        const pairKey = makePairKey(hit);
-
-        // Skip if already handled (auto or manual)
-        if (handledPairKeys.has(pairKey) || manualJunctionPairs.has(pairKey)) {
-          continue;
-        }
-
-        // Plan junction creation (includes road splitting)
-        // Always use fresh document for planning
-        const currentDoc = odrStoreApi.getState().document;
-        const plan = planJunctionCreation(currentDoc, {
-          intersection: hit,
-          routingConfig,
-          evaluateAtS: evaluateReferenceLineAtS,
-        });
-
-        if (!plan) continue;
-
-        // --- Execute the plan ---
-
-        // 1. Replace original roads with split segments
-        for (const split of plan.roadSplits) {
-          // Remove the original road
-          store.removeRoad(split.originalRoadId);
-
-          // Add the before and after segments
-          store.addRoad(split.beforeSegment);
-          store.addRoad(split.afterSegment);
-        }
-
-        // 2. Add junction FIRST to get the actual junction ID
-        const addedJunction = store.addJunction({
-          name: plan.junction.name,
-          type: 'default',
-          connections: plan.junction.connections,
-        });
-
-        // 3. Add connecting roads with the actual junction ID
-        const addedConnRoadIds: string[] = [];
-        for (const connRoad of plan.connectingRoads) {
-          const added = store.addRoad({
-            ...connRoad,
-            junction: addedJunction.id,
-          });
-          addedConnRoadIds.push(added.id);
-        }
-
-        // 4. Set road links on segment roads pointing to the junction
-        for (const ep of plan.incomingEndpoints) {
-          const linkType: 'predecessor' | 'successor' =
-            ep.contactPoint === 'end' ? 'successor' : 'predecessor';
-          store.setRoadLink(ep.roadId, linkType, {
-            elementType: 'junction',
-            elementId: addedJunction.id,
-          });
-        }
-
-        // 5. Persist virtual roads and junction metadata in EditorMetadataStore
-        const freshMetaStore = editorMetadataStoreApi.getState();
-        for (const vr of plan.virtualRoads) {
-          freshMetaStore.addVirtualRoad(vr);
-        }
-        freshMetaStore.addJunctionMetadata({
-          ...plan.junctionMetadata,
-          junctionId: addedJunction.id,
-          connectingRoadIds: addedConnRoadIds,
-          autoCreated: true,
-        });
-
-        // 6. Mark this pair as handled so subsequent iterations don't re-process it
-        handledPairKeys.add(pairKey);
-      }
+      // Phase 2 & 3: Detect new intersections and create junctions
+      processNewIntersections(odrStoreApi, editorMetadataStoreApi);
     },
     [enabled, odrStoreApi, editorMetadataStoreApi],
   );
@@ -325,10 +276,4 @@ export function useAutoJunctionDetection({
   }, [editorMetadataStoreApi]);
 
   return { checkForIntersections, resetAutoJunctions };
-}
-
-function makePairKey(hit: IntersectionResult): string {
-  const a = hit.roadIdA;
-  const b = hit.roadIdB;
-  return a < b ? `${a}:${b}` : `${b}:${a}`;
 }

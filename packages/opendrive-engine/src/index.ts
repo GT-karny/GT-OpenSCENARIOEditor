@@ -124,6 +124,13 @@ export type {
   RoadSplitInfo,
 } from './operations/junction-operations.js';
 
+// Junction execution
+export {
+  executeJunctionCreationPlan,
+  executeJunctionRemoval,
+} from './operations/junction-execution.js';
+export type { ExecuteJunctionResult } from './operations/junction-execution.js';
+
 // Virtual junction operations
 export {
   createVirtualJunction,
