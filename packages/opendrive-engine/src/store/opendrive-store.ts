@@ -200,7 +200,12 @@ export function createOpenDriveStore() {
       ): void => {
         const doc = getDoc();
         const roadIdx = findRoadIndex(doc, roadId);
-        if (roadIdx === -1) return;
+        if (roadIdx === -1) {
+          console.warn(
+            `[opendrive-store] setRoadLink: road "${roadId}" not found in document (${linkType} link)`,
+          );
+          return;
+        }
 
         const prevDoc = structuredClone(doc);
         setDoc(

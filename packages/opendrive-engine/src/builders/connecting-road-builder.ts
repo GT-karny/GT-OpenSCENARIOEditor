@@ -50,11 +50,19 @@ interface LanePair {
 
 /**
  * Compute the endpoint position and heading for a road's start or end.
+ *
+ * The trafficRule parameter controls which lanes are considered "incoming"
+ * (traveling toward the junction):
+ * - RHT (right-hand traffic, default): contactPoint='end' → rightLanes,
+ *   contactPoint='start' → leftLanes
+ * - LHT (left-hand traffic): contactPoint='end' → leftLanes,
+ *   contactPoint='start' → rightLanes
  */
 export function computeRoadEndpoint(
   road: OdrRoad,
   contactPoint: 'start' | 'end',
   evaluateAtS: (planView: readonly OdrGeometry[], s: number) => { x: number; y: number; hdg: number },
+  trafficRule: 'RHT' | 'LHT' = 'RHT',
 ): RoadEndpoint {
   const s = contactPoint === 'start' ? 0 : road.length;
   const pose = evaluateAtS(road.planView, s);
@@ -64,14 +72,23 @@ export function computeRoadEndpoint(
     ? road.lanes[0]
     : road.lanes[road.lanes.length - 1];
 
-  // Only include lanes traveling TOWARD the junction:
-  //   contactPoint='end'  → right lanes (negative IDs, travel with ref direction toward end)
-  //   contactPoint='start' → left lanes (positive IDs, travel against ref direction toward start)
-  const drivingLanes = section
-    ? (contactPoint === 'end' ? section.rightLanes : section.leftLanes).filter(
-        (l) => l.type === 'driving' || l.type === 'bidirectional',
-      )
-    : [];
+  // Only include lanes traveling TOWARD the junction.
+  // In RHT: right lanes travel with ref direction, left lanes travel against.
+  // In LHT: left lanes travel with ref direction, right lanes travel against.
+  let incomingLanes: OdrLane[];
+  if (trafficRule === 'RHT') {
+    incomingLanes = section
+      ? (contactPoint === 'end' ? section.rightLanes : section.leftLanes)
+      : [];
+  } else {
+    incomingLanes = section
+      ? (contactPoint === 'end' ? section.leftLanes : section.rightLanes)
+      : [];
+  }
+
+  const drivingLanes = incomingLanes.filter(
+    (l) => l.type === 'driving' || l.type === 'bidirectional',
+  );
 
   return {
     roadId: road.id,

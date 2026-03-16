@@ -30,6 +30,9 @@ export function createTestRoad(overrides?: Partial<OdrRoad>): OdrRoad {
     name: overrides?.name ?? 'TestRoad',
     length: overrides?.length ?? 100,
     junction: overrides?.junction ?? '-1',
+    rule: overrides?.rule,
+    link: overrides?.link,
+    type: overrides?.type,
     planView: overrides?.planView ?? [
       { s: 0, x: 0, y: 0, hdg: 0, length: 50, type: 'line' },
       { s: 50, x: 50, y: 0, hdg: 0, length: 50, type: 'line' },

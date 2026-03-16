@@ -51,6 +51,8 @@ export interface CreateJunctionParams {
   intersection: IntersectionResult;
   routingConfig: LaneRoutingConfig;
   evaluateAtS: EvaluateAtS;
+  /** Traffic rule: 'RHT' (right-hand traffic, default) or 'LHT' (left-hand traffic). */
+  trafficRule?: 'RHT' | 'LHT';
 }
 
 /**
@@ -314,7 +316,7 @@ export function planJunctionCreation(
   doc: OpenDriveDocument,
   params: CreateJunctionParams,
 ): JunctionCreationPlan | null {
-  const { intersection, routingConfig, evaluateAtS } = params;
+  const { intersection, routingConfig, evaluateAtS, trafficRule = 'RHT' } = params;
 
   const roadA = doc.roads.find((r) => r.id === intersection.roadIdA);
   const roadB = doc.roads.find((r) => r.id === intersection.roadIdB);
@@ -379,8 +381,8 @@ export function planJunctionCreation(
   const virtualRoads: VirtualRoad[] = [];
   const segmentRoads: OdrRoad[] = [];
 
-  buildRoadArm(roadA, sA_start, sA_end, armA, evaluateAtS, usedIds, endpoints, roadSplits, virtualRoads, segmentRoads);
-  buildRoadArm(roadB, sB_start, sB_end, armB, evaluateAtS, usedIds, endpoints, roadSplits, virtualRoads, segmentRoads);
+  buildRoadArm(roadA, sA_start, sA_end, armA, evaluateAtS, usedIds, endpoints, roadSplits, virtualRoads, segmentRoads, trafficRule);
+  buildRoadArm(roadB, sB_start, sB_end, armB, evaluateAtS, usedIds, endpoints, roadSplits, virtualRoads, segmentRoads, trafficRule);
 
   const junction: OdrJunction = {
     id: junctionId,
@@ -451,6 +453,7 @@ function buildRoadArm(
   roadSplits: RoadSplitInfo[],
   virtualRoads: VirtualRoad[],
   segmentRoads: OdrRoad[],
+  trafficRule: 'RHT' | 'LHT' = 'RHT',
 ): void {
   if (armSide === 'both') {
     // Standard X/Y-junction: split into before + after
@@ -458,8 +461,8 @@ function buildRoadArm(
     const segAfter = createRoadSegment(road, sEnd, road.length, evaluateAtS, usedIds);
 
     endpoints.push(
-      computeRoadEndpoint(segAfter, 'start', evaluateAtS),
-      computeRoadEndpoint(segBefore, 'end', evaluateAtS),
+      computeRoadEndpoint(segAfter, 'start', evaluateAtS, trafficRule),
+      computeRoadEndpoint(segBefore, 'end', evaluateAtS, trafficRule),
     );
 
     roadSplits.push({
@@ -482,7 +485,7 @@ function buildRoadArm(
     const segAfter = createRoadSegment(road, sEnd, road.length, evaluateAtS, usedIds);
 
     endpoints.push(
-      computeRoadEndpoint(segBefore, 'end', evaluateAtS),
+      computeRoadEndpoint(segBefore, 'end', evaluateAtS, trafficRule),
     );
 
     roadSplits.push({
@@ -503,7 +506,7 @@ function buildRoadArm(
     const segAfter = createRoadSegment(road, sEnd, road.length, evaluateAtS, usedIds);
 
     endpoints.push(
-      computeRoadEndpoint(segAfter, 'start', evaluateAtS),
+      computeRoadEndpoint(segAfter, 'start', evaluateAtS, trafficRule),
     );
 
     roadSplits.push({

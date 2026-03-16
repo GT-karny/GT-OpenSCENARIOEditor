@@ -11,6 +11,7 @@
  * - This module handles HOW to create/remove them
  */
 
+import type { OdrLaneSection } from '@osce/shared';
 import type { OpenDriveStore } from '../store/opendrive-store.js';
 import type { EditorMetadataStore } from '../store/editor-metadata-store.js';
 import type { JunctionMetadata, VirtualRoad } from '../store/editor-metadata-types.js';
@@ -76,6 +77,152 @@ function addVirtualRoadIfNew(
   if (parentVR) return; // Already tracked as a segment of another VR
 
   metaStore.addVirtualRoad(newVR);
+}
+
+/**
+ * Build an updated laneSection with lane-level links set for a direct road-to-road connection.
+ *
+ * OpenDRIVE spec (v1.6 opendrive_16_lane.xsd:357-359) requires explicit lane links
+ * when roads share a direct road-to-road connection (not via junction).
+ * Lane IDs are matched by value (lane -1 ↔ lane -1, lane 1 ↔ lane 1, etc.).
+ *
+ * Returns [updatedSection, modified] — a new section object if changes were needed.
+ */
+function buildSectionWithLaneLinks(
+  section: OdrLaneSection,
+  linkType: 'predecessorId' | 'successorId',
+  targetSection: OdrLaneSection,
+): [OdrLaneSection, boolean] {
+  const targetLaneIds = new Set([
+    ...targetSection.leftLanes.map((l) => l.id),
+    ...targetSection.rightLanes.map((l) => l.id),
+  ]);
+
+  let modified = false;
+  const updateLanes = (lanes: OdrLaneSection['leftLanes']) =>
+    lanes.map((lane) => {
+      if (targetLaneIds.has(lane.id)) {
+        const currentVal = lane.link?.[linkType];
+        if (currentVal !== lane.id) {
+          modified = true;
+          return { ...lane, link: { ...lane.link, [linkType]: lane.id } };
+        }
+      }
+      return lane;
+    });
+
+  const updatedLeft = updateLanes(section.leftLanes);
+  const updatedRight = updateLanes(section.rightLanes);
+
+  if (!modified) return [section, false];
+  return [{ ...section, leftLanes: updatedLeft, rightLanes: updatedRight }, true];
+}
+
+/**
+ * Synchronize lane-level links for roads that have direct road-to-road connections.
+ * Iterates through the specified road IDs and sets lane predecessor/successor IDs
+ * based on road-level link topology.
+ */
+export function syncLaneLinksForDirectConnections(
+  odrStore: OpenDriveStore,
+  roadIds: string[],
+): void {
+  const processedPairs = new Set<string>();
+
+  // Helper: apply lane link updates to a road if any section changed
+  const applyUpdate = (
+    roadId: string,
+    lanes: OdrLaneSection[],
+    sectionIdx: number,
+    updatedSection: OdrLaneSection,
+  ) => {
+    const newLanes = lanes.map((ls, i) => (i === sectionIdx ? updatedSection : ls));
+    odrStore.updateRoad(roadId, { lanes: newLanes });
+  };
+
+  for (const roadId of roadIds) {
+    // Re-read doc after each iteration since updateRoad changes the document
+    const currentDoc = odrStore.getDocument();
+    const road = currentDoc.roads.find((r) => r.id === roadId);
+    if (!road || road.lanes.length === 0) continue;
+
+    // Process successor link (road-to-road only)
+    if (road.link?.successor?.elementType === 'road') {
+      const targetId = road.link.successor.elementId;
+      const pairKey = `${roadId}:succ:${targetId}`;
+      if (!processedPairs.has(pairKey)) {
+        processedPairs.add(pairKey);
+        const targetRoad = currentDoc.roads.find((r) => r.id === targetId);
+        if (targetRoad && targetRoad.lanes.length > 0) {
+          const contactPoint = road.link.successor.contactPoint;
+          const thisIdx = road.lanes.length - 1;
+          const targetIdx = contactPoint === 'start' ? 0 : targetRoad.lanes.length - 1;
+
+          // This road's last laneSection → successorId
+          const [updatedThis, thisModified] = buildSectionWithLaneLinks(
+            road.lanes[thisIdx],
+            'successorId',
+            targetRoad.lanes[targetIdx],
+          );
+          if (thisModified) {
+            applyUpdate(roadId, road.lanes, thisIdx, updatedThis);
+          }
+
+          // Target road's facing laneSection → predecessorId or successorId
+          const targetLinkType =
+            contactPoint === 'start' ? 'predecessorId' : 'successorId';
+          const [updatedTarget, targetModified] = buildSectionWithLaneLinks(
+            targetRoad.lanes[targetIdx],
+            targetLinkType,
+            road.lanes[thisIdx],
+          );
+          if (targetModified) {
+            applyUpdate(targetId, targetRoad.lanes, targetIdx, updatedTarget);
+          }
+        }
+      }
+    }
+
+    // Process predecessor link (road-to-road only)
+    if (road.link?.predecessor?.elementType === 'road') {
+      const targetId = road.link.predecessor.elementId;
+      const pairKey = `${roadId}:pred:${targetId}`;
+      if (!processedPairs.has(pairKey)) {
+        processedPairs.add(pairKey);
+        // Re-read for fresh data after potential successor update above
+        const freshDoc = odrStore.getDocument();
+        const freshRoad = freshDoc.roads.find((r) => r.id === roadId);
+        const targetRoad = freshDoc.roads.find((r) => r.id === targetId);
+        if (freshRoad && targetRoad && freshRoad.lanes.length > 0 && targetRoad.lanes.length > 0) {
+          const contactPoint = road.link.predecessor.contactPoint;
+          const thisIdx = 0;
+          const targetIdx = contactPoint === 'start' ? 0 : targetRoad.lanes.length - 1;
+
+          // This road's first laneSection → predecessorId
+          const [updatedThis, thisModified] = buildSectionWithLaneLinks(
+            freshRoad.lanes[thisIdx],
+            'predecessorId',
+            targetRoad.lanes[targetIdx],
+          );
+          if (thisModified) {
+            applyUpdate(roadId, freshRoad.lanes, thisIdx, updatedThis);
+          }
+
+          // Target road's facing laneSection
+          const targetLinkType =
+            contactPoint === 'start' ? 'predecessorId' : 'successorId';
+          const [updatedTarget, targetModified] = buildSectionWithLaneLinks(
+            targetRoad.lanes[targetIdx],
+            targetLinkType,
+            freshRoad.lanes[thisIdx],
+          );
+          if (targetModified) {
+            applyUpdate(targetId, targetRoad.lanes, targetIdx, updatedTarget);
+          }
+        }
+      }
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -203,6 +350,31 @@ export function executeJunctionCreationPlan(
         break;
       }
     }
+
+    // --- 5b. Repair stale incomingRoad references in existing junctions ---
+    // After removing the original road and adding segments, existing junctions
+    // may still reference the old road ID in their connections. Use connecting
+    // road links as ground truth to find the correct replacement.
+    const postSplitDoc = odrStore.getDocument();
+    for (const junction of postSplitDoc.junctions) {
+      const hasStale = junction.connections.some(
+        (c) => c.incomingRoad === split.originalRoadId,
+      );
+      if (!hasStale) continue;
+
+      const updated = junction.connections.map((conn) => {
+        if (conn.incomingRoad !== split.originalRoadId) return conn;
+        // Use connecting road's predecessor link as ground truth
+        const connRoad = postSplitDoc.roads.find((r) => r.id === conn.connectingRoad);
+        if (!connRoad) return conn;
+        const actualId = connRoad.link?.predecessor?.elementId;
+        if (actualId && postSplitDoc.roads.some((r) => r.id === actualId)) {
+          return { ...conn, incomingRoad: actualId };
+        }
+        return conn;
+      });
+      odrStore.updateJunction(junction.id, { connections: updated });
+    }
   }
 
   // --- 6. Add junction ---
@@ -223,16 +395,57 @@ export function executeJunctionCreationPlan(
   }
 
   // --- 8. Set road links on segment roads pointing to the junction ---
-  for (const ep of plan.incomingEndpoints) {
-    const linkType: 'predecessor' | 'successor' =
-      ep.contactPoint === 'end' ? 'successor' : 'predecessor';
-    odrStore.setRoadLink(ep.roadId, linkType, {
-      elementType: 'junction',
-      elementId: addedJunction.id,
-    });
+  // Build a lookup of which segment+contactPoint faces the junction,
+  // then iterate roadSplits (whose IDs match the actually-added roads)
+  // to set the junction link.
+  const junctionFacing = new Set(
+    plan.incomingEndpoints.map((ep) => `${ep.roadId}:${ep.contactPoint}`),
+  );
+
+  for (const split of plan.roadSplits) {
+    // Before segment's END faces the junction → successor = junction
+    if (junctionFacing.has(`${split.beforeSegment.id}:end`)) {
+      odrStore.setRoadLink(split.beforeSegment.id, 'successor', {
+        elementType: 'junction',
+        elementId: addedJunction.id,
+      });
+    }
+    // After segment's START faces the junction → predecessor = junction
+    if (junctionFacing.has(`${split.afterSegment.id}:start`)) {
+      odrStore.setRoadLink(split.afterSegment.id, 'predecessor', {
+        elementType: 'junction',
+        elementId: addedJunction.id,
+      });
+    }
   }
 
-  // --- 9. Persist virtual roads and junction metadata ---
+  // Verify links were actually set
+  const postDoc = odrStore.getDocument();
+  for (const ep of plan.incomingEndpoints) {
+    const road = postDoc.roads.find((r) => r.id === ep.roadId);
+    const linkType = ep.contactPoint === 'end' ? 'successor' : 'predecessor';
+    const link = road?.link?.[linkType];
+    if (!road) {
+      console.warn(
+        `[junction-execution] Road ${ep.roadId} not found in document after junction creation`,
+      );
+    } else if (!link || link.elementId !== addedJunction.id) {
+      console.warn(
+        `[junction-execution] Road ${ep.roadId} missing ${linkType} link to junction ${addedJunction.id}`,
+      );
+    }
+  }
+
+  // --- 9. Synchronize lane-level links for direct road-to-road connections ---
+  // Segment roads that are NOT junction-facing have direct road-to-road links
+  // and need explicit lane predecessor/successor IDs per OpenDRIVE spec.
+  const allSegmentIds = plan.roadSplits.flatMap((split) => [
+    split.beforeSegment.id,
+    split.afterSegment.id,
+  ]);
+  syncLaneLinksForDirectConnections(odrStore, allSegmentIds);
+
+  // --- 10. Persist virtual roads and junction metadata ---
   for (const vr of plan.virtualRoads) {
     addVirtualRoadIfNew(metaStore, vr);
   }

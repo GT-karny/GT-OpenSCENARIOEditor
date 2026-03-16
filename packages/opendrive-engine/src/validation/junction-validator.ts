@@ -9,6 +9,7 @@
 
 import type { OdrRoad, OdrGeometry, OpenDriveDocument } from '@osce/shared';
 import type { JunctionCreationPlan } from '../operations/junction-operations.js';
+import type { OpenDriveStore } from '../store/opendrive-store.js';
 
 // ---------------------------------------------------------------------------
 // Result types
@@ -420,4 +421,157 @@ export function validateJunctionPlan(
     warnings,
     errors,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Post-execution validation
+// ---------------------------------------------------------------------------
+
+/**
+ * Validate junction link integrity in a document.
+ *
+ * Checks:
+ * 1. Every junction connection's incomingRoad exists in the document
+ * 2. Every junction connection's connectingRoad exists in the document
+ * 3. Every incoming road has a predecessor or successor link back to the junction
+ */
+export function validateJunctionLinks(doc: OpenDriveDocument): ValidationEntry[] {
+  const entries: ValidationEntry[] = [];
+  const roadIds = new Set(doc.roads.map((r) => r.id));
+
+  for (const junction of doc.junctions) {
+    for (const conn of junction.connections) {
+      // Check incomingRoad exists
+      if (!roadIds.has(conn.incomingRoad)) {
+        entries.push({
+          level: 'error',
+          code: 'STALE_INCOMING_ROAD',
+          message: `Junction ${junction.id} connection references non-existent incomingRoad "${conn.incomingRoad}"`,
+        });
+        continue;
+      }
+
+      // Check connectingRoad exists
+      if (!roadIds.has(conn.connectingRoad)) {
+        entries.push({
+          level: 'error',
+          code: 'STALE_CONNECTING_ROAD',
+          message: `Junction ${junction.id} connection references non-existent connectingRoad "${conn.connectingRoad}"`,
+        });
+        continue;
+      }
+
+      // Check incoming road has a link back to the junction
+      const incomingRoad = doc.roads.find((r) => r.id === conn.incomingRoad);
+      if (incomingRoad) {
+        const hasPredLink =
+          incomingRoad.link?.predecessor?.elementType === 'junction' &&
+          incomingRoad.link.predecessor.elementId === junction.id;
+        const hasSuccLink =
+          incomingRoad.link?.successor?.elementType === 'junction' &&
+          incomingRoad.link.successor.elementId === junction.id;
+        if (!hasPredLink && !hasSuccLink) {
+          entries.push({
+            level: 'error',
+            code: 'MISSING_ROAD_JUNCTION_LINK',
+            message: `Road ${conn.incomingRoad} is listed as incoming for junction ${junction.id} but has no link back to it`,
+          });
+        }
+      }
+    }
+  }
+
+  return entries;
+}
+
+/**
+ * Repair junction link integrity issues in a document.
+ *
+ * Uses connecting road predecessor/successor links as ground truth to:
+ * 1. Fix stale incomingRoad references in junction connections
+ * 2. Add missing road-to-junction links on incoming roads
+ *
+ * Returns the number of repairs made.
+ */
+export function repairJunctionLinks(
+  store: OpenDriveStore,
+  doc: OpenDriveDocument,
+): number {
+  let repairCount = 0;
+  const roadIds = new Set(doc.roads.map((r) => r.id));
+
+  for (const junction of doc.junctions) {
+    let connectionsModified = false;
+    const repairedConnections = junction.connections.map((conn) => {
+      // Fix stale incomingRoad references
+      if (!roadIds.has(conn.incomingRoad)) {
+        const connRoad = doc.roads.find((r) => r.id === conn.connectingRoad);
+        if (connRoad) {
+          const actualId = connRoad.link?.predecessor?.elementId;
+          if (actualId && roadIds.has(actualId)) {
+            connectionsModified = true;
+            repairCount++;
+            return { ...conn, incomingRoad: actualId };
+          }
+        }
+      }
+      return conn;
+    });
+
+    if (connectionsModified) {
+      store.updateJunction(junction.id, { connections: repairedConnections });
+    }
+
+    // Fix missing road-to-junction links on incoming roads
+    // Re-read doc after potential junction updates
+    const freshDoc = store.getDocument();
+    const freshJunction = freshDoc.junctions.find((j) => j.id === junction.id);
+    if (!freshJunction) continue;
+
+    // Collect unique incoming roads for this junction
+    const incomingRoadIds = [...new Set(freshJunction.connections.map((c) => c.incomingRoad))];
+    for (const incomingRoadId of incomingRoadIds) {
+      const road = freshDoc.roads.find((r) => r.id === incomingRoadId);
+      if (!road) continue;
+
+      const hasPredLink =
+        road.link?.predecessor?.elementType === 'junction' &&
+        road.link.predecessor.elementId === junction.id;
+      const hasSuccLink =
+        road.link?.successor?.elementType === 'junction' &&
+        road.link.successor.elementId === junction.id;
+
+      if (!hasPredLink && !hasSuccLink) {
+        // Determine which end faces the junction from connecting road topology
+        const conn = freshJunction.connections.find((c) => c.incomingRoad === incomingRoadId);
+        if (!conn) continue;
+        const connRoad = freshDoc.roads.find((r) => r.id === conn.connectingRoad);
+        if (!connRoad) continue;
+
+        // If connecting road's predecessor is this incoming road, the incoming
+        // road's end faces the junction (successor = junction).
+        // If connecting road's successor is this incoming road, the incoming
+        // road's start faces the junction (predecessor = junction).
+        if (connRoad.link?.predecessor?.elementId === incomingRoadId) {
+          const linkType =
+            connRoad.link.predecessor.contactPoint === 'start' ? 'predecessor' : 'successor';
+          store.setRoadLink(incomingRoadId, linkType, {
+            elementType: 'junction',
+            elementId: junction.id,
+          });
+          repairCount++;
+        } else if (connRoad.link?.successor?.elementId === incomingRoadId) {
+          const linkType =
+            connRoad.link.successor.contactPoint === 'start' ? 'predecessor' : 'successor';
+          store.setRoadLink(incomingRoadId, linkType, {
+            elementType: 'junction',
+            elementId: junction.id,
+          });
+          repairCount++;
+        }
+      }
+    }
+  }
+
+  return repairCount;
 }

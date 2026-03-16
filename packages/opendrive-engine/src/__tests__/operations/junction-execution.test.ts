@@ -5,6 +5,7 @@ import { createEditorMetadataStore } from '../../store/editor-metadata-store.js'
 import {
   executeJunctionCreationPlan,
   executeJunctionRemoval,
+  syncLaneLinksForDirectConnections,
 } from '../../operations/junction-execution.js';
 import type { JunctionCreationPlan, RoadSplitInfo } from '../../operations/junction-operations.js';
 import type { JunctionMetadata, VirtualRoad } from '../../store/editor-metadata-types.js';
@@ -273,6 +274,122 @@ describe('executeJunctionCreationPlan', () => {
     expect(docRestored.roads.length).toBe(roadCountBefore);
     expect(docRestored.roads.some((r) => r.id === '1')).toBe(true);
     expect(docRestored.roads.some((r) => r.id === '2')).toBe(true);
+  });
+});
+
+describe('syncLaneLinksForDirectConnections', () => {
+  it('sets lane predecessor/successor IDs for road-to-road connections', () => {
+    const odrStoreApi = createOpenDriveStore();
+    const odrStore = odrStoreApi.getState();
+
+    // Create two directly connected roads: road43 → road75
+    const road43 = createTestRoad({
+      id: '43',
+      length: 100,
+      planView: [{ s: 0, x: 0, y: 0, hdg: 0, length: 100, type: 'line' }],
+      link: {
+        successor: { elementType: 'road', elementId: '75', contactPoint: 'start' },
+      },
+      lanes: [
+        {
+          s: 0,
+          leftLanes: [
+            { id: 1, type: 'driving', width: [{ sOffset: 0, a: 3.5, b: 0, c: 0, d: 0 }], roadMarks: [] },
+          ],
+          centerLane: { id: 0, type: 'none', width: [], roadMarks: [] },
+          rightLanes: [
+            { id: -1, type: 'driving', width: [{ sOffset: 0, a: 3.5, b: 0, c: 0, d: 0 }], roadMarks: [] },
+          ],
+        },
+      ],
+    });
+    const road75 = createTestRoad({
+      id: '75',
+      length: 200,
+      planView: [{ s: 0, x: 100, y: 0, hdg: 0, length: 200, type: 'line' }],
+      link: {
+        predecessor: { elementType: 'road', elementId: '43', contactPoint: 'end' },
+      },
+      lanes: [
+        {
+          s: 0,
+          leftLanes: [
+            { id: 1, type: 'driving', width: [{ sOffset: 0, a: 3.5, b: 0, c: 0, d: 0 }], roadMarks: [] },
+          ],
+          centerLane: { id: 0, type: 'none', width: [], roadMarks: [] },
+          rightLanes: [
+            { id: -1, type: 'driving', width: [{ sOffset: 0, a: 3.5, b: 0, c: 0, d: 0 }], roadMarks: [] },
+          ],
+        },
+      ],
+    });
+
+    odrStore.addRoad(road43);
+    odrStore.addRoad(road75);
+
+    // Sync lane links
+    syncLaneLinksForDirectConnections(odrStore, ['43', '75']);
+
+    const doc = odrStore.getDocument();
+
+    // Road 43's lanes should have successorId set
+    const r43 = doc.roads.find((r) => r.id === '43')!;
+    const r43LastSection = r43.lanes[r43.lanes.length - 1];
+    expect(r43LastSection.rightLanes[0].link?.successorId).toBe(-1);
+    expect(r43LastSection.leftLanes[0].link?.successorId).toBe(1);
+
+    // Road 75's lanes should have predecessorId set
+    const r75 = doc.roads.find((r) => r.id === '75')!;
+    const r75FirstSection = r75.lanes[0];
+    expect(r75FirstSection.rightLanes[0].link?.predecessorId).toBe(-1);
+    expect(r75FirstSection.leftLanes[0].link?.predecessorId).toBe(1);
+  });
+
+  it('sets lane links on segment roads with inherited road-to-road connections', () => {
+    const odrStoreApi = createOpenDriveStore();
+    const metaStoreApi = createEditorMetadataStore();
+
+    // Create Road C that will be the successor of Road A
+    const roadC = createTestRoad({
+      id: '3',
+      length: 100,
+      planView: [{ s: 0, x: 100, y: 0, hdg: 0, length: 100, type: 'line' }],
+      link: {
+        predecessor: { elementType: 'road', elementId: '1', contactPoint: 'end' },
+      },
+    });
+
+    // Road A with successor = Road C
+    const { plan, originalRoadA, originalRoadB } = makeCrossingPlan();
+    const odrStore = odrStoreApi.getState();
+
+    // Set Road A's successor to Road C before adding it
+    const roadAWithLink = {
+      ...originalRoadA,
+      link: { successor: { elementType: 'road' as const, elementId: '3', contactPoint: 'start' as const } },
+    };
+    odrStore.addRoad(roadAWithLink);
+    odrStore.addRoad(originalRoadB);
+    odrStore.addRoad(roadC);
+
+    odrStore.beginBatch('Create junction');
+    executeJunctionCreationPlan(odrStore, metaStoreApi.getState(), plan);
+    odrStore.endBatch();
+
+    const doc = odrStore.getDocument();
+
+    // After segment '11' should inherit successor = Road C
+    const seg11 = doc.roads.find((r) => r.id === '11');
+    expect(seg11?.link?.successor?.elementType).toBe('road');
+    expect(seg11?.link?.successor?.elementId).toBe('3');
+
+    // Lane links should be set on segment 11 and Road C
+    const seg11LastSection = seg11!.lanes[seg11!.lanes.length - 1];
+    expect(seg11LastSection.rightLanes[0].link?.successorId).toBe(-1);
+
+    const rC = doc.roads.find((r) => r.id === '3')!;
+    const rCFirstSection = rC.lanes[0];
+    expect(rCFirstSection.rightLanes[0].link?.predecessorId).toBe(-1);
   });
 });
 

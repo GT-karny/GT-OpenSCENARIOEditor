@@ -22,6 +22,8 @@ import {
   executeJunctionCreationPlan,
   executeJunctionRemoval,
   validateJunctionPlan,
+  validateJunctionLinks,
+  repairJunctionLinks,
 } from '@osce/opendrive-engine';
 import type {
   OpenDriveStore,
@@ -355,6 +357,20 @@ export function useAutoJunctionDetection({
 
       // Phase 2 & 3: Detect new intersections and create junctions
       processNewIntersections(odrStoreApi, editorMetadataStoreApi);
+
+      // Phase 4: Validate and repair junction link integrity
+      const store = odrStoreApi.getState();
+      const doc = store.document;
+      const linkErrors = validateJunctionLinks(doc);
+      if (linkErrors.length > 0) {
+        console.warn('[auto-junction] Link integrity issues detected:', linkErrors);
+        store.beginBatch('Repair junction links');
+        const repaired = repairJunctionLinks(store, doc);
+        store.endBatch();
+        if (repaired > 0) {
+          console.debug(`[auto-junction] Repaired ${repaired} junction link(s)`);
+        }
+      }
     },
     [enabled, odrStoreApi, editorMetadataStoreApi],
   );

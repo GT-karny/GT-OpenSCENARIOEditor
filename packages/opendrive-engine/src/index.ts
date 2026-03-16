@@ -128,6 +128,7 @@ export type {
 export {
   executeJunctionCreationPlan,
   executeJunctionRemoval,
+  syncLaneLinksForDirectConnections,
 } from './operations/junction-execution.js';
 export type { ExecuteJunctionResult } from './operations/junction-execution.js';
 
@@ -141,7 +142,11 @@ export type {
 } from './operations/junction-topology.js';
 
 // Junction validation
-export { validateJunctionPlan } from './validation/junction-validator.js';
+export {
+  validateJunctionPlan,
+  validateJunctionLinks,
+  repairJunctionLinks,
+} from './validation/junction-validator.js';
 export type {
   JunctionValidationResult,
   ValidationEntry,

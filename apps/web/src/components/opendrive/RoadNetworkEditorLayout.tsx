@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import type { OdrRoad, OdrRoadLinkElement, OdrLane, OdrSignal, OdrJunction, OdrHeader, OpenDriveDocument } from '@osce/shared';
-import { createRoadFromPartial } from '@osce/opendrive-engine';
+import { createRoadFromPartial, syncLaneLinksForDirectConnections } from '@osce/opendrive-engine';
 import { ScenarioViewer } from '@osce/3d-viewer';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { ErrorBoundary } from '../ErrorBoundary';
@@ -371,6 +371,9 @@ export function RoadNetworkEditorLayout() {
         contactPoint: sourceContactPoint,
       };
       store.setRoadLink(targetRoadId, reverseType, targetLink);
+
+      // Sync lane-level links (OpenDRIVE spec requires explicit lane predecessor/successor)
+      syncLaneLinksForDirectConnections(store, [roadId, targetRoadId]);
     },
     [odrStoreApi],
   );
