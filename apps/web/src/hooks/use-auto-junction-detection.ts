@@ -21,8 +21,13 @@ import {
   createDefaultLaneRoutingConfig,
   executeJunctionCreationPlan,
   executeJunctionRemoval,
+  validateJunctionPlan,
 } from '@osce/opendrive-engine';
-import type { OpenDriveStore, EditorMetadataStore } from '@osce/opendrive-engine';
+import type {
+  OpenDriveStore,
+  EditorMetadataStore,
+  JunctionCreationPlan,
+} from '@osce/opendrive-engine';
 import type { StoreApi } from 'zustand';
 
 interface UseAutoJunctionDetectionOptions {
@@ -181,11 +186,63 @@ function buildExcludeIds(doc: OpenDriveDocument): Set<string> {
 const MAX_JUNCTION_ITERATIONS = 10;
 
 /**
+ * Check if two junction creation plans conflict (share a road that would be split).
+ * Conflicting plans cannot be executed in the same iteration because
+ * the first split changes road IDs, invalidating the second plan.
+ */
+function plansConflict(
+  planA: JunctionCreationPlan,
+  planB: JunctionCreationPlan,
+): boolean {
+  const roadsA = new Set(planA.roadSplits.map((s) => s.originalRoadId));
+  for (const split of planB.roadSplits) {
+    if (roadsA.has(split.originalRoadId)) return true;
+  }
+  return false;
+}
+
+/**
+ * Select non-conflicting plans from a set of candidates.
+ *
+ * Uses a greedy approach: sort plans by the earliest split s-coordinate
+ * (process "earlier" junctions first), then greedily add plans that don't
+ * conflict with already-selected ones.
+ */
+function selectNonConflictingPlans(
+  candidates: Array<{ plan: JunctionCreationPlan; hit: IntersectionResult }>,
+): JunctionCreationPlan[] {
+  if (candidates.length <= 1) {
+    return candidates.map((c) => c.plan);
+  }
+
+  // Sort by minimum s-coordinate (process early intersections first)
+  const sorted = [...candidates].sort((a, b) => {
+    const minSA = Math.min(a.hit.sA, a.hit.sB);
+    const minSB = Math.min(b.hit.sA, b.hit.sB);
+    return minSA - minSB;
+  });
+
+  const selected: JunctionCreationPlan[] = [];
+  for (const candidate of sorted) {
+    const hasConflict = selected.some((sel) => plansConflict(sel, candidate.plan));
+    if (!hasConflict) {
+      selected.push(candidate.plan);
+    }
+  }
+
+  return selected;
+}
+
+/**
  * Iteratively detect new intersections and create junctions.
  *
- * Re-detects after each junction creation because road IDs change
- * after splitting — old intersection hits would reference stale IDs.
- * Processes one junction per iteration for correctness.
+ * Improved approach:
+ * 1. Detect all intersections
+ * 2. Plan all unhandled junctions
+ * 3. Detect conflicts between plans (shared roads)
+ * 4. Select non-conflicting subset
+ * 5. Execute selected plans sequentially (s-order for shared roads)
+ * 6. Re-detect for remaining intersections (new road IDs after splitting)
  */
 function processNewIntersections(
   odrStoreApi: StoreApi<OpenDriveStore>,
@@ -212,13 +269,12 @@ function processNewIntersections(
     // Build handled keys from current state
     const { autoKeys, manualKeys } = buildHandledPairKeys(freshDoc, metaStore);
 
-    // Find and process the first valid unhandled intersection
-    let processedOne = false;
+    // Phase A: Plan all unhandled intersections
+    const candidates: Array<{ plan: JunctionCreationPlan; hit: IntersectionResult }> = [];
     for (const hit of freshIntersections) {
       const pairKey = makePairKey(hit);
       if (autoKeys.has(pairKey) || manualKeys.has(pairKey)) continue;
 
-      // Plan junction creation with fresh document
       const currentDoc = odrStoreApi.getState().document;
       const plan = planJunctionCreation(currentDoc, {
         intersection: hit,
@@ -228,16 +284,48 @@ function processNewIntersections(
 
       if (!plan) continue;
 
-      // Execute the plan as a single undo step
-      store.beginBatch(`Create junction at intersection`);
-      executeJunctionCreationPlan(store, metaStore, plan);
-      store.endBatch();
+      // Validate the plan
+      const validation = validateJunctionPlan(plan, currentDoc);
+      if (!validation.valid) {
+        console.warn(
+          `[auto-junction] Skipping invalid junction plan:`,
+          validation.errors.map((e) => e.message),
+        );
+        continue;
+      }
+      if (validation.warnings.length > 0) {
+        console.debug(
+          `[auto-junction] Plan warnings:`,
+          validation.warnings.map((w) => w.message),
+        );
+      }
 
-      processedOne = true;
-      break;
+      candidates.push({ plan, hit });
     }
 
-    if (!processedOne) break;
+    if (candidates.length === 0) break;
+
+    // Phase B: Select non-conflicting plans
+    const plansToExecute = selectNonConflictingPlans(candidates);
+
+    // Phase C: Execute selected plans sequentially
+    let executedAny = false;
+    for (const plan of plansToExecute) {
+      // Re-read fresh store state (previous execution may have changed it)
+      const currentStore = odrStoreApi.getState();
+      const currentMeta = metaStoreApi.getState();
+
+      currentStore.beginBatch(`Create junction at intersection`);
+      executeJunctionCreationPlan(currentStore, currentMeta, plan);
+      currentStore.endBatch();
+      executedAny = true;
+    }
+
+    if (!executedAny) break;
+
+    // If we only executed one plan and there were more candidates,
+    // continue to re-detect (road IDs changed). If we executed all
+    // candidates, we still re-detect in case splitting created new crossings.
   }
 }
 

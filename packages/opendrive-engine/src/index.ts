@@ -131,6 +131,22 @@ export {
 } from './operations/junction-execution.js';
 export type { ExecuteJunctionResult } from './operations/junction-execution.js';
 
+// Junction topology
+export { classifyTopology } from './operations/junction-topology.js';
+export type {
+  JunctionTopology,
+  TopologyInfo,
+  ArmSide,
+  JunctionArm,
+} from './operations/junction-topology.js';
+
+// Junction validation
+export { validateJunctionPlan } from './validation/junction-validator.js';
+export type {
+  JunctionValidationResult,
+  ValidationEntry,
+} from './validation/junction-validator.js';
+
 // Virtual junction operations
 export {
   createVirtualJunction,

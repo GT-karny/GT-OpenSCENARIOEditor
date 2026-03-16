@@ -37,6 +37,7 @@ export interface IntersectionResult {
 }
 import type { RoadEndpoint } from '../builders/connecting-road-builder.js';
 import { computeRoadEndpoint, generateConnectingRoads } from '../builders/connecting-road-builder.js';
+import { classifyTopology } from './junction-topology.js';
 
 type EvaluateAtS = (
   planView: readonly OdrGeometry[],
@@ -323,10 +324,22 @@ export function planJunctionCreation(
   const widthA = computeRoadWidthAtS(roadA, intersection.sA);
   const widthB = computeRoadWidthAtS(roadB, intersection.sB);
 
+  // --- Topology classification ---
+  const minSegLen = 1;
+  const topology = classifyTopology(
+    intersection.sA,
+    intersection.sB,
+    intersection.angle,
+    roadA,
+    roadB,
+    minSegLen,
+  );
+
+  // Merge: roads are too parallel for a junction
+  if (topology.topology === 'merge') return null;
+
   // Minimum angle guard: at the maximum arm length, the lateral gap must
   // exceed half the total road width for connecting roads to physically fit.
-  // If even the capped arm length can't provide enough lateral clearance,
-  // the intersection is too shallow for a junction (should be a merge/diverge).
   const ARM_FACTOR = 2.5;
   const totalHalfWidth = (widthA + widthB) / 2;
   const maxArm = Math.max(widthA, widthB) * ARM_FACTOR;
@@ -336,19 +349,22 @@ export function planJunctionCreation(
   const splitDistA = computeSplitDistance(widthA, widthB, intersection.angle);
   const splitDistB = computeSplitDistance(widthB, widthA, intersection.angle);
 
-  // Compute s-coordinates at the 4 junction boundary points
+  // Compute s-coordinates at the junction boundary points
   const sA_end = Math.min(intersection.sA + splitDistA, roadA.length);
   const sA_start = Math.max(intersection.sA - splitDistA, 0);
   const sB_end = Math.min(intersection.sB + splitDistB, roadB.length);
   const sB_start = Math.max(intersection.sB - splitDistB, 0);
 
-  // Guard: skip if road is too short for a junction
+  // Guard: skip if junction region is too small
   if (sA_end - sA_start < 2 || sB_end - sB_start < 2) return null;
 
-  // Guard: skip if segments would be too short (< 1m)
-  const minSegLen = 1;
-  if (sA_start < minSegLen || roadA.length - sA_end < minSegLen) return null;
-  if (sB_start < minSegLen || roadB.length - sB_end < minSegLen) return null;
+  // Determine which sides of each road to split based on topology
+  const armA = topology.arms[0].side;
+  const armB = topology.arms[1].side;
+
+  // For non-T topologies, guard against too-short segments
+  if (armA === 'both' && (sA_start < minSegLen || roadA.length - sA_end < minSegLen)) return null;
+  if (armB === 'both' && (sB_start < minSegLen || roadB.length - sB_end < minSegLen)) return null;
 
   // Create the junction
   const junctionId = nextNumericId(doc.junctions.map((j) => j.id));
@@ -357,21 +373,14 @@ export function planJunctionCreation(
   // Track used IDs for unique generation
   const usedIds = doc.roads.map((r) => r.id);
 
-  // --- Split roads into before/after segments ---
-  const segA_before = createRoadSegment(roadA, 0, sA_start, evaluateAtS, usedIds);
-  const segA_after = createRoadSegment(roadA, sA_end, roadA.length, evaluateAtS, usedIds);
-  const segB_before = createRoadSegment(roadB, 0, sB_start, evaluateAtS, usedIds);
-  const segB_after = createRoadSegment(roadB, sB_end, roadB.length, evaluateAtS, usedIds);
+  // --- Build segments and endpoints based on topology ---
+  const endpoints: RoadEndpoint[] = [];
+  const roadSplits: RoadSplitInfo[] = [];
+  const virtualRoads: VirtualRoad[] = [];
+  const segmentRoads: OdrRoad[] = [];
 
-  // --- Build endpoints from segment roads ---
-  // segX_before: its END faces the junction
-  // segX_after:  its START faces the junction
-  const endpoints: RoadEndpoint[] = [
-    computeRoadEndpoint(segA_after, 'start', evaluateAtS),
-    computeRoadEndpoint(segB_after, 'start', evaluateAtS),
-    computeRoadEndpoint(segA_before, 'end', evaluateAtS),
-    computeRoadEndpoint(segB_before, 'end', evaluateAtS),
-  ];
+  buildRoadArm(roadA, sA_start, sA_end, armA, evaluateAtS, usedIds, endpoints, roadSplits, virtualRoads, segmentRoads);
+  buildRoadArm(roadB, sB_start, sB_end, armB, evaluateAtS, usedIds, endpoints, roadSplits, virtualRoads, segmentRoads);
 
   const junction: OdrJunction = {
     id: junctionId,
@@ -383,7 +392,7 @@ export function planJunctionCreation(
   // Include segment roads in the doc used for ID generation
   const augmentedDoc: OpenDriveDocument = {
     ...doc,
-    roads: [...doc.roads, segA_before, segA_after, segB_before, segB_after],
+    roads: [...doc.roads, ...segmentRoads],
     junctions: [...doc.junctions, junction],
   };
 
@@ -414,16 +423,6 @@ export function planJunctionCreation(
     }
   }
 
-  const roadSplits: RoadSplitInfo[] = [
-    { originalRoadId: roadA.id, beforeSegment: segA_before, afterSegment: segA_after },
-    { originalRoadId: roadB.id, beforeSegment: segB_before, afterSegment: segB_after },
-  ];
-
-  const virtualRoads: VirtualRoad[] = [
-    { virtualRoadId: roadA.id, segmentRoadIds: [segA_before.id, segA_after.id] },
-    { virtualRoadId: roadB.id, segmentRoadIds: [segB_before.id, segB_after.id] },
-  ];
-
   return {
     junction,
     connectingRoads,
@@ -432,6 +431,94 @@ export function planJunctionCreation(
     roadSplits,
     virtualRoads,
   };
+}
+
+/**
+ * Build segments and endpoints for one road arm in a junction.
+ *
+ * For 'both' (X/Y-junction): splits into before + after segments.
+ * For 'before-only' (T-junction, intersection at road end): only before segment.
+ * For 'after-only' (T-junction, intersection at road start): only after segment.
+ */
+function buildRoadArm(
+  road: OdrRoad,
+  sStart: number,
+  sEnd: number,
+  armSide: 'before-only' | 'after-only' | 'both',
+  evaluateAtS: EvaluateAtS,
+  usedIds: string[],
+  endpoints: RoadEndpoint[],
+  roadSplits: RoadSplitInfo[],
+  virtualRoads: VirtualRoad[],
+  segmentRoads: OdrRoad[],
+): void {
+  if (armSide === 'both') {
+    // Standard X/Y-junction: split into before + after
+    const segBefore = createRoadSegment(road, 0, sStart, evaluateAtS, usedIds);
+    const segAfter = createRoadSegment(road, sEnd, road.length, evaluateAtS, usedIds);
+
+    endpoints.push(
+      computeRoadEndpoint(segAfter, 'start', evaluateAtS),
+      computeRoadEndpoint(segBefore, 'end', evaluateAtS),
+    );
+
+    roadSplits.push({
+      originalRoadId: road.id,
+      beforeSegment: segBefore,
+      afterSegment: segAfter,
+    });
+
+    virtualRoads.push({
+      virtualRoadId: road.id,
+      segmentRoadIds: [segBefore.id, segAfter.id],
+    });
+
+    segmentRoads.push(segBefore, segAfter);
+  } else if (armSide === 'before-only') {
+    // T-junction: intersection at road end, only before segment needed
+    const segBefore = createRoadSegment(road, 0, sStart, evaluateAtS, usedIds);
+    // Create a minimal after segment (the end portion is too short to be useful
+    // but we need it for the split info structure)
+    const segAfter = createRoadSegment(road, sEnd, road.length, evaluateAtS, usedIds);
+
+    endpoints.push(
+      computeRoadEndpoint(segBefore, 'end', evaluateAtS),
+    );
+
+    roadSplits.push({
+      originalRoadId: road.id,
+      beforeSegment: segBefore,
+      afterSegment: segAfter,
+    });
+
+    virtualRoads.push({
+      virtualRoadId: road.id,
+      segmentRoadIds: [segBefore.id, segAfter.id],
+    });
+
+    segmentRoads.push(segBefore, segAfter);
+  } else {
+    // T-junction: intersection at road start, only after segment needed
+    const segBefore = createRoadSegment(road, 0, sStart, evaluateAtS, usedIds);
+    const segAfter = createRoadSegment(road, sEnd, road.length, evaluateAtS, usedIds);
+
+    endpoints.push(
+      computeRoadEndpoint(segAfter, 'start', evaluateAtS),
+    );
+
+    roadSplits.push({
+      originalRoadId: road.id,
+      beforeSegment: segBefore,
+      afterSegment: segAfter,
+    });
+
+    virtualRoads.push({
+      virtualRoadId: road.id,
+      segmentRoadIds: [segBefore.id, segAfter.id],
+    });
+
+    segmentRoads.push(segBefore, segAfter);
+  }
 }
 
 /**

@@ -86,19 +86,73 @@ export function computeRoadEndpoint(
 
 /**
  * Determine the turn type based on the angle between incoming and outgoing directions.
+ *
+ * The straight threshold adapts to the arm configuration:
+ * - Default: 30° (PI/6) — works well for standard 4-arm 90° crossings
+ * - With armAngles: half of the minimum inter-arm gap, capped at 45°
+ *   This prevents misclassification in Y-junctions (60° arms) or 5+ arm junctions
  */
-function classifyTurn(incomingHdg: number, outgoingHdg: number): TurnType {
+function classifyTurn(
+  incomingHdg: number,
+  outgoingHdg: number,
+  straightThreshold?: number,
+): TurnType {
   let diff = outgoingHdg - incomingHdg;
   while (diff > Math.PI) diff -= 2 * Math.PI;
   while (diff <= -Math.PI) diff += 2 * Math.PI;
 
-  if (Math.abs(diff) < Math.PI / 6) return 'straight';
+  const threshold = straightThreshold ?? Math.PI / 6;
+  if (Math.abs(diff) < threshold) return 'straight';
   if (diff > 0) return 'left';
   return 'right';
 }
 
 /**
+ * Compute a dynamic straight threshold based on arm angle distribution.
+ * Returns half of the minimum gap between adjacent arms, capped at PI/4 (45°).
+ */
+function computeStraightThreshold(endpoints: RoadEndpoint[]): number | undefined {
+  if (endpoints.length < 3) return undefined;
+
+  // Compute junction centroid
+  let cx = 0;
+  let cy = 0;
+  for (const ep of endpoints) {
+    cx += ep.x;
+    cy += ep.y;
+  }
+  cx /= endpoints.length;
+  cy /= endpoints.length;
+
+  // Compute arm angles from centroid, deduplicated by road ID
+  const armAngles = new Map<string, number>();
+  for (const ep of endpoints) {
+    if (!armAngles.has(ep.roadId)) {
+      armAngles.set(ep.roadId, Math.atan2(ep.y - cy, ep.x - cx));
+    }
+  }
+
+  const angles = [...armAngles.values()].sort((a, b) => a - b);
+  if (angles.length < 3) return undefined;
+
+  // Find minimum gap between adjacent arms
+  let minGap = Infinity;
+  for (let i = 0; i < angles.length; i++) {
+    const next = (i + 1) % angles.length;
+    let gap = angles[next] - angles[i];
+    if (gap <= 0) gap += 2 * Math.PI;
+    if (gap < minGap) minGap = gap;
+  }
+
+  // Threshold = half the minimum gap, capped at 45°
+  return Math.min(minGap / 2, Math.PI / 4);
+}
+
+/**
  * Filter lanes based on routing config and turn type.
+ *
+ * For turns, respects maxRightTurnLanes / maxLeftTurnLanes to allow
+ * multi-lane turns (e.g., dual right-turn lanes on wide roads).
  */
 function filterLanesForTurn(
   lanes: OdrLane[],
@@ -108,21 +162,17 @@ function filterLanesForTurn(
   if (turnType === 'straight') return lanes;
 
   if (turnType === 'right' && routingConfig.rightTurnLanes === 'outermost') {
-    // Outermost = highest absolute lane ID
-    const outermost = lanes.reduce((prev, curr) =>
-      Math.abs(curr.id) > Math.abs(prev.id) ? curr : prev,
-      lanes[0],
-    );
-    return outermost ? [outermost] : [];
+    const maxLanes = routingConfig.maxRightTurnLanes ?? 1;
+    // Sort outer-to-inner (descending |id|) and take up to maxLanes
+    const sorted = [...lanes].sort((a, b) => Math.abs(b.id) - Math.abs(a.id));
+    return sorted.slice(0, maxLanes);
   }
 
   if (turnType === 'left' && routingConfig.leftTurnLanes === 'innermost') {
-    // Innermost = lowest absolute lane ID (closest to center)
-    const innermost = lanes.reduce((prev, curr) =>
-      Math.abs(curr.id) < Math.abs(prev.id) ? curr : prev,
-      lanes[0],
-    );
-    return innermost ? [innermost] : [];
+    const maxLanes = routingConfig.maxLeftTurnLanes ?? 1;
+    // Sort inner-to-outer (ascending |id|) and take up to maxLanes
+    const sorted = [...lanes].sort((a, b) => Math.abs(a.id) - Math.abs(b.id));
+    return sorted.slice(0, maxLanes);
   }
 
   return lanes;
@@ -130,22 +180,37 @@ function filterLanesForTurn(
 
 /**
  * Map eligible incoming lanes to outgoing receiving lane IDs.
- * Pairs are sorted inner-to-outer (by ascending |id|) and capped
- * at the smaller of incoming eligible lanes and outgoing driving lanes.
+ *
+ * Mapping strategy depends on turn type:
+ * - straight/left: inner-to-outer (ascending |id|) — preserves lane continuity
+ * - right: outer-to-inner (descending |id|) — outermost lanes connect first,
+ *   matching physical road geometry where right turns use outer lanes
+ *
+ * Capped at the smaller of incoming eligible lanes and outgoing driving lanes.
  */
 function mapLanePairs(
   eligibleLanes: OdrLane[],
   outgoing: RoadEndpoint,
+  turnType: TurnType,
 ): LanePair[] {
-  // Sort by |id| ascending (inner to outer)
-  const sorted = [...eligibleLanes].sort((a, b) => Math.abs(a.id) - Math.abs(b.id));
+  const maxPairs = Math.min(eligibleLanes.length, outgoing.drivingLanes.length);
 
-  // Cap at outgoing lane count to avoid referencing non-existent lanes
-  const maxPairs = Math.min(sorted.length, outgoing.drivingLanes.length);
+  if (turnType === 'right') {
+    // Right turn: outer-to-inner mapping (outermost lanes connect first)
+    const outerFirst = [...eligibleLanes].sort((a, b) => Math.abs(b.id) - Math.abs(a.id));
+    const outLanes = [...outgoing.drivingLanes].sort((a, b) => Math.abs(b.id) - Math.abs(a.id));
+    return outerFirst.slice(0, maxPairs).map((lane, i) => ({
+      incomingLane: lane,
+      outgoingLaneId: outgoing.contactPoint === 'start'
+        ? -(outLanes.length - i)
+        : (outLanes.length - i),
+    }));
+  }
 
-  return sorted.slice(0, maxPairs).map((lane, i) => ({
+  // Straight / left: inner-to-outer (ascending |id|)
+  const innerFirst = [...eligibleLanes].sort((a, b) => Math.abs(a.id) - Math.abs(b.id));
+  return innerFirst.slice(0, maxPairs).map((lane, i) => ({
     incomingLane: lane,
-    // Receiving lane: 'start' → right lanes (negative IDs), 'end' → left lanes (positive IDs)
     outgoingLaneId: outgoing.contactPoint === 'start' ? -(i + 1) : i + 1,
   }));
 }
@@ -690,6 +755,10 @@ export function generateConnectingRoads(
   const trafficRule = endpoints[0]?.road.rule ?? 'RHT';
   const outerEdgePairs = buildOuterEdgePairs(endpoints, trafficRule);
 
+  // Compute dynamic straight threshold based on arm distribution
+  // (adapts to Y-junctions, 5+ arm junctions, etc.)
+  const straightThreshold = computeStraightThreshold(endpoints);
+
   // For each pair of endpoints, generate connecting roads
   for (let i = 0; i < endpoints.length; i++) {
     const incoming = endpoints[i];
@@ -710,7 +779,7 @@ export function generateConnectingRoads(
       const outHdg = outgoing.hdg + Math.PI;
 
       // Classify turn using the connecting road's actual travel directions
-      const turnType = classifyTurn(inHdg, outHdg);
+      const turnType = classifyTurn(inHdg, outHdg, straightThreshold);
 
       // Filter lanes based on routing rules
       const eligibleLanes = filterLanesForTurn(
@@ -735,7 +804,7 @@ export function generateConnectingRoads(
       );
 
       // Map eligible lanes to outgoing lane pairs and generate one road per pair
-      const pairs = mapLanePairs(eligibleLanes, outgoing);
+      const pairs = mapLanePairs(eligibleLanes, outgoing, turnType);
 
       for (let p = 0; p < pairs.length; p++) {
         // Augment the doc with already-created roads for ID generation

@@ -555,6 +555,97 @@ describe('connecting-road-builder', () => {
       }
     });
 
+    it('right-turn mapping uses outer-to-inner order for asymmetric lanes', () => {
+      // 3-lane road turning right into 2-lane road
+      const road3Lane = createTestRoad({
+        id: '160',
+        name: 'Road_160',
+        length: 40,
+        planView: [{ s: 0, x: 0, y: 0, hdg: 0, length: 40, type: 'line' }],
+        lanes: [{
+          s: 0,
+          leftLanes: [],
+          centerLane: { id: 0, type: 'none', width: [], roadMarks: [] },
+          rightLanes: [makeDrivingLane(-1), makeDrivingLane(-2), makeDrivingLane(-3)],
+        }],
+      });
+
+      // Outgoing road going south (right turn from east-going road)
+      const road2Lane = createTestRoad({
+        id: '161',
+        name: 'Road_161',
+        length: 40,
+        planView: [{ s: 0, x: 15, y: -15, hdg: -Math.PI / 2, length: 40, type: 'line' }],
+        lanes: [{
+          s: 0,
+          leftLanes: [makeDrivingLane(1), makeDrivingLane(2)],
+          centerLane: { id: 0, type: 'none', width: [], roadMarks: [] },
+          rightLanes: [],
+        }],
+      });
+
+      const ep3 = computeRoadEndpoint(road3Lane, 'end', evaluateLineAtS);
+      const ep2 = computeRoadEndpoint(road2Lane, 'start', evaluateLineAtS);
+
+      const doc = makeDocWithJunction([road3Lane, road2Lane], 'junc-rt');
+      const result = generateConnectingRoads([ep3, ep2], 'junc-rt', anyRouting, doc);
+
+      // Right turn from 3-lane: 'any' routing → all 3 lanes eligible
+      // But capped at min(3, 2) = 2 pairs
+      const fromA = result.connections.filter((c) => c.incomingRoad === '160');
+      expect(fromA).toHaveLength(2);
+
+      // For right turns, outermost lanes should be mapped first
+      const laneFroms = fromA.map((c) => c.laneLinks[0].from).sort((a, b) => a - b);
+      expect(laneFroms).toEqual([-3, -2]); // outer lanes -3 and -2
+    });
+
+    it('filterLanesForTurn respects maxRightTurnLanes', () => {
+      // 4-lane road → 4-lane road at 90 degrees
+      const road4LaneA = createTestRoad({
+        id: '170',
+        length: 40,
+        planView: [{ s: 0, x: 0, y: 0, hdg: 0, length: 40, type: 'line' }],
+        lanes: [{
+          s: 0,
+          leftLanes: [],
+          centerLane: { id: 0, type: 'none', width: [], roadMarks: [] },
+          rightLanes: [makeDrivingLane(-1), makeDrivingLane(-2), makeDrivingLane(-3), makeDrivingLane(-4)],
+        }],
+      });
+
+      const road4LaneB = createTestRoad({
+        id: '171',
+        length: 40,
+        planView: [{ s: 0, x: 15, y: -15, hdg: -Math.PI / 2, length: 40, type: 'line' }],
+        lanes: [{
+          s: 0,
+          leftLanes: [makeDrivingLane(1), makeDrivingLane(2), makeDrivingLane(3), makeDrivingLane(4)],
+          centerLane: { id: 0, type: 'none', width: [], roadMarks: [] },
+          rightLanes: [],
+        }],
+      });
+
+      const epA = computeRoadEndpoint(road4LaneA, 'end', evaluateLineAtS);
+      const epB = computeRoadEndpoint(road4LaneB, 'start', evaluateLineAtS);
+
+      const doc = makeDocWithJunction([road4LaneA, road4LaneB], 'junc-maxrt');
+
+      // With outermost + maxRightTurnLanes=2: only 2 outermost lanes for right turn
+      const routing: LaneRoutingConfig = {
+        rightTurnLanes: 'outermost',
+        leftTurnLanes: 'any',
+        generateUturn: false,
+        maxRightTurnLanes: 2,
+      };
+      const result = generateConnectingRoads([epA, epB], 'junc-maxrt', routing, doc);
+
+      const fromA = result.connections.filter((c) => c.incomingRoad === '170');
+      expect(fromA).toHaveLength(2); // 2 outermost lanes for right turn
+      const laneFroms = fromA.map((c) => c.laneLinks[0].from).sort((a, b) => a - b);
+      expect(laneFroms).toEqual([-4, -3]); // outermost 2 lanes
+    });
+
     it('correctly maps lane predecessors and successors per lane pair', () => {
       const roadA = make4LaneRoad('130', 0, 0, 0, 40);
       const roadB = make4LaneRoad('131', 100, 0, Math.PI, 40);

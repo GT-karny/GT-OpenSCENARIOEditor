@@ -46,6 +46,10 @@ export interface LaneRoutingConfig {
   leftTurnLanes: 'innermost' | 'any';
   /** Whether to generate U-turn connecting roads. */
   generateUturn: boolean;
+  /** Maximum number of lanes for right turns (default: 1). */
+  maxRightTurnLanes?: number;
+  /** Maximum number of lanes for left turns (default: 1). */
+  maxLeftTurnLanes?: number;
 }
 
 /**
