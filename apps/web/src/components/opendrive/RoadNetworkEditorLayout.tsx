@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import type { OdrRoad, OdrRoadLinkElement, OdrLane, OdrSignal, OdrJunction, OdrHeader, OpenDriveDocument } from '@osce/shared';
-import { createRoadFromPartial, syncLaneLinksForDirectConnections } from '@osce/opendrive-engine';
+import { createRoadFromPartial, syncLaneLinksForDirectConnections, clearLaneLinks } from '@osce/opendrive-engine';
 import { ScenarioViewer } from '@osce/3d-viewer';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { ErrorBoundary } from '../ErrorBoundary';
@@ -56,7 +56,13 @@ export function RoadNetworkEditorLayout() {
   // Sync roadNetwork from editorStore → openDriveStore on mode entry
   useEffect(() => {
     if (roadNetwork) {
-      odrStoreApi.getState().loadDocument(roadNetwork);
+      const store = odrStoreApi.getState();
+      store.loadDocument(roadNetwork);
+
+      // Ensure lane-level links exist for all direct road-to-road connections.
+      // Imported xodr files (especially from third-party tools) may omit these.
+      const allRoadIds = roadNetwork.roads.map((r) => r.id);
+      syncLaneLinksForDirectConnections(store, allRoadIds);
     }
   }, []); // Only on mount
 
@@ -578,12 +584,14 @@ export function RoadNetworkEditorLayout() {
       if (existingLink) {
         // Clear the link on the source road
         store.setRoadLink(roadId, linkType, undefined);
+        clearLaneLinks(store, roadId, linkType);
 
         // Clear the reverse link on the target road
         if (existingLink.contactPoint) {
           const reverseType: 'predecessor' | 'successor' =
             existingLink.contactPoint === 'start' ? 'predecessor' : 'successor';
           store.setRoadLink(existingLink.elementId, reverseType, undefined);
+          clearLaneLinks(store, existingLink.elementId, reverseType);
         }
       }
       setEndpointContextMenu(null);
@@ -722,12 +730,14 @@ export function RoadNetworkEditorLayout() {
       if (existingLink) {
         // Clear the link on the source road
         store.setRoadLink(roadId, linkType, undefined);
+        clearLaneLinks(store, roadId, linkType);
 
         // Clear the reverse link on the target road
         if (existingLink.contactPoint) {
           const reverseType: 'predecessor' | 'successor' =
             existingLink.contactPoint === 'start' ? 'predecessor' : 'successor';
           store.setRoadLink(existingLink.elementId, reverseType, undefined);
+          clearLaneLinks(store, existingLink.elementId, reverseType);
         }
       }
     },

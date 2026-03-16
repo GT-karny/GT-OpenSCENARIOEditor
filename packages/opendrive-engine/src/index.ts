@@ -124,11 +124,16 @@ export type {
   RoadSplitInfo,
 } from './operations/junction-operations.js';
 
+// Lane link operations
+export {
+  syncLaneLinksForDirectConnections,
+  clearLaneLinks,
+} from './operations/lane-link-operations.js';
+
 // Junction execution
 export {
   executeJunctionCreationPlan,
   executeJunctionRemoval,
-  syncLaneLinksForDirectConnections,
 } from './operations/junction-execution.js';
 export type { ExecuteJunctionResult } from './operations/junction-execution.js';
 
