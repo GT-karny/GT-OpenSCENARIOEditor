@@ -358,6 +358,13 @@ export function RoadNetworkEditorLayout() {
       targetContactPoint: 'start' | 'end',
     ) => {
       const store = odrStoreApi.getState();
+
+      // Defensive: skip if target road no longer exists (e.g. split by auto-junction)
+      if (!store.document.roads.some((r) => r.id === targetRoadId)) {
+        console.warn(`[handleRoadLinkSet] Target road ${targetRoadId} not found, skipping link`);
+        return;
+      }
+
       // Set link on the source road
       const sourceLink: OdrRoadLinkElement = {
         elementType: 'road',
@@ -479,6 +486,34 @@ export function RoadNetworkEditorLayout() {
       }
 
       checkForIntersections(odrStoreApi.getState().document);
+
+      // Fix stale chain state: if the chained road was split by auto-junction,
+      // update the start snap to reference the correct segment road.
+      const chainState = useOdrSidebarStore.getState().roadCreation;
+      if (chainState.phase === 'startPlaced' && chainState.startSnap) {
+        const freshDoc = odrStoreApi.getState().document;
+        const snapRoadExists = freshDoc.roads.some((r) => r.id === chainState.startSnap!.roadId);
+        if (!snapRoadExists) {
+          const metaStore = editorMetadataStoreApi.getState();
+          // The stale roadId is now a virtualRoadId after splitting
+          const vr = metaStore.findVirtualRoadBySegment(chainState.startSnap.roadId)
+            ?? metaStore.metadata.virtualRoads.find(
+              (v) => v.virtualRoadId === chainState.startSnap!.roadId,
+            );
+          if (vr && vr.segmentRoadIds.length > 0) {
+            // contactPoint='end' → last segment, contactPoint='start' → first segment
+            const segId = chainState.startSnap.contactPoint === 'end'
+              ? vr.segmentRoadIds[vr.segmentRoadIds.length - 1]
+              : vr.segmentRoadIds[0];
+            if (segId && freshDoc.roads.some((r) => r.id === segId)) {
+              useOdrSidebarStore.getState().setRoadCreationStart(
+                chainState.startX, chainState.startY, chainState.startHdg,
+                { roadId: segId, contactPoint: chainState.startSnap.contactPoint },
+              );
+            }
+          }
+        }
+      }
     },
     [odrStoreApi, odrDocument.roads.length, handleRoadLinkSet, checkForIntersections],
   );
