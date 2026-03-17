@@ -1,12 +1,20 @@
 /**
  * Lane editing interaction handler.
  * Raycasts road meshes to detect hovered lane, provides click/context-menu callbacks.
+ * Supports sub-modes: select, split, taper.
+ *
+ * Preview visuals use imperative Three.js updates via refs (not React state)
+ * to avoid re-render issues inside R3F's useFrame loop.
  */
 
 import { useEffect, useRef, useCallback } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { OpenDriveDocument, OdrRoad } from '@osce/shared';
+import { SplitPreviewLine } from './SplitPreviewLine.js';
+import type { SplitPreviewRef } from './SplitPreviewLine.js';
+import { TaperRangePreview } from './TaperRangePreview.js';
+import type { TaperPreviewRef } from './TaperRangePreview.js';
 
 export interface LaneHoverInfo {
   roadId: string;
@@ -19,6 +27,8 @@ export interface LaneHoverInfo {
   worldPoint: THREE.Vector3;
 }
 
+export type LaneEditSubModeType = 'select' | 'split' | 'taper';
+
 interface LaneEditInteractionProps {
   active: boolean;
   openDriveDocument: OpenDriveDocument;
@@ -29,6 +39,18 @@ interface LaneEditInteractionProps {
   onLaneContextMenu?: (info: LaneHoverInfo, screenX: number, screenY: number) => void;
   onRoadContextMenu?: (roadId: string, s: number, screenX: number, screenY: number) => void;
   orbitControlsRef?: React.RefObject<{ enabled: boolean } | null>;
+  /** Current lane edit sub-mode */
+  subMode?: LaneEditSubModeType;
+  /** Called when split mode click occurs (roadId, sectionIdx, s) */
+  onSplitClick?: (roadId: string, sectionIdx: number, s: number) => void;
+  /** Called when taper start/end is clicked (roadId, s, side) */
+  onTaperClick?: (roadId: string, s: number, side: 'left' | 'right') => void;
+  /** Taper creation phase for preview rendering */
+  taperCreationPhase?: 'idle' | 'start-picked' | 'end-picked' | 'lane-extend';
+  /** Taper start S (when phase === 'start-picked') */
+  taperStartS?: number;
+  /** Taper target side (when phase === 'start-picked') */
+  taperSide?: 'left' | 'right';
 }
 
 const raycaster = new THREE.Raycaster();
@@ -117,6 +139,12 @@ export function LaneEditInteraction({
   onLaneContextMenu,
   onRoadContextMenu,
   orbitControlsRef,
+  subMode = 'select',
+  onSplitClick,
+  onTaperClick,
+  taperCreationPhase = 'idle',
+  taperStartS = 0,
+  taperSide = 'right',
 }: LaneEditInteractionProps) {
   const { camera, gl } = useThree();
 
@@ -126,9 +154,17 @@ export function LaneEditInteraction({
   const frameCountRef = useRef(0);
   const lastHoverRef = useRef<LaneHoverInfo | null>(null);
 
-  // Keep active in a ref to avoid stale closures in DOM listeners
+  // Preview data refs — updated imperatively in useFrame, read by child components
+  const splitPreviewRef = useRef<SplitPreviewRef>({ road: null, s: 0, visible: false });
+  const taperPreviewRef = useRef<TaperPreviewRef>({
+    road: null, startS: 0, currentS: 0, phase: 'idle', visible: false, side: 'right',
+  });
+
+  // Keep active and subMode in refs to avoid stale closures in DOM listeners
   const activeRef = useRef(active);
   activeRef.current = active;
+  const subModeRef = useRef(subMode);
+  subModeRef.current = subMode;
 
   // Cache canvas rect
   useEffect(() => {
@@ -174,7 +210,6 @@ export function LaneEditInteraction({
         ? roadGroupRef.current.worldToLocal(meshHit.point.clone())
         : meshHit.point.clone();
 
-      // In OpenDRIVE rotation group: localPoint.x = odrX, localPoint.y = odrY
       const odrX = localPoint.x;
       const odrY = localPoint.y;
 
@@ -228,6 +263,8 @@ export function LaneEditInteraction({
         lastHoverRef.current = null;
         onLaneHover?.(null);
       }
+      splitPreviewRef.current.visible = false;
+      taperPreviewRef.current.visible = false;
       return;
     }
 
@@ -240,6 +277,8 @@ export function LaneEditInteraction({
         lastHoverRef.current = null;
         onLaneHover?.(null);
       }
+      splitPreviewRef.current.visible = false;
+      taperPreviewRef.current.visible = false;
       return;
     }
 
@@ -258,6 +297,29 @@ export function LaneEditInteraction({
     ) {
       lastHoverRef.current = info;
       onLaneHover?.(info);
+    }
+
+    // Update split preview ref (imperative — no React state)
+    if (subModeRef.current === 'split' && info) {
+      const road = openDriveDocument.roads.find((r) => r.id === info.roadId);
+      splitPreviewRef.current.road = road ?? null;
+      splitPreviewRef.current.s = info.s;
+      splitPreviewRef.current.visible = true;
+    } else {
+      splitPreviewRef.current.visible = false;
+    }
+
+    // Update taper preview ref (imperative)
+    if (subModeRef.current === 'taper' && info) {
+      const road = openDriveDocument.roads.find((r) => r.id === info.roadId);
+      taperPreviewRef.current.road = road ?? null;
+      taperPreviewRef.current.startS = taperStartS;
+      taperPreviewRef.current.currentS = info.s;
+      taperPreviewRef.current.phase = taperCreationPhase;
+      taperPreviewRef.current.side = taperSide;
+      taperPreviewRef.current.visible = taperCreationPhase === 'start-picked';
+    } else {
+      taperPreviewRef.current.visible = false;
     }
   });
 
@@ -280,11 +342,20 @@ export function LaneEditInteraction({
       if (!hit) return;
 
       const info = buildHoverInfo(hit, e.clientX, e.clientY);
-      if (info) {
+      if (!info) return;
+
+      const currentSubMode = subModeRef.current;
+
+      if (currentSubMode === 'split') {
+        onSplitClick?.(info.roadId, info.sectionIdx, info.s);
+      } else if (currentSubMode === 'taper') {
+        onTaperClick?.(info.roadId, info.s, info.side);
+      } else {
+        // select mode
         onLaneClick?.(info);
       }
     },
-    [performRaycast, buildHoverInfo, onLaneClick],
+    [performRaycast, buildHoverInfo, onLaneClick, onSplitClick, onTaperClick],
   );
 
   const handleContextMenu = useCallback(
@@ -348,6 +419,11 @@ export function LaneEditInteraction({
   // Suppress unused variable warning for orbitControlsRef (reserved for future drag interactions)
   void orbitControlsRef;
 
-  // Purely behavioral component — renders nothing
-  return null;
+  // Render preview components (they read from refs, not React state)
+  return (
+    <group>
+      <SplitPreviewLine dataRef={splitPreviewRef} />
+      <TaperRangePreview dataRef={taperPreviewRef} />
+    </group>
+  );
 }

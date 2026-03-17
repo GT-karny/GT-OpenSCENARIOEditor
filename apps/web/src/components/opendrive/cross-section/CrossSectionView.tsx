@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState, useRef } from 'react';
 import type { OdrLaneSection, OdrLane, OdrSuperelevation } from '@osce/shared';
 import { cn } from '@/lib/utils';
 
@@ -47,6 +47,8 @@ interface CrossSectionViewProps {
   selectedLaneId?: number | null;
   /** Callback when a lane is clicked */
   onLaneSelect?: (laneId: number) => void;
+  /** Callback when a lane's width is changed via drag */
+  onLaneWidthChange?: (laneId: number, newWidth: number) => void;
   /** Additional CSS classes */
   className?: string;
 }
@@ -99,6 +101,127 @@ function evaluateSuperelevation(
   return evalCubic(record.a, record.b, record.c, record.d, ds);
 }
 
+interface WidthDragHandleProps {
+  x: number;
+  laneY: number;
+  laneHeight: number;
+  laneId: number;
+  side: 'left' | 'right';
+  scale: number;
+  centerX: number;
+  currentWidth: number;
+  cumulativeOffset: number;
+  onWidthChange?: (laneId: number, newWidth: number) => void;
+}
+
+function WidthDragHandle({
+  x,
+  laneY,
+  laneHeight,
+  laneId,
+  side,
+  scale,
+  centerX,
+  currentWidth,
+  cumulativeOffset,
+  onWidthChange,
+}: WidthDragHandleProps) {
+  const [dragging, setDragging] = useState(false);
+  const [previewX, setPreviewX] = useState<number | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+
+  const handleEdgeX = side === 'left' ? x : x + currentWidth * scale;
+  const handleX = previewX !== null ? previewX : handleEdgeX;
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent<SVGRectElement>) => {
+      e.stopPropagation();
+      e.preventDefault();
+      setDragging(true);
+
+      const svgEl = (e.target as SVGElement).ownerSVGElement;
+      if (!svgEl) return;
+      svgRef.current = svgEl;
+
+      const handlePointerMove = (ev: PointerEvent) => {
+        const rect = svgEl.getBoundingClientRect();
+        const svgX = ((ev.clientX - rect.left) / rect.width) * 600;
+        setPreviewX(svgX);
+      };
+
+      const handlePointerUp = (ev: PointerEvent) => {
+        window.removeEventListener('pointermove', handlePointerMove);
+        window.removeEventListener('pointerup', handlePointerUp);
+        setDragging(false);
+        setPreviewX(null);
+
+        // Compute new width from final SVG position
+        const rect = svgEl.getBoundingClientRect();
+        const svgX = ((ev.clientX - rect.left) / rect.width) * 600;
+
+        let newWidth: number;
+        if (side === 'left') {
+          // Left lanes: outer edge moves left (decreasing x)
+          // Edge position = centerX - (cumOffset + width) * scale
+          // So: width = (centerX - svgX) / scale - cumOffset
+          newWidth = (centerX - svgX) / scale - cumulativeOffset;
+        } else {
+          // Right lanes: outer edge moves right (increasing x)
+          // Edge position = centerX + (cumOffset + width) * scale
+          // So: width = (svgX - centerX) / scale - cumOffset
+          newWidth = (svgX - centerX) / scale - cumulativeOffset;
+        }
+
+        newWidth = Math.max(0.5, Math.round(newWidth * 4) / 4); // Snap to 0.25m
+        if (Math.abs(newWidth - currentWidth) > 0.01) {
+          onWidthChange?.(laneId, newWidth);
+        }
+      };
+
+      window.addEventListener('pointermove', handlePointerMove);
+      window.addEventListener('pointerup', handlePointerUp);
+    },
+    [laneId, side, scale, centerX, cumulativeOffset, currentWidth, onWidthChange],
+  );
+
+  return (
+    <g>
+      {/* Visible handle line */}
+      <line
+        x1={handleX} y1={laneY - 2} x2={handleX} y2={laneY + laneHeight + 2}
+        stroke={dragging ? 'var(--color-accent-vivid)' : 'rgba(180, 170, 230, 0.4)'}
+        strokeWidth={dragging ? 2.5 : 1.5}
+      />
+      {/* Invisible wide hit area */}
+      <rect
+        x={handleEdgeX - 4} y={laneY - 4} width={8} height={laneHeight + 8}
+        fill="transparent"
+        className="cursor-ew-resize"
+        onPointerDown={handlePointerDown}
+      />
+      {/* Preview width label during drag */}
+      {dragging && previewX !== null && (
+        <text
+          x={previewX} y={laneY - 6}
+          textAnchor="middle"
+          fill="var(--color-accent-vivid)"
+          fontSize={8} fontFamily="var(--font-mono)"
+        >
+          {(() => {
+            let w: number;
+            if (side === 'left') {
+              w = (centerX - previewX) / scale - cumulativeOffset;
+            } else {
+              w = (previewX - centerX) / scale - cumulativeOffset;
+            }
+            return `${Math.max(0.5, Math.round(w * 4) / 4).toFixed(2)}m`;
+          })()}
+        </text>
+      )}
+    </g>
+  );
+}
+
 /**
  * SVG-based cross-section visualization of a road at a given s-position.
  * Renders lanes as colored rectangles with lane IDs and road marks.
@@ -110,6 +233,7 @@ export function CrossSectionView({
   sPosition = 0,
   selectedLaneId,
   onLaneSelect,
+  onLaneWidthChange,
   className,
 }: CrossSectionViewProps) {
   const { lanes, totalWidth, maxLeftWidth } = useMemo(() => {
@@ -258,6 +382,21 @@ export function CrossSectionView({
                       {laneData.lane.type}
                     </text>
                   )}
+                  {/* Width drag handle on outer edge */}
+                  {onLaneWidthChange && (
+                    <WidthDragHandle
+                      x={x}
+                      laneY={laneY}
+                      laneHeight={laneHeight}
+                      laneId={laneData.lane.id}
+                      side="left"
+                      scale={scale}
+                      centerX={centerX}
+                      currentWidth={laneData.width}
+                      cumulativeOffset={cumOffset}
+                      onWidthChange={onLaneWidthChange}
+                    />
+                  )}
                 </g>
               );
             })}
@@ -307,6 +446,21 @@ export function CrossSectionView({
                     >
                       {laneData.lane.type}
                     </text>
+                  )}
+                  {/* Width drag handle on outer edge */}
+                  {onLaneWidthChange && (
+                    <WidthDragHandle
+                      x={x}
+                      laneY={laneY}
+                      laneHeight={laneHeight}
+                      laneId={laneData.lane.id}
+                      side="right"
+                      scale={scale}
+                      centerX={centerX}
+                      currentWidth={laneData.width}
+                      cumulativeOffset={cumOffset}
+                      onWidthChange={onLaneWidthChange}
+                    />
                   )}
                 </g>
               );

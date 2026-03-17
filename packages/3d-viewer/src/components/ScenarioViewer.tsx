@@ -241,6 +241,18 @@ export interface ScenarioViewerProps {
   onRoadSurfaceContextMenu?: (roadId: string, s: number, screenX: number, screenY: number) => void;
   /** Callback when a section boundary is dragged */
   onSectionBoundaryDragEnd?: (roadId: string, sectionIdx: number, newS: number) => void;
+  /** Current lane edit sub-mode */
+  laneEditSubMode?: import('../interaction/road-editing/LaneEditInteraction.js').LaneEditSubModeType;
+  /** Callback when split mode click occurs */
+  onSplitClick?: (roadId: string, sectionIdx: number, s: number) => void;
+  /** Callback when taper start/end is clicked */
+  onTaperClick?: (roadId: string, s: number, side: 'left' | 'right') => void;
+  /** Taper creation phase for preview rendering */
+  taperCreationPhase?: 'idle' | 'start-picked' | 'end-picked' | 'lane-extend';
+  /** Taper start S (when phase === 'start-picked') */
+  taperStartS?: number;
+  /** Taper target side */
+  taperSide?: 'left' | 'right';
 
   // ---- Junction Editing ----
   /** Currently selected junction ID (renders with highlight) */
@@ -321,6 +333,12 @@ function ScenarioViewerScene({
   onLaneContextMenu,
   onRoadSurfaceContextMenu,
   onSectionBoundaryDragEnd,
+  laneEditSubMode,
+  onSplitClick,
+  onTaperClick,
+  taperCreationPhase,
+  taperStartS,
+  taperSide,
   selectedJunctionId,
   ghostJunctionSurface,
   onJunctionClick,
@@ -390,6 +408,12 @@ function ScenarioViewerScene({
   onLaneContextMenu?: ScenarioViewerProps['onLaneContextMenu'];
   onRoadSurfaceContextMenu?: ScenarioViewerProps['onRoadSurfaceContextMenu'];
   onSectionBoundaryDragEnd?: ScenarioViewerProps['onSectionBoundaryDragEnd'];
+  laneEditSubMode?: ScenarioViewerProps['laneEditSubMode'];
+  onSplitClick?: ScenarioViewerProps['onSplitClick'];
+  onTaperClick?: ScenarioViewerProps['onTaperClick'];
+  taperCreationPhase?: ScenarioViewerProps['taperCreationPhase'];
+  taperStartS?: ScenarioViewerProps['taperStartS'];
+  taperSide?: ScenarioViewerProps['taperSide'];
   selectedJunctionId?: string | null;
   ghostJunctionSurface?: ScenarioViewerProps['ghostJunctionSurface'];
   onJunctionClick?: ScenarioViewerProps['onJunctionClick'];
@@ -694,6 +718,12 @@ function ScenarioViewerScene({
             onLaneContextMenu={onLaneContextMenu}
             onRoadSurfaceContextMenu={onRoadSurfaceContextMenu}
             onSectionBoundaryDragEnd={onSectionBoundaryDragEnd}
+            laneEditSubMode={laneEditSubMode}
+            onSplitClick={onSplitClick}
+            onTaperClick={onTaperClick}
+            taperCreationPhase={taperCreationPhase}
+            taperStartS={taperStartS}
+            taperSide={taperSide}
           />
         </group>
       )}
@@ -797,6 +827,12 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   onLaneContextMenu,
   onRoadSurfaceContextMenu,
   onSectionBoundaryDragEnd,
+  laneEditSubMode,
+  onSplitClick,
+  onTaperClick,
+  taperCreationPhase,
+  taperStartS,
+  taperSide,
   selectedJunctionId,
   ghostJunctionSurface,
   onJunctionClick,
@@ -1091,6 +1127,12 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           onLaneContextMenu={onLaneContextMenu}
           onRoadSurfaceContextMenu={onRoadSurfaceContextMenu}
           onSectionBoundaryDragEnd={onSectionBoundaryDragEnd}
+          laneEditSubMode={laneEditSubMode}
+          onSplitClick={onSplitClick}
+          onTaperClick={onTaperClick}
+          taperCreationPhase={taperCreationPhase}
+          taperStartS={taperStartS}
+          taperSide={taperSide}
           selectedJunctionId={selectedJunctionId}
           ghostJunctionSurface={ghostJunctionSurface}
           onJunctionClick={onJunctionClick}

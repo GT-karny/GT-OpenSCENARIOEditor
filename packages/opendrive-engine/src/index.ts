@@ -147,6 +147,8 @@ export {
   moveSectionBoundary,
   insertLaneInner,
   isNearJunctionConnection,
+  changeLaneWidth,
+  createTaperAtRange,
 } from './operations/lane-edit-operations.js';
 export type { LaneEditOptions } from './operations/lane-edit-operations.js';
 

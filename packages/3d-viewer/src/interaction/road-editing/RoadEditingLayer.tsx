@@ -18,7 +18,7 @@ import { EndPointGizmo } from './EndPointGizmo.js';
 import { RoadLinkLines } from './RoadLinkLines.js';
 import { RoadSelectHandler } from './RoadSelectHandler.js';
 import { LaneEditInteraction } from './LaneEditInteraction.js';
-import type { LaneHoverInfo } from './LaneEditInteraction.js';
+import type { LaneHoverInfo, LaneEditSubModeType } from './LaneEditInteraction.js';
 import { SectionBoundaryMarkers } from './SectionBoundaryMarkers.js';
 
 interface RoadEditingLayerProps {
@@ -128,6 +128,18 @@ interface RoadEditingLayerProps {
   onRoadSurfaceContextMenu?: (roadId: string, s: number, screenX: number, screenY: number) => void;
   /** Callback when a section boundary is dragged */
   onSectionBoundaryDragEnd?: (roadId: string, sectionIdx: number, newS: number) => void;
+  /** Current lane edit sub-mode */
+  laneEditSubMode?: LaneEditSubModeType;
+  /** Callback when split mode click occurs */
+  onSplitClick?: (roadId: string, sectionIdx: number, s: number) => void;
+  /** Callback when taper start/end is clicked */
+  onTaperClick?: (roadId: string, s: number, side: 'left' | 'right') => void;
+  /** Taper creation phase for preview rendering */
+  taperCreationPhase?: 'idle' | 'start-picked' | 'end-picked' | 'lane-extend';
+  /** Taper start S (when phase === 'start-picked') */
+  taperStartS?: number;
+  /** Taper target side */
+  taperSide?: 'left' | 'right';
 }
 
 export function RoadEditingLayer({
@@ -169,6 +181,12 @@ export function RoadEditingLayer({
   onLaneContextMenu,
   onRoadSurfaceContextMenu,
   onSectionBoundaryDragEnd,
+  laneEditSubMode,
+  onSplitClick,
+  onTaperClick,
+  taperCreationPhase,
+  taperStartS,
+  taperSide,
 }: RoadEditingLayerProps) {
   const selectedRoad = useMemo(
     () => openDriveDocument.roads.find((r) => r.id === selectedRoadId) ?? null,
@@ -406,6 +424,12 @@ export function RoadEditingLayer({
           onLaneContextMenu={onLaneContextMenu}
           onRoadContextMenu={onRoadSurfaceContextMenu}
           orbitControlsRef={orbitControlsRef}
+          subMode={laneEditSubMode}
+          onSplitClick={onSplitClick}
+          onTaperClick={onTaperClick}
+          taperCreationPhase={taperCreationPhase}
+          taperStartS={taperStartS}
+          taperSide={taperSide}
         />
       )}
 
