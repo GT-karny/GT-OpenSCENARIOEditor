@@ -215,3 +215,86 @@ export function clearLaneLinks(
     odrStore.updateRoad(roadId, { lanes: newLanes });
   }
 }
+
+/**
+ * Synchronize lane-level predecessor/successor links between adjacent lane sections
+ * within the same road. Uses index-based matching: lanes with the same ID in
+ * neighboring sections are linked. Lanes that exist in only one section get no link.
+ *
+ * This should be called after adding/removing lanes or splitting sections.
+ */
+export function syncIntraRoadLaneLinks(odrStore: OpenDriveStore, roadId: string): void {
+  const doc = odrStore.getDocument();
+  const road = doc.roads.find((r) => r.id === roadId);
+  if (!road || road.lanes.length <= 1) return;
+
+  let anyModified = false;
+  let sections = road.lanes;
+
+  for (let i = 0; i < sections.length - 1; i++) {
+    const sectionA = sections[i];
+    const sectionB = sections[i + 1];
+
+    const idsInA = new Set([
+      ...sectionA.leftLanes.map((l) => l.id),
+      ...sectionA.rightLanes.map((l) => l.id),
+    ]);
+    const idsInB = new Set([
+      ...sectionB.leftLanes.map((l) => l.id),
+      ...sectionB.rightLanes.map((l) => l.id),
+    ]);
+
+    let sectionAModified = false;
+    let sectionBModified = false;
+
+    // Update successorId on section[i] lanes
+    const updateSuccessor = (lanes: OdrLaneSection['leftLanes']) =>
+      lanes.map((lane) => {
+        const desired = idsInB.has(lane.id) ? lane.id : undefined;
+        if (lane.link?.successorId !== desired) {
+          sectionAModified = true;
+          const newLink = { ...lane.link, successorId: desired };
+          if (newLink.successorId === undefined) delete newLink.successorId;
+          const hasAny = newLink.predecessorId != null || newLink.successorId != null;
+          return { ...lane, link: hasAny ? newLink : undefined };
+        }
+        return lane;
+      });
+
+    // Update predecessorId on section[i+1] lanes
+    const updatePredecessor = (lanes: OdrLaneSection['leftLanes']) =>
+      lanes.map((lane) => {
+        const desired = idsInA.has(lane.id) ? lane.id : undefined;
+        if (lane.link?.predecessorId !== desired) {
+          sectionBModified = true;
+          const newLink = { ...lane.link, predecessorId: desired };
+          if (newLink.predecessorId === undefined) delete newLink.predecessorId;
+          const hasAny = newLink.predecessorId != null || newLink.successorId != null;
+          return { ...lane, link: hasAny ? newLink : undefined };
+        }
+        return lane;
+      });
+
+    const updatedALeft = updateSuccessor(sectionA.leftLanes);
+    const updatedARight = updateSuccessor(sectionA.rightLanes);
+    const updatedBLeft = updatePredecessor(sectionB.leftLanes);
+    const updatedBRight = updatePredecessor(sectionB.rightLanes);
+
+    if (sectionAModified || sectionBModified) {
+      anyModified = true;
+      sections = sections.map((s, idx) => {
+        if (idx === i && sectionAModified) {
+          return { ...s, leftLanes: updatedALeft, rightLanes: updatedARight };
+        }
+        if (idx === i + 1 && sectionBModified) {
+          return { ...s, leftLanes: updatedBLeft, rightLanes: updatedBRight };
+        }
+        return s;
+      });
+    }
+  }
+
+  if (anyModified) {
+    odrStore.updateRoad(roadId, { lanes: sections });
+  }
+}

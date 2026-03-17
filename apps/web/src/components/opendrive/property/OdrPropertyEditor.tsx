@@ -16,6 +16,8 @@ import { OdrJunctionPropertyEditor } from './OdrJunctionPropertyEditor';
 interface OdrPropertyEditorProps {
   selectedRoadId: string | null;
   selectedLaneId: number | null;
+  /** Active lane section index (from cross-section view or hover) */
+  activeSectionIdx?: number;
   selectedSignalId: string | null;
   selectedJunctionId: string | null;
   selectedGeometryIndex: number | null;
@@ -35,6 +37,7 @@ interface OdrPropertyEditorProps {
 export function OdrPropertyEditor({
   selectedRoadId,
   selectedLaneId,
+  activeSectionIdx,
   selectedSignalId,
   selectedJunctionId,
   selectedGeometryIndex,
@@ -79,7 +82,7 @@ export function OdrPropertyEditor({
 
   // Lane editor (requires a road context)
   if (selectedLaneId !== null && road) {
-    const result = findLaneInRoad(road, selectedLaneId);
+    const result = findLaneInRoad(road, selectedLaneId, activeSectionIdx);
     if (result) {
       return (
         <div className="panel-scroll overflow-y-auto bg-[var(--color-glass-1)] p-3">
@@ -132,13 +135,26 @@ export function OdrPropertyEditor({
 }
 
 /**
- * Find a lane by id across all lane sections in a road.
- * Returns the lane and its section index.
+ * Find a lane by id in a road.
+ * If activeSectionIdx is provided, look in that section first.
+ * Falls back to scanning all sections if the lane isn't found there.
  */
 function findLaneInRoad(
   road: OdrRoad,
   laneId: number,
+  activeSectionIdx?: number,
 ): { lane: OdrLane; sectionIdx: number } | undefined {
+  // Prefer the active section
+  if (activeSectionIdx !== undefined && activeSectionIdx < road.lanes.length) {
+    const section = road.lanes[activeSectionIdx];
+    const allLanes = [...section.leftLanes, section.centerLane, ...section.rightLanes];
+    const lane = allLanes.find((l) => l.id === laneId);
+    if (lane) {
+      return { lane, sectionIdx: activeSectionIdx };
+    }
+  }
+
+  // Fallback: scan all sections
   for (let i = 0; i < road.lanes.length; i++) {
     const section = road.lanes[i];
     const allLanes = [...section.leftLanes, section.centerLane, ...section.rightLanes];
