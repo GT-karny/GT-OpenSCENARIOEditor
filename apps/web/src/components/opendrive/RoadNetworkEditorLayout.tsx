@@ -1,7 +1,15 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import type { OdrRoad, OdrRoadLinkElement, OdrLane, OdrSignal, OdrJunction, OdrHeader, OpenDriveDocument } from '@osce/shared';
-import { createRoadFromPartial, syncLaneLinksForDirectConnections, clearLaneLinks } from '@osce/opendrive-engine';
+import {
+  createRoadFromPartial,
+  syncLaneLinksForDirectConnections,
+  clearLaneLinks,
+  addLaneToSection,
+  removeLaneFromSection,
+  splitLaneSectionAt,
+  moveSectionBoundary,
+} from '@osce/opendrive-engine';
 import { ScenarioViewer } from '@osce/3d-viewer';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { ErrorBoundary } from '../ErrorBoundary';
@@ -12,6 +20,9 @@ import { CrossSectionToolbar } from './cross-section/CrossSectionToolbar';
 import { ElevationGraphEditor } from './elevation/ElevationGraphEditor';
 import { RoadEndpointContextMenu } from './RoadEndpointContextMenu';
 import { JunctionContextMenu } from './JunctionContextMenu';
+import { LaneContextMenu } from './LaneContextMenu';
+import { RoadSectionContextMenu } from './RoadSectionContextMenu';
+import { OdrLaneSectionPropertyEditor } from './property/OdrLaneSectionPropertyEditor';
 import { LaneLinkEditor } from './lane-link/LaneLinkEditor';
 import { RoadNetworkToolbar } from './toolbar/RoadNetworkToolbar';
 import { RoadStylePanel } from './toolbar/RoadStylePanel';
@@ -112,6 +123,13 @@ export function RoadNetworkEditorLayout() {
   const activeTool = useOdrSidebarStore((s) => s.activeTool);
   const roadCreation = useOdrSidebarStore((s) => s.roadCreation);
   const roadCreationMode = activeTool === 'road-create';
+  const laneEditMode = activeTool === 'lane-edit';
+  const laneEdit = useOdrSidebarStore((s) => s.laneEdit);
+  const setLaneEditHover = useOdrSidebarStore((s) => s.setLaneEditHover);
+  const setLaneEditRoad = useOdrSidebarStore((s) => s.setLaneEditRoad);
+  const setTaperLength = useOdrSidebarStore((s) => s.setTaperLength);
+  const setUseLaneOffset = useOdrSidebarStore((s) => s.setUseLaneOffset);
+  const setSelectedSections = useOdrSidebarStore((s) => s.setSelectedSections);
 
   // Auto-junction detection on road geometry changes
   const { checkForIntersections } = useAutoJunctionDetection({
@@ -226,6 +244,9 @@ export function RoadNetworkEditorLayout() {
           // Switch back to select tool
           store.setActiveTool('select');
         }
+        e.preventDefault();
+      } else if (store.activeTool === 'lane-edit') {
+        store.setActiveTool('select');
         e.preventDefault();
       }
     };
@@ -555,6 +576,143 @@ export function RoadNetworkEditorLayout() {
     setEndpointContextMenu(null);
   }, []);
 
+  // --- Lane context menu ---
+  const [laneContextMenu, setLaneContextMenu] = useState<{
+    roadId: string;
+    sectionIdx: number;
+    laneId: number;
+    side: 'left' | 'right';
+    screenX: number;
+    screenY: number;
+  } | null>(null);
+
+  const [roadSectionContextMenu, setRoadSectionContextMenu] = useState<{
+    roadId: string;
+    s: number;
+    sectionIdx: number;
+    screenX: number;
+    screenY: number;
+  } | null>(null);
+
+  const handleLaneHover = useCallback(
+    (info: { roadId: string; sectionIdx: number; laneId: number; s: number; side: 'left' | 'right'; screenX: number; screenY: number } | null) => {
+      if (!info) {
+        setLaneEditHover(null);
+        return;
+      }
+      setLaneEditHover({
+        roadId: info.roadId,
+        sectionIdx: info.sectionIdx,
+        laneId: info.laneId,
+        s: info.s,
+        side: info.side,
+        screenX: info.screenX,
+        screenY: info.screenY,
+      });
+      // Auto-select road when hovering
+      if (!laneEdit.activeRoadId || laneEdit.activeRoadId !== info.roadId) {
+        setLaneEditRoad(info.roadId);
+      }
+      // Auto-select section
+      if (!laneEdit.selectedSectionIndices.includes(info.sectionIdx)) {
+        setSelectedSections([info.sectionIdx]);
+      }
+    },
+    [setLaneEditHover, setLaneEditRoad, laneEdit.activeRoadId, laneEdit.selectedSectionIndices, setSelectedSections],
+  );
+
+  const handleLaneClick = useCallback(
+    (info: { roadId: string; sectionIdx: number; laneId: number; s: number; side: 'left' | 'right' }) => {
+      // Add lane at clicked position
+      const store = odrStoreApi.getState();
+      addLaneToSection(store, info.roadId, info.sectionIdx, info.side, {
+        taperLength: laneEdit.taperLength,
+        useLaneOffset: laneEdit.useLaneOffset,
+      });
+      // Store sync is automatic via subscription
+    },
+    [odrStoreApi, laneEdit.taperLength, laneEdit.useLaneOffset],
+  );
+
+  const handleLaneContextMenu = useCallback(
+    (info: { roadId: string; sectionIdx: number; laneId: number; side: 'left' | 'right' }, screenX: number, screenY: number) => {
+      setLaneContextMenu({
+        roadId: info.roadId,
+        sectionIdx: info.sectionIdx,
+        laneId: info.laneId,
+        side: info.side,
+        screenX,
+        screenY,
+      });
+    },
+    [],
+  );
+
+  const handleRoadSurfaceContextMenu = useCallback(
+    (roadId: string, s: number, screenX: number, screenY: number) => {
+      const road = odrDocument.roads.find((r) => r.id === roadId);
+      if (!road) return;
+      let sectionIdx = 0;
+      for (let i = road.lanes.length - 1; i >= 0; i--) {
+        if (s >= road.lanes[i].s) { sectionIdx = i; break; }
+      }
+      setRoadSectionContextMenu({ roadId, s, sectionIdx, screenX, screenY });
+    },
+    [odrDocument.roads],
+  );
+
+  const handleAddLaneLeft = useCallback(() => {
+    if (!laneContextMenu) return;
+    const store = odrStoreApi.getState();
+    addLaneToSection(store, laneContextMenu.roadId, laneContextMenu.sectionIdx, 'left', {
+      taperLength: laneEdit.taperLength,
+    });
+    // Store sync is automatic via subscription
+    setLaneContextMenu(null);
+  }, [odrStoreApi, laneContextMenu, laneEdit.taperLength]);
+
+  const handleAddLaneRight = useCallback(() => {
+    if (!laneContextMenu) return;
+    const store = odrStoreApi.getState();
+    addLaneToSection(store, laneContextMenu.roadId, laneContextMenu.sectionIdx, 'right', {
+      taperLength: laneEdit.taperLength,
+    });
+    // Store sync is automatic via subscription
+    setLaneContextMenu(null);
+  }, [odrStoreApi, laneContextMenu, laneEdit.taperLength]);
+
+  const handleDeleteLane = useCallback(() => {
+    if (!laneContextMenu) return;
+    const store = odrStoreApi.getState();
+    removeLaneFromSection(
+      store,
+      laneContextMenu.roadId,
+      laneContextMenu.sectionIdx,
+      laneContextMenu.side,
+      laneContextMenu.laneId,
+      { taperLength: laneEdit.taperLength },
+    );
+    // Store sync is automatic via subscription
+    setLaneContextMenu(null);
+  }, [odrStoreApi, laneContextMenu, laneEdit.taperLength]);
+
+  const handleSplitSection = useCallback(() => {
+    if (!roadSectionContextMenu) return;
+    const store = odrStoreApi.getState();
+    splitLaneSectionAt(store, roadSectionContextMenu.roadId, roadSectionContextMenu.sectionIdx, roadSectionContextMenu.s);
+    // Store sync is automatic via subscription
+    setRoadSectionContextMenu(null);
+  }, [odrStoreApi, roadSectionContextMenu]);
+
+  const handleSectionBoundaryDragEnd = useCallback(
+    (roadId: string, sectionIdx: number, newS: number) => {
+      const store = odrStoreApi.getState();
+      moveSectionBoundary(store, roadId, sectionIdx, newS);
+      // Store sync is automatic via subscription
+    },
+    [odrStoreApi],
+  );
+
   const handleAddRoadFromEndpoint = useCallback(
     (roadId: string, contactPoint: 'start' | 'end') => {
       const road = odrDocument.roads.find((r) => r.id === roadId);
@@ -880,6 +1038,13 @@ export function RoadNetworkEditorLayout() {
                   roadCreationHasStartConstraint={hasStartConstraint}
                   roadSelectModeActive={activeTool === 'select'}
                   onRoadSelect={handleRoadSelect}
+                  laneEditActive={laneEditMode}
+                  laneEditRoadId={laneEdit.activeRoadId}
+                  onLaneHover={handleLaneHover}
+                  onLaneClick={handleLaneClick}
+                  onLaneContextMenu={handleLaneContextMenu}
+                  onRoadSurfaceContextMenu={handleRoadSurfaceContextMenu}
+                  onSectionBoundaryDragEnd={handleSectionBoundaryDragEnd}
                   selectedJunctionId={selectedJunctionId}
                   onJunctionClick={handleJunctionClick}
                   onJunctionContextMenu={handleJunctionContextMenu}
@@ -912,6 +1077,45 @@ export function RoadNetworkEditorLayout() {
                   onAddConnection={handleAddJunctionConnection}
                   onClose={handleJunctionContextMenuClose}
                 />
+              )}
+              {laneContextMenu && (
+                <LaneContextMenu
+                  position={{ x: laneContextMenu.screenX, y: laneContextMenu.screenY }}
+                  roadId={laneContextMenu.roadId}
+                  sectionIdx={laneContextMenu.sectionIdx}
+                  laneId={laneContextMenu.laneId}
+                  side={laneContextMenu.side}
+                  isLastLane={(() => {
+                    const road = odrDocument.roads.find((r) => r.id === laneContextMenu.roadId);
+                    if (!road) return false;
+                    const section = road.lanes[laneContextMenu.sectionIdx];
+                    if (!section) return false;
+                    const lanes = laneContextMenu.side === 'left' ? section.leftLanes : section.rightLanes;
+                    return lanes.length <= 1;
+                  })()}
+                  onAddLaneLeft={handleAddLaneLeft}
+                  onAddLaneRight={handleAddLaneRight}
+                  onDeleteLane={handleDeleteLane}
+                  onClose={() => setLaneContextMenu(null)}
+                />
+              )}
+              {roadSectionContextMenu && (
+                <RoadSectionContextMenu
+                  position={{ x: roadSectionContextMenu.screenX, y: roadSectionContextMenu.screenY }}
+                  roadId={roadSectionContextMenu.roadId}
+                  s={roadSectionContextMenu.s}
+                  onSplitSection={handleSplitSection}
+                  onClose={() => setRoadSectionContextMenu(null)}
+                />
+              )}
+              {/* Lane edit tooltip */}
+              {laneEditMode && laneEdit.hoveredLane && (
+                <div
+                  className="fixed z-40 px-2 py-1 text-[10px] font-mono text-[var(--color-text-primary)] bg-[var(--color-popover)] backdrop-blur-[28px] border border-[var(--color-glass-edge)] rounded-none shadow-sm pointer-events-none"
+                  style={{ left: laneEdit.hoveredLane.screenX + 16, top: laneEdit.hoveredLane.screenY - 24 }}
+                >
+                  Lane {laneEdit.hoveredLane.laneId} · Section {laneEdit.hoveredLane.sectionIdx}
+                </div>
               )}
             </div>
           </Panel>
@@ -1020,6 +1224,21 @@ export function RoadNetworkEditorLayout() {
             <TabsContent value="properties" className="flex-1 overflow-hidden mt-0">
               {roadCreationMode ? (
                 <RoadStylePanel />
+              ) : laneEditMode && laneEdit.activeRoadId ? (
+                (() => {
+                  const laneRoad = odrDocument.roads.find((r) => r.id === laneEdit.activeRoadId);
+                  if (!laneRoad) return null;
+                  return (
+                    <OdrLaneSectionPropertyEditor
+                      road={laneRoad}
+                      selectedSectionIndices={laneEdit.selectedSectionIndices}
+                      taperLength={laneEdit.taperLength}
+                      useLaneOffset={laneEdit.useLaneOffset}
+                      onTaperLengthChange={setTaperLength}
+                      onUseLaneOffsetChange={setUseLaneOffset}
+                    />
+                  );
+                })()
               ) : (
                 <OdrPropertyEditor
                   document={odrDocument}

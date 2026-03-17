@@ -9,3 +9,7 @@ export { EndPointGizmo } from './EndPointGizmo.js';
 export { applySnap, snapToGrid, snapToEndpoint } from './snap-utils.js';
 export { computeAutoArc, computeGeometryEndpoint } from './arc-math.js';
 export type { AutoArcResult } from './arc-math.js';
+export { LaneEditInteraction } from './LaneEditInteraction.js';
+export type { LaneHoverInfo } from './LaneEditInteraction.js';
+export { LaneGhostPreview } from './LaneGhostPreview.js';
+export { SectionBoundaryMarkers } from './SectionBoundaryMarkers.js';

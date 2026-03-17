@@ -1,4 +1,4 @@
-import { MousePointer, Pencil } from 'lucide-react';
+import { MousePointer, Pencil, SplitSquareHorizontal } from 'lucide-react';
 import { useOdrSidebarStore } from '../../../hooks/use-opendrive-store';
 import type { RoadToolMode } from '../../../hooks/use-opendrive-store';
 
@@ -46,7 +46,9 @@ export function RoadNetworkToolbar({ cursorInfo }: RoadNetworkToolbarProps) {
     setActiveTool(tool);
   };
 
-  const showNumericDisplay = activeTool === 'road-create' && creationPhase === 'startPlaced';
+  const hoveredLane = useOdrSidebarStore((s) => s.laneEdit.hoveredLane);
+  const showRoadCreationDisplay = activeTool === 'road-create' && creationPhase === 'startPlaced';
+  const showLaneEditDisplay = activeTool === 'lane-edit' && hoveredLane !== null;
 
   return (
     <div className="shrink-0 h-8 flex items-center px-2 glass backdrop-blur-[28px] border-b border-[var(--color-glass-edge)]">
@@ -64,18 +66,33 @@ export function RoadNetworkToolbar({ cursorInfo }: RoadNetworkToolbarProps) {
           active={activeTool === 'road-create'}
           onClick={() => handleToolClick('road-create')}
         />
+        <ToolButton
+          icon={SplitSquareHorizontal}
+          label="Lane"
+          active={activeTool === 'lane-edit'}
+          onClick={() => handleToolClick('lane-edit')}
+        />
       </div>
 
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Right: Numeric display (only during road creation with start placed) */}
-      {showNumericDisplay && cursorInfo && (
+      {/* Right: Numeric display — road creation mode */}
+      {showRoadCreationDisplay && cursorInfo && (
         <div className="flex items-center gap-3 font-mono text-[11px] text-[var(--color-text-muted)]">
           <span>X: {cursorInfo.x.toFixed(1)}</span>
           <span>Y: {cursorInfo.y.toFixed(1)}</span>
           <span>L: {cursorInfo.length.toFixed(1)}m</span>
           <span>∠: {cursorInfo.angle.toFixed(1)}°</span>
+        </div>
+      )}
+
+      {/* Right: Numeric display — lane edit mode */}
+      {showLaneEditDisplay && hoveredLane && (
+        <div className="flex items-center gap-3 font-mono text-[11px] text-[var(--color-text-muted)]">
+          <span>s: {hoveredLane.s.toFixed(1)}m</span>
+          <span>Section: {hoveredLane.sectionIdx}</span>
+          <span>Lane: {hoveredLane.laneId}</span>
         </div>
       )}
     </div>

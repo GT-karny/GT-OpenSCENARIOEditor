@@ -17,6 +17,9 @@ import { ArcCurvatureHandle } from './ArcCurvatureHandle.js';
 import { EndPointGizmo } from './EndPointGizmo.js';
 import { RoadLinkLines } from './RoadLinkLines.js';
 import { RoadSelectHandler } from './RoadSelectHandler.js';
+import { LaneEditInteraction } from './LaneEditInteraction.js';
+import type { LaneHoverInfo } from './LaneEditInteraction.js';
+import { SectionBoundaryMarkers } from './SectionBoundaryMarkers.js';
 
 interface RoadEditingLayerProps {
   /** Full OpenDRIVE document */
@@ -109,6 +112,22 @@ interface RoadEditingLayerProps {
   roadGroupRef?: React.RefObject<THREE.Group | null>;
   /** Callback when a road is selected via click */
   onRoadSelect?: (roadId: string) => void;
+
+  // ---- Lane Editing ----
+  /** Whether lane editing mode is active */
+  laneEditActive?: boolean;
+  /** Active road ID for lane editing */
+  laneEditRoadId?: string | null;
+  /** Callback when a lane is hovered */
+  onLaneHover?: (info: LaneHoverInfo | null) => void;
+  /** Callback when a lane is clicked */
+  onLaneClick?: (info: LaneHoverInfo) => void;
+  /** Callback when a lane is right-clicked */
+  onLaneContextMenu?: (info: LaneHoverInfo, screenX: number, screenY: number) => void;
+  /** Callback when road surface is right-clicked (for split) */
+  onRoadSurfaceContextMenu?: (roadId: string, s: number, screenX: number, screenY: number) => void;
+  /** Callback when a section boundary is dragged */
+  onSectionBoundaryDragEnd?: (roadId: string, sectionIdx: number, newS: number) => void;
 }
 
 export function RoadEditingLayer({
@@ -143,6 +162,13 @@ export function RoadEditingLayer({
   selectModeActive = false,
   roadGroupRef,
   onRoadSelect,
+  laneEditActive = false,
+  laneEditRoadId,
+  onLaneHover,
+  onLaneClick,
+  onLaneContextMenu,
+  onRoadSurfaceContextMenu,
+  onSectionBoundaryDragEnd,
 }: RoadEditingLayerProps) {
   const selectedRoad = useMemo(
     () => openDriveDocument.roads.find((r) => r.id === selectedRoadId) ?? null,
@@ -367,6 +393,32 @@ export function RoadEditingLayer({
             </mesh>
           )),
         )}
+
+      {/* Lane editing interaction */}
+      {laneEditActive && roadGroupRef && (
+        <LaneEditInteraction
+          active={laneEditActive}
+          openDriveDocument={openDriveDocument}
+          activeRoadId={laneEditRoadId ?? null}
+          roadGroupRef={roadGroupRef}
+          onLaneHover={onLaneHover}
+          onLaneClick={onLaneClick}
+          onLaneContextMenu={onLaneContextMenu}
+          onRoadContextMenu={onRoadSurfaceContextMenu}
+          orbitControlsRef={orbitControlsRef}
+        />
+      )}
+
+      {/* Section boundary markers */}
+      {laneEditActive && (
+        <SectionBoundaryMarkers
+          active={laneEditActive}
+          openDriveDocument={openDriveDocument}
+          roadId={laneEditRoadId ?? null}
+          onBoundaryDragEnd={onSectionBoundaryDragEnd}
+          orbitControlsRef={orbitControlsRef}
+        />
+      )}
     </group>
   );
 }

@@ -128,7 +128,27 @@ export type {
 export {
   syncLaneLinksForDirectConnections,
   clearLaneLinks,
+  syncIntraRoadLaneLinks,
 } from './operations/lane-link-operations.js';
+
+// Lane taper operations
+export {
+  computeCubicTaperCoefficients,
+  buildTaperSection,
+  buildTaperSectionForAdd,
+  buildTaperSectionForRemove,
+} from './operations/lane-taper-operations.js';
+
+// Lane edit operations (compound operations)
+export {
+  addLaneToSection,
+  removeLaneFromSection,
+  splitLaneSectionAt,
+  moveSectionBoundary,
+  insertLaneInner,
+  isNearJunctionConnection,
+} from './operations/lane-edit-operations.js';
+export type { LaneEditOptions } from './operations/lane-edit-operations.js';
 
 // Junction execution
 export {

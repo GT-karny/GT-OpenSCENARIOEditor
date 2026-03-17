@@ -44,7 +44,7 @@ interface OdrSidebarSelection {
   roadId?: string;
 }
 
-export type RoadToolMode = 'select' | 'road-create';
+export type RoadToolMode = 'select' | 'road-create' | 'lane-edit';
 
 export interface RoadCreationState {
   phase: 'idle' | 'startPlaced';
@@ -57,6 +57,44 @@ export interface RoadCreationState {
   cursorX: number;
   cursorY: number;
 }
+
+export interface LaneEditHoverInfo {
+  roadId: string;
+  sectionIdx: number;
+  laneId: number;
+  s: number;
+  side: 'left' | 'right';
+  /** Screen-space coordinates for tooltip positioning */
+  screenX: number;
+  screenY: number;
+}
+
+export interface GhostPreviewInfo {
+  roadId: string;
+  sectionIdx: number;
+  side: 'left' | 'right';
+  /** 'outer' = outside of outermost lane, 'inner' = between existing lanes */
+  position: 'outer' | 'inner';
+  insertAfterLaneId?: number;
+}
+
+export interface LaneEditState {
+  activeRoadId: string | null;
+  selectedSectionIndices: number[];
+  hoveredLane: LaneEditHoverInfo | null;
+  ghostPreview: GhostPreviewInfo | null;
+  taperLength: number;
+  useLaneOffset: boolean;
+}
+
+const DEFAULT_LANE_EDIT: LaneEditState = {
+  activeRoadId: null,
+  selectedSectionIndices: [],
+  hoveredLane: null,
+  ghostPreview: null,
+  taperLength: 30,
+  useLaneOffset: false,
+};
 
 const DEFAULT_ROAD_CREATION: RoadCreationState = {
   phase: 'idle',
@@ -90,6 +128,17 @@ interface OpenDriveSidebarState {
   resetRoadCreation: () => void;
   setSelectedPreset: (name: string) => void;
   setRoadCreationCursor: (x: number, y: number) => void;
+
+  // Lane edit state
+  laneEdit: LaneEditState;
+  resetLaneEdit: () => void;
+  setLaneEditRoad: (roadId: string | null) => void;
+  setLaneEditHover: (hover: LaneEditHoverInfo | null) => void;
+  setLaneEditGhostPreview: (ghost: GhostPreviewInfo | null) => void;
+  setSelectedSections: (indices: number[]) => void;
+  toggleSectionSelection: (index: number) => void;
+  setTaperLength: (length: number) => void;
+  setUseLaneOffset: (use: boolean) => void;
 }
 
 export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
@@ -106,6 +155,8 @@ export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
       activeTool: tool,
       // Reset creation state when switching tools
       roadCreation: tool !== 'road-create' ? DEFAULT_ROAD_CREATION : state.roadCreation,
+      // Reset lane edit state when switching away from lane-edit
+      laneEdit: tool !== 'lane-edit' ? DEFAULT_LANE_EDIT : state.laneEdit,
     })),
 
   // Road creation state machine
@@ -133,6 +184,32 @@ export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
     set((state) => ({
       roadCreation: { ...state.roadCreation, cursorX: x, cursorY: y },
     })),
+
+  // Lane edit state
+  laneEdit: DEFAULT_LANE_EDIT,
+  resetLaneEdit: () => set({ laneEdit: DEFAULT_LANE_EDIT }),
+  setLaneEditRoad: (roadId) =>
+    set((state) => ({
+      laneEdit: { ...DEFAULT_LANE_EDIT, activeRoadId: roadId, taperLength: state.laneEdit.taperLength, useLaneOffset: state.laneEdit.useLaneOffset },
+    })),
+  setLaneEditHover: (hover) =>
+    set((state) => ({ laneEdit: { ...state.laneEdit, hoveredLane: hover } })),
+  setLaneEditGhostPreview: (ghost) =>
+    set((state) => ({ laneEdit: { ...state.laneEdit, ghostPreview: ghost } })),
+  setSelectedSections: (indices) =>
+    set((state) => ({ laneEdit: { ...state.laneEdit, selectedSectionIndices: indices } })),
+  toggleSectionSelection: (index) =>
+    set((state) => {
+      const current = state.laneEdit.selectedSectionIndices;
+      const next = current.includes(index)
+        ? current.filter((i) => i !== index)
+        : [...current, index];
+      return { laneEdit: { ...state.laneEdit, selectedSectionIndices: next } };
+    }),
+  setTaperLength: (length) =>
+    set((state) => ({ laneEdit: { ...state.laneEdit, taperLength: length } })),
+  setUseLaneOffset: (use) =>
+    set((state) => ({ laneEdit: { ...state.laneEdit, useLaneOffset: use } })),
 }));
 
 // ---- Derived Data Selectors ----
