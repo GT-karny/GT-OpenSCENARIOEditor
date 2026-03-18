@@ -33,6 +33,7 @@ packages/
   shared/       — Type definitions (IMMUTABLE CONTRACT — do not modify without coordination)
   openscenario/ — .xosc XML parser/serializer
   opendrive/    — .xodr parser, road shape computation
+  opendrive-engine/ — OpenDRIVE editing engine (Zustand store, Command pattern)
   scenario-engine/ — Core business logic (Zustand store, Command pattern)
   node-editor/  — React Flow node editor + timeline UI
   3d-viewer/    — Three.js visualization
@@ -96,7 +97,7 @@ This project uses Claude Code worktrees for parallel development. When assigning
 
 ### React
 - Functional components only
-- Zustand for global state: core in `packages/scenario-engine/`, app stores in `apps/web/src/stores/`
+- Zustand for global state: core in `packages/scenario-engine/` and `packages/opendrive-engine/`, app stores in `apps/web/src/stores/`
 - shadcn/ui components (in `apps/web/src/components/ui/`)
 - Tailwind CSS 4 for styling
 
@@ -148,6 +149,8 @@ This project uses Claude Code worktrees for parallel development. When assigning
 | `Thirdparty/openscenario-v1.3.1/ASAM_OpenSCENARIO_v1.3.1_Schema/OpenSCENARIO.xsd` | Adding or validating OpenSCENARIO element support (primary) |
 | `Thirdparty/openscenario-v1.2.0/Schema/OpenSCENARIO.xsd` | Legacy v1.2 schema reference (backward compatibility) |
 | `Thirdparty/esmini-demo_Windows/esmini-demo/resources/xosc/` | Testing with sample .xosc scenarios |
+| `docs/LANE_TOOL_MANUAL.md` | Lane editing tool usage and operational guide |
+| `docs/proposals/` | Feature proposals and design documents |
 
 ## Environment Variables
 

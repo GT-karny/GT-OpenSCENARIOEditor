@@ -55,7 +55,7 @@ block-beta
     templates["@osce/templates\nUse Case Templates"]
     i18n["@osce/i18n\nEN / JA"]
     themeapex["@osce/theme-apex\nAPEX Design System"]
-    space
+    odrengine["@osce/opendrive-engine\nOpenDRIVE Editing\nStore / Commands"]
   end
 
   block:apps:4
@@ -130,6 +130,10 @@ graph LR
 .xodr XMLパース、道路形状計算（参照線、車線境界、標高）、Three.js用メッシュ生成。
 - 依存: `fast-xml-parser`, `@osce/shared`
 - テストデータ: `Thirdparty/esmini-demo_Windows/esmini-demo/resources/xodr/`
+
+### `packages/opendrive-engine` (@osce/opendrive-engine)
+OpenDRIVE編集のためのコアエンジン。Zustandストア、Commandパターン（Undo/Redo）、ビルダー（道路/ジャンクション/車線）、操作（レーン分割・テーパー・幅編集）。
+- 依存: `zustand`, `immer`, `uuid`, `@osce/shared`
 
 ### `packages/scenario-engine` (@osce/scenario-engine)
 コアビジネスロジック。Zustandストア、Commandパターン（Undo/Redo）、コンポーネントシステム、自動整合。
@@ -433,6 +437,7 @@ graph BT
   openscenario["@osce/openscenario"] --> shared
   opendrive["@osce/opendrive"] --> shared
   engine["@osce/scenario-engine"] --> shared
+  odrengine["@osce/opendrive-engine"] --> shared
   i18n["@osce/i18n"] --> shared
   templates["@osce/templates"] --> shared
   esmini["@osce/esmini"] --> shared
@@ -456,6 +461,7 @@ graph BT
   web --> openscenario
   web --> opendrive
   web --> engine
+  web --> odrengine
   web --> themeapex
 
   server["apps/server"] --> shared
