@@ -55,6 +55,9 @@ const ALWAYS_ARRAY_TAGS = new Set([
   'station',
   'platform',
   'segment',
+  // Road mark sub-elements
+  'line',
+  'sway',
   // Road types & common
   'type',
   'include',

@@ -5,15 +5,16 @@ import type { OdrRoad, OdrRoadLink, OdrRoadLinkElement, OdrRoadTypeEntry } from 
 import { ensureArray, toNum, toStr, toOptStr } from './xml-helpers.js';
 import { parsePlanView, parseElevations, parseSuperelevations, parseLaneOffsets } from './parse-geometry.js';
 import { parseLaneSections } from './parse-lane.js';
-import { parseObjects } from './parse-object.js';
-import { parseSignals } from './parse-signal.js';
+import { parseObjects, parseObjectReferences, parseTunnels, parseBridges } from './parse-object.js';
+import { parseSignals, parseSignalReferences } from './parse-signal.js';
+import { parseRailroad } from './parse-railroad.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Raw = Record<string, any>;
 
 export function parseRoad(raw: Raw): OdrRoad {
   const ruleStr = toOptStr(raw.rule);
-  return {
+  const road: OdrRoad = {
     id: toStr(raw.id),
     name: toStr(raw.name),
     length: toNum(raw.length),
@@ -29,6 +30,26 @@ export function parseRoad(raw: Raw): OdrRoad {
     objects: parseObjects(raw.objects),
     signals: parseSignals(raw.signals),
   };
+
+  // objectReference, tunnel, bridge from <objects>
+  const objReferences = parseObjectReferences(raw.objects);
+  if (objReferences.length > 0) road.objectReferences = objReferences;
+
+  const tunnels = parseTunnels(raw.objects);
+  if (tunnels.length > 0) road.tunnels = tunnels;
+
+  const bridges = parseBridges(raw.objects);
+  if (bridges.length > 0) road.bridges = bridges;
+
+  // signalReference from <signals>
+  const sigRefs = parseSignalReferences(raw.signals);
+  if (sigRefs.length > 0) road.signalReferences = sigRefs;
+
+  // railroad
+  const railroad = parseRailroad(raw.railroad);
+  if (railroad) road.railroad = railroad;
+
+  return road;
 }
 
 function parseRoadLink(raw: Raw | undefined): OdrRoadLink | undefined {

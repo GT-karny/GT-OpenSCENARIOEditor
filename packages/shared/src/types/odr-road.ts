@@ -4,8 +4,9 @@
 
 import type { OdrGeometry, OdrElevation, OdrSuperelevation, OdrLaneOffset } from './odr-geometry.js';
 import type { OdrLaneSection } from './odr-lane.js';
-import type { OdrRoadObject } from './odr-object.js';
-import type { OdrSignal } from './odr-signal.js';
+import type { OdrRoadObject, OdrObjectReference, OdrTunnel, OdrBridge } from './odr-object.js';
+import type { OdrSignal, OdrSignalRef } from './odr-signal.js';
+import type { OdrRailroad } from './odr-railroad.js';
 
 export type OdrRoadRule = 'RHT' | 'LHT';
 
@@ -25,6 +26,11 @@ export interface OdrRoad {
   lanes: OdrLaneSection[];
   objects: OdrRoadObject[];
   signals: OdrSignal[];
+  objectReferences?: OdrObjectReference[];
+  signalReferences?: OdrSignalRef[];
+  tunnels?: OdrTunnel[];
+  bridges?: OdrBridge[];
+  railroad?: OdrRailroad;
 }
 
 export interface OdrRoadLink {

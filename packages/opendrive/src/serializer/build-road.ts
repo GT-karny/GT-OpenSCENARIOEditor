@@ -12,8 +12,9 @@ import type {
 } from '@osce/shared';
 import { fmtNum, optAttr, numAttr } from './format-utils.js';
 import { buildLanes } from './build-lane.js';
-import { buildObject } from './build-object.js';
-import { buildSignal } from './build-signal.js';
+import { buildObject, buildObjectReference, buildTunnel, buildBridge } from './build-object.js';
+import { buildSignal, buildSignalRef } from './build-signal.js';
+import { buildRailroad } from './build-railroad.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type XmlNode = Record<string, any>;
@@ -64,22 +65,51 @@ export function buildRoad(road: OdrRoad): XmlNode {
   // lanes
   node.lanes = buildLanes(road.laneOffset, road.lanes);
 
-  // objects
-  if (road.objects.length > 0) {
-    node.objects = {
-      object: road.objects.map(buildObject),
-    };
+  // objects (includes objectReference, tunnel, bridge)
+  const hasObjects = road.objects.length > 0;
+  const hasObjRefs = road.objectReferences && road.objectReferences.length > 0;
+  const hasTunnels = road.tunnels && road.tunnels.length > 0;
+  const hasBridges = road.bridges && road.bridges.length > 0;
+
+  if (hasObjects || hasObjRefs || hasTunnels || hasBridges) {
+    const objectsNode: XmlNode = {};
+    if (hasObjects) {
+      objectsNode.object = road.objects.map(buildObject);
+    }
+    if (hasObjRefs) {
+      objectsNode.objectReference = road.objectReferences!.map(buildObjectReference);
+    }
+    if (hasTunnels) {
+      objectsNode.tunnel = road.tunnels!.map(buildTunnel);
+    }
+    if (hasBridges) {
+      objectsNode.bridge = road.bridges!.map(buildBridge);
+    }
+    node.objects = objectsNode;
   } else {
     node.objects = '';
   }
 
-  // signals
-  if (road.signals.length > 0) {
-    node.signals = {
-      signal: road.signals.map(buildSignal),
-    };
+  // signals (includes signalReference)
+  const hasSignals = road.signals.length > 0;
+  const hasSigRefs = road.signalReferences && road.signalReferences.length > 0;
+
+  if (hasSignals || hasSigRefs) {
+    const signalsNode: XmlNode = {};
+    if (hasSignals) {
+      signalsNode.signal = road.signals.map(buildSignal);
+    }
+    if (hasSigRefs) {
+      signalsNode.signalReference = road.signalReferences!.map(buildSignalRef);
+    }
+    node.signals = signalsNode;
   } else {
     node.signals = '';
+  }
+
+  // railroad
+  if (road.railroad) {
+    node.railroad = buildRailroad(road.railroad);
   }
 
   return node;
