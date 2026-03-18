@@ -21,6 +21,10 @@ import { LaneEditInteraction } from './LaneEditInteraction.js';
 import type { LaneHoverInfo, LaneEditSubModeType } from './LaneEditInteraction.js';
 import { SectionBoundaryMarkers } from './SectionBoundaryMarkers.js';
 import { JunctionCreateInteraction } from './JunctionCreateInteraction.js';
+import { SignalPlaceInteraction } from './SignalPlaceInteraction.js';
+import type { SignalPlaceGhostData } from './SignalPlaceInteraction.js';
+import { SignalGhostPreview } from './SignalGhostPreview.js';
+import { SignalMoveInteraction } from './SignalMoveInteraction.js';
 
 interface RoadEditingLayerProps {
   /** Full OpenDRIVE document */
@@ -155,6 +159,22 @@ interface RoadEditingLayerProps {
   onJunctionEndpointClick?: (roadId: string, contactPoint: 'start' | 'end') => void;
   /** Callback when an endpoint is hovered */
   onJunctionEndpointHover?: (endpoint: { roadId: string; contactPoint: 'start' | 'end' } | null) => void;
+
+  // ---- Signal Place ----
+  /** Whether signal place mode is active */
+  signalPlaceActive?: boolean;
+  /** Signal place sub-mode */
+  signalPlaceSubMode?: 'place' | 'move';
+  /** Signal t-snap mode */
+  signalPlaceTSnapMode?: 'lane-above' | 'road-edge';
+  /** Ghost preview data for signal placement */
+  signalPlaceGhost?: SignalPlaceGhostData | null;
+  /** Callback when user clicks to place a signal */
+  onSignalPlace?: (roadId: string, s: number, t: number, heading: number) => void;
+  /** Callback to update ghost preview position */
+  onSignalGhostUpdate?: (ghost: SignalPlaceGhostData | null) => void;
+  /** Callback when a signal is moved via drag */
+  onSignalMove?: (roadId: string, signalId: string, newS: number, newT: number) => void;
 }
 
 export function RoadEditingLayer({
@@ -208,6 +228,13 @@ export function RoadEditingLayer({
   junctionCreateHoveredEndpoint,
   onJunctionEndpointClick,
   onJunctionEndpointHover,
+  signalPlaceActive = false,
+  signalPlaceSubMode,
+  signalPlaceTSnapMode,
+  signalPlaceGhost,
+  onSignalPlace,
+  onSignalGhostUpdate,
+  onSignalMove,
 }: RoadEditingLayerProps) {
   const selectedRoad = useMemo(
     () => openDriveDocument.roads.find((r) => r.id === selectedRoadId) ?? null,
@@ -474,6 +501,37 @@ export function RoadEditingLayer({
           hoveredEndpoint={junctionCreateHoveredEndpoint ?? null}
           onEndpointClick={onJunctionEndpointClick}
           onEndpointHover={onJunctionEndpointHover}
+        />
+      )}
+
+      {/* Signal place interaction */}
+      {signalPlaceActive && signalPlaceSubMode === 'place' && (
+        <SignalPlaceInteraction
+          active={signalPlaceActive}
+          subMode="place"
+          openDriveDocument={openDriveDocument}
+          tSnapMode={signalPlaceTSnapMode ?? 'lane-above'}
+          onSignalPlace={onSignalPlace}
+          onGhostUpdate={onSignalGhostUpdate}
+        />
+      )}
+
+      {/* Signal move interaction */}
+      {signalPlaceActive && signalPlaceSubMode === 'move' && (
+        <SignalMoveInteraction
+          active
+          openDriveDocument={openDriveDocument}
+          tSnapMode={signalPlaceTSnapMode ?? 'lane-above'}
+          onSignalMove={onSignalMove}
+          orbitControlsRef={orbitControlsRef}
+        />
+      )}
+
+      {/* Signal ghost preview */}
+      {signalPlaceActive && signalPlaceGhost && (
+        <SignalGhostPreview
+          ghost={signalPlaceGhost}
+          openDriveDocument={openDriveDocument}
         />
       )}
     </group>

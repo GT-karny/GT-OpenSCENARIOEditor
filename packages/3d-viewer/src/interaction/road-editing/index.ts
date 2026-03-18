@@ -16,3 +16,7 @@ export { SectionBoundaryMarkers } from './SectionBoundaryMarkers.js';
 export { SplitPreviewLine } from './SplitPreviewLine.js';
 export { TaperRangePreview } from './TaperRangePreview.js';
 export { JunctionCreateInteraction } from './JunctionCreateInteraction.js';
+export { SignalPlaceInteraction } from './SignalPlaceInteraction.js';
+export type { SignalPlaceGhostData } from './SignalPlaceInteraction.js';
+export { SignalGhostPreview } from './SignalGhostPreview.js';
+export { SignalMoveInteraction } from './SignalMoveInteraction.js';

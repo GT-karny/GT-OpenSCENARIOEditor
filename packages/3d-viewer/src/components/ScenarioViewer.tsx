@@ -268,6 +268,22 @@ export interface ScenarioViewerProps {
   /** Callback when an endpoint is hovered */
   onJunctionEndpointHover?: (endpoint: { roadId: string; contactPoint: 'start' | 'end' } | null) => void;
 
+  // ---- Signal Place ----
+  /** Whether signal place mode is active */
+  signalPlaceActive?: boolean;
+  /** Signal place sub-mode */
+  signalPlaceSubMode?: 'place' | 'move';
+  /** Signal t-snap mode */
+  signalPlaceTSnapMode?: 'lane-above' | 'road-edge';
+  /** Ghost preview data for signal placement */
+  signalPlaceGhost?: import('../interaction/road-editing/SignalPlaceInteraction.js').SignalPlaceGhostData | null;
+  /** Callback when user clicks to place a signal */
+  onSignalPlace?: (roadId: string, s: number, t: number, heading: number) => void;
+  /** Callback to update ghost preview position */
+  onSignalGhostUpdate?: (ghost: import('../interaction/road-editing/SignalPlaceInteraction.js').SignalPlaceGhostData | null) => void;
+  /** Callback when a signal is moved via drag */
+  onSignalMove?: (roadId: string, signalId: string, newS: number, newT: number) => void;
+
   // ---- Junction Editing ----
   /** Currently selected junction ID (renders with highlight) */
   selectedJunctionId?: string | null;
@@ -359,6 +375,13 @@ function ScenarioViewerScene({
   junctionCreateHoveredEndpoint,
   onJunctionEndpointClick,
   onJunctionEndpointHover,
+  signalPlaceActive,
+  signalPlaceSubMode,
+  signalPlaceTSnapMode,
+  signalPlaceGhost,
+  onSignalPlace,
+  onSignalGhostUpdate,
+  onSignalMove,
   selectedJunctionId,
   ghostJunctionSurface,
   onJunctionClick,
@@ -440,6 +463,13 @@ function ScenarioViewerScene({
   junctionCreateHoveredEndpoint?: ScenarioViewerProps['junctionCreateHoveredEndpoint'];
   onJunctionEndpointClick?: ScenarioViewerProps['onJunctionEndpointClick'];
   onJunctionEndpointHover?: ScenarioViewerProps['onJunctionEndpointHover'];
+  signalPlaceActive?: boolean;
+  signalPlaceSubMode?: ScenarioViewerProps['signalPlaceSubMode'];
+  signalPlaceTSnapMode?: ScenarioViewerProps['signalPlaceTSnapMode'];
+  signalPlaceGhost?: ScenarioViewerProps['signalPlaceGhost'];
+  onSignalPlace?: ScenarioViewerProps['onSignalPlace'];
+  onSignalGhostUpdate?: ScenarioViewerProps['onSignalGhostUpdate'];
+  onSignalMove?: ScenarioViewerProps['onSignalMove'];
   selectedJunctionId?: string | null;
   ghostJunctionSurface?: ScenarioViewerProps['ghostJunctionSurface'];
   onJunctionClick?: ScenarioViewerProps['onJunctionClick'];
@@ -756,6 +786,13 @@ function ScenarioViewerScene({
             junctionCreateHoveredEndpoint={junctionCreateHoveredEndpoint}
             onJunctionEndpointClick={onJunctionEndpointClick}
             onJunctionEndpointHover={onJunctionEndpointHover}
+            signalPlaceActive={signalPlaceActive}
+            signalPlaceSubMode={signalPlaceSubMode}
+            signalPlaceTSnapMode={signalPlaceTSnapMode}
+            signalPlaceGhost={signalPlaceGhost}
+            onSignalPlace={onSignalPlace}
+            onSignalGhostUpdate={onSignalGhostUpdate}
+            onSignalMove={onSignalMove}
           />
         </group>
       )}
@@ -871,6 +908,13 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   junctionCreateHoveredEndpoint,
   onJunctionEndpointClick,
   onJunctionEndpointHover,
+  signalPlaceActive,
+  signalPlaceSubMode,
+  signalPlaceTSnapMode,
+  signalPlaceGhost,
+  onSignalPlace,
+  onSignalGhostUpdate,
+  onSignalMove,
   selectedJunctionId,
   ghostJunctionSurface,
   onJunctionClick,
@@ -1177,6 +1221,13 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           junctionCreateHoveredEndpoint={junctionCreateHoveredEndpoint}
           onJunctionEndpointClick={onJunctionEndpointClick}
           onJunctionEndpointHover={onJunctionEndpointHover}
+          signalPlaceActive={signalPlaceActive}
+          signalPlaceSubMode={signalPlaceSubMode}
+          signalPlaceTSnapMode={signalPlaceTSnapMode}
+          signalPlaceGhost={signalPlaceGhost}
+          onSignalPlace={onSignalPlace}
+          onSignalGhostUpdate={onSignalGhostUpdate}
+          onSignalMove={onSignalMove}
           selectedJunctionId={selectedJunctionId}
           ghostJunctionSurface={ghostJunctionSurface}
           onJunctionClick={onJunctionClick}

@@ -45,7 +45,7 @@ interface OdrSidebarSelection {
   roadId?: string;
 }
 
-export type RoadToolMode = 'select' | 'road-create' | 'lane-edit' | 'junction-create';
+export type RoadToolMode = 'select' | 'road-create' | 'lane-edit' | 'junction-create' | 'signal-place';
 
 export type LaneEditSubMode = 'select' | 'split' | 'taper';
 export type TaperDirection = 'narrow-to-wide' | 'wide-to-narrow';
@@ -111,6 +111,30 @@ export interface JunctionCreateState {
   routingPreset: JunctionRoutingPreset;
   laneOverrides: EndpointLaneRouting[];
 }
+
+export type SignalPlaceSubMode = 'place' | 'move';
+export type SignalTSnapMode = 'lane-above' | 'road-edge';
+
+export interface SignalPlaceGhost {
+  roadId: string;
+  s: number;
+  t: number;
+  heading: number;
+}
+
+export interface SignalPlaceState {
+  subMode: SignalPlaceSubMode;
+  selectedPresetId: string;
+  tSnapMode: SignalTSnapMode;
+  ghostPreview: SignalPlaceGhost | null;
+}
+
+const DEFAULT_SIGNAL_PLACE: SignalPlaceState = {
+  subMode: 'place',
+  selectedPresetId: '3-light-vertical',
+  tSnapMode: 'lane-above',
+  ghostPreview: null,
+};
 
 const DEFAULT_JUNCTION_CREATE: JunctionCreateState = {
   selectedEndpoints: [],
@@ -201,6 +225,14 @@ interface OpenDriveSidebarState {
     allowedTurns: TurnType[],
   ) => void;
   resetJunctionCreate: () => void;
+
+  // Signal place state
+  signalPlace: SignalPlaceState;
+  setSignalPlaceSubMode: (mode: SignalPlaceSubMode) => void;
+  setSignalPlacePreset: (presetId: string) => void;
+  setSignalPlaceTSnapMode: (mode: SignalTSnapMode) => void;
+  setSignalPlaceGhost: (ghost: SignalPlaceGhost | null) => void;
+  resetSignalPlace: () => void;
 }
 
 export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
@@ -221,6 +253,8 @@ export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
       laneEdit: tool !== 'lane-edit' ? DEFAULT_LANE_EDIT : state.laneEdit,
       // Reset junction create state when switching away
       junctionCreate: tool !== 'junction-create' ? DEFAULT_JUNCTION_CREATE : state.junctionCreate,
+      // Reset signal place state when switching away
+      signalPlace: tool !== 'signal-place' ? DEFAULT_SIGNAL_PLACE : state.signalPlace,
     })),
 
   // Road creation state machine
@@ -352,6 +386,21 @@ export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
   resetJunctionCreate: () =>
     set((state) => ({
       junctionCreate: { ...DEFAULT_JUNCTION_CREATE, routingPreset: state.junctionCreate.routingPreset },
+    })),
+
+  // Signal place state
+  signalPlace: DEFAULT_SIGNAL_PLACE,
+  setSignalPlaceSubMode: (mode) =>
+    set((state) => ({ signalPlace: { ...state.signalPlace, subMode: mode } })),
+  setSignalPlacePreset: (presetId) =>
+    set((state) => ({ signalPlace: { ...state.signalPlace, selectedPresetId: presetId } })),
+  setSignalPlaceTSnapMode: (mode) =>
+    set((state) => ({ signalPlace: { ...state.signalPlace, tSnapMode: mode } })),
+  setSignalPlaceGhost: (ghost) =>
+    set((state) => ({ signalPlace: { ...state.signalPlace, ghostPreview: ghost } })),
+  resetSignalPlace: () =>
+    set((state) => ({
+      signalPlace: { ...DEFAULT_SIGNAL_PLACE, selectedPresetId: state.signalPlace.selectedPresetId },
     })),
 }));
 

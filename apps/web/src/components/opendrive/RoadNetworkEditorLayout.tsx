@@ -12,6 +12,8 @@ import {
   moveSectionBoundary,
   changeLaneWidth,
   createTaperAtRange,
+  getPresetById,
+  presetToSignalPartial,
 } from '@osce/opendrive-engine';
 import { ScenarioViewer } from '@osce/3d-viewer';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
@@ -144,6 +146,11 @@ export function RoadNetworkEditorLayout() {
   // Junction create state
   const junctionCreateMode = activeTool === 'junction-create';
   const junctionCreate = useOdrSidebarStore((s) => s.junctionCreate);
+
+  // Signal place state
+  const signalPlaceMode = activeTool === 'signal-place';
+  const signalPlace = useOdrSidebarStore((s) => s.signalPlace);
+  const setSignalPlaceGhost = useOdrSidebarStore((s) => s.setSignalPlaceGhost);
 
   // Compute road endpoints for the junction routing panel
   const junctionEndpoints = useMemo(() => {
@@ -307,6 +314,9 @@ export function RoadNetworkEditorLayout() {
         } else {
           store.setActiveTool('select');
         }
+        e.preventDefault();
+      } else if (store.activeTool === 'signal-place') {
+        store.setActiveTool('select');
         e.preventDefault();
       }
     };
@@ -917,6 +927,43 @@ export function RoadNetworkEditorLayout() {
     return () => window.removeEventListener('keydown', handler);
   }, [handleJunctionConfirm]);
 
+  // --- Signal place handlers ---
+  const handleSignalPlace = useCallback(
+    (roadId: string, s: number, t: number, heading: number) => {
+      const store = odrStoreApi.getState();
+      const preset = getPresetById(signalPlace.selectedPresetId);
+      const partial = preset ? presetToSignalPartial(preset) : {};
+
+      // Auto-compute orientation from t
+      const orientation: '+' | '-' = t < 0 ? '-' : '+';
+
+      store.addSignal(roadId, {
+        ...partial,
+        s,
+        t,
+        orientation,
+        hOffset: heading,
+        zOffset: 4.0,
+      });
+    },
+    [odrStoreApi, signalPlace.selectedPresetId],
+  );
+
+  const handleSignalGhostUpdate = useCallback(
+    (ghost: { roadId: string; s: number; t: number; heading: number } | null) => {
+      setSignalPlaceGhost(ghost);
+    },
+    [setSignalPlaceGhost],
+  );
+
+  const handleSignalMove = useCallback(
+    (roadId: string, signalId: string, newS: number, newT: number) => {
+      const store = odrStoreApi.getState();
+      store.updateSignal(roadId, signalId, { s: newS, t: newT });
+    },
+    [odrStoreApi],
+  );
+
   const handleAddRoadFromEndpoint = useCallback(
     (roadId: string, contactPoint: 'start' | 'end') => {
       const road = odrDocument.roads.find((r) => r.id === roadId);
@@ -1278,6 +1325,13 @@ export function RoadNetworkEditorLayout() {
                   junctionCreateHoveredEndpoint={junctionCreate.hoveredEndpoint}
                   onJunctionEndpointClick={handleJunctionEndpointClick}
                   onJunctionEndpointHover={handleJunctionEndpointHover}
+                  signalPlaceActive={signalPlaceMode}
+                  signalPlaceSubMode={signalPlace.subMode}
+                  signalPlaceTSnapMode={signalPlace.tSnapMode}
+                  signalPlaceGhost={signalPlace.ghostPreview}
+                  onSignalPlace={handleSignalPlace}
+                  onSignalGhostUpdate={handleSignalGhostUpdate}
+                  onSignalMove={handleSignalMove}
                   selectedJunctionId={selectedJunctionId}
                   onJunctionClick={handleJunctionClick}
                   onJunctionContextMenu={handleJunctionContextMenu}
