@@ -57,3 +57,12 @@ export interface OdrLaneOffset {
   c: number;
   d: number;
 }
+
+export interface OdrShape {
+  s: number;
+  t: number;
+  a: number;
+  b: number;
+  c: number;
+  d: number;
+}

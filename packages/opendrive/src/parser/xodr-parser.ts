@@ -7,7 +7,8 @@ import { createXodrXmlParser, ensureArray } from './xml-helpers.js';
 import { parseHeader } from './parse-header.js';
 import { parseRoad } from './parse-road.js';
 import { parseController } from './parse-controller.js';
-import { parseJunction } from './parse-junction.js';
+import { parseJunction, parseJunctionGroups } from './parse-junction.js';
+import { parseStations } from './parse-railroad.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Raw = Record<string, any>;
@@ -22,11 +23,20 @@ export class XodrParser implements IXodrParser {
       throw new Error('Invalid OpenDRIVE XML: missing <OpenDRIVE> root element');
     }
 
-    return {
+    const doc: OpenDriveDocument = {
       header: parseHeader(root.header),
       roads: ensureArray(root.road).map(parseRoad),
       controllers: ensureArray(root.controller).map(parseController),
       junctions: ensureArray(root.junction).map(parseJunction),
     };
+
+    // Top-level optional elements
+    const stations = parseStations(root.station);
+    if (stations.length > 0) doc.stations = stations;
+
+    const junctionGroups = parseJunctionGroups(root.junctionGroup);
+    if (junctionGroups.length > 0) doc.junctionGroups = junctionGroups;
+
+    return doc;
   }
 }

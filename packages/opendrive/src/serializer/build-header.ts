@@ -24,5 +24,14 @@ export function buildHeader(header: OdrHeader): XmlNode {
     node.geoReference = { __cdata: header.geoReference };
   }
 
+  if (header.offset) {
+    node.offset = {
+      '@_x': fmtNum(header.offset.x),
+      '@_y': fmtNum(header.offset.y),
+      '@_z': fmtNum(header.offset.z),
+      '@_hdg': fmtNum(header.offset.hdg),
+    };
+  }
+
   return node;
 }

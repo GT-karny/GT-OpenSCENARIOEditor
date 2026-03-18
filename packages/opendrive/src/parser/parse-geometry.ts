@@ -1,7 +1,7 @@
 /**
  * Parse OpenDRIVE geometry and profile elements.
  */
-import type { OdrGeometry, OdrElevation, OdrSuperelevation, OdrLaneOffset } from '@osce/shared';
+import type { OdrGeometry, OdrElevation, OdrSuperelevation, OdrLaneOffset, OdrShape } from '@osce/shared';
 import { ensureArray, toNum } from './xml-helpers.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -108,5 +108,17 @@ export function parseLaneOffsets(raw: Raw | undefined): OdrLaneOffset[] {
     b: toNum(e.b),
     c: toNum(e.c),
     d: toNum(e.d),
+  }));
+}
+
+export function parseShapes(raw: Raw | undefined): OdrShape[] {
+  if (!raw) return [];
+  return ensureArray(raw.shape).map((s: Raw) => ({
+    s: toNum(s.s),
+    t: toNum(s.t),
+    a: toNum(s.a),
+    b: toNum(s.b),
+    c: toNum(s.c),
+    d: toNum(s.d),
   }));
 }

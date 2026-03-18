@@ -29,3 +29,38 @@ export type OdrRoadMarkColor =
 export type OdrContactPoint = 'start' | 'end';
 
 export type OdrElementType = 'road' | 'junction';
+
+export type OdrAccessRestriction =
+  | 'simulator' | 'autonomousTraffic' | 'pedestrian' | 'passengerCar'
+  | 'bus' | 'delivery' | 'emergency' | 'taxi'
+  | 'throughTraffic' | 'truck' | 'bicycle' | 'motorcycle' | 'none' | 'trucks';
+
+export type OdrObjectType =
+  | 'none' | 'obstacle' | 'pole' | 'tree' | 'vegetation'
+  | 'barrier' | 'building' | 'parkingSpace' | 'patch'
+  | 'railing' | 'trafficIsland' | 'crosswalk' | 'streetLamp'
+  | 'gantry' | 'soundBarrier' | 'roadMark';
+
+export type OdrTunnelType = 'standard' | 'underpass';
+
+export type OdrBridgeType = 'concrete' | 'steel' | 'brick' | 'wood';
+
+export type OdrOutlineFillType =
+  | 'grass' | 'concrete' | 'cobble' | 'asphalt'
+  | 'pavement' | 'gravel' | 'soil';
+
+export type OdrJunctionGroupType = 'roundabout' | 'unknown';
+
+export type OdrRailroadSwitchPosition = 'dynamic' | 'straight' | 'turn';
+
+export type OdrRoadMarkWeight = 'standard' | 'bold';
+
+export type OdrRoadMarkRule = 'no passing' | 'caution' | 'none';
+
+export type OdrParkingSpaceAccess =
+  | 'all' | 'car' | 'women' | 'handicapped'
+  | 'bus' | 'truck' | 'electric' | 'residents';
+
+export type OdrStationType = 'small' | 'medium' | 'large';
+
+export type OdrOrientation = '+' | '-' | 'none';

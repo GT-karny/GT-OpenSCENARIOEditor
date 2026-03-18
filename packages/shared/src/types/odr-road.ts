@@ -2,11 +2,12 @@
  * OpenDRIVE road-level types.
  */
 
-import type { OdrGeometry, OdrElevation, OdrSuperelevation, OdrLaneOffset } from './odr-geometry.js';
+import type { OdrGeometry, OdrElevation, OdrSuperelevation, OdrLaneOffset, OdrShape } from './odr-geometry.js';
 import type { OdrLaneSection } from './odr-lane.js';
 import type { OdrRoadObject, OdrObjectReference, OdrTunnel, OdrBridge } from './odr-object.js';
 import type { OdrSignal, OdrSignalRef } from './odr-signal.js';
 import type { OdrRailroad } from './odr-railroad.js';
+import type { OdrSurfaceCRG } from './odr-surface.js';
 
 export type OdrRoadRule = 'RHT' | 'LHT';
 
@@ -31,6 +32,8 @@ export interface OdrRoad {
   tunnels?: OdrTunnel[];
   bridges?: OdrBridge[];
   railroad?: OdrRailroad;
+  surface?: { crg?: OdrSurfaceCRG[] };
+  shapes?: OdrShape[];
 }
 
 export interface OdrRoadLink {
@@ -42,6 +45,8 @@ export interface OdrRoadLinkElement {
   elementType: 'road' | 'junction';
   elementId: string;
   contactPoint?: 'start' | 'end';
+  elementS?: number;
+  elementDir?: '+' | '-';
 }
 
 export interface OdrRoadTypeEntry {

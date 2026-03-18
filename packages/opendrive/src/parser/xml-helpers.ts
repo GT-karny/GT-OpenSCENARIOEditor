@@ -62,6 +62,8 @@ const ALWAYS_ARRAY_TAGS = new Set([
   'type',
   'include',
   'userData',
+  // Surface
+  'CRG',
 ]);
 
 export function createXodrXmlParser(): XMLParser {

@@ -2,8 +2,8 @@
  * Parse OpenDRIVE <road> elements.
  */
 import type { OdrRoad, OdrRoadLink, OdrRoadLinkElement, OdrRoadTypeEntry } from '@osce/shared';
-import { ensureArray, toNum, toStr, toOptStr } from './xml-helpers.js';
-import { parsePlanView, parseElevations, parseSuperelevations, parseLaneOffsets } from './parse-geometry.js';
+import { ensureArray, toNum, toStr, toOptStr, toOptNum } from './xml-helpers.js';
+import { parsePlanView, parseElevations, parseSuperelevations, parseLaneOffsets, parseShapes } from './parse-geometry.js';
 import { parseLaneSections } from './parse-lane.js';
 import { parseObjects, parseObjectReferences, parseTunnels, parseBridges } from './parse-object.js';
 import { parseSignals, parseSignalReferences } from './parse-signal.js';
@@ -45,6 +45,32 @@ export function parseRoad(raw: Raw): OdrRoad {
   const sigRefs = parseSignalReferences(raw.signals);
   if (sigRefs.length > 0) road.signalReferences = sigRefs;
 
+  // lateralProfile shapes
+  const shapes = parseShapes(raw.lateralProfile);
+  if (shapes.length > 0) road.shapes = shapes;
+
+  // surface CRG
+  if (raw.surface) {
+    const crgArr = ensureArray(raw.surface.CRG ?? raw.surface.crg);
+    if (crgArr.length > 0) {
+      road.surface = {
+        crg: crgArr.map((crg: Raw) => ({
+          file: toStr(crg.file),
+          sStart: toOptNum(crg.sStart),
+          sEnd: toOptNum(crg.sEnd),
+          orientation: toOptStr(crg.orientation),
+          mode: toOptStr(crg.mode),
+          purpose: toOptStr(crg.purpose),
+          sOffset: toOptNum(crg.sOffset),
+          tOffset: toOptNum(crg.tOffset),
+          zOffset: toOptNum(crg.zOffset),
+          zScale: toOptNum(crg.zScale),
+          hOffset: toOptNum(crg.hOffset),
+        })),
+      };
+    }
+  }
+
   // railroad
   const railroad = parseRailroad(raw.railroad);
   if (railroad) road.railroad = railroad;
@@ -69,6 +95,8 @@ function parseLinkElement(raw: Raw | undefined): OdrRoadLinkElement | undefined 
     elementType: toStr(raw.elementType) as 'road' | 'junction',
     elementId: toStr(raw.elementId),
     contactPoint: toOptStr(raw.contactPoint) as 'start' | 'end' | undefined,
+    elementS: toOptNum(raw.elementS),
+    elementDir: toOptStr(raw.elementDir) as '+' | '-' | undefined,
   };
 }
 

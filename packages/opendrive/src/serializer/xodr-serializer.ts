@@ -6,8 +6,9 @@ import type { IXodrSerializer, OpenDriveDocument } from '@osce/shared';
 import { createXodrXmlBuilder } from './fxp-builder-config.js';
 import { buildHeader } from './build-header.js';
 import { buildRoad } from './build-road.js';
-import { buildJunction } from './build-junction.js';
+import { buildJunction, buildJunctionGroup } from './build-junction.js';
 import { buildController } from './build-controller.js';
+import { buildStation } from './build-railroad.js';
 
 export class XodrSerializer implements IXodrSerializer {
   serialize(doc: OpenDriveDocument): string {
@@ -38,6 +39,14 @@ export class XodrSerializer implements IXodrSerializer {
 
     if (doc.junctions.length > 0) {
       xmlObj.OpenDRIVE.junction = doc.junctions.map(buildJunction);
+    }
+
+    if (doc.stations && doc.stations.length > 0) {
+      xmlObj.OpenDRIVE.station = doc.stations.map(buildStation);
+    }
+
+    if (doc.junctionGroups && doc.junctionGroups.length > 0) {
+      xmlObj.OpenDRIVE.junctionGroup = doc.junctionGroups.map(buildJunctionGroup);
     }
 
     const xmlDecl = '<?xml version="1.0" encoding="UTF-8"?>\n';

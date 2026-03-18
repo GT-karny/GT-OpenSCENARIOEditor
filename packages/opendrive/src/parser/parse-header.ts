@@ -1,7 +1,7 @@
 /**
  * Parse OpenDRIVE <header> element.
  */
-import type { OdrHeader } from '@osce/shared';
+import type { OdrHeader, OdrHeaderOffset } from '@osce/shared';
 import { toNum, toStr, toOptNum } from './xml-helpers.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,6 +21,17 @@ export function parseHeader(raw: Raw | undefined): OdrHeader {
     east: toOptNum(raw.east),
     west: toOptNum(raw.west),
     geoReference: extractGeoReference(raw.geoReference),
+    offset: parseHeaderOffset(raw.offset),
+  };
+}
+
+function parseHeaderOffset(raw: Raw | undefined): OdrHeaderOffset | undefined {
+  if (!raw) return undefined;
+  return {
+    x: toNum(raw.x),
+    y: toNum(raw.y),
+    z: toNum(raw.z),
+    hdg: toNum(raw.hdg),
   };
 }
 

@@ -53,11 +53,25 @@ export function buildRoad(road: OdrRoad): XmlNode {
     node.elevationProfile = '';
   }
 
-  // lateralProfile
-  if (road.lateralProfile.length > 0) {
-    node.lateralProfile = {
-      superelevation: road.lateralProfile.map(buildSuperelevation),
-    };
+  // lateralProfile (superelevation + shapes)
+  const hasSuperelev = road.lateralProfile.length > 0;
+  const hasShapes = road.shapes && road.shapes.length > 0;
+  if (hasSuperelev || hasShapes) {
+    const lpNode: XmlNode = {};
+    if (hasSuperelev) lpNode.superelevation = road.lateralProfile.map(buildSuperelevation);
+    if (hasShapes) {
+      lpNode.shape = road.shapes!.map((s) => {
+        const sn: XmlNode = {};
+        numAttr(sn, '@_s', s.s);
+        numAttr(sn, '@_t', s.t);
+        numAttr(sn, '@_a', s.a);
+        numAttr(sn, '@_b', s.b);
+        numAttr(sn, '@_c', s.c);
+        numAttr(sn, '@_d', s.d);
+        return sn;
+      });
+    }
+    node.lateralProfile = lpNode;
   } else {
     node.lateralProfile = '';
   }
@@ -107,6 +121,26 @@ export function buildRoad(road: OdrRoad): XmlNode {
     node.signals = '';
   }
 
+  // surface
+  if (road.surface?.crg && road.surface.crg.length > 0) {
+    node.surface = {
+      CRG: road.surface.crg.map((crg) => {
+        const cn: XmlNode = { '@_file': crg.file };
+        optAttr(cn, '@_sStart', crg.sStart, fmtNum);
+        optAttr(cn, '@_sEnd', crg.sEnd, fmtNum);
+        optAttr(cn, '@_orientation', crg.orientation);
+        optAttr(cn, '@_mode', crg.mode);
+        optAttr(cn, '@_purpose', crg.purpose);
+        optAttr(cn, '@_sOffset', crg.sOffset, fmtNum);
+        optAttr(cn, '@_tOffset', crg.tOffset, fmtNum);
+        optAttr(cn, '@_zOffset', crg.zOffset, fmtNum);
+        optAttr(cn, '@_zScale', crg.zScale, fmtNum);
+        optAttr(cn, '@_hOffset', crg.hOffset, fmtNum);
+        return cn;
+      }),
+    };
+  }
+
   // railroad
   if (road.railroad) {
     node.railroad = buildRailroad(road.railroad);
@@ -135,6 +169,8 @@ function buildLinkElement(elem: OdrRoadLinkElement): XmlNode {
     '@_elementId': elem.elementId,
   };
   optAttr(node, '@_contactPoint', elem.contactPoint);
+  optAttr(node, '@_elementS', elem.elementS, fmtNum);
+  optAttr(node, '@_elementDir', elem.elementDir);
   return node;
 }
 
