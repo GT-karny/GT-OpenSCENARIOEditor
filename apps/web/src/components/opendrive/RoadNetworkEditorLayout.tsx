@@ -29,6 +29,7 @@ import { OdrLaneSectionPropertyEditor } from './property/OdrLaneSectionPropertyE
 import { LaneLinkEditor } from './lane-link/LaneLinkEditor';
 import { RoadNetworkToolbar } from './toolbar/RoadNetworkToolbar';
 import { RoadStylePanel } from './toolbar/RoadStylePanel';
+import { JunctionRoutingPanel } from './junction/JunctionRoutingPanel';
 import { useAutoJunctionDetection } from '../../hooks/use-auto-junction-detection';
 import { evaluateReferenceLineAtS } from '@osce/opendrive';
 import {
@@ -139,6 +140,22 @@ export function RoadNetworkEditorLayout() {
   const taperCreation = laneEdit.taperCreation;
   const setTaperCreation = useOdrSidebarStore((s) => s.setTaperCreation);
   const resetTaperCreation = useOdrSidebarStore((s) => s.resetTaperCreation);
+
+  // Junction create state
+  const junctionCreateMode = activeTool === 'junction-create';
+  const junctionCreate = useOdrSidebarStore((s) => s.junctionCreate);
+
+  // Compute road endpoints for the junction routing panel
+  const junctionEndpoints = useMemo(() => {
+    if (!junctionCreateMode || junctionCreate.selectedEndpoints.length < 2) return [];
+    return junctionCreate.selectedEndpoints
+      .map((ep) => {
+        const road = odrDocument.roads.find((r) => r.id === ep.roadId);
+        if (!road) return null;
+        return computeRoadEndpoint(road, ep.contactPoint, evaluateReferenceLineAtS);
+      })
+      .filter((ep): ep is NonNullable<typeof ep> => ep !== null);
+  }, [junctionCreateMode, junctionCreate.selectedEndpoints, odrDocument.roads]);
 
   // Auto-junction detection on road geometry changes
   const { checkForIntersections } = useAutoJunctionDetection({
@@ -280,6 +297,13 @@ export function RoadNetworkEditorLayout() {
           store.resetTaperCreation();
         } else if (laneEdit.subMode !== 'select') {
           store.setLaneEditSubMode('select');
+        } else {
+          store.setActiveTool('select');
+        }
+        e.preventDefault();
+      } else if (store.activeTool === 'junction-create') {
+        if (store.junctionCreate.selectedEndpoints.length > 0) {
+          store.resetJunctionCreate();
         } else {
           store.setActiveTool('select');
         }
@@ -794,6 +818,105 @@ export function RoadNetworkEditorLayout() {
     [odrStoreApi, taperCreation, taperDirection, taperPosition, laneEdit.useLaneOffset, setTaperCreation, resetTaperCreation],
   );
 
+  // --- Junction create handlers ---
+  const handleJunctionEndpointHover = useCallback(
+    (endpoint: { roadId: string; contactPoint: 'start' | 'end' } | null) => {
+      useOdrSidebarStore.getState().setJunctionCreateHover(endpoint);
+    },
+    [],
+  );
+
+  const handleJunctionEndpointClick = useCallback(
+    (roadId: string, contactPoint: 'start' | 'end') => {
+      useOdrSidebarStore.getState().toggleEndpointSelection(roadId, contactPoint);
+    },
+    [],
+  );
+
+  const handleJunctionConfirm = useCallback(() => {
+    const store = odrStoreApi.getState();
+    const doc = store.document;
+    const { selectedEndpoints, routingPreset, laneOverrides } = useOdrSidebarStore.getState().junctionCreate;
+    if (selectedEndpoints.length < 2) return;
+
+    // Compute road endpoints
+    const endpoints = [];
+    for (const ep of selectedEndpoints) {
+      const road = doc.roads.find((r) => r.id === ep.roadId);
+      if (road) {
+        endpoints.push(computeRoadEndpoint(road, ep.contactPoint, evaluateReferenceLineAtS));
+      }
+    }
+    if (endpoints.length < 2) return;
+
+    // Generate connecting roads with selected routing preset
+    const routingConfig = routingPreset === 'dedicated'
+      ? { rightTurnLanes: 'outermost' as const, leftTurnLanes: 'innermost' as const, generateUturn: false }
+      : createDefaultLaneRoutingConfig();
+    const junctionId = String(
+      Math.max(0, ...doc.junctions.map((j) => parseInt(j.id, 10)).filter((n) => !isNaN(n))) + 1,
+    );
+    const result = generateConnectingRoads(
+      endpoints, junctionId, routingConfig, doc,
+      laneOverrides.length > 0 ? laneOverrides : undefined,
+    );
+
+    // Batch: create junction + connecting roads + update road links
+    store.beginBatch('Create manual junction');
+    try {
+      const junction = store.addJunction({
+        id: junctionId,
+        name: `Junction ${junctionId}`,
+        connections: result.connections,
+      });
+
+      // Add connecting roads
+      for (const connRoad of result.roads) {
+        store.addRoad({ ...connRoad, junction: junction.id });
+      }
+
+      // Set predecessor/successor junction references on incoming roads
+      for (const ep of selectedEndpoints) {
+        const linkType: 'predecessor' | 'successor' =
+          ep.contactPoint === 'start' ? 'predecessor' : 'successor';
+        store.setRoadLink(ep.roadId, linkType, {
+          elementType: 'junction',
+          elementId: junction.id,
+        });
+      }
+
+      // Register metadata as manually created
+      editorMetadataStoreApi.getState().addJunctionMetadata({
+        junctionId: junction.id,
+        intersectingVirtualRoadIds: [],
+        connectingRoadIds: result.roads.map((r) => r.id),
+        autoCreated: false,
+      });
+    } finally {
+      store.endBatch();
+    }
+
+    // Reset junction create state
+    useOdrSidebarStore.getState().resetJunctionCreate();
+    // Select the new junction
+    useOdrSidebarStore.getState().setSelection({ type: 'junction', id: junctionId });
+  }, [odrStoreApi]);
+
+  // Enter key: confirm junction creation
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter') return;
+      if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
+      const store = useOdrSidebarStore.getState();
+      if (store.activeTool === 'junction-create' && store.junctionCreate.selectedEndpoints.length >= 2) {
+        handleJunctionConfirm();
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [handleJunctionConfirm]);
+
   const handleAddRoadFromEndpoint = useCallback(
     (roadId: string, contactPoint: 'start' | 'end') => {
       const road = odrDocument.roads.find((r) => r.id === roadId);
@@ -872,6 +995,23 @@ export function RoadNetworkEditorLayout() {
     },
     [odrStoreApi, odrDocument.roads],
   );
+
+  // --- Road hover in select mode ---
+  const [hoveredRoadId, setHoveredRoadId] = useState<string | null>(null);
+
+  const handleRoadHover = useCallback(
+    (roadId: string | null) => {
+      setHoveredRoadId(roadId);
+    },
+    [],
+  );
+
+  const hoveredRoadName = useMemo(() => {
+    if (!hoveredRoadId) return null;
+    const road = odrDocument.roads.find((r) => r.id === hoveredRoadId);
+    if (!road) return null;
+    return road.name || `Road ${road.id}`;
+  }, [hoveredRoadId, odrDocument.roads]);
 
   // --- Road click selection from 3D viewer ---
   const handleRoadSelect = useCallback(
@@ -1074,7 +1214,7 @@ export function RoadNetworkEditorLayout() {
           {/* 3D Viewer */}
           <Panel defaultSize={55} minSize={20}>
             <div className="flex flex-col h-full bg-[var(--color-bg-deep)] enter d5">
-              <RoadNetworkToolbar cursorInfo={cursorInfo} />
+              <RoadNetworkToolbar cursorInfo={cursorInfo} onJunctionConfirm={handleJunctionConfirm} hoveredRoadName={hoveredRoadName} />
               <div className="flex-1 min-h-0">
               <ErrorBoundary fallbackTitle="3D Viewer Error">
                 <ScenarioViewer
@@ -1119,6 +1259,7 @@ export function RoadNetworkEditorLayout() {
                   roadCreationHasStartConstraint={hasStartConstraint}
                   roadSelectModeActive={activeTool === 'select'}
                   onRoadSelect={handleRoadSelect}
+                  onRoadHover={handleRoadHover}
                   laneEditActive={laneEditMode}
                   laneEditRoadId={laneEdit.activeRoadId}
                   onLaneHover={handleLaneHover}
@@ -1132,6 +1273,11 @@ export function RoadNetworkEditorLayout() {
                   taperCreationPhase={taperCreation.phase}
                   taperStartS={taperCreation.startS}
                   taperSide={taperCreation.side}
+                  junctionCreateActive={junctionCreateMode}
+                  junctionCreateSelectedEndpoints={junctionCreate.selectedEndpoints}
+                  junctionCreateHoveredEndpoint={junctionCreate.hoveredEndpoint}
+                  onJunctionEndpointClick={handleJunctionEndpointClick}
+                  onJunctionEndpointHover={handleJunctionEndpointHover}
                   selectedJunctionId={selectedJunctionId}
                   onJunctionClick={handleJunctionClick}
                   onJunctionContextMenu={handleJunctionContextMenu}
@@ -1316,7 +1462,9 @@ export function RoadNetworkEditorLayout() {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="properties" className="flex-1 overflow-hidden mt-0">
-              {roadCreationMode ? (
+              {junctionCreateMode && junctionEndpoints.length >= 2 ? (
+                <JunctionRoutingPanel endpoints={junctionEndpoints} />
+              ) : roadCreationMode ? (
                 <RoadStylePanel />
               ) : laneEditMode && laneEdit.activeRoadId ? (
                 (() => {

@@ -12,6 +12,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { createOpenDriveStore } from '@osce/opendrive-engine';
 import type { OpenDriveStore } from '@osce/opendrive-engine';
 import type { OpenDriveDocument, OdrRoad, OdrJunction, OdrSignal } from '@osce/shared';
+import type { EndpointLaneRouting, TurnType } from '@osce/opendrive-engine';
 import { useEditorStore } from '../stores/editor-store';
 
 // ---- OpenDrive Engine Store (vanilla store wrapper) ----
@@ -44,7 +45,7 @@ interface OdrSidebarSelection {
   roadId?: string;
 }
 
-export type RoadToolMode = 'select' | 'road-create' | 'lane-edit';
+export type RoadToolMode = 'select' | 'road-create' | 'lane-edit' | 'junction-create';
 
 export type LaneEditSubMode = 'select' | 'split' | 'taper';
 export type TaperDirection = 'narrow-to-wide' | 'wide-to-narrow';
@@ -101,6 +102,22 @@ export interface LaneEditState {
   taperPosition: TaperPosition;
   taperCreation: TaperCreationState;
 }
+
+export type JunctionRoutingPreset = 'all' | 'dedicated' | 'custom';
+
+export interface JunctionCreateState {
+  selectedEndpoints: Array<{ roadId: string; contactPoint: 'start' | 'end' }>;
+  hoveredEndpoint: { roadId: string; contactPoint: 'start' | 'end' } | null;
+  routingPreset: JunctionRoutingPreset;
+  laneOverrides: EndpointLaneRouting[];
+}
+
+const DEFAULT_JUNCTION_CREATE: JunctionCreateState = {
+  selectedEndpoints: [],
+  hoveredEndpoint: null,
+  routingPreset: 'all',
+  laneOverrides: [],
+};
 
 const DEFAULT_TAPER_CREATION: TaperCreationState = {
   phase: 'idle',
@@ -170,6 +187,20 @@ interface OpenDriveSidebarState {
   setTaperPosition: (pos: TaperPosition) => void;
   setTaperCreation: (state: Partial<TaperCreationState>) => void;
   resetTaperCreation: () => void;
+
+  // Junction create state
+  junctionCreate: JunctionCreateState;
+  toggleEndpointSelection: (roadId: string, contactPoint: 'start' | 'end') => void;
+  setJunctionCreateHover: (endpoint: { roadId: string; contactPoint: 'start' | 'end' } | null) => void;
+  setJunctionRoutingPreset: (preset: JunctionRoutingPreset) => void;
+  setLaneOverrides: (overrides: EndpointLaneRouting[]) => void;
+  setLaneTurnPermission: (
+    roadId: string,
+    contactPoint: 'start' | 'end',
+    laneId: number,
+    allowedTurns: TurnType[],
+  ) => void;
+  resetJunctionCreate: () => void;
 }
 
 export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
@@ -188,6 +219,8 @@ export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
       roadCreation: tool !== 'road-create' ? DEFAULT_ROAD_CREATION : state.roadCreation,
       // Reset lane edit state when switching away from lane-edit
       laneEdit: tool !== 'lane-edit' ? DEFAULT_LANE_EDIT : state.laneEdit,
+      // Reset junction create state when switching away
+      junctionCreate: tool !== 'junction-create' ? DEFAULT_JUNCTION_CREATE : state.junctionCreate,
     })),
 
   // Road creation state machine
@@ -264,6 +297,62 @@ export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
     })),
   resetTaperCreation: () =>
     set((state) => ({ laneEdit: { ...state.laneEdit, taperCreation: DEFAULT_TAPER_CREATION } })),
+
+  // Junction create state
+  junctionCreate: DEFAULT_JUNCTION_CREATE,
+  toggleEndpointSelection: (roadId, contactPoint) =>
+    set((state) => {
+      const current = state.junctionCreate.selectedEndpoints;
+      const idx = current.findIndex(
+        (ep) => ep.roadId === roadId && ep.contactPoint === contactPoint,
+      );
+      const next = idx >= 0
+        ? current.filter((_, i) => i !== idx)
+        : [...current, { roadId, contactPoint }];
+      return { junctionCreate: { ...state.junctionCreate, selectedEndpoints: next } };
+    }),
+  setJunctionCreateHover: (endpoint) =>
+    set((state) => ({ junctionCreate: { ...state.junctionCreate, hoveredEndpoint: endpoint } })),
+  setJunctionRoutingPreset: (preset) =>
+    set((state) => ({ junctionCreate: { ...state.junctionCreate, routingPreset: preset } })),
+  setLaneOverrides: (overrides) =>
+    set((state) => ({ junctionCreate: { ...state.junctionCreate, laneOverrides: overrides } })),
+  setLaneTurnPermission: (roadId, contactPoint, laneId, allowedTurns) =>
+    set((state) => {
+      const overrides = [...state.junctionCreate.laneOverrides];
+      const epIdx = overrides.findIndex(
+        (o) => o.roadId === roadId && o.contactPoint === contactPoint,
+      );
+      if (epIdx >= 0) {
+        const ep = { ...overrides[epIdx] };
+        const perms = [...ep.lanePermissions];
+        const laneIdx = perms.findIndex((p) => p.laneId === laneId);
+        if (laneIdx >= 0) {
+          perms[laneIdx] = { laneId, allowedTurns };
+        } else {
+          perms.push({ laneId, allowedTurns });
+        }
+        ep.lanePermissions = perms;
+        overrides[epIdx] = ep;
+      } else {
+        overrides.push({
+          roadId,
+          contactPoint,
+          lanePermissions: [{ laneId, allowedTurns }],
+        });
+      }
+      return {
+        junctionCreate: {
+          ...state.junctionCreate,
+          routingPreset: 'custom',
+          laneOverrides: overrides,
+        },
+      };
+    }),
+  resetJunctionCreate: () =>
+    set((state) => ({
+      junctionCreate: { ...DEFAULT_JUNCTION_CREATE, routingPreset: state.junctionCreate.routingPreset },
+    })),
 }));
 
 // ---- Derived Data Selectors ----

@@ -15,3 +15,4 @@ export { LaneGhostPreview } from './LaneGhostPreview.js';
 export { SectionBoundaryMarkers } from './SectionBoundaryMarkers.js';
 export { SplitPreviewLine } from './SplitPreviewLine.js';
 export { TaperRangePreview } from './TaperRangePreview.js';
+export { JunctionCreateInteraction } from './JunctionCreateInteraction.js';

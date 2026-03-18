@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import type { OdrRoad, OdrLane, OpenDriveDocument } from '@osce/shared';
-import type { LaneRoutingConfig } from '../../store/editor-metadata-types.js';
+import type { LaneRoutingConfig, EndpointLaneRouting } from '../../store/editor-metadata-types.js';
 import {
   computeRoadEndpoint,
   generateConnectingRoads,
+  classifyTurn,
 } from '../../builders/connecting-road-builder.js';
+import { buildRoutingOverrides } from '../../builders/routing-presets.js';
 import { createTestDocument, createTestRoad } from '../helpers.js';
 
 // ---------------------------------------------------------------------------
@@ -83,7 +85,7 @@ function makeLineRoad(id: string, x: number, y: number, hdg: number, length: num
     lanes: [
       {
         s: 0,
-        leftLanes: [],
+        leftLanes: [makeDrivingLane(1), makeDrivingLane(2)],
         centerLane: { id: 0, type: 'none', width: [], roadMarks: [] },
         rightLanes: [
           makeDrivingLane(-1),
@@ -187,8 +189,9 @@ describe('connecting-road-builder', () => {
       expect(ep.y).toBeCloseTo(20);
       // start contact point heading is flipped (+PI) from the road heading
       expect(ep.hdg).toBeCloseTo(Math.PI);
-      // Right-lanes-only road: start endpoint returns left lanes (none here)
-      expect(ep.drivingLanes).toHaveLength(0);
+      // Bidirectional road: start endpoint returns left lanes (traveling toward start)
+      expect(ep.drivingLanes).toHaveLength(2);
+      expect(ep.drivingLanes.every((l) => l.id > 0)).toBe(true);
     });
 
     it('returns only lanes traveling toward the junction', () => {
@@ -542,11 +545,12 @@ describe('connecting-road-builder', () => {
       const doc = makeDocWithJunction([road3Lane, road2Lane], 'junc-asym');
       const result = generateConnectingRoads([ep3, ep2], 'junc-asym', anyRouting, doc);
 
-      // 3 incoming lanes → 2 outgoing lanes: should generate 2 pairs (capped at min)
+      // 3 incoming lanes → 2 outgoing lanes: all 3 incoming lanes get connections
+      // (extra lanes map to the nearest available receiving lane)
       const from3Lane = result.connections.filter((c) => c.incomingRoad === '140');
-      expect(from3Lane).toHaveLength(2);
+      expect(from3Lane).toHaveLength(3);
 
-      // Verify lane links reference valid outgoing lanes (1 and 2, not 3)
+      // All lane links should reference valid outgoing lanes (1 or 2)
       for (const conn of from3Lane) {
         const road = result.roads.find((r) => r.id === conn.connectingRoad)!;
         const drivingLane = road.lanes[0].rightLanes[0];
@@ -571,6 +575,7 @@ describe('connecting-road-builder', () => {
       });
 
       // Outgoing road going south (right turn from east-going road)
+      // Bidirectional: rightLanes receive traffic from junction at start
       const road2Lane = createTestRoad({
         id: '161',
         name: 'Road_161',
@@ -580,7 +585,7 @@ describe('connecting-road-builder', () => {
           s: 0,
           leftLanes: [makeDrivingLane(1), makeDrivingLane(2)],
           centerLane: { id: 0, type: 'none', width: [], roadMarks: [] },
-          rightLanes: [],
+          rightLanes: [makeDrivingLane(-1), makeDrivingLane(-2)],
         }],
       });
 
@@ -591,13 +596,13 @@ describe('connecting-road-builder', () => {
       const result = generateConnectingRoads([ep3, ep2], 'junc-rt', anyRouting, doc);
 
       // Right turn from 3-lane: 'any' routing → all 3 lanes eligible
-      // But capped at min(3, 2) = 2 pairs
+      // All 3 incoming lanes get connections (extra lanes map to nearest receiving lane)
       const fromA = result.connections.filter((c) => c.incomingRoad === '160');
-      expect(fromA).toHaveLength(2);
+      expect(fromA).toHaveLength(3);
 
-      // For right turns, outermost lanes should be mapped first
+      // For right turns, all lanes should be included (outer-to-inner mapping)
       const laneFroms = fromA.map((c) => c.laneLinks[0].from).sort((a, b) => a - b);
-      expect(laneFroms).toEqual([-3, -2]); // outer lanes -3 and -2
+      expect(laneFroms).toEqual([-3, -2, -1]); // all 3 lanes
     });
 
     it('filterLanesForTurn respects maxRightTurnLanes', () => {
@@ -614,6 +619,7 @@ describe('connecting-road-builder', () => {
         }],
       });
 
+      // Bidirectional: rightLanes receive traffic from junction at start
       const road4LaneB = createTestRoad({
         id: '171',
         length: 40,
@@ -622,7 +628,7 @@ describe('connecting-road-builder', () => {
           s: 0,
           leftLanes: [makeDrivingLane(1), makeDrivingLane(2), makeDrivingLane(3), makeDrivingLane(4)],
           centerLane: { id: 0, type: 'none', width: [], roadMarks: [] },
-          rightLanes: [],
+          rightLanes: [makeDrivingLane(-1), makeDrivingLane(-2), makeDrivingLane(-3), makeDrivingLane(-4)],
         }],
       });
 
@@ -776,7 +782,6 @@ describe('connecting-road-builder', () => {
     }
 
     it('all connecting road end headings match outgoing road within 5°', () => {
-      // Helper: 4-lane road (2 left + 2 right driving lanes)
       function mk4Lane(id: string, x: number, y: number, hdg: number, length: number): OdrRoad {
         return createTestRoad({
           id, name: `Road_${id}`, length,
@@ -830,6 +835,246 @@ describe('connecting-road-builder', () => {
         // All connecting roads must match heading within 5° (0.087 rad)
         expect(hdgError).toBeLessThan(0.087);
       }
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // LHT (left-hand traffic) support
+  // -----------------------------------------------------------------------
+  describe('LHT (left-hand traffic)', () => {
+    it('uses left lanes as incoming at end, right lanes as incoming at start', () => {
+      const road = makeBidirectionalRoad('400', 0, 0, 0, 100);
+      // Override rule attribute for LHT
+      (road as { rule?: string }).rule = 'LHT';
+
+      // At end: LHT incoming = leftLanes (positive IDs)
+      const epEnd = computeRoadEndpoint(road, 'end', evaluateLineAtS, 'LHT');
+      expect(epEnd.drivingLanes.every((l) => l.id > 0)).toBe(true);
+
+      // At start: LHT incoming = rightLanes (negative IDs)
+      const epStart = computeRoadEndpoint(road, 'start', evaluateLineAtS, 'LHT');
+      expect(epStart.drivingLanes.every((l) => l.id < 0)).toBe(true);
+    });
+
+    it('generates connecting roads with correct lane T offsets for LHT', () => {
+      // Two bidirectional roads facing each other
+      const roadA = makeBidirectionalRoad('410', 0, 0, 0, 40);
+      const roadB = makeBidirectionalRoad('411', 100, 0, Math.PI, 40);
+      (roadA as { rule?: string }).rule = 'LHT';
+      (roadB as { rule?: string }).rule = 'LHT';
+
+      // LHT: at end, incoming = leftLanes (positive IDs)
+      const epA = computeRoadEndpoint(roadA, 'end', evaluateLineAtS, 'LHT');
+      const epB = computeRoadEndpoint(roadB, 'end', evaluateLineAtS, 'LHT');
+
+      // Verify incoming lanes are left (positive IDs)
+      expect(epA.drivingLanes[0].id).toBeGreaterThan(0);
+      expect(epB.drivingLanes[0].id).toBeGreaterThan(0);
+
+      const doc = makeDocWithJunction([roadA, roadB], 'junc-lht');
+      const result = generateConnectingRoads([epA, epB], 'junc-lht', anyRouting, doc);
+
+      expect(result.roads.length).toBeGreaterThan(0);
+
+      // Connecting road geometry should start on the LEFT side (positive T)
+      // of the reference line, not the right side
+      for (const road of result.roads) {
+        const geo = road.planView[0];
+        // The start position should be offset from the road endpoint
+        // For LHT at end, the lane is on the LEFT (positive T),
+        // so the connecting road should start above (positive Y) the ref line
+        // for a road heading east (hdg=0)
+        const dy = geo.y - epA.y;
+        // Left side of an east-heading road = positive Y
+        if (road.link?.predecessor?.elementId === '410') {
+          expect(dy).toBeGreaterThan(0);
+        }
+      }
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Per-lane endpoint overrides
+  // -----------------------------------------------------------------------
+  describe('endpoint lane routing overrides', () => {
+    /** Create a 4-lane bidirectional road for override tests. */
+    function make4LaneRoadForOverride(
+      id: string, x: number, y: number, hdg: number, length: number,
+    ): OdrRoad {
+      return createTestRoad({
+        id, name: `Road_${id}`, length,
+        planView: [{ s: 0, x, y, hdg, length, type: 'line' }],
+        lanes: [{
+          s: 0,
+          leftLanes: [makeDrivingLane(1), makeDrivingLane(2)],
+          centerLane: { id: 0, type: 'none', width: [], roadMarks: [] },
+          rightLanes: [makeDrivingLane(-1), makeDrivingLane(-2)],
+        }],
+      });
+    }
+
+    it('filters lanes per endpoint override (only allowed turns generate roads)', () => {
+      // 4-way intersection
+      const gap = 15;
+      const len = 60;
+      const roadA = make4LaneRoadForOverride('200', -gap - len, 0, 0, len);
+      const roadB = make4LaneRoadForOverride('201', gap + len, 0, Math.PI, len);
+      const roadC = make4LaneRoadForOverride('202', 0, -gap - len, Math.PI / 2, len);
+      const roadD = make4LaneRoadForOverride('203', 0, gap + len, -Math.PI / 2, len);
+
+      const epA = computeRoadEndpoint(roadA, 'end', evaluateLineAtS);
+      const epB = computeRoadEndpoint(roadB, 'end', evaluateLineAtS);
+      const epC = computeRoadEndpoint(roadC, 'end', evaluateLineAtS);
+      const epD = computeRoadEndpoint(roadD, 'end', evaluateLineAtS);
+
+      const doc = makeDocWithJunction([roadA, roadB, roadC, roadD], 'junc-override');
+
+      // Override: road 200 lane -1 can only go straight, lane -2 can only go right
+      const overrides: EndpointLaneRouting[] = [
+        {
+          roadId: '200',
+          contactPoint: 'end',
+          lanePermissions: [
+            { laneId: -1, allowedTurns: ['straight'] },
+            { laneId: -2, allowedTurns: ['right'] },
+          ],
+        },
+      ];
+
+      const result = generateConnectingRoads(
+        [epA, epB, epC, epD], 'junc-override', anyRouting, doc, overrides,
+      );
+
+      // From road 200: lane -1 should only have straight connections
+      // lane -2 should only have right connections
+      const fromA = result.connections.filter((c) => c.incomingRoad === '200');
+
+      const lane1Conns = fromA.filter((c) => c.laneLinks[0].from === -1);
+      const lane2Conns = fromA.filter((c) => c.laneLinks[0].from === -2);
+
+      // Lane -1: straight only (1 road opposite)
+      expect(lane1Conns).toHaveLength(1);
+      // Lane -2: right only (1 road to the right)
+      expect(lane2Conns).toHaveLength(1);
+
+      // Verify lane -1 connects to the road straight ahead (201)
+      const lane1Road = result.roads.find((r) => r.id === lane1Conns[0].connectingRoad)!;
+      expect(lane1Road.link?.successor?.elementId).toBe('201');
+
+      // Verify lane -2 connects to a right-turn road (not straight-ahead 201)
+      const lane2Road = result.roads.find((r) => r.id === lane2Conns[0].connectingRoad)!;
+      expect(lane2Road.link?.successor?.elementId).not.toBe('201');
+    });
+
+    it('generates unique connection IDs even when junction is not yet in doc', () => {
+      // Simulate the real code path: doc does NOT contain the junction yet
+      const gap = 15;
+      const len = 60;
+      const roadA = make4LaneRoadForOverride('220', -gap - len, 0, 0, len);
+      const roadB = make4LaneRoadForOverride('221', gap + len, 0, Math.PI, len);
+      const roadC = make4LaneRoadForOverride('222', 0, -gap - len, Math.PI / 2, len);
+
+      const epA = computeRoadEndpoint(roadA, 'end', evaluateLineAtS);
+      const epB = computeRoadEndpoint(roadB, 'end', evaluateLineAtS);
+      const epC = computeRoadEndpoint(roadC, 'end', evaluateLineAtS);
+
+      // Doc WITHOUT the junction (mimics handleJunctionConfirm's real state)
+      const doc = createTestDocument();
+      doc.roads = [roadA, roadB, roadC];
+      // No junction pre-created!
+
+      const result = generateConnectingRoads(
+        [epA, epB, epC], 'junc-new', anyRouting, doc,
+      );
+
+      // All connection IDs should be unique
+      const connIds = result.connections.map((c) => c.id);
+      const uniqueIds = new Set(connIds);
+      expect(uniqueIds.size).toBe(connIds.length);
+      // Should have more than 1 connection
+      expect(connIds.length).toBeGreaterThan(1);
+    });
+
+    it('without overrides, generates same results as before (regression)', () => {
+      const roadA = make4LaneRoadForOverride('210', 0, 0, 0, 40);
+      const roadB = make4LaneRoadForOverride('211', 100, 0, Math.PI, 40);
+
+      const epA = computeRoadEndpoint(roadA, 'end', evaluateLineAtS);
+      const epB = computeRoadEndpoint(roadB, 'end', evaluateLineAtS);
+
+      const doc = makeDocWithJunction([roadA, roadB], 'junc-reg');
+
+      const resultNoOverride = generateConnectingRoads(
+        [epA, epB], 'junc-reg', anyRouting, doc,
+      );
+      const resultEmptyOverride = generateConnectingRoads(
+        [epA, epB], 'junc-reg', anyRouting, doc, [],
+      );
+
+      expect(resultNoOverride.roads).toHaveLength(resultEmptyOverride.roads.length);
+      expect(resultNoOverride.connections).toHaveLength(resultEmptyOverride.connections.length);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Routing presets (buildRoutingOverrides)
+  // -----------------------------------------------------------------------
+  describe('routing presets', () => {
+    it('"all" preset returns empty overrides', () => {
+      const roadA = makeBidirectionalRoad('300', 0, 0, 0, 50);
+      const epA = computeRoadEndpoint(roadA, 'end', evaluateLineAtS);
+      const result = buildRoutingOverrides('all', [epA], classifyTurn);
+      expect(result).toHaveLength(0);
+    });
+
+    it('"dedicated" preset assigns inner=straight+left, outer=straight+right for 2-lane', () => {
+      // 4-way intersection so all turn types (straight, left, right) are available
+      const gap = 15;
+      const len = 50;
+      const roadA = makeLineRoad('310', -gap - len, 0, 0, len);
+      const roadB = makeLineRoad('311', gap + len, 0, Math.PI, len);
+      const roadC = makeBidirectionalRoad('312', 0, -gap - len, Math.PI / 2, len);
+      const roadD = makeBidirectionalRoad('313', 0, gap + len, -Math.PI / 2, len);
+
+      const epA = computeRoadEndpoint(roadA, 'end', evaluateLineAtS);
+      const epB = computeRoadEndpoint(roadB, 'end', evaluateLineAtS);
+      const epC = computeRoadEndpoint(roadC, 'end', evaluateLineAtS);
+      const epD = computeRoadEndpoint(roadD, 'end', evaluateLineAtS);
+
+      const overrides = buildRoutingOverrides(
+        'dedicated', [epA, epB, epC, epD],
+        (inHdg, outHdg) => classifyTurn(inHdg, outHdg),
+      );
+
+      // Each endpoint should have an override
+      expect(overrides.length).toBeGreaterThan(0);
+
+      // Find road 310 override (2 driving lanes: -1, -2)
+      const overrideA = overrides.find((o) => o.roadId === '310');
+      expect(overrideA).toBeDefined();
+      expect(overrideA!.lanePermissions).toHaveLength(2);
+
+      // Inner lane (|-1| < |-2|) should have straight + left
+      const innerPerm = overrideA!.lanePermissions.find((p) => p.laneId === -1);
+      expect(innerPerm).toBeDefined();
+      expect(innerPerm!.allowedTurns).toContain('straight');
+      expect(innerPerm!.allowedTurns).toContain('left');
+      expect(innerPerm!.allowedTurns).not.toContain('right');
+
+      // Outer lane (-2) should have straight + right
+      const outerPerm = overrideA!.lanePermissions.find((p) => p.laneId === -2);
+      expect(outerPerm).toBeDefined();
+      expect(outerPerm!.allowedTurns).toContain('straight');
+      expect(outerPerm!.allowedTurns).toContain('right');
+      expect(outerPerm!.allowedTurns).not.toContain('left');
+    });
+
+    it('"custom" preset returns existing overrides unchanged', () => {
+      const existing: EndpointLaneRouting[] = [
+        { roadId: '1', contactPoint: 'end', lanePermissions: [{ laneId: -1, allowedTurns: ['straight'] }] },
+      ];
+      const result = buildRoutingOverrides('custom', [], classifyTurn, existing);
+      expect(result).toBe(existing);
     });
   });
 });

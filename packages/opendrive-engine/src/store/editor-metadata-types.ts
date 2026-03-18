@@ -6,6 +6,21 @@
  * that are split only on export) and junction auto-detection.
  */
 
+import type { TurnType } from '../builders/connecting-road-builder.js';
+
+/** Per-lane turn permission for junction routing overrides. */
+export interface LaneTurnPermission {
+  laneId: number;
+  allowedTurns: TurnType[];
+}
+
+/** Per-endpoint routing override specifying which lanes may turn in which directions. */
+export interface EndpointLaneRouting {
+  roadId: string;
+  contactPoint: 'start' | 'end';
+  lanePermissions: LaneTurnPermission[];
+}
+
 /**
  * A virtual road represents a continuous road in the editor that may be
  * split into multiple OdrRoad segments at junction intersection points.

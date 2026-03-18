@@ -12,6 +12,8 @@ export type {
   JunctionMetadata,
   JunctionSettings,
   LaneRoutingConfig,
+  LaneTurnPermission,
+  EndpointLaneRouting,
 } from './store/editor-metadata-types.js';
 export {
   EDITOR_METADATA_VERSION,
@@ -105,12 +107,17 @@ export type { LanePreset } from './builders/lane-presets.js';
 export {
   generateConnectingRoads,
   computeRoadEndpoint,
+  classifyTurn,
 } from './builders/connecting-road-builder.js';
 export type {
   TurnType,
   ConnectingRoadSpec,
   RoadEndpoint,
 } from './builders/connecting-road-builder.js';
+
+// Routing presets
+export { buildRoutingOverrides } from './builders/routing-presets.js';
+export type { RoutingPreset } from './builders/routing-presets.js';
 
 // Junction operations
 export {

@@ -40,30 +40,30 @@ export const RoadLabels: React.FC<RoadLabelsProps> = React.memo(
         }
 
         if (showLaneIds) {
-          // Find the lane section that covers midS
-          let sectionIdx = 0;
+          // Show lane IDs at the midpoint of each lane section so that
+          // lanes added by taper/split operations are always visible.
           for (let i = 0; i < road.lanes.length; i++) {
+            const section = road.lanes[i];
             const sEnd = i + 1 < road.lanes.length ? road.lanes[i + 1].s : road.length;
-            if (midS >= road.lanes[i].s && midS <= sEnd) {
-              sectionIdx = i;
-              break;
-            }
-          }
-          const section = road.lanes[sectionIdx];
-          const dsFromSection = midS - section.s;
+            const secMidS = (section.s + sEnd) / 2;
+            const dsFromSection = secMidS - section.s;
 
-          const allLanes = [...section.leftLanes, ...section.rightLanes];
-          const laneOff = evaluateLaneOffset(road.laneOffset, midS);
-          for (const lane of allLanes) {
-            const innerT = computeLaneInnerT(section, lane, dsFromSection) + laneOff;
-            const outerT = computeLaneOuterT(section, lane, dsFromSection) + laneOff;
-            const t = (innerT + outerT) / 2;
-            const lanePos = stToXyz(pose, t, z + 1);
-            result.push({
-              key: `lane-${road.id}-${lane.id}`,
-              text: `${lane.id}`,
-              position: [lanePos.x, lanePos.y, lanePos.z],
-            });
+            const secPose = evaluateReferenceLineAtS(road.planView, secMidS);
+            const secZ = evaluateElevation(road.elevationProfile, secMidS);
+            const laneOff = evaluateLaneOffset(road.laneOffset, secMidS);
+
+            const allLanes = [...section.leftLanes, ...section.rightLanes];
+            for (const lane of allLanes) {
+              const innerT = computeLaneInnerT(section, lane, dsFromSection) + laneOff;
+              const outerT = computeLaneOuterT(section, lane, dsFromSection) + laneOff;
+              const t = (innerT + outerT) / 2;
+              const lanePos = stToXyz(secPose, t, secZ + 1);
+              result.push({
+                key: `lane-${road.id}-s${i}-${lane.id}`,
+                text: `${lane.id}`,
+                position: [lanePos.x, lanePos.y, lanePos.z],
+              });
+            }
           }
         }
       }

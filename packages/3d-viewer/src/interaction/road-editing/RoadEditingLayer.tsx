@@ -20,6 +20,7 @@ import { RoadSelectHandler } from './RoadSelectHandler.js';
 import { LaneEditInteraction } from './LaneEditInteraction.js';
 import type { LaneHoverInfo, LaneEditSubModeType } from './LaneEditInteraction.js';
 import { SectionBoundaryMarkers } from './SectionBoundaryMarkers.js';
+import { JunctionCreateInteraction } from './JunctionCreateInteraction.js';
 
 interface RoadEditingLayerProps {
   /** Full OpenDRIVE document */
@@ -112,6 +113,8 @@ interface RoadEditingLayerProps {
   roadGroupRef?: React.RefObject<THREE.Group | null>;
   /** Callback when a road is selected via click */
   onRoadSelect?: (roadId: string) => void;
+  /** Callback when a road is hovered in select mode */
+  onRoadHover?: (roadId: string | null) => void;
 
   // ---- Lane Editing ----
   /** Whether lane editing mode is active */
@@ -140,6 +143,18 @@ interface RoadEditingLayerProps {
   taperStartS?: number;
   /** Taper target side */
   taperSide?: 'left' | 'right';
+
+  // ---- Junction Create ----
+  /** Whether junction create mode is active */
+  junctionCreateActive?: boolean;
+  /** Selected endpoints for junction creation */
+  junctionCreateSelectedEndpoints?: Array<{ roadId: string; contactPoint: 'start' | 'end' }>;
+  /** Currently hovered endpoint */
+  junctionCreateHoveredEndpoint?: { roadId: string; contactPoint: 'start' | 'end' } | null;
+  /** Callback when an endpoint is clicked */
+  onJunctionEndpointClick?: (roadId: string, contactPoint: 'start' | 'end') => void;
+  /** Callback when an endpoint is hovered */
+  onJunctionEndpointHover?: (endpoint: { roadId: string; contactPoint: 'start' | 'end' } | null) => void;
 }
 
 export function RoadEditingLayer({
@@ -174,6 +189,7 @@ export function RoadEditingLayer({
   selectModeActive = false,
   roadGroupRef,
   onRoadSelect,
+  onRoadHover,
   laneEditActive = false,
   laneEditRoadId,
   onLaneHover,
@@ -187,6 +203,11 @@ export function RoadEditingLayer({
   taperCreationPhase,
   taperStartS,
   taperSide,
+  junctionCreateActive = false,
+  junctionCreateSelectedEndpoints,
+  junctionCreateHoveredEndpoint,
+  onJunctionEndpointClick,
+  onJunctionEndpointHover,
 }: RoadEditingLayerProps) {
   const selectedRoad = useMemo(
     () => openDriveDocument.roads.find((r) => r.id === selectedRoadId) ?? null,
@@ -297,6 +318,7 @@ export function RoadEditingLayer({
           active={selectModeActive}
           roadGroupRef={roadGroupRef}
           onRoadSelect={onRoadSelect}
+          onRoadHover={onRoadHover}
         />
       )}
 
@@ -441,6 +463,17 @@ export function RoadEditingLayer({
           roadId={laneEditRoadId ?? null}
           onBoundaryDragEnd={onSectionBoundaryDragEnd}
           orbitControlsRef={orbitControlsRef}
+        />
+      )}
+
+      {/* Junction create interaction */}
+      {junctionCreateActive && (
+        <JunctionCreateInteraction
+          openDriveDocument={openDriveDocument}
+          selectedEndpoints={junctionCreateSelectedEndpoints ?? []}
+          hoveredEndpoint={junctionCreateHoveredEndpoint ?? null}
+          onEndpointClick={onJunctionEndpointClick}
+          onEndpointHover={onJunctionEndpointHover}
         />
       )}
     </group>

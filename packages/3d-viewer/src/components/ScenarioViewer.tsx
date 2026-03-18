@@ -225,6 +225,8 @@ export interface ScenarioViewerProps {
   roadSelectModeActive?: boolean;
   /** Callback when a road is selected via click in the 3D viewer */
   onRoadSelect?: (roadId: string) => void;
+  /** Callback when a road is hovered in select mode */
+  onRoadHover?: (roadId: string | null) => void;
 
   // ---- Lane Editing ----
   /** Whether lane editing mode is active */
@@ -253,6 +255,18 @@ export interface ScenarioViewerProps {
   taperStartS?: number;
   /** Taper target side */
   taperSide?: 'left' | 'right';
+
+  // ---- Junction Create ----
+  /** Whether junction create mode is active */
+  junctionCreateActive?: boolean;
+  /** Selected endpoints for junction creation */
+  junctionCreateSelectedEndpoints?: Array<{ roadId: string; contactPoint: 'start' | 'end' }>;
+  /** Currently hovered endpoint */
+  junctionCreateHoveredEndpoint?: { roadId: string; contactPoint: 'start' | 'end' } | null;
+  /** Callback when an endpoint is clicked */
+  onJunctionEndpointClick?: (roadId: string, contactPoint: 'start' | 'end') => void;
+  /** Callback when an endpoint is hovered */
+  onJunctionEndpointHover?: (endpoint: { roadId: string; contactPoint: 'start' | 'end' } | null) => void;
 
   // ---- Junction Editing ----
   /** Currently selected junction ID (renders with highlight) */
@@ -326,6 +340,7 @@ function ScenarioViewerScene({
   roadCreationHasStartConstraint,
   roadSelectModeActive,
   onRoadSelect,
+  onRoadHover,
   laneEditActive,
   laneEditRoadId,
   onLaneHover,
@@ -339,6 +354,11 @@ function ScenarioViewerScene({
   taperCreationPhase,
   taperStartS,
   taperSide,
+  junctionCreateActive,
+  junctionCreateSelectedEndpoints,
+  junctionCreateHoveredEndpoint,
+  onJunctionEndpointClick,
+  onJunctionEndpointHover,
   selectedJunctionId,
   ghostJunctionSurface,
   onJunctionClick,
@@ -401,6 +421,7 @@ function ScenarioViewerScene({
   roadCreationHasStartConstraint?: boolean;
   roadSelectModeActive?: boolean;
   onRoadSelect?: (roadId: string) => void;
+  onRoadHover?: (roadId: string | null) => void;
   laneEditActive?: boolean;
   laneEditRoadId?: string | null;
   onLaneHover?: ScenarioViewerProps['onLaneHover'];
@@ -414,6 +435,11 @@ function ScenarioViewerScene({
   taperCreationPhase?: ScenarioViewerProps['taperCreationPhase'];
   taperStartS?: ScenarioViewerProps['taperStartS'];
   taperSide?: ScenarioViewerProps['taperSide'];
+  junctionCreateActive?: boolean;
+  junctionCreateSelectedEndpoints?: ScenarioViewerProps['junctionCreateSelectedEndpoints'];
+  junctionCreateHoveredEndpoint?: ScenarioViewerProps['junctionCreateHoveredEndpoint'];
+  onJunctionEndpointClick?: ScenarioViewerProps['onJunctionEndpointClick'];
+  onJunctionEndpointHover?: ScenarioViewerProps['onJunctionEndpointHover'];
   selectedJunctionId?: string | null;
   ghostJunctionSurface?: ScenarioViewerProps['ghostJunctionSurface'];
   onJunctionClick?: ScenarioViewerProps['onJunctionClick'];
@@ -711,6 +737,7 @@ function ScenarioViewerScene({
             selectModeActive={roadSelectModeActive}
             roadGroupRef={roadGroupRef}
             onRoadSelect={onRoadSelect}
+            onRoadHover={onRoadHover}
             laneEditActive={laneEditActive}
             laneEditRoadId={laneEditRoadId}
             onLaneHover={onLaneHover}
@@ -724,6 +751,11 @@ function ScenarioViewerScene({
             taperCreationPhase={taperCreationPhase}
             taperStartS={taperStartS}
             taperSide={taperSide}
+            junctionCreateActive={junctionCreateActive}
+            junctionCreateSelectedEndpoints={junctionCreateSelectedEndpoints}
+            junctionCreateHoveredEndpoint={junctionCreateHoveredEndpoint}
+            onJunctionEndpointClick={onJunctionEndpointClick}
+            onJunctionEndpointHover={onJunctionEndpointHover}
           />
         </group>
       )}
@@ -820,6 +852,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   roadCreationHasStartConstraint,
   roadSelectModeActive,
   onRoadSelect,
+  onRoadHover,
   laneEditActive,
   laneEditRoadId,
   onLaneHover,
@@ -833,6 +866,11 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   taperCreationPhase,
   taperStartS,
   taperSide,
+  junctionCreateActive,
+  junctionCreateSelectedEndpoints,
+  junctionCreateHoveredEndpoint,
+  onJunctionEndpointClick,
+  onJunctionEndpointHover,
   selectedJunctionId,
   ghostJunctionSurface,
   onJunctionClick,
@@ -1120,6 +1158,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           roadCreationHasStartConstraint={roadCreationHasStartConstraint}
           roadSelectModeActive={roadSelectModeActive}
           onRoadSelect={onRoadSelect}
+          onRoadHover={onRoadHover}
           laneEditActive={laneEditActive}
           laneEditRoadId={laneEditRoadId}
           onLaneHover={onLaneHover}
@@ -1133,6 +1172,11 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           taperCreationPhase={taperCreationPhase}
           taperStartS={taperStartS}
           taperSide={taperSide}
+          junctionCreateActive={junctionCreateActive}
+          junctionCreateSelectedEndpoints={junctionCreateSelectedEndpoints}
+          junctionCreateHoveredEndpoint={junctionCreateHoveredEndpoint}
+          onJunctionEndpointClick={onJunctionEndpointClick}
+          onJunctionEndpointHover={onJunctionEndpointHover}
           selectedJunctionId={selectedJunctionId}
           ghostJunctionSurface={ghostJunctionSurface}
           onJunctionClick={onJunctionClick}

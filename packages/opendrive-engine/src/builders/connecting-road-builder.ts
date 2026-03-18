@@ -14,7 +14,7 @@ import type {
   OdrJunctionConnection,
   OpenDriveDocument,
 } from '@osce/shared';
-import type { LaneRoutingConfig } from '../store/editor-metadata-types.js';
+import type { LaneRoutingConfig, EndpointLaneRouting } from '../store/editor-metadata-types.js';
 import { createRoadFromPartial } from './road-builder.js';
 import { nextNumericId } from '../utils/id-generator.js';
 
@@ -36,6 +36,7 @@ export interface RoadEndpoint {
   hdg: number;
   drivingLanes: OdrLane[];
   road: OdrRoad;
+  trafficRule: 'RHT' | 'LHT';
 }
 
 interface GeneratedConnectingRoad {
@@ -98,6 +99,7 @@ export function computeRoadEndpoint(
     hdg: contactPoint === 'end' ? pose.hdg : pose.hdg + Math.PI,
     drivingLanes,
     road,
+    trafficRule,
   };
 }
 
@@ -109,7 +111,7 @@ export function computeRoadEndpoint(
  * - With armAngles: half of the minimum inter-arm gap, capped at 45°
  *   This prevents misclassification in Y-junctions (60° arms) or 5+ arm junctions
  */
-function classifyTurn(
+export function classifyTurn(
   incomingHdg: number,
   outgoingHdg: number,
   straightThreshold?: number,
@@ -168,14 +170,23 @@ function computeStraightThreshold(endpoints: RoadEndpoint[]): number | undefined
 /**
  * Filter lanes based on routing config and turn type.
  *
- * For turns, respects maxRightTurnLanes / maxLeftTurnLanes to allow
- * multi-lane turns (e.g., dual right-turn lanes on wide roads).
+ * When an endpointOverride is provided, per-lane permissions take precedence
+ * over the global routingConfig. Otherwise falls back to the original logic.
  */
 function filterLanesForTurn(
   lanes: OdrLane[],
   turnType: TurnType,
   routingConfig: LaneRoutingConfig,
+  endpointOverride?: EndpointLaneRouting,
 ): OdrLane[] {
+  // Override path: per-lane permissions
+  if (endpointOverride && endpointOverride.lanePermissions.length > 0) {
+    return lanes.filter((lane) => {
+      const perm = endpointOverride.lanePermissions.find((p) => p.laneId === lane.id);
+      // If no permission entry for this lane, allow all turns (backward compat)
+      return perm ? perm.allowedTurns.includes(turnType) : true;
+    });
+  }
   if (turnType === 'straight') return lanes;
 
   if (turnType === 'right' && routingConfig.rightTurnLanes === 'outermost') {
@@ -196,6 +207,42 @@ function filterLanesForTurn(
 }
 
 /**
+ * Get the receiving lanes on the outgoing road (lanes traveling AWAY from the junction).
+ *
+ * Receiving lanes are on the opposite side from the incoming (drivingLanes) direction:
+ *
+ * RHT (right-hand traffic):
+ * - contactPoint='start' → incoming=leftLanes, receiving=rightLanes (travel in ref direction)
+ * - contactPoint='end' → incoming=rightLanes, receiving=leftLanes (travel against ref direction)
+ *
+ * LHT (left-hand traffic):
+ * - contactPoint='start' → incoming=rightLanes, receiving=leftLanes
+ * - contactPoint='end' → incoming=leftLanes, receiving=rightLanes
+ */
+function getReceivingLanes(outgoing: RoadEndpoint): OdrLane[] {
+  const section = outgoing.contactPoint === 'start'
+    ? outgoing.road.lanes[0]
+    : outgoing.road.lanes[outgoing.road.lanes.length - 1];
+  if (!section) return [];
+
+  // Receiving = opposite side from incoming (mirrors computeRoadEndpoint logic)
+  let receivingLanes: OdrLane[];
+  if (outgoing.trafficRule === 'RHT') {
+    receivingLanes = outgoing.contactPoint === 'start'
+      ? section.rightLanes
+      : section.leftLanes;
+  } else {
+    receivingLanes = outgoing.contactPoint === 'start'
+      ? section.leftLanes
+      : section.rightLanes;
+  }
+
+  return receivingLanes.filter(
+    (l) => l.type === 'driving' || l.type === 'bidirectional',
+  );
+}
+
+/**
  * Map eligible incoming lanes to outgoing receiving lane IDs.
  *
  * Mapping strategy depends on turn type:
@@ -203,32 +250,40 @@ function filterLanesForTurn(
  * - right: outer-to-inner (descending |id|) — outermost lanes connect first,
  *   matching physical road geometry where right turns use outer lanes
  *
- * Capped at the smaller of incoming eligible lanes and outgoing driving lanes.
+ * Uses actual lane IDs from the receiving side of the outgoing road,
+ * avoiding assumptions about sequential numbering.
+ *
+ * When there are more eligible incoming lanes than receiving lanes, the extra
+ * incoming lanes are mapped to the nearest available receiving lane. This ensures
+ * all incoming lanes get a junction connection (each as a separate connecting road),
+ * which is valid per OpenDRIVE spec and required for correct esmini routing.
  */
 function mapLanePairs(
   eligibleLanes: OdrLane[],
   outgoing: RoadEndpoint,
   turnType: TurnType,
 ): LanePair[] {
-  const maxPairs = Math.min(eligibleLanes.length, outgoing.drivingLanes.length);
+  const receivingLanes = getReceivingLanes(outgoing);
+  if (receivingLanes.length === 0 || eligibleLanes.length === 0) return [];
 
   if (turnType === 'right') {
     // Right turn: outer-to-inner mapping (outermost lanes connect first)
     const outerFirst = [...eligibleLanes].sort((a, b) => Math.abs(b.id) - Math.abs(a.id));
-    const outLanes = [...outgoing.drivingLanes].sort((a, b) => Math.abs(b.id) - Math.abs(a.id));
-    return outerFirst.slice(0, maxPairs).map((lane, i) => ({
+    const outLanes = [...receivingLanes].sort((a, b) => Math.abs(b.id) - Math.abs(a.id));
+    return outerFirst.map((lane, i) => ({
       incomingLane: lane,
-      outgoingLaneId: outgoing.contactPoint === 'start'
-        ? -(outLanes.length - i)
-        : (outLanes.length - i),
+      // Clamp to last receiving lane when incoming > receiving
+      outgoingLaneId: outLanes[Math.min(i, outLanes.length - 1)].id,
     }));
   }
 
   // Straight / left: inner-to-outer (ascending |id|)
   const innerFirst = [...eligibleLanes].sort((a, b) => Math.abs(a.id) - Math.abs(b.id));
-  return innerFirst.slice(0, maxPairs).map((lane, i) => ({
+  const outLanes = [...receivingLanes].sort((a, b) => Math.abs(a.id) - Math.abs(b.id));
+  return innerFirst.map((lane, i) => ({
     incomingLane: lane,
-    outgoingLaneId: outgoing.contactPoint === 'start' ? -(i + 1) : i + 1,
+    // Clamp to last receiving lane when incoming > receiving
+    outgoingLaneId: outLanes[Math.min(i, outLanes.length - 1)].id,
   }));
 }
 
@@ -238,12 +293,15 @@ function mapLanePairs(
 function computeIncomingLaneCenterT(
   allDrivingLanes: OdrLane[],
   targetLane: OdrLane,
-  contactPoint: 'start' | 'end',
+  _contactPoint: 'start' | 'end',
 ): number {
   // Sort by |id| ascending (inner to outer)
   const sorted = [...allDrivingLanes].sort((a, b) => Math.abs(a.id) - Math.abs(b.id));
-  // end → right lanes (negative t), start → left lanes (positive t)
-  const sign = contactPoint === 'end' ? -1 : 1;
+  // Use lane ID sign to determine T direction:
+  //   positive IDs (left lanes) → positive T
+  //   negative IDs (right lanes) → negative T
+  // This is correct for both RHT and LHT traffic rules.
+  const sign = targetLane.id > 0 ? 1 : -1;
 
   let offset = 0;
   for (const lane of sorted) {
@@ -258,20 +316,21 @@ function computeIncomingLaneCenterT(
 
 /**
  * Compute the t-offset of a receiving lane's center on the outgoing road.
- * Uses drivingLanes widths as proxy (symmetric road assumed).
+ * Uses actual receiving lanes from the outgoing road (opposite side from drivingLanes).
  */
 function computeReceivingLaneCenterT(
   outgoing: RoadEndpoint,
   receivingLaneId: number,
 ): number {
   const sign = receivingLaneId < 0 ? -1 : 1;
-  const targetAbsId = Math.abs(receivingLaneId);
+  const receivingLanes = getReceivingLanes(outgoing);
 
-  const sorted = [...outgoing.drivingLanes].sort((a, b) => Math.abs(a.id) - Math.abs(b.id));
+  // Sort inner-to-outer by |id|
+  const sorted = [...receivingLanes].sort((a, b) => Math.abs(a.id) - Math.abs(b.id));
   let offset = 0;
-  for (let i = 0; i < sorted.length; i++) {
-    const w = sorted[i].width[0]?.a ?? 3.5;
-    if (i + 1 === targetAbsId) {
+  for (const lane of sorted) {
+    const w = lane.width[0]?.a ?? 3.5;
+    if (lane.id === receivingLaneId) {
       return sign * (offset + w / 2);
     }
     offset += w;
@@ -762,6 +821,7 @@ export function generateConnectingRoads(
   junctionId: string,
   routingConfig: LaneRoutingConfig,
   doc: OpenDriveDocument,
+  endpointOverrides?: EndpointLaneRouting[],
 ): { roads: OdrRoad[]; connections: OdrJunctionConnection[] } {
   const roads: OdrRoad[] = [];
   const connections: OdrJunctionConnection[] = [];
@@ -798,11 +858,17 @@ export function generateConnectingRoads(
       // Classify turn using the connecting road's actual travel directions
       const turnType = classifyTurn(inHdg, outHdg, straightThreshold);
 
-      // Filter lanes based on routing rules
+      // Find per-lane override for this incoming endpoint
+      const override = endpointOverrides?.find(
+        (o) => o.roadId === incoming.roadId && o.contactPoint === incoming.contactPoint,
+      );
+
+      // Filter lanes based on routing rules (override takes precedence)
       const eligibleLanes = filterLanesForTurn(
         incoming.drivingLanes,
         turnType,
         routingConfig,
+        override,
       );
 
       if (eligibleLanes.length === 0) continue;
@@ -824,15 +890,21 @@ export function generateConnectingRoads(
       const pairs = mapLanePairs(eligibleLanes, outgoing, turnType);
 
       for (let p = 0; p < pairs.length; p++) {
-        // Augment the doc with already-created roads for ID generation
+        // Augment the doc with already-created roads and connections for ID generation.
+        // The junction may not exist in doc yet (created after generateConnectingRoads returns),
+        // so we must ensure the augmented doc includes it with accumulated connections.
+        const existingJunction = doc.junctions.find((jn) => jn.id === junctionId);
+        const augmentedJunctions = existingJunction
+          ? doc.junctions.map((jn) =>
+              jn.id === junctionId
+                ? { ...jn, connections: [...jn.connections, ...connections] }
+                : jn,
+            )
+          : [...doc.junctions, { id: junctionId, name: '', connections: [...connections] }];
         const augmentedDoc = {
           ...doc,
           roads: [...doc.roads, ...roads],
-          junctions: doc.junctions.map((jn) =>
-            jn.id === junctionId
-              ? { ...jn, connections: [...jn.connections, ...connections] }
-              : jn,
-          ),
+          junctions: augmentedJunctions,
         };
 
         // Only the outermost lane pair gets the solid road mark

@@ -15,6 +15,8 @@ interface RoadSelectHandlerProps {
   roadGroupRef: React.RefObject<THREE.Group | null>;
   /** Callback when a road is selected */
   onRoadSelect: (roadId: string) => void;
+  /** Callback when a road is hovered (null = no road under cursor) */
+  onRoadHover?: (roadId: string | null) => void;
 }
 
 /** Walk up the scene graph to find the nearest parent with userData.roadId */
@@ -33,6 +35,7 @@ export function RoadSelectHandler({
   active,
   roadGroupRef,
   onRoadSelect,
+  onRoadHover,
 }: RoadSelectHandlerProps) {
   const { camera, gl } = useThree();
   const raycaster = useRef(new THREE.Raycaster());
@@ -46,6 +49,11 @@ export function RoadSelectHandler({
   // Store latest callback in ref to avoid re-registering listeners
   const onRoadSelectRef = useRef(onRoadSelect);
   onRoadSelectRef.current = onRoadSelect;
+
+  const onRoadHoverRef = useRef(onRoadHover);
+  onRoadHoverRef.current = onRoadHover;
+
+  const lastHoveredRef = useRef<string | null>(null);
 
   const roadGroupRefStable = useRef(roadGroupRef);
   roadGroupRefStable.current = roadGroupRef;
@@ -129,12 +137,53 @@ export function RoadSelectHandler({
       onRoadSelectRef.current(selectedId);
     };
 
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!onRoadHoverRef.current) return;
+      const roadGroup = roadGroupRefStable.current.current;
+      if (!roadGroup) return;
+
+      const rect = domElement.getBoundingClientRect();
+      mouse.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.current.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.current.setFromCamera(mouse.current, cameraRef.current);
+
+      const meshes: THREE.Object3D[] = [];
+      roadGroup.traverse((child) => {
+        if (child instanceof THREE.Mesh && child.geometry instanceof THREE.BufferGeometry) {
+          meshes.push(child);
+        }
+      });
+
+      const hits = raycaster.current.intersectObjects(meshes, false);
+      let hoveredId: string | null = null;
+      for (const hit of hits) {
+        const roadId = findRoadIdFromObject(hit.object);
+        if (roadId) {
+          hoveredId = roadId;
+          break;
+        }
+      }
+
+      if (hoveredId !== lastHoveredRef.current) {
+        lastHoveredRef.current = hoveredId;
+        onRoadHoverRef.current(hoveredId);
+      }
+    };
+
     domElement.addEventListener('pointerdown', handlePointerDown);
     domElement.addEventListener('pointerup', handlePointerUp);
+    domElement.addEventListener('pointermove', handlePointerMove);
 
     return () => {
       domElement.removeEventListener('pointerdown', handlePointerDown);
       domElement.removeEventListener('pointerup', handlePointerUp);
+      domElement.removeEventListener('pointermove', handlePointerMove);
+      // Clear hover on cleanup
+      if (lastHoveredRef.current && onRoadHoverRef.current) {
+        onRoadHoverRef.current(null);
+        lastHoveredRef.current = null;
+      }
     };
   }, [active, gl.domElement]);
 

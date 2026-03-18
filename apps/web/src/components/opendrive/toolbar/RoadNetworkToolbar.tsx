@@ -1,6 +1,6 @@
-import { MousePointer, Pencil, SplitSquareHorizontal, Scissors, Triangle, PlusSquare } from 'lucide-react';
+import { MousePointer, Pencil, SplitSquareHorizontal, Scissors, Triangle, PlusSquare, GitMerge } from 'lucide-react';
 import { useOdrSidebarStore } from '../../../hooks/use-opendrive-store';
-import type { RoadToolMode, LaneEditSubMode } from '../../../hooks/use-opendrive-store';
+import type { RoadToolMode, LaneEditSubMode, JunctionRoutingPreset } from '../../../hooks/use-opendrive-store';
 
 // ── Shared button components ─────────────────────────────────────────────────
 
@@ -146,9 +146,12 @@ interface RoadNetworkToolbarProps {
     length: number;
     angle: number;
   } | null;
+  onJunctionConfirm?: () => void;
+  /** Name of the road currently hovered in select mode */
+  hoveredRoadName?: string | null;
 }
 
-export function RoadNetworkToolbar({ cursorInfo }: RoadNetworkToolbarProps) {
+export function RoadNetworkToolbar({ cursorInfo, onJunctionConfirm, hoveredRoadName }: RoadNetworkToolbarProps) {
   const activeTool = useOdrSidebarStore((s) => s.activeTool);
   const setActiveTool = useOdrSidebarStore((s) => s.setActiveTool);
   const creationPhase = useOdrSidebarStore((s) => s.roadCreation.phase);
@@ -173,10 +176,15 @@ export function RoadNetworkToolbar({ cursorInfo }: RoadNetworkToolbarProps) {
   const taperCreationPhase = useOdrSidebarStore((s) => s.laneEdit.taperCreation.phase);
   const taperStartS = useOdrSidebarStore((s) => s.laneEdit.taperCreation.startS);
 
+  const junctionCreateEndpoints = useOdrSidebarStore((s) => s.junctionCreate.selectedEndpoints);
+  const junctionRoutingPreset = useOdrSidebarStore((s) => s.junctionCreate.routingPreset);
+  const setJunctionRoutingPreset = useOdrSidebarStore((s) => s.setJunctionRoutingPreset);
+
   const hoveredLane = useOdrSidebarStore((s) => s.laneEdit.hoveredLane);
   const showRoadCreationDisplay = activeTool === 'road-create' && creationPhase === 'startPlaced';
   const showLaneEditDisplay = activeTool === 'lane-edit' && hoveredLane !== null;
   const showLaneSubModes = activeTool === 'lane-edit';
+  const showJunctionCreate = activeTool === 'junction-create';
 
   // ESC handling is centralized in RoadNetworkEditorLayout
 
@@ -201,6 +209,12 @@ export function RoadNetworkToolbar({ cursorInfo }: RoadNetworkToolbarProps) {
           label="Lane"
           active={activeTool === 'lane-edit'}
           onClick={() => handleToolClick('lane-edit')}
+        />
+        <ToolButton
+          icon={GitMerge}
+          label="Junction"
+          active={activeTool === 'junction-create'}
+          onClick={() => handleToolClick('junction-create')}
         />
       </div>
 
@@ -261,8 +275,46 @@ export function RoadNetworkToolbar({ cursorInfo }: RoadNetworkToolbarProps) {
         </>
       )}
 
+      {/* Junction create: routing preset + Create button */}
+      {showJunctionCreate && (
+        <>
+          <div className="w-px h-4 mx-2 bg-[var(--color-glass-edge)]" />
+          <SegmentToggle<JunctionRoutingPreset>
+            options={[
+              { value: 'all', label: 'All Lanes' },
+              { value: 'dedicated', label: 'Dedicated' },
+            ]}
+            value={junctionRoutingPreset}
+            onChange={setJunctionRoutingPreset}
+          />
+          <div className="w-px h-4 mx-1.5 bg-[var(--color-glass-edge)]" />
+          <button
+            type="button"
+            disabled={junctionCreateEndpoints.length < 2}
+            className={`flex items-center gap-1 h-6 px-2 text-[10px] rounded-none transition-colors
+              ${
+                junctionCreateEndpoints.length >= 2
+                  ? 'text-[var(--color-text-primary)] bg-[var(--color-accent-vivid)] hover:opacity-90'
+                  : 'text-[var(--color-text-muted)] bg-[var(--color-glass-1)] border border-[var(--color-glass-edge)] cursor-not-allowed opacity-50'
+              }`}
+            onClick={onJunctionConfirm}
+          >
+            <GitMerge className="w-3 h-3" />
+            <span>Create Junction</span>
+          </button>
+        </>
+      )}
+
       {/* Spacer */}
       <div className="flex-1" />
+
+      {/* Status: junction create mode */}
+      {showJunctionCreate && (
+        <div className="flex items-center gap-2 font-mono text-[10px] text-[var(--color-text-muted)] mr-3">
+          <span className="text-[var(--color-accent-vivid)]">Selected: {junctionCreateEndpoints.length} endpoints</span>
+          <span>Click road endpoints (min 2) · Enter to create · ESC cancel</span>
+        </div>
+      )}
 
       {/* Status: taper creation in-progress */}
       {showLaneSubModes && subMode === 'taper' && taperCreationPhase === 'idle' && (
@@ -300,6 +352,13 @@ export function RoadNetworkToolbar({ cursorInfo }: RoadNetworkToolbarProps) {
           <span>s: {hoveredLane.s.toFixed(1)}m</span>
           <span>Section: {hoveredLane.sectionIdx}</span>
           <span>Lane: {hoveredLane.laneId}</span>
+        </div>
+      )}
+
+      {/* Right: Hovered road name — select mode */}
+      {activeTool === 'select' && hoveredRoadName && (
+        <div className="font-mono text-[11px] text-[var(--color-text-muted)]">
+          {hoveredRoadName}
         </div>
       )}
     </div>
