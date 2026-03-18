@@ -76,6 +76,9 @@ export function classifySignal(signal: OdrSignal): SignalCategory {
   // Dynamic signals are generally traffic lights
   if (dynamic === 'yes') return 'trafficLight';
 
+  // Universal preset type
+  if (type === 'trafficLight') return 'trafficLight';
+
   // ASAM OpenDRIVE Signal Catalog: all 100xxxx types are traffic signals
   // Covers 1000001 (standard), 1000002 (pedestrian), 1000008-1000023, etc.
   if (/^100\d{4}$/.test(type)) return 'trafficLight';

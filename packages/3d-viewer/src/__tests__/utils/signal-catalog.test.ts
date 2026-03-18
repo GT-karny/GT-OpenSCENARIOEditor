@@ -149,6 +149,21 @@ describe('housingForBulbCount', () => {
       expect(h.depth).toBe(0.25);
     }
   });
+
+  it('horizontal orientation swaps width and height', () => {
+    const v = housingForBulbCount(3, 'vertical');
+    const h = housingForBulbCount(3, 'horizontal');
+    expect(h.width).toBeCloseTo(v.height, 5);
+    expect(h.height).toBe(v.width);
+    expect(h.depth).toBe(v.depth);
+  });
+
+  it('horizontal 1-bulb housing has width equal to vertical 1-bulb height', () => {
+    const v = housingForBulbCount(1, 'vertical');
+    const h = housingForBulbCount(1, 'horizontal');
+    expect(h.width).toBeCloseTo(v.height, 5);
+    expect(h.height).toBe(0.4);
+  });
 });
 
 describe('SIGNAL_CATALOG', () => {
@@ -172,5 +187,65 @@ describe('SIGNAL_CATALOG', () => {
     for (const sub of ['10', '20', '30', '40', '50']) {
       expect(SIGNAL_CATALOG.has(`1000011:${sub}`)).toBe(true);
     }
+  });
+
+  it('contains universal preset entries', () => {
+    expect(SIGNAL_CATALOG.has('trafficLight:3-light-vertical')).toBe(true);
+    expect(SIGNAL_CATALOG.has('trafficLight:3-light-horizontal')).toBe(true);
+    expect(SIGNAL_CATALOG.has('trafficLight:arrow-left')).toBe(true);
+    expect(SIGNAL_CATALOG.has('trafficLight:arrow-right')).toBe(true);
+    expect(SIGNAL_CATALOG.has('trafficLight:arrow-straight')).toBe(true);
+    expect(SIGNAL_CATALOG.has('trafficLight:pedestrian-2')).toBe(true);
+  });
+
+  it('horizontal preset has horizontal orientation', () => {
+    const d = SIGNAL_CATALOG.get('trafficLight:3-light-horizontal');
+    expect(d).not.toBeNull();
+    expect(d!.orientation).toBe('horizontal');
+    expect(d!.housing.width).toBeGreaterThan(d!.housing.height);
+  });
+
+  it('vertical preset has vertical orientation', () => {
+    const d = SIGNAL_CATALOG.get('trafficLight:3-light-vertical');
+    expect(d).not.toBeNull();
+    expect(d!.orientation).toBe('vertical');
+    expect(d!.housing.height).toBeGreaterThan(d!.housing.width);
+  });
+});
+
+describe('resolveSignalDescriptor with preset-based subtypes', () => {
+  it('resolves trafficLight:3-light-horizontal', () => {
+    const d = resolveSignalDescriptor(
+      makeSignal({ type: 'trafficLight', subtype: '3-light-horizontal' }),
+    );
+    expect(d).not.toBeNull();
+    expect(d!.orientation).toBe('horizontal');
+    expect(d!.bulbs).toHaveLength(3);
+  });
+
+  it('resolves trafficLight:pedestrian-2', () => {
+    const d = resolveSignalDescriptor(
+      makeSignal({ type: 'trafficLight', subtype: 'pedestrian-2' }),
+    );
+    expect(d).not.toBeNull();
+    expect(d!.bulbs).toHaveLength(2);
+    expect(d!.bulbs[0].shape).toBe('pedestrian-stop');
+  });
+
+  it('resolves trafficLight:arrow-left', () => {
+    const d = resolveSignalDescriptor(
+      makeSignal({ type: 'trafficLight', subtype: 'arrow-left' }),
+    );
+    expect(d).not.toBeNull();
+    expect(d!.bulbs).toHaveLength(1);
+    expect(d!.bulbs[0].shape).toBe('arrow-left');
+  });
+
+  it('falls back to dynamic default for unknown trafficLight subtype', () => {
+    const d = resolveSignalDescriptor(
+      makeSignal({ type: 'trafficLight', subtype: 'unknown', dynamic: 'yes' }),
+    );
+    expect(d).not.toBeNull();
+    expect(d!.bulbs).toHaveLength(3);
   });
 });

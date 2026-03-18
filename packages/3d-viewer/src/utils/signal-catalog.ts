@@ -39,6 +39,7 @@ export interface SignalDescriptor {
   bulbs: BulbDefinition[];
   housing: { width: number; depth: number; height: number };
   bulbRadius: number;
+  orientation: 'vertical' | 'horizontal';
 }
 
 // ---------------------------------------------------------------------------
@@ -51,9 +52,15 @@ const HOUSING_PADDING = 0.07;
 const HOUSING_DEPTH = 0.12;
 const HOUSING_WIDTH = 0.4;
 
-export function housingForBulbCount(n: number): SignalDescriptor['housing'] {
-  const height = (n - 1) * BULB_SPACING + 2 * (BULB_RADIUS + HOUSING_PADDING);
-  return { width: HOUSING_WIDTH, depth: HOUSING_DEPTH, height };
+export function housingForBulbCount(
+  n: number,
+  orientation: 'vertical' | 'horizontal' = 'vertical',
+): SignalDescriptor['housing'] {
+  const span = (n - 1) * BULB_SPACING + 2 * (BULB_RADIUS + HOUSING_PADDING);
+  if (orientation === 'horizontal') {
+    return { width: span, depth: HOUSING_DEPTH, height: HOUSING_WIDTH };
+  }
+  return { width: HOUSING_WIDTH, depth: HOUSING_DEPTH, height: span };
 }
 
 // ---------------------------------------------------------------------------
@@ -82,8 +89,15 @@ const ARROW_SUBTYPE_MAP: Record<string, BulbFaceShape> = {
 function desc(
   label: string,
   bulbs: BulbDefinition[],
+  orientation: 'vertical' | 'horizontal' = 'vertical',
 ): SignalDescriptor {
-  return { label, bulbs, housing: housingForBulbCount(bulbs.length), bulbRadius: BULB_RADIUS };
+  return {
+    label,
+    bulbs,
+    housing: housingForBulbCount(bulbs.length, orientation),
+    bulbRadius: BULB_RADIUS,
+    orientation,
+  };
 }
 
 function bulb(color: BulbColor, shape: BulbFaceShape = 'circle'): BulbDefinition {
@@ -149,6 +163,14 @@ export const SIGNAL_CATALOG: ReadonlyMap<string, SignalDescriptor> = new Map<
   ...singleArrowEntries('1000020', 'red', 'Red'),
   ...singleArrowEntries('1000008', 'yellow', 'Yellow'),
   ...singleArrowEntries('1000012', 'green', 'Green'),
+
+  // === Universal presets ===
+  ['trafficLight:3-light-vertical', desc('3-Light Vertical', [bulb('red'), bulb('yellow'), bulb('green')], 'vertical')],
+  ['trafficLight:3-light-horizontal', desc('3-Light Horizontal', [bulb('red'), bulb('yellow'), bulb('green')], 'horizontal')],
+  ['trafficLight:arrow-left', desc('Arrow Left', [bulb('green', 'arrow-left')], 'vertical')],
+  ['trafficLight:arrow-right', desc('Arrow Right', [bulb('green', 'arrow-right')], 'vertical')],
+  ['trafficLight:arrow-straight', desc('Arrow Straight', [bulb('green', 'arrow-up')], 'vertical')],
+  ['trafficLight:pedestrian-2', desc('Pedestrian 2-Light', [bulb('red', 'pedestrian-stop'), bulb('green', 'pedestrian-go')], 'vertical')],
 ]);
 
 // ---------------------------------------------------------------------------
@@ -174,9 +196,9 @@ export function resolveSignalDescriptor(signal: OdrSignal): SignalDescriptor | n
 
   if (descriptor) return descriptor;
 
-  // Fallback: dynamic signals default to standard 3-light
+  // Fallback: dynamic signals default to standard 3-light (vertical)
   if (signal.dynamic === 'yes') {
-    return SIGNAL_CATALOG.get('1000001')!;
+    return SIGNAL_CATALOG.get('1000001') ?? SIGNAL_CATALOG.get('trafficLight:3-light-vertical')!;
   }
 
   return null;

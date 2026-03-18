@@ -81,8 +81,14 @@ const TrafficLightOverlayMesh: React.FC<TrafficLightOverlayMeshProps> = React.me
       [descriptor, activeState],
     );
 
+    const isHorizontal = descriptor.orientation === 'horizontal';
+    // Vertical: PI/2 around Y; Horizontal: additionally PI/2 around Z
+    const rotation: [number, number, number] = isHorizontal
+      ? [0, Math.PI / 2, Math.PI / 2]
+      : [0, Math.PI / 2, 0];
+
     return (
-      <mesh rotation={[0, Math.PI / 2, 0]} geometry={boxGeo} material={materials}>
+      <mesh rotation={rotation} geometry={boxGeo} material={materials}>
         <Outlines
           thickness={isSelected ? 0.08 : 0.15}
           color={isSelected ? '#FFFF00' : '#44DDFF'}

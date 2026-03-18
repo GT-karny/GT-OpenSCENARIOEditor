@@ -186,6 +186,11 @@ export type {
   ValidationEntry,
 } from './validation/junction-validator.js';
 
+// Signal presets
+export * from './signal/signal-presets.js';
+export * from './signal/signal-preset-types.js';
+export * from './signal/preset-to-signal.js';
+
 // Virtual junction operations
 export {
   createVirtualJunction,
