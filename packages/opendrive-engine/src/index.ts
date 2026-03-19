@@ -14,6 +14,7 @@ export type {
   LaneRoutingConfig,
   LaneTurnPermission,
   EndpointLaneRouting,
+  SignalAssemblyMetadata,
 } from './store/editor-metadata-types.js';
 export {
   EDITOR_METADATA_VERSION,
@@ -190,6 +191,21 @@ export type {
 export * from './signal/signal-presets.js';
 export * from './signal/signal-preset-types.js';
 export * from './signal/preset-to-signal.js';
+
+// Signal assembly
+export * from './signal/signal-assembly.js';
+export * from './signal/signal-assembly-operations.js';
+export * from './signal/signal-preset-store.js';
+
+// Signal assembly commands
+export {
+  CreateAssemblyCommand,
+  RemoveAssemblyCommand,
+  AddHeadToAssemblyCommand,
+  RemoveHeadFromAssemblyCommand,
+  UpdateAssemblyCommand,
+} from './commands/signal-assembly-commands.js';
+export type { GetMeta, SetMeta } from './commands/signal-assembly-commands.js';
 
 // Virtual junction operations
 export {

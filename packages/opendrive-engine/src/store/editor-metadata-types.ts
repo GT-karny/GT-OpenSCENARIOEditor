@@ -80,6 +80,20 @@ export interface JunctionSettings {
 }
 
 /**
+ * Metadata for a signal assembly — groups multiple signal heads on one pole.
+ * This is editor-internal and NOT part of the OpenDRIVE standard.
+ */
+export interface SignalAssemblyMetadata {
+  assemblyId: string;
+  roadId: string;
+  signalIds: string[];
+  poleType: 'straight' | 'arm';
+  armLength?: number;
+  armAngle?: number;
+  headPositions: { signalId: string; presetId?: string; position: string; offsetY?: number }[];
+}
+
+/**
  * Top-level editor metadata, persisted in .osce.json.
  * Designed to be extensible — new fields can be added in future versions.
  */
@@ -92,6 +106,8 @@ export interface EditorMetadata {
   junctionMetadata: JunctionMetadata[];
   /** Junction settings. */
   settings: JunctionSettings;
+  /** Signal assembly metadata (editor-internal). */
+  signalAssemblies?: SignalAssemblyMetadata[];
 }
 
 /** Current schema version for editor metadata. */

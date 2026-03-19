@@ -5,3 +5,4 @@ export { OdrGeometryPropertyEditor } from './OdrGeometryPropertyEditor';
 export { OdrLanePropertyEditor } from './OdrLanePropertyEditor';
 export { OdrSignalPropertyEditor } from './OdrSignalPropertyEditor';
 export { OdrJunctionPropertyEditor } from './OdrJunctionPropertyEditor';
+export { SignalAssemblyPreview } from './SignalAssemblyPreview';

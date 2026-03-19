@@ -12,6 +12,7 @@ import type {
   JunctionMetadata,
   JunctionSettings,
   LaneRoutingConfig,
+  SignalAssemblyMetadata,
 } from './editor-metadata-types.js';
 import { createDefaultEditorMetadata } from './editor-metadata-types.js';
 
@@ -40,6 +41,13 @@ export interface EditorMetadataStore extends EditorMetadataState {
   // Settings
   updateSettings(updates: Partial<JunctionSettings>): void;
   updateLaneRouting(updates: Partial<LaneRoutingConfig>): void;
+
+  // Signal assembly operations
+  addSignalAssembly(assembly: SignalAssemblyMetadata): void;
+  removeSignalAssembly(assemblyId: string): void;
+  updateSignalAssembly(assemblyId: string, updates: Partial<SignalAssemblyMetadata>): void;
+  findAssemblyBySignal(signalId: string): SignalAssemblyMetadata | undefined;
+  getSignalAssemblies(): SignalAssemblyMetadata[];
 }
 
 export function createEditorMetadataStore() {
@@ -149,6 +157,51 @@ export function createEditorMetadataStore() {
           },
         },
       }));
+    },
+
+    // --- Signal assembly operations ---
+    addSignalAssembly: (assembly: SignalAssemblyMetadata): void => {
+      set((state) => ({
+        metadata: {
+          ...state.metadata,
+          signalAssemblies: [...(state.metadata.signalAssemblies ?? []), assembly],
+        },
+      }));
+    },
+
+    removeSignalAssembly: (assemblyId: string): void => {
+      set((state) => ({
+        metadata: {
+          ...state.metadata,
+          signalAssemblies: (state.metadata.signalAssemblies ?? []).filter(
+            (a) => a.assemblyId !== assemblyId,
+          ),
+        },
+      }));
+    },
+
+    updateSignalAssembly: (
+      assemblyId: string,
+      updates: Partial<SignalAssemblyMetadata>,
+    ): void => {
+      set((state) => ({
+        metadata: {
+          ...state.metadata,
+          signalAssemblies: (state.metadata.signalAssemblies ?? []).map((a) =>
+            a.assemblyId === assemblyId ? { ...a, ...updates } : a,
+          ),
+        },
+      }));
+    },
+
+    findAssemblyBySignal: (signalId: string): SignalAssemblyMetadata | undefined => {
+      return (get().metadata.signalAssemblies ?? []).find((a) =>
+        a.signalIds.includes(signalId),
+      );
+    },
+
+    getSignalAssemblies: (): SignalAssemblyMetadata[] => {
+      return get().metadata.signalAssemblies ?? [];
     },
   }));
 }

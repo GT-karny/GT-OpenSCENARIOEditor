@@ -54,6 +54,7 @@ export type { PickedPositionData } from './interaction/RoadClickHandler.js';
 // Traffic signal rendering
 export { TrafficSignalGroup } from './signals/TrafficSignalGroup.js';
 export type { ResolvedSignal } from './signals/TrafficSignalGroup.js';
+export type { PoleAssemblyInfo } from './signals/InstancedPoles.js';
 export { classifySignal } from './utils/signal-geometry.js';
 export type { SignalCategory } from './utils/signal-geometry.js';
 export { resolveSignalPosition } from './utils/signal-position-resolver.js';
