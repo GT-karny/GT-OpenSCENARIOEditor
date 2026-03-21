@@ -133,7 +133,10 @@ export function SceneComposerView() {
       />
 
       {/* ManeuverGroups for active Act */}
-      <div className="flex-1 overflow-auto">
+      <div
+        className="flex-1 overflow-auto"
+        onClick={() => useEditorStore.getState().clearSelection()}
+      >
         <div className="flex flex-col gap-4 p-4">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--color-text-muted)] mb-2 px-1">

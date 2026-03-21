@@ -76,47 +76,6 @@ function RunningView() {
   );
 }
 
-/**
- * Running interval bar(s) overlaid on the seek bar area.
- * Shows when a hovered or selected element was in "running" state.
- */
-function ElementIntervalOverlay({
-  intervals,
-  totalTime,
-  variant,
-}: {
-  intervals: RunningInterval[];
-  totalTime: number;
-  variant: 'hover' | 'selected';
-}) {
-  if (intervals.length === 0 || totalTime <= 0) return null;
-
-  const color = variant === 'selected' ? 'var(--color-accent-1, #9B84E8)' : 'rgba(52, 211, 153, 0.6)';
-  const opacity = variant === 'selected' ? 0.35 : 0.25;
-
-  return (
-    <>
-      {intervals.map((iv, i) => {
-        const left = (iv.start / totalTime) * 100;
-        const width = ((iv.end - iv.start) / totalTime) * 100;
-        return (
-          <div
-            key={i}
-            className="absolute top-0 h-full rounded-sm pointer-events-none"
-            style={{
-              left: `${left}%`,
-              width: `${Math.max(width, 0.5)}%`,
-              backgroundColor: color,
-              opacity,
-              boxShadow: `0 0 6px ${color}`,
-            }}
-          />
-        );
-      })}
-    </>
-  );
-}
-
 /** Clustered marker for the event lane */
 interface MarkerCluster {
   /** Position as fraction 0–1 */
@@ -140,10 +99,14 @@ function EventMarkerLane({
   events,
   totalTime,
   onSeekToTime,
+  hoveredIntervals,
+  selectedIntervals,
 }: {
   events: StoryBoardEvent[];
   totalTime: number;
   onSeekToTime: (time: number) => void;
+  hoveredIntervals?: RunningInterval[];
+  selectedIntervals?: RunningInterval[];
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredCluster, setHoveredCluster] = useState<MarkerCluster | null>(null);
@@ -192,8 +155,32 @@ function EventMarkerLane({
 
   if (markers.length === 0) return null;
 
+  // Render interval lines helper
+  const renderIntervalLines = (intervals: RunningInterval[] | undefined, color: string) => {
+    if (!intervals || intervals.length === 0 || totalTime <= 0) return null;
+    return intervals.map((iv, i) => {
+      const left = (iv.start / totalTime) * 100;
+      const width = ((iv.end - iv.start) / totalTime) * 100;
+      return (
+        <div
+          key={i}
+          className="absolute top-[3px] h-[2px] pointer-events-none"
+          style={{
+            left: `${left}%`,
+            width: `${Math.max(width, 0.3)}%`,
+            backgroundColor: color,
+            boxShadow: `0 0 4px ${color}`,
+          }}
+        />
+      );
+    });
+  };
+
   return (
     <div ref={containerRef} className="relative h-2.5 mx-2">
+      {/* Running interval lines (behind markers) */}
+      {renderIntervalLines(selectedIntervals, 'rgba(155, 132, 232, 0.7)')}
+      {renderIntervalLines(hoveredIntervals, 'rgba(52, 211, 153, 0.6)')}
       {markers.map((cluster, i) => (
         <button
           key={i}
@@ -337,27 +324,24 @@ function PlaybackControls() {
         </Button>
       </div>
 
-      {/* Seek bar + interval overlays + event markers */}
+      {/* Seek bar + event markers with interval lines */}
       <div className="flex-1 mx-2 flex flex-col justify-center">
-        <div className="relative">
-          <Slider
-            aria-label="Seek simulation timeline"
-            min={0}
-            max={Math.max(totalFrames - 1, 0)}
-            step={1}
-            value={[currentFrameIndex]}
-            onValueChange={handleSeek}
-            disabled={totalFrames === 0}
-            className="cursor-pointer relative z-10"
-          />
-          {/* Running interval overlays (behind the slider thumb) */}
-          <ElementIntervalOverlay intervals={selectedIntervals} totalTime={totalTime} variant="selected" />
-          <ElementIntervalOverlay intervals={hoveredIntervals} totalTime={totalTime} variant="hover" />
-        </div>
+        <Slider
+          aria-label="Seek simulation timeline"
+          min={0}
+          max={Math.max(totalFrames - 1, 0)}
+          step={1}
+          value={[currentFrameIndex]}
+          onValueChange={handleSeek}
+          disabled={totalFrames === 0}
+          className="cursor-pointer"
+        />
         <EventMarkerLane
           events={storyBoardEvents}
           totalTime={totalTime}
           onSeekToTime={handleSeekToTime}
+          hoveredIntervals={hoveredIntervals}
+          selectedIntervals={selectedIntervals}
         />
       </div>
 
