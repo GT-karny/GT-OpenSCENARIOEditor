@@ -6,7 +6,7 @@ import { NodeHandle } from '../ui/node-handle.js';
 import { useEditorStore } from '../hooks/use-editor-store.js';
 
 export function StoryboardNode({ id, data, selected }: NodeProps<Node<StoryboardNodeData>>) {
-  const isRunning = useEditorStore((s) => s.activeNodeIds.includes(id));
+  const isRunning = useEditorStore((s) => s.activeNodeIds.has(id));
   return (
     <NodeCard nodeType="storyboard" title="Storyboard" selected={selected} running={isRunning}>
       <div className="flex items-center gap-2">

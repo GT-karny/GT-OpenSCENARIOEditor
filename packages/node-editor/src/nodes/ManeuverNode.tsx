@@ -6,7 +6,7 @@ import { NodeHandle } from '../ui/node-handle.js';
 import { useEditorStore } from '../hooks/use-editor-store.js';
 
 export function ManeuverNode({ id, data, selected }: NodeProps<Node<ManeuverNodeData>>) {
-  const isRunning = useEditorStore((s) => s.activeNodeIds.includes(id));
+  const isRunning = useEditorStore((s) => s.activeNodeIds.has(id));
   return (
     <NodeCard
       nodeType="maneuver"

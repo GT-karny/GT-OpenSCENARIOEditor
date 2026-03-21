@@ -13,6 +13,7 @@ interface EntityBehaviorCardProps {
   group: ManeuverGroup;
   selected: boolean;
   onSelect: () => void;
+  activeSimIds?: Set<string>;
 }
 
 /**
@@ -22,7 +23,7 @@ interface EntityBehaviorCardProps {
  * Body: EventRow list (trigger → actions), drag-and-drop reorderable
  * Collapsed: name + action summary tags
  */
-export function EntityBehaviorCard({ group, selected, onSelect }: EntityBehaviorCardProps) {
+export function EntityBehaviorCard({ group, selected, onSelect, activeSimIds }: EntityBehaviorCardProps) {
   const { t } = useTranslation('composer');
   const storeApi = useScenarioStoreApi();
   const entities = useScenarioStore((s) => s.document.entities);
@@ -146,11 +147,15 @@ export function EntityBehaviorCard({ group, selected, onSelect }: EntityBehavior
     allEvents.some((ev) => ev.actions.some((a) => a.id === id)),
   ) ?? null;
 
+  // Check if this ManeuverGroup or any of its children is running in simulation
+  const isGroupRunning = activeSimIds?.has(group.id) ?? false;
+
   return (
     <div
       className={cn(
-        'glass-item flex flex-col w-72 shrink-0 group/card',
+        'glass-item flex flex-col w-72 shrink-0 group/card transition-shadow',
         selected && 'selected border-l-2 border-l-[var(--color-accent-1)]',
+        isGroupRunning && !selected && 'border-l-2 border-l-emerald-400/60 shadow-[0_0_12px_rgba(52,211,153,0.2)]',
       )}
       onClick={onSelect}
       onMouseEnter={handleMouseEnter}
@@ -264,6 +269,7 @@ export function EntityBehaviorCard({ group, selected, onSelect }: EntityBehavior
               onRemoveEvent={handleRemoveEvent}
               onAddAction={handleAddAction}
               onRemoveAction={handleRemoveAction}
+              activeSimIds={activeSimIds}
             />
           ))}
 

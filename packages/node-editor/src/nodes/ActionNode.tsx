@@ -7,7 +7,7 @@ import { getActionTypeLabel } from '../utils/action-display.js';
 import { useEditorStore } from '../hooks/use-editor-store.js';
 
 export function ActionNode({ id, data, selected }: NodeProps<Node<ActionNodeData>>) {
-  const isRunning = useEditorStore((s) => s.activeNodeIds.includes(id));
+  const isRunning = useEditorStore((s) => s.activeNodeIds.has(id));
   return (
     <NodeCard
       nodeType="action"

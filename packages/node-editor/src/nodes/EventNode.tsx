@@ -6,7 +6,7 @@ import { NodeHandle } from '../ui/node-handle.js';
 import { useEditorStore } from '../hooks/use-editor-store.js';
 
 export function EventNode({ id, data, selected }: NodeProps<Node<EventNodeData>>) {
-  const isRunning = useEditorStore((s) => s.activeNodeIds.includes(id));
+  const isRunning = useEditorStore((s) => s.activeNodeIds.has(id));
   return (
     <NodeCard
       nodeType="event"

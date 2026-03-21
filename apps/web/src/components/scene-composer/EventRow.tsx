@@ -19,6 +19,7 @@ interface EventRowProps {
     onDragStart: (e: React.DragEvent) => void;
     onDragEnd: (e: React.DragEvent) => void;
   };
+  activeSimIds?: Set<string>;
 }
 
 /**
@@ -38,6 +39,7 @@ export function EventRow({
   onAddAction,
   onRemoveAction,
   dragHandleProps,
+  activeSimIds,
 }: EventRowProps) {
   const { t } = useTranslation('composer');
   const hasCondition =
@@ -45,6 +47,7 @@ export function EventRow({
     event.startTrigger.conditionGroups.some((g) => g.conditions.length > 0);
 
   const isEventSelected = selectedEventId === event.id;
+  const isEventRunning = activeSimIds?.has(event.id) ?? false;
 
   return (
     <div className="flex flex-col">
@@ -55,7 +58,9 @@ export function EventRow({
           'border border-transparent',
           isEventSelected
             ? 'bg-[var(--color-accent-1)]/10 border-[var(--color-accent-1)]/30'
-            : 'hover:bg-[var(--color-glass-2)]',
+            : isEventRunning
+              ? 'bg-emerald-400/8 border-emerald-400/25'
+              : 'hover:bg-[var(--color-glass-2)]',
         )}
         onClick={(e) => {
           e.stopPropagation();
@@ -67,10 +72,13 @@ export function EventRow({
         <GripVertical className="h-3 w-3 shrink-0 text-[var(--color-text-muted)] opacity-0 group-hover/trigger:opacity-40 cursor-grab" />
 
         {/* Trigger icon */}
+        {isEventRunning && (
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400 animate-pulse" />
+        )}
         {hasCondition ? (
-          <Clock className="h-3 w-3 shrink-0 text-[var(--color-accent-vivid)]" />
+          <Clock className={cn('h-3 w-3 shrink-0', isEventRunning ? 'text-emerald-400' : 'text-[var(--color-accent-vivid)]')} />
         ) : (
-          <Zap className="h-3 w-3 shrink-0 text-[var(--color-accent-vivid)]" />
+          <Zap className={cn('h-3 w-3 shrink-0', isEventRunning ? 'text-emerald-400' : 'text-[var(--color-accent-vivid)]')} />
         )}
 
         {/* Trigger summary */}
@@ -98,6 +106,7 @@ export function EventRow({
           key={action.id}
           action={action}
           selected={selectedActionId === action.id}
+          running={activeSimIds?.has(action.id) ?? false}
           onSelect={() => onSelectAction(action.id)}
           onRemove={() => onRemoveAction(action.id)}
         />

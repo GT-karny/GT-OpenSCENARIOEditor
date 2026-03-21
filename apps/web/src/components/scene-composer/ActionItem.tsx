@@ -24,6 +24,7 @@ import { getActionSummary } from './action-summary';
 interface ActionItemProps {
   action: ScenarioAction;
   selected: boolean;
+  running?: boolean;
   onSelect: () => void;
   onRemove: () => void;
 }
@@ -61,7 +62,7 @@ export const actionIcons: Record<string, React.ComponentType<{ className?: strin
 /**
  * A single action row within an EventRow, shown indented under the trigger.
  */
-export function ActionItem({ action, selected, onSelect, onRemove }: ActionItemProps) {
+export function ActionItem({ action, selected, running, onSelect, onRemove }: ActionItemProps) {
   const Icon = actionIcons[action.action.type] ?? Settings;
   const summary = getActionSummary(action);
 
@@ -72,14 +73,16 @@ export function ActionItem({ action, selected, onSelect, onRemove }: ActionItemP
         'border border-transparent',
         selected
           ? 'bg-[var(--color-accent-1)]/10 border-[var(--color-accent-1)]/30'
-          : 'hover:bg-[var(--color-glass-2)]',
+          : running
+            ? 'bg-emerald-400/8 border-emerald-400/25'
+            : 'hover:bg-[var(--color-glass-2)]',
       )}
       onClick={(e) => {
         e.stopPropagation();
         onSelect();
       }}
     >
-      <Icon className="h-3 w-3 shrink-0 text-[var(--color-accent-1)]" />
+      <Icon className={cn('h-3 w-3 shrink-0', running ? 'text-emerald-400' : 'text-[var(--color-accent-1)]')} />
       <span className="text-[11px] text-[var(--color-text-primary)] truncate flex-1">
         {summary}
       </span>

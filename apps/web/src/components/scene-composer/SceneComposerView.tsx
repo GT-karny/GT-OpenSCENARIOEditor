@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Car, Plus } from 'lucide-react';
 import { useScenarioStore, useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
+import { useActiveSimulationIds } from '../../hooks/use-active-simulation-ids';
 import { EntityBehaviorCard } from './EntityBehaviorCard';
 import { ActTabBar } from './ActTabBar';
 import type { Act } from '@osce/shared';
@@ -21,6 +22,7 @@ export function SceneComposerView() {
   const selectedIds = useEditorStore((s) => s.selection.selectedElementIds);
   const activeActId = useEditorStore((s) => s.activeActId);
   const setActiveActId = useEditorStore((s) => s.setActiveActId);
+  const activeSimIds = useActiveSimulationIds();
 
   // Collect all Acts from the first Story (convention: single Story)
   const story = stories[0];
@@ -141,6 +143,7 @@ export function SceneComposerView() {
                   group={group}
                   selected={selectedIds.includes(group.id)}
                   onSelect={() => handleSelectGroup(group.id)}
+                  activeSimIds={activeSimIds}
                 />
               ))}
 

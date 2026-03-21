@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from '@osce/i18n';
 import type { Maneuver } from '@osce/shared';
+import { cn } from '../../lib/utils';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
 import { EventRow } from './EventRow';
@@ -18,6 +19,7 @@ interface ManeuverSectionProps {
   onRemoveEvent: (eventId: string) => void;
   onAddAction: (eventId: string) => void;
   onRemoveAction: (actionId: string) => void;
+  activeSimIds?: Set<string>;
 }
 
 /**
@@ -36,6 +38,7 @@ export function ManeuverSection({
   onRemoveEvent,
   onAddAction,
   onRemoveAction,
+  activeSimIds,
 }: ManeuverSectionProps) {
   const { t } = useTranslation('composer');
   const storeApi = useScenarioStoreApi();
@@ -124,9 +127,13 @@ export function ManeuverSection({
   };
 
   const events = maneuver.events;
+  const isManeuverRunning = activeSimIds?.has(maneuver.id) ?? false;
 
   return (
-    <div className="glass-item flex flex-col mx-2 mt-1">
+    <div className={cn(
+      'glass-item flex flex-col mx-2 mt-1 transition-shadow',
+      isManeuverRunning && 'ring-1 ring-emerald-400/40 shadow-[0_0_8px_rgba(52,211,153,0.15)]',
+    )}>
       {/* Maneuver header */}
       <div
         className="group/maneuver flex items-center gap-1.5 px-2 py-1.5 cursor-pointer"
@@ -210,6 +217,7 @@ export function ManeuverSection({
                     onDragStart: handleDragStart(event.id),
                     onDragEnd: handleDragEnd,
                   }}
+                  activeSimIds={activeSimIds}
                 />
 
                 {index < events.length - 1 && (
