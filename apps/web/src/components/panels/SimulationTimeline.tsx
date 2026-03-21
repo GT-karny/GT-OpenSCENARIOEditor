@@ -99,13 +99,11 @@ function EventMarkerLane({
   events,
   totalTime,
   onSeekToTime,
-  hoveredIntervals,
   selectedIntervals,
 }: {
   events: StoryBoardEvent[];
   totalTime: number;
   onSeekToTime: (time: number) => void;
-  hoveredIntervals?: RunningInterval[];
   selectedIntervals?: RunningInterval[];
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -179,8 +177,7 @@ function EventMarkerLane({
   return (
     <div ref={containerRef} className="relative h-2.5 mx-2">
       {/* Running interval lines (behind markers) */}
-      {renderIntervalLines(selectedIntervals, 'rgba(155, 132, 232, 0.7)')}
-      {renderIntervalLines(hoveredIntervals, 'rgba(52, 211, 153, 0.6)')}
+      {renderIntervalLines(selectedIntervals, 'rgba(52, 211, 153, 0.6)')}
       {markers.map((cluster, i) => (
         <button
           key={i}
@@ -225,8 +222,7 @@ function PlaybackControls() {
   const storyBoardEvents = useSimulationStore((s) => s.storyBoardEvents);
   const { play, pause, seekTo, setSpeed } = useSimulationStore.getState();
 
-  // Editor selection state for reverse-lookup interval bars
-  const hoveredElementId = useEditorStore((s) => s.selection.hoveredElementId);
+  // Editor selection state for reverse-lookup interval lines
   const selectedElementIds = useEditorStore((s) => s.selection.selectedElementIds);
   const scenarioStoreApi = useScenarioStoreApi();
 
@@ -239,14 +235,6 @@ function PlaybackControls() {
     if (storyBoardEvents.length === 0) return new Map<string, string>();
     return buildIdToFullPathMap(scenarioStoreApi.getState().document);
   }, [storyBoardEvents, scenarioStoreApi]);
-
-  // Running intervals for hovered element
-  const hoveredIntervals = useMemo((): RunningInterval[] => {
-    if (!hoveredElementId || totalTime <= 0) return [];
-    const fullPath = idToFullPath.get(hoveredElementId);
-    if (!fullPath) return [];
-    return getRunningIntervals(storyBoardEvents, fullPath, totalTime);
-  }, [hoveredElementId, idToFullPath, storyBoardEvents, totalTime]);
 
   // Running intervals for selected element(s) — use first selected
   const selectedIntervals = useMemo((): RunningInterval[] => {
@@ -340,7 +328,6 @@ function PlaybackControls() {
           events={storyBoardEvents}
           totalTime={totalTime}
           onSeekToTime={handleSeekToTime}
-          hoveredIntervals={hoveredIntervals}
           selectedIntervals={selectedIntervals}
         />
       </div>
