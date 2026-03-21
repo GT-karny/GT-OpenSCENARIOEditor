@@ -11,6 +11,13 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import { useSimulationStore } from '../../stores/simulation-store';
+import { useEditorStore } from '../../stores/editor-store';
+import { useScenarioStoreApi } from '../../stores/use-scenario-store';
+import {
+  buildIdToFullPathMap,
+  getRunningIntervals,
+  type RunningInterval,
+} from '../../lib/fullpath-mapping';
 
 const SPEED_OPTIONS = [0.25, 0.5, 1, 2, 4] as const;
 
@@ -66,6 +73,47 @@ function RunningView() {
         </p>
       </div>
     </div>
+  );
+}
+
+/**
+ * Running interval bar(s) overlaid on the seek bar area.
+ * Shows when a hovered or selected element was in "running" state.
+ */
+function ElementIntervalOverlay({
+  intervals,
+  totalTime,
+  variant,
+}: {
+  intervals: RunningInterval[];
+  totalTime: number;
+  variant: 'hover' | 'selected';
+}) {
+  if (intervals.length === 0 || totalTime <= 0) return null;
+
+  const color = variant === 'selected' ? 'var(--color-accent-1, #9B84E8)' : 'rgba(52, 211, 153, 0.6)';
+  const opacity = variant === 'selected' ? 0.35 : 0.25;
+
+  return (
+    <>
+      {intervals.map((iv, i) => {
+        const left = (iv.start / totalTime) * 100;
+        const width = ((iv.end - iv.start) / totalTime) * 100;
+        return (
+          <div
+            key={i}
+            className="absolute top-0 h-full rounded-sm pointer-events-none"
+            style={{
+              left: `${left}%`,
+              width: `${Math.max(width, 0.5)}%`,
+              backgroundColor: color,
+              opacity,
+              boxShadow: `0 0 6px ${color}`,
+            }}
+          />
+        );
+      })}
+    </>
   );
 }
 
@@ -190,9 +238,37 @@ function PlaybackControls() {
   const storyBoardEvents = useSimulationStore((s) => s.storyBoardEvents);
   const { play, pause, seekTo, setSpeed } = useSimulationStore.getState();
 
+  // Editor selection state for reverse-lookup interval bars
+  const hoveredElementId = useEditorStore((s) => s.selection.hoveredElementId);
+  const selectedElementIds = useEditorStore((s) => s.selection.selectedElementIds);
+  const scenarioStoreApi = useScenarioStoreApi();
+
   const totalFrames = frames.length;
   const currentTime = totalFrames > 0 ? (frames[currentFrameIndex]?.time ?? 0) : 0;
   const totalTime = totalFrames > 0 ? (frames[totalFrames - 1]?.time ?? 0) : 0;
+
+  // Build reverse map (element ID → fullPath) for interval lookup
+  const idToFullPath = useMemo(() => {
+    if (storyBoardEvents.length === 0) return new Map<string, string>();
+    return buildIdToFullPathMap(scenarioStoreApi.getState().document);
+  }, [storyBoardEvents, scenarioStoreApi]);
+
+  // Running intervals for hovered element
+  const hoveredIntervals = useMemo((): RunningInterval[] => {
+    if (!hoveredElementId || totalTime <= 0) return [];
+    const fullPath = idToFullPath.get(hoveredElementId);
+    if (!fullPath) return [];
+    return getRunningIntervals(storyBoardEvents, fullPath, totalTime);
+  }, [hoveredElementId, idToFullPath, storyBoardEvents, totalTime]);
+
+  // Running intervals for selected element(s) — use first selected
+  const selectedIntervals = useMemo((): RunningInterval[] => {
+    if (selectedElementIds.length === 0 || totalTime <= 0) return [];
+    const firstId = selectedElementIds[0];
+    const fullPath = idToFullPath.get(firstId);
+    if (!fullPath) return [];
+    return getRunningIntervals(storyBoardEvents, fullPath, totalTime);
+  }, [selectedElementIds, idToFullPath, storyBoardEvents, totalTime]);
 
   /** Seek to a specific simulation time by finding closest frame */
   const handleSeekToTime = useCallback(
@@ -261,18 +337,23 @@ function PlaybackControls() {
         </Button>
       </div>
 
-      {/* Seek bar + event markers */}
+      {/* Seek bar + interval overlays + event markers */}
       <div className="flex-1 mx-2 flex flex-col justify-center">
-        <Slider
-          aria-label="Seek simulation timeline"
-          min={0}
-          max={Math.max(totalFrames - 1, 0)}
-          step={1}
-          value={[currentFrameIndex]}
-          onValueChange={handleSeek}
-          disabled={totalFrames === 0}
-          className="cursor-pointer"
-        />
+        <div className="relative">
+          <Slider
+            aria-label="Seek simulation timeline"
+            min={0}
+            max={Math.max(totalFrames - 1, 0)}
+            step={1}
+            value={[currentFrameIndex]}
+            onValueChange={handleSeek}
+            disabled={totalFrames === 0}
+            className="cursor-pointer relative z-10"
+          />
+          {/* Running interval overlays (behind the slider thumb) */}
+          <ElementIntervalOverlay intervals={selectedIntervals} totalTime={totalTime} variant="selected" />
+          <ElementIntervalOverlay intervals={hoveredIntervals} totalTime={totalTime} variant="hover" />
+        </div>
         <EventMarkerLane
           events={storyBoardEvents}
           totalTime={totalTime}

@@ -3,6 +3,7 @@ import { Car, Plus } from 'lucide-react';
 import { useScenarioStore, useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
 import { useActiveSimulationIds } from '../../hooks/use-active-simulation-ids';
+import { useSeekToElement } from '../../hooks/use-seek-to-element';
 import { EntityBehaviorCard } from './EntityBehaviorCard';
 import { ActTabBar } from './ActTabBar';
 import type { Act } from '@osce/shared';
@@ -23,6 +24,7 @@ export function SceneComposerView() {
   const activeActId = useEditorStore((s) => s.activeActId);
   const setActiveActId = useEditorStore((s) => s.setActiveActId);
   const activeSimIds = useActiveSimulationIds();
+  const seekToElement = useSeekToElement();
 
   // Collect all Acts from the first Story (convention: single Story)
   const story = stories[0];
@@ -40,6 +42,7 @@ export function SceneComposerView() {
 
   const handleSelectGroup = (groupId: string) => {
     useEditorStore.getState().setSelection({ selectedElementIds: [groupId] });
+    seekToElement(groupId);
   };
 
   /** Add a ManeuverGroup to the active Act */
@@ -144,6 +147,7 @@ export function SceneComposerView() {
                   selected={selectedIds.includes(group.id)}
                   onSelect={() => handleSelectGroup(group.id)}
                   activeSimIds={activeSimIds}
+                  onSeekToElement={seekToElement}
                 />
               ))}
 

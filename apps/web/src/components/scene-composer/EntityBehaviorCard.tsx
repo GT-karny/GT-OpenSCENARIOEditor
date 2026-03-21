@@ -14,6 +14,7 @@ interface EntityBehaviorCardProps {
   selected: boolean;
   onSelect: () => void;
   activeSimIds?: Set<string>;
+  onSeekToElement?: (elementId: string) => void;
 }
 
 /**
@@ -23,7 +24,7 @@ interface EntityBehaviorCardProps {
  * Body: EventRow list (trigger → actions), drag-and-drop reorderable
  * Collapsed: name + action summary tags
  */
-export function EntityBehaviorCard({ group, selected, onSelect, activeSimIds }: EntityBehaviorCardProps) {
+export function EntityBehaviorCard({ group, selected, onSelect, activeSimIds, onSeekToElement }: EntityBehaviorCardProps) {
   const { t } = useTranslation('composer');
   const storeApi = useScenarioStoreApi();
   const entities = useScenarioStore((s) => s.document.entities);
@@ -87,10 +88,12 @@ export function EntityBehaviorCard({ group, selected, onSelect, activeSimIds }: 
 
   const handleSelectEvent = (eventId: string) => {
     useEditorStore.getState().setSelection({ selectedElementIds: [eventId] });
+    onSeekToElement?.(eventId);
   };
 
   const handleSelectAction = (actionId: string) => {
     useEditorStore.getState().setSelection({ selectedElementIds: [actionId] });
+    onSeekToElement?.(actionId);
   };
 
   const handleRemoveEvent = (eventId: string) => {
