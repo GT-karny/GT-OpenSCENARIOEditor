@@ -1,5 +1,7 @@
+import { useMemo, useCallback, useState, useRef } from 'react';
 import { useTranslation } from '@osce/i18n';
 import { Timer, Play, Pause, SkipBack, SkipForward } from 'lucide-react';
+import type { StoryBoardEvent, StoryBoardElementType } from '@osce/shared';
 import { Button } from '../ui/button';
 import { Slider } from '../ui/slider';
 import {
@@ -11,6 +13,17 @@ import {
 import { useSimulationStore } from '../../stores/simulation-store';
 
 const SPEED_OPTIONS = [0.25, 0.5, 1, 2, 4] as const;
+
+/** Color for each StoryBoard element type (matches node-editor color-map) */
+const ELEMENT_TYPE_COLORS: Record<StoryBoardElementType, string> = {
+  storyboard: '#94a3b8',
+  story: '#7B88E8',
+  act: '#9B84E8',
+  maneuverGroup: '#B8ABEB',
+  maneuver: '#D0C6F2',
+  event: '#E8C942',
+  action: '#E8A05A',
+};
 
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -56,16 +69,145 @@ function RunningView() {
   );
 }
 
+/** Clustered marker for the event lane */
+interface MarkerCluster {
+  /** Position as fraction 0–1 */
+  position: number;
+  /** Primary color (from the highest-priority event in cluster) */
+  color: string;
+  /** Tooltip text */
+  label: string;
+  /** Timestamp for seek */
+  timestamp: number;
+  /** Number of events in this cluster */
+  count: number;
+}
+
+/**
+ * Event markers rendered below the seek bar.
+ * Shows colored dots at each storyboard event timestamp.
+ * Clusters events that fall within the same pixel.
+ */
+function EventMarkerLane({
+  events,
+  totalTime,
+  onSeekToTime,
+}: {
+  events: StoryBoardEvent[];
+  totalTime: number;
+  onSeekToTime: (time: number) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [hoveredCluster, setHoveredCluster] = useState<MarkerCluster | null>(null);
+  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+
+  // Only show "running" state transitions — the most interesting moments
+  const markers = useMemo(() => {
+    if (totalTime <= 0 || events.length === 0) return [];
+
+    // Filter to running/complete transitions (skip init/standby noise)
+    const significant = events.filter(
+      (e) => (e.state === 'running' || e.state === 'complete') && e.elementType !== 'storyboard',
+    );
+
+    // Cluster by position (group events within 1% of timeline)
+    const clusterThreshold = 0.01;
+    const clusters: MarkerCluster[] = [];
+
+    for (const ev of significant) {
+      const pos = ev.timestamp / totalTime;
+      const existing = clusters.find((c) => Math.abs(c.position - pos) < clusterThreshold);
+      if (existing) {
+        existing.count++;
+        existing.label += `\n${ev.name} → ${ev.state}`;
+      } else {
+        clusters.push({
+          position: pos,
+          color: ELEMENT_TYPE_COLORS[ev.elementType] ?? '#94a3b8',
+          label: `${ev.name} → ${ev.state}`,
+          timestamp: ev.timestamp,
+          count: 1,
+        });
+      }
+    }
+
+    return clusters;
+  }, [events, totalTime]);
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent, cluster: MarkerCluster) => {
+      setHoveredCluster(cluster);
+      setTooltipPos({ x: e.clientX, y: e.clientY });
+    },
+    [],
+  );
+
+  if (markers.length === 0) return null;
+
+  return (
+    <div ref={containerRef} className="relative h-2.5 mx-2">
+      {markers.map((cluster, i) => (
+        <button
+          key={i}
+          className="absolute top-0.5 -translate-x-1/2 rounded-full transition-transform hover:scale-150 cursor-pointer"
+          style={{
+            left: `${cluster.position * 100}%`,
+            width: cluster.count > 1 ? 5 : 4,
+            height: cluster.count > 1 ? 5 : 4,
+            backgroundColor: cluster.color,
+            boxShadow: `0 0 4px ${cluster.color}88`,
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSeekToTime(cluster.timestamp);
+          }}
+          onMouseMove={(e) => handleMouseMove(e, cluster)}
+          onMouseLeave={() => setHoveredCluster(null)}
+        />
+      ))}
+      {/* Tooltip */}
+      {hoveredCluster && (
+        <div
+          className="fixed z-50 px-2 py-1 text-[9px] leading-tight rounded bg-[var(--color-glass-1)] border border-[var(--color-glass-edge)] text-[var(--color-text-primary)] pointer-events-none whitespace-pre max-w-[200px] truncate"
+          style={{
+            left: tooltipPos.x + 8,
+            top: tooltipPos.y - 28,
+          }}
+        >
+          {hoveredCluster.label}
+          {hoveredCluster.count > 1 && ` (+${hoveredCluster.count - 1})`}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PlaybackControls() {
   const isPlaying = useSimulationStore((s) => s.isPlaying);
   const currentFrameIndex = useSimulationStore((s) => s.currentFrameIndex);
   const frames = useSimulationStore((s) => s.frames);
   const playbackSpeed = useSimulationStore((s) => s.playbackSpeed);
+  const storyBoardEvents = useSimulationStore((s) => s.storyBoardEvents);
   const { play, pause, seekTo, setSpeed } = useSimulationStore.getState();
 
   const totalFrames = frames.length;
   const currentTime = totalFrames > 0 ? (frames[currentFrameIndex]?.time ?? 0) : 0;
   const totalTime = totalFrames > 0 ? (frames[totalFrames - 1]?.time ?? 0) : 0;
+
+  /** Seek to a specific simulation time by finding closest frame */
+  const handleSeekToTime = useCallback(
+    (time: number) => {
+      if (frames.length === 0) return;
+      let bestIdx = 0;
+      for (let i = 1; i < frames.length; i++) {
+        if (Math.abs(frames[i].time - time) < Math.abs(frames[bestIdx].time - time)) {
+          bestIdx = i;
+        }
+      }
+      seekTo(bestIdx);
+    },
+    [frames, seekTo],
+  );
 
   const handlePlayPause = () => {
     if (isPlaying) {
@@ -119,8 +261,8 @@ function PlaybackControls() {
         </Button>
       </div>
 
-      {/* Seek bar */}
-      <div className="flex-1 mx-2">
+      {/* Seek bar + event markers */}
+      <div className="flex-1 mx-2 flex flex-col justify-center">
         <Slider
           aria-label="Seek simulation timeline"
           min={0}
@@ -130,6 +272,11 @@ function PlaybackControls() {
           onValueChange={handleSeek}
           disabled={totalFrames === 0}
           className="cursor-pointer"
+        />
+        <EventMarkerLane
+          events={storyBoardEvents}
+          totalTime={totalTime}
+          onSeekToTime={handleSeekToTime}
         />
       </div>
 
