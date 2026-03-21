@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import type { ProjectSummary } from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
 import { Navigation, Plus, Upload, FolderOpen, Loader2, AlertTriangle } from 'lucide-react';
+import { isElectron } from '../../lib/platform';
+import { WindowControls } from '../layout/WindowControls';
 import { Button } from '../ui/button';
 import { useProjectStore } from '../../stores/project-store';
 import { fetchProjects, importProject, exportProjectUrl } from '../../lib/project-api';
@@ -107,8 +109,17 @@ export function HomeScreen() {
 
   return (
     <div className="flex flex-col h-screen bg-[var(--color-bg-primary)] overflow-auto">
+      {/* Electron titlebar drag region */}
+      {isElectron() && (
+        <div
+          className="flex items-center justify-end h-[32px] shrink-0"
+          style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+        >
+          <WindowControls />
+        </div>
+      )}
       {/* Header area */}
-      <div className="flex flex-col items-center pt-16 pb-10 px-6">
+      <div className={`flex flex-col items-center ${isElectron() ? 'pt-8' : 'pt-16'} pb-10 px-6`}>
         {/* Logo */}
         <div className="flex items-center gap-3 mb-2">
           <Navigation

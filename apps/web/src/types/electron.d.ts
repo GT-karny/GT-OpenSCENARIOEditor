@@ -32,6 +32,11 @@ interface ElectronAPI {
   readDir: (dirPath: string) => Promise<string[]>;
   onMenuAction: (callback: (action: string) => void) => () => void;
   setTitle: (title: string) => void;
+  windowMinimize: () => void;
+  windowMaximize: () => void;
+  windowClose: () => void;
+  windowIsMaximized: () => Promise<boolean>;
+  onMaximizedChanged: (callback: (isMaximized: boolean) => void) => () => void;
   getRecentFiles: () => Promise<string[]>;
   addRecentFile: (filePath: string) => void;
   clearRecentFiles: () => void;
