@@ -8,6 +8,25 @@
 @import "tailwindcss";
 
 /* ============================================
+   Electron custom titlebar: drag regions
+   ① ヘッダー全体をドラッグ可能に
+   ② インタラクティブ要素は自動でドラッグ対象から除外
+   ============================================ */
+.electron-drag {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+.electron-drag a,
+.electron-drag button,
+.electron-drag input,
+.electron-drag select,
+.electron-drag [role="button"],
+.electron-no-drag {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+/* ============================================
    React Flow dark theme overrides
    (app-specific, not part of APEX theme)
    ============================================ */

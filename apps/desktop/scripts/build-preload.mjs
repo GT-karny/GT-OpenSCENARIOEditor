@@ -6,7 +6,7 @@ await build({
   platform: 'node',
   target: 'node20',
   format: 'cjs',
-  outfile: 'dist/preload/index.js',
+  outfile: 'dist/preload/index.cjs',
   external: ['electron'],
   sourcemap: true,
 });

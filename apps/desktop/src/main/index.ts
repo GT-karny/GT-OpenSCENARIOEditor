@@ -23,7 +23,7 @@ async function createWindow() {
     frame: false,
     show: false,
     webPreferences: {
-      preload: path.join(import.meta.dirname, '../preload/index.js'),
+      preload: path.join(import.meta.dirname, '../preload/index.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
