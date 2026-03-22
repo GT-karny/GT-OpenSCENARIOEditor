@@ -99,3 +99,23 @@ export async function importProject(file: File): Promise<ProjectDetail> {
   if (!res.ok) throw new Error(`Failed to import project: ${res.statusText}`);
   return res.json();
 }
+
+// ── Settings ───────────────────────────────────────────────
+
+export async function fetchProjectsRoot(): Promise<string> {
+  const res = await fetch(`${API_BASE}/settings/projects-root`);
+  if (!res.ok) throw new Error(`Failed to fetch projects root: ${res.statusText}`);
+  const json = await res.json();
+  return json.path;
+}
+
+export async function updateProjectsRoot(path: string): Promise<string> {
+  const res = await fetch(`${API_BASE}/settings/projects-root`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path }),
+  });
+  if (!res.ok) throw new Error(`Failed to update projects root: ${res.statusText}`);
+  const json = await res.json();
+  return json.path;
+}

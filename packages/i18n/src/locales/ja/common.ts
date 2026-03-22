@@ -165,6 +165,8 @@ export const common = {
     importZip: 'ZIPインポート',
     noProjects: 'プロジェクトが見つかりません',
     createFirst: '最初のプロジェクトを作成',
+    changeRoot: 'フォルダ変更',
+    enterProjectsRoot: 'プロジェクトルートのパスを入力してください:',
   },
   project: {
     name: '名前',

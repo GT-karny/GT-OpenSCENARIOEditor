@@ -12,6 +12,7 @@ import { fileRoutes } from './routes/file-routes.js';
 import { scenarioRoutes } from './routes/scenario-routes.js';
 import { simulationRoutes } from './routes/simulation-routes.js';
 import { projectRoutes } from './routes/project-routes.js';
+import { settingsRoutes } from './routes/settings-routes.js';
 import { wsHandler } from './websocket/ws-handler.js';
 import { registerErrorHandler } from './utils/errors.js';
 
@@ -75,6 +76,7 @@ export async function buildApp(options?: AppOptions) {
   await app.register(scenarioRoutes);
   await app.register(simulationRoutes);
   await app.register(projectRoutes);
+  await app.register(settingsRoutes);
   await app.register(wsHandler);
 
   return app;
