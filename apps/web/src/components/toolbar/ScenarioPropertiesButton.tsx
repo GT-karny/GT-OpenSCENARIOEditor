@@ -4,7 +4,7 @@ import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { useEditorStore } from '../../stores/editor-store';
 
-export function ScenarioPropertiesButton() {
+export function ScenarioPropertiesButton({ compact }: { compact?: boolean }) {
   const { t } = useTranslation('common');
   const hasSelection = useEditorStore(
     (s) => s.selection.selectedElementIds.length > 0,
@@ -19,12 +19,12 @@ export function ScenarioPropertiesButton() {
       <TooltipTrigger asChild>
         <Button
           variant={hasSelection ? 'ghost' : 'secondary'}
-          size="sm"
-          className="text-xs gap-1"
+          size={compact ? 'icon' : 'sm'}
+          className={compact ? 'h-8 w-8' : 'text-xs gap-1'}
           onClick={handleClick}
         >
           <FileText className="h-4 w-4" />
-          {t('scenario.title')}
+          {!compact && t('scenario.title')}
         </Button>
       </TooltipTrigger>
       <TooltipContent>{t('scenario.title')}</TooltipContent>

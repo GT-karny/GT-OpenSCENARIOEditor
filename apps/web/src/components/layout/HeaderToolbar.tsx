@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '@osce/i18n';
 import { Navigation, Home } from 'lucide-react';
 import { Separator } from '../ui/separator';
@@ -22,8 +23,22 @@ export function HeaderToolbar() {
   const editorMode = useEditorStore((s) => s.editorMode);
   const setEditorMode = useEditorStore((s) => s.setEditorMode);
 
+  const headerRef = useRef<HTMLDivElement>(null);
+  const [compact, setCompact] = useState(false);
+
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      setCompact(entry.contentRect.width < 1300);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div
+      ref={headerRef}
       role="banner"
       className="relative flex items-center h-[50px] pl-3 pr-0 gap-3 bg-[var(--color-glass-1)] backdrop-blur-[40px] saturate-[1.5] border-b border-[var(--color-glass-edge-mid)] header-glow z-10 enter select-none overflow-hidden shrink-0 electron-drag"
     >
@@ -114,19 +129,20 @@ export function HeaderToolbar() {
       <Separator orientation="vertical" className="h-5 shrink-0 bg-[var(--color-glass-edge-bright)]" />
       <UndoRedoButtons />
       <Separator orientation="vertical" className="h-5 shrink-0 bg-[var(--color-glass-edge-bright)]" />
-      <ScenarioPropertiesButton />
-      <CatalogButton />
-      <ValidateButton />
+      <ScenarioPropertiesButton compact={compact} />
+      <CatalogButton compact={compact} />
+      <ValidateButton compact={compact} />
       <Separator orientation="vertical" className="h-5 shrink-0 bg-[var(--color-glass-edge-bright)]" />
-      <SimulationButtons />
+      <SimulationButtons compact={compact} />
 
-      {/* Spacer */}
-      <div className="flex-1 min-w-[40px] h-full" />
+      {/* Spacer — reserves space for the absolute-positioned right controls */}
+      <div className="flex-1 min-w-[180px] h-full" />
 
-      <LanguageToggle />
-
-      {/* Window controls (Electron only) */}
-      <WindowControls />
+      {/* Right controls: absolute-positioned so they are never clipped by overflow-hidden */}
+      <div className="absolute right-0 top-0 h-full flex items-center bg-[var(--color-glass-1)] z-10 electron-drag">
+        <LanguageToggle />
+        <WindowControls />
+      </div>
     </div>
   );
 }
