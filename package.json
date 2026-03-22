@@ -1,6 +1,6 @@
 {
   "name": "gt-openscenario-editor",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "ASAM OpenSCENARIO graphical web editor",
   "license": "Apache-2.0",
