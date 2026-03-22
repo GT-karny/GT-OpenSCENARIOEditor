@@ -2,6 +2,7 @@ import { GripVertical, Clock, Zap, Plus, Trash2, ChevronRight } from 'lucide-rea
 import { useTranslation } from '@osce/i18n';
 import type { ScenarioEvent } from '@osce/shared';
 import { cn } from '../../lib/utils';
+import { useFlashState } from '../../hooks/use-flash-state';
 import { TriggerSummaryBadges } from './TriggerSummaryBadges';
 import { ActionItem } from './ActionItem';
 
@@ -48,6 +49,7 @@ export function EventRow({
 
   const isEventSelected = selectedEventId === event.id;
   const isEventRunning = activeSimIds?.has(event.id) ?? false;
+  const eventFlash = useFlashState(isEventRunning);
 
   return (
     <div className="flex flex-col">
@@ -58,9 +60,11 @@ export function EventRow({
           'border border-transparent',
           isEventSelected
             ? 'bg-[var(--color-accent-1)]/10 border-[var(--color-accent-1)]/30'
-            : isEventRunning
+            : eventFlash === 'running'
               ? 'bg-emerald-400/8 border-emerald-400/25'
-              : 'hover:bg-[var(--color-glass-2)]',
+              : eventFlash === 'fading'
+                ? 'sim-flash-fade'
+                : 'hover:bg-[var(--color-glass-2)]',
         )}
         onClick={(e) => {
           e.stopPropagation();
@@ -72,13 +76,16 @@ export function EventRow({
         <GripVertical className="h-3 w-3 shrink-0 text-[var(--color-text-muted)] opacity-0 group-hover/trigger:opacity-40 cursor-grab" />
 
         {/* Trigger icon */}
-        {isEventRunning && (
-          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400 animate-pulse" />
+        {eventFlash !== 'idle' && (
+          <span className={cn(
+            'h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400',
+            eventFlash === 'running' && 'animate-pulse',
+          )} />
         )}
         {hasCondition ? (
-          <Clock className={cn('h-3 w-3 shrink-0', isEventRunning ? 'text-emerald-400' : 'text-[var(--color-accent-vivid)]')} />
+          <Clock className={cn('h-3 w-3 shrink-0', eventFlash !== 'idle' ? 'text-emerald-400' : 'text-[var(--color-accent-vivid)]')} />
         ) : (
-          <Zap className={cn('h-3 w-3 shrink-0', isEventRunning ? 'text-emerald-400' : 'text-[var(--color-accent-vivid)]')} />
+          <Zap className={cn('h-3 w-3 shrink-0', eventFlash !== 'idle' ? 'text-emerald-400' : 'text-[var(--color-accent-vivid)]')} />
         )}
 
         {/* Trigger summary */}

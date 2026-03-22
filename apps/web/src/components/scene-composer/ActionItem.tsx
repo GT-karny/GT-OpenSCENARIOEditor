@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import type { ScenarioAction } from '@osce/shared';
 import { cn } from '../../lib/utils';
+import { useFlashState } from '../../hooks/use-flash-state';
 import { getActionSummary } from './action-summary';
 
 interface ActionItemProps {
@@ -65,6 +66,7 @@ export const actionIcons: Record<string, React.ComponentType<{ className?: strin
 export function ActionItem({ action, selected, running, onSelect, onRemove }: ActionItemProps) {
   const Icon = actionIcons[action.action.type] ?? Settings;
   const summary = getActionSummary(action);
+  const flash = useFlashState(running ?? false);
 
   return (
     <div
@@ -73,16 +75,18 @@ export function ActionItem({ action, selected, running, onSelect, onRemove }: Ac
         'border border-transparent',
         selected
           ? 'bg-[var(--color-accent-1)]/10 border-[var(--color-accent-1)]/30'
-          : running
+          : flash === 'running'
             ? 'bg-emerald-400/8 border-emerald-400/25'
-            : 'hover:bg-[var(--color-glass-2)]',
+            : flash === 'fading'
+              ? 'sim-flash-fade'
+              : 'hover:bg-[var(--color-glass-2)]',
       )}
       onClick={(e) => {
         e.stopPropagation();
         onSelect();
       }}
     >
-      <Icon className={cn('h-3 w-3 shrink-0', running ? 'text-emerald-400' : 'text-[var(--color-accent-1)]')} />
+      <Icon className={cn('h-3 w-3 shrink-0', flash !== 'idle' ? 'text-emerald-400' : 'text-[var(--color-accent-1)]')} />
       <span className="text-[11px] text-[var(--color-text-primary)] truncate flex-1">
         {summary}
       </span>

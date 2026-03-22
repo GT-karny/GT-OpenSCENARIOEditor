@@ -121,6 +121,12 @@ function startPlaybackLoop() {
  * Compute active (running) elements at a given simulation time.
  * Only considers events with timestamp <= time, then returns fullPaths
  * whose latest state at that point is "running".
+ *
+ * Instantaneous actions (e.g. TrafficSignalStateAction) that transition
+ * running → complete within the same simulation step get both events with
+ * the same timestamp, so the "complete" would normally shadow "running".
+ * We detect this case and keep them as "running" for the frame at that
+ * timestamp so they flash for at least one frame in the UI.
  */
 function computeActiveElementsAtTime(
   sortedEvents: StoryBoardEvent[],
@@ -139,17 +145,33 @@ function computeActiveElementsAtTime(
   }
   // lo = number of events with timestamp <= time
 
-  // Track the latest state for each fullPath up to this time
+  // Track the latest state for each fullPath up to this time,
+  // plus timestamps of the last running/complete transitions.
   const stateMap = new Map<string, StoryBoardEvent['state']>();
+  const lastRunningTs = new Map<string, number>();
+  const lastCompleteTs = new Map<string, number>();
   for (let i = 0; i < lo; i++) {
     const ev = sortedEvents[i];
     stateMap.set(ev.fullPath, ev.state);
+    if (ev.state === 'running') {
+      lastRunningTs.set(ev.fullPath, ev.timestamp);
+    } else if (ev.state === 'complete') {
+      lastCompleteTs.set(ev.fullPath, ev.timestamp);
+    }
   }
 
   const active: string[] = [];
   for (const [path, state] of stateMap) {
     if (state === 'running') {
       active.push(path);
+    } else if (state === 'complete') {
+      // Instantaneous action: completed at the same timestamp it started running.
+      // Show as "running" for one frame (the frame at that timestamp).
+      const rt = lastRunningTs.get(path);
+      const ct = lastCompleteTs.get(path);
+      if (rt !== undefined && ct !== undefined && rt === ct && time === ct) {
+        active.push(path);
+      }
     }
   }
   return active;

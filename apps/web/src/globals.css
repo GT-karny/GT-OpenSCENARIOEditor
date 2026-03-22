@@ -69,3 +69,23 @@
     background: transparent !important;
   }
 }
+
+/* ============================================
+   Simulation: flash + afterglow for instant actions
+   ============================================ */
+@keyframes sim-flash-fade {
+  0% {
+    background-color: rgba(52, 211, 153, 0.12);
+    border-color: rgba(52, 211, 153, 0.35);
+    box-shadow: 0 0 10px rgba(52, 211, 153, 0.25);
+  }
+  100% {
+    background-color: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+}
+
+.sim-flash-fade {
+  animation: sim-flash-fade 600ms ease-out forwards;
+}
