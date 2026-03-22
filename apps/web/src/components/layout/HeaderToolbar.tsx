@@ -91,7 +91,7 @@ export function HeaderToolbar() {
             backgroundClip: 'text',
           }}
         >
-          {t('app.title')}
+          {editorMode === 'roadNetwork' ? t('app.titleRoadNetwork') : t('app.title')}
         </span>
       </div>
 

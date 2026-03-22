@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useScenarioStoreApi } from '../stores/use-scenario-store';
+import { useEditorStore } from '../stores/editor-store';
 import { useFileOperations } from './use-file-operations';
 
 /**
@@ -7,13 +8,15 @@ import { useFileOperations } from './use-file-operations';
  * No-op when running in a regular browser.
  */
 export function useElectronMenu() {
-  const { newScenario, openXosc, saveXosc, saveAsXosc } = useFileOperations();
+  const { newScenario, openXosc, saveXosc, saveAsXosc, saveXodr, saveAsXodr } =
+    useFileOperations();
   const storeApi = useScenarioStoreApi();
 
   useEffect(() => {
     if (!window.electronAPI?.isElectron) return;
 
     const cleanup = window.electronAPI.onMenuAction((action) => {
+      const isRoadNetwork = useEditorStore.getState().editorMode === 'roadNetwork';
       switch (action) {
         case 'new':
           newScenario();
@@ -22,10 +25,18 @@ export function useElectronMenu() {
           openXosc();
           break;
         case 'save':
-          saveXosc();
+          if (isRoadNetwork) {
+            saveXodr();
+          } else {
+            saveXosc();
+          }
           break;
         case 'saveAs':
-          saveAsXosc();
+          if (isRoadNetwork) {
+            saveAsXodr();
+          } else {
+            saveAsXosc();
+          }
           break;
         case 'undo':
           storeApi.getState().undo();
@@ -37,5 +48,5 @@ export function useElectronMenu() {
     });
 
     return cleanup;
-  }, [newScenario, openXosc, saveXosc, saveAsXosc, storeApi]);
+  }, [newScenario, openXosc, saveXosc, saveAsXosc, saveXodr, saveAsXodr, storeApi]);
 }

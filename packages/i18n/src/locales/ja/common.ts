@@ -1,6 +1,7 @@
 export const common = {
   app: {
     title: 'OpenSCENARIOエディタ',
+    titleRoadNetwork: 'OpenDRIVEエディタ',
     version: 'バージョン {{version}}',
   },
   buttons: {

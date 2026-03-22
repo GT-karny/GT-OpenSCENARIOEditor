@@ -1,6 +1,7 @@
 export const common = {
   app: {
     title: 'OpenSCENARIO Editor',
+    titleRoadNetwork: 'OpenDRIVE Editor',
     version: 'Version {{version}}',
   },
   buttons: {
