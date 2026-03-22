@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { AppView, ProjectDetail, ProjectCreateRequest } from '@osce/shared';
 import * as api from '../lib/project-api';
 import { buildCatalogLocationsXml } from '../lib/catalog-location-utils';
+import { toast } from 'sonner';
 
 export interface ProjectState {
   // View state
@@ -14,10 +15,15 @@ export interface ProjectState {
   currentFilePath: string | null;
   currentXodrPath: string | null;
 
+  // Projects root path
+  projectsRoot: string | null;
+
   // Recent projects (persisted)
   recentProjectIds: string[];
 
   // Actions
+  loadProjectsRoot: () => Promise<void>;
+  setProjectsRoot: (path: string) => Promise<void>;
   openProject: (id: string) => Promise<void>;
   closeProject: () => void;
   createProject: (req: ProjectCreateRequest) => Promise<void>;
@@ -46,9 +52,28 @@ export const useProjectStore = create<ProjectState>()(
       currentProject: null,
       currentFilePath: null,
       currentXodrPath: null,
+      projectsRoot: null,
       recentProjectIds: [],
 
       setView: (view) => set({ currentView: view }),
+
+      loadProjectsRoot: async () => {
+        try {
+          const root = await api.fetchProjectsRoot();
+          set({ projectsRoot: root });
+        } catch {
+          // Server may not be ready yet — ignore
+        }
+      },
+
+      setProjectsRoot: async (path) => {
+        try {
+          const root = await api.updateProjectsRoot(path);
+          set({ projectsRoot: root });
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Failed to set projects root');
+        }
+      },
 
       openProject: async (id) => {
         const project = await api.fetchProject(id);
@@ -172,6 +197,7 @@ export const useProjectStore = create<ProjectState>()(
       name: 'osce-project-state',
       partialize: (state) => ({
         recentProjectIds: state.recentProjectIds,
+        projectsRoot: state.projectsRoot,
       }),
     },
   ),

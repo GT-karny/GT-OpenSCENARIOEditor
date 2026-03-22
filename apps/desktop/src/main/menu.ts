@@ -1,5 +1,5 @@
-import { Menu, BrowserWindow, app } from 'electron';
-import type { MenuItemConstructorOptions } from 'electron';
+import { Menu, app } from 'electron';
+import type { MenuItemConstructorOptions , BrowserWindow} from 'electron';
 
 export function createMenu(mainWindow: BrowserWindow): void {
   const sendAction = (action: string) => {

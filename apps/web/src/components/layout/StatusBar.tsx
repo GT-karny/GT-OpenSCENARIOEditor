@@ -50,10 +50,17 @@ export function StatusBar() {
   const entityCount = useScenarioStore((s) => s.document.entities.length);
   const storyCount = useScenarioStore((s) => s.document.storyboard.stories.length);
   const validationResult = useEditorStore((s) => s.validationResult);
-  const currentFileName = useEditorStore((s) => s.currentFileName);
-  const isDirty = useEditorStore((s) => s.isDirty);
+  const editorMode = useEditorStore((s) => s.editorMode);
+  const xoscFileName = useEditorStore((s) => s.currentFileName);
+  const isXoscDirty = useEditorStore((s) => s.isDirty);
+  const xodrFileName = useEditorStore((s) => s.roadNetworkFileName);
+  const isXodrDirty = useEditorStore((s) => s.isRoadNetworkDirty);
   const simStatus = useSimulationStore((s) => s.status);
   const compatibilityProfile = useEditorStore((s) => s.preferences.compatibilityProfile);
+
+  const isRoadNetwork = editorMode === 'roadNetwork';
+  const displayName = isRoadNetwork ? xodrFileName : xoscFileName;
+  const displayDirty = isRoadNetwork ? isXodrDirty : isXoscDirty;
 
   const dot = getStatusDot(simStatus);
   const statusLabel = useStatusLabel(simStatus);
@@ -69,12 +76,16 @@ export function StatusBar() {
           />
           <span>{statusLabel}</span>
         </span>
-        <span>
-          {t('labels.entities')}: {entityCount}
-        </span>
-        <span>
-          {t('labels.stories')}: {storyCount}
-        </span>
+        {!isRoadNetwork && (
+          <>
+            <span>
+              {t('labels.entities')}: {entityCount}
+            </span>
+            <span>
+              {t('labels.stories')}: {storyCount}
+            </span>
+          </>
+        )}
         {validationResult && (
           <span
             className={
@@ -86,16 +97,16 @@ export function StatusBar() {
         )}
       </div>
       <div className="flex items-center gap-6">
-        {currentFileName && (
-          <span>
-            {currentFileName}
-            {isDirty ? ' *' : ''}
-          </span>
-        )}
-        {!currentFileName && <span>Untitled{isDirty ? ' *' : ''}</span>}
         <span>
-          OpenSCENARIO v{compatibilityProfile.oscVersion}
-          {compatibilityProfile.simulator !== 'any' && ` · ${compatibilityProfile.simulator}`}
+          {displayName ?? 'Untitled'}
+          {displayDirty ? ' ●' : ''}
+        </span>
+        <span>
+          {isRoadNetwork
+            ? 'OpenDRIVE'
+            : `OpenSCENARIO v${compatibilityProfile.oscVersion}${
+                compatibilityProfile.simulator !== 'any' ? ` · ${compatibilityProfile.simulator}` : ''
+              }`}
         </span>
       </div>
     </div>

@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { Car, Plus } from 'lucide-react';
 import { useScenarioStore, useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
+import { useActiveSimulationIds } from '../../hooks/use-active-simulation-ids';
+import { useSeekToElement } from '../../hooks/use-seek-to-element';
 import { EntityBehaviorCard } from './EntityBehaviorCard';
 import { ActTabBar } from './ActTabBar';
 import type { Act } from '@osce/shared';
@@ -21,6 +23,8 @@ export function SceneComposerView() {
   const selectedIds = useEditorStore((s) => s.selection.selectedElementIds);
   const activeActId = useEditorStore((s) => s.activeActId);
   const setActiveActId = useEditorStore((s) => s.setActiveActId);
+  const activeSimIds = useActiveSimulationIds();
+  const seekToElement = useSeekToElement();
 
   // Collect all Acts from the first Story (convention: single Story)
   const story = stories[0];
@@ -38,6 +42,7 @@ export function SceneComposerView() {
 
   const handleSelectGroup = (groupId: string) => {
     useEditorStore.getState().setSelection({ selectedElementIds: [groupId] });
+    seekToElement(groupId);
   };
 
   /** Add a ManeuverGroup to the active Act */
@@ -128,7 +133,10 @@ export function SceneComposerView() {
       />
 
       {/* ManeuverGroups for active Act */}
-      <div className="flex-1 overflow-auto">
+      <div
+        className="flex-1 overflow-auto"
+        onClick={() => useEditorStore.getState().clearSelection()}
+      >
         <div className="flex flex-col gap-4 p-4">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--color-text-muted)] mb-2 px-1">
@@ -141,6 +149,8 @@ export function SceneComposerView() {
                   group={group}
                   selected={selectedIds.includes(group.id)}
                   onSelect={() => handleSelectGroup(group.id)}
+                  activeSimIds={activeSimIds}
+                  onSeekToElement={seekToElement}
                 />
               ))}
 

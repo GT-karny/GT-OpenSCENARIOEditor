@@ -1,4 +1,5 @@
-import { ipcMain, dialog, BrowserWindow } from 'electron';
+import type { BrowserWindow } from 'electron';
+import { ipcMain, dialog } from 'electron';
 import fs from 'node:fs/promises';
 import { getRecentFiles, addRecentFile, clearRecentFiles } from './recent-files.js';
 
@@ -34,6 +35,32 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     mainWindow.setTitle(title);
   });
 
+  // Window controls (custom titlebar)
+  ipcMain.on('window:minimize', () => {
+    mainWindow.minimize();
+  });
+  ipcMain.on('window:maximize', () => {
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize();
+    } else {
+      mainWindow.maximize();
+    }
+  });
+  ipcMain.on('window:close', () => {
+    mainWindow.close();
+  });
+  ipcMain.handle('window:isMaximized', () => {
+    return mainWindow.isMaximized();
+  });
+
+  // Notify renderer when maximize state changes
+  mainWindow.on('maximize', () => {
+    mainWindow.webContents.send('window:maximized-changed', true);
+  });
+  mainWindow.on('unmaximize', () => {
+    mainWindow.webContents.send('window:maximized-changed', false);
+  });
+
   // Recent files
   ipcMain.handle('recent:get', () => getRecentFiles());
   ipcMain.on('recent:add', (_event, filePath: string) => addRecentFile(filePath));
@@ -48,6 +75,10 @@ export function unregisterIpcHandlers(): void {
   ipcMain.removeHandler('fs:readDir');
   ipcMain.removeHandler('recent:get');
   ipcMain.removeAllListeners('window:setTitle');
+  ipcMain.removeAllListeners('window:minimize');
+  ipcMain.removeAllListeners('window:maximize');
+  ipcMain.removeAllListeners('window:close');
+  ipcMain.removeHandler('window:isMaximized');
   ipcMain.removeAllListeners('recent:add');
   ipcMain.removeAllListeners('recent:clear');
 }

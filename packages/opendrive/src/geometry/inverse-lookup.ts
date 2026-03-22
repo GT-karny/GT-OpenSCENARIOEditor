@@ -29,6 +29,8 @@ export interface LaneLookupResult {
   heading: number;
   /** Z elevation at this position */
   z: number;
+  /** Road t-coordinate (lateral offset from reference line, left = positive) */
+  roadT: number;
   /** Distance from query point to the matched road position */
   distance: number;
 }
@@ -231,6 +233,7 @@ export function worldToLane(
     offset: bestOffset,
     heading,
     z,
+    roadT: roadResult.t,
     distance: roadResult.distance,
   };
 }

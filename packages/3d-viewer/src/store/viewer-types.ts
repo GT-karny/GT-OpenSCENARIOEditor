@@ -25,6 +25,10 @@ export interface HoverLaneInfo {
   heading: number;
   worldX: number;
   worldY: number;
+  /** Z elevation at hover point */
+  worldZ: number;
+  /** Road t-coordinate (lateral offset from reference line) */
+  roadT: number;
 }
 
 export interface ViewerState {
@@ -56,6 +60,12 @@ export interface ViewerState {
   /** Fly controls speed multiplier (1.0 = default, range 0.1–5.0) */
   flySpeed: number;
 
+  /** Position inspector overlay visibility */
+  showInspector: boolean;
+
+  /** Position markers (action/condition positions) visibility */
+  showPositionMarkers: boolean;
+
   /** Minimap visibility */
   showMinimap: boolean;
   /** Minimap size preset */
@@ -86,6 +96,8 @@ export interface ViewerActions {
   setFollowTarget: (entityName: string | null) => void;
   setFlySpeed: (speed: number) => void;
 
+  toggleInspector: () => void;
+  togglePositionMarkers: () => void;
   toggleMinimap: () => void;
   cycleMinimapSize: () => void;
   setFocusWorldPosition: (pos: [number, number, number] | null) => void;

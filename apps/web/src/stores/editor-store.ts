@@ -8,7 +8,33 @@ import type {
   OpenDriveDocument,
 } from '@osce/shared';
 
+/** Request to pick a position from the 3D viewer */
+export interface PositionPickRequest {
+  targetType: 'worldPosition' | 'lanePosition';
+  requestId: string;
+}
+
+/** Data returned from picking a position in the 3D viewer */
+export interface PickedPositionData {
+  requestId: string;
+  worldX: number;
+  worldY: number;
+  worldZ: number;
+  heading: number;
+  roadId: string;
+  laneId: number;
+  s: number;
+  offset: number;
+  roadT: number;
+}
+
+export type EditorMode = 'scenario' | 'roadNetwork';
+
 export interface EditorState {
+  // Editor mode (Scenario / Road Network tab)
+  editorMode: EditorMode;
+  setEditorMode: (mode: EditorMode) => void;
+
   // Selection
   selection: EditorSelection;
   setSelection: (sel: Partial<EditorSelection>) => void;
@@ -35,15 +61,41 @@ export interface EditorState {
   panelVisibility: Record<EditorPanel, boolean>;
   togglePanel: (panel: EditorPanel) => void;
 
-  // File state
+  // File state (.xosc)
   currentFileName: string | null;
   setCurrentFileName: (name: string | null) => void;
   isDirty: boolean;
   setDirty: (dirty: boolean) => void;
 
+  // File state (.xodr)
+  roadNetworkFileName: string | null;
+  setRoadNetworkFileName: (name: string | null) => void;
+  isRoadNetworkDirty: boolean;
+  setRoadNetworkDirty: (dirty: boolean) => void;
+
+  // File handles for overwrite-save (File System Access API)
+  xoscFileHandle: FileSystemFileHandle | null;
+  setXoscFileHandle: (handle: FileSystemFileHandle | null) => void;
+  xodrFileHandle: FileSystemFileHandle | null;
+  setXodrFileHandle: (handle: FileSystemFileHandle | null) => void;
+
+  // Electron file paths for overwrite-save
+  xoscFilePath: string | null;
+  setXoscFilePath: (path: string | null) => void;
+  xodrFilePath: string | null;
+  setXodrFilePath: (path: string | null) => void;
+
+  // File handles for .osce.json (editor format)
+  osceFileHandle: FileSystemFileHandle | null;
+  setOsceFileHandle: (handle: FileSystemFileHandle | null) => void;
+  osceFilePath: string | null;
+  setOsceFilePath: (path: string | null) => void;
+
   // SaveAs dialog
   showSaveAs: boolean;
   setShowSaveAs: (show: boolean) => void;
+  saveAsFileType: 'xosc' | 'xodr' | 'osce';
+  setSaveAsFileType: (type: 'xosc' | 'xodr' | 'osce') => void;
 
   // Entity property tab persistence
   entityPropertyTab: 'definition' | 'initialState';
@@ -60,6 +112,13 @@ export interface EditorState {
   // Active Act tab in Scene Composer
   activeActId: string | null;
   setActiveActId: (id: string | null) => void;
+
+  // Position pick from 3D viewer
+  positionPickRequest: PositionPickRequest | null;
+  pickedPosition: PickedPositionData | null;
+  requestPositionPick: (req: PositionPickRequest) => void;
+  resolvePositionPick: (data: Omit<PickedPositionData, 'requestId'>) => void;
+  cancelPositionPick: () => void;
 }
 
 const defaultPreferences: EditorPreferences = {
@@ -90,6 +149,10 @@ const defaultPanelVisibility: Record<EditorPanel, boolean> = {
 export const useEditorStore = create<EditorState>()(
   persist(
     (set) => ({
+      // Editor mode
+      editorMode: 'scenario' as EditorMode,
+      setEditorMode: (mode) => set({ editorMode: mode }),
+
       // Selection
       selection: { selectedElementIds: [], hoveredElementId: null, focusedPanelId: null },
       setSelection: (sel) =>
@@ -137,15 +200,41 @@ export const useEditorStore = create<EditorState>()(
           },
         })),
 
-      // File state
+      // File state (.xosc)
       currentFileName: null,
       setCurrentFileName: (name) => set({ currentFileName: name }),
       isDirty: false,
       setDirty: (dirty) => set({ isDirty: dirty }),
 
+      // File state (.xodr)
+      roadNetworkFileName: null,
+      setRoadNetworkFileName: (name) => set({ roadNetworkFileName: name }),
+      isRoadNetworkDirty: false,
+      setRoadNetworkDirty: (dirty) => set({ isRoadNetworkDirty: dirty }),
+
+      // File handles (not persisted)
+      xoscFileHandle: null,
+      setXoscFileHandle: (handle) => set({ xoscFileHandle: handle }),
+      xodrFileHandle: null,
+      setXodrFileHandle: (handle) => set({ xodrFileHandle: handle }),
+
+      // Electron file paths (not persisted)
+      xoscFilePath: null,
+      setXoscFilePath: (path) => set({ xoscFilePath: path }),
+      xodrFilePath: null,
+      setXodrFilePath: (path) => set({ xodrFilePath: path }),
+
+      // .osce.json file handles/paths
+      osceFileHandle: null,
+      setOsceFileHandle: (handle) => set({ osceFileHandle: handle }),
+      osceFilePath: null,
+      setOsceFilePath: (path) => set({ osceFilePath: path }),
+
       // SaveAs dialog
       showSaveAs: false,
       setShowSaveAs: (show) => set({ showSaveAs: show }),
+      saveAsFileType: 'xosc' as const,
+      setSaveAsFileType: (type) => set({ saveAsFileType: type }),
 
       // Entity property tab persistence
       entityPropertyTab: 'definition',
@@ -169,6 +258,19 @@ export const useEditorStore = create<EditorState>()(
       // Active Act tab
       activeActId: null,
       setActiveActId: (id) => set({ activeActId: id }),
+
+      // Position pick from 3D viewer
+      positionPickRequest: null,
+      pickedPosition: null,
+      requestPositionPick: (req) => set({ positionPickRequest: req, pickedPosition: null }),
+      resolvePositionPick: (data) =>
+        set((state) => ({
+          pickedPosition: state.positionPickRequest
+            ? { ...data, requestId: state.positionPickRequest.requestId }
+            : null,
+          positionPickRequest: null,
+        })),
+      cancelPositionPick: () => set({ positionPickRequest: null, pickedPosition: null }),
     }),
     {
       name: 'osce-editor-preferences',

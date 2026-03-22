@@ -18,7 +18,7 @@ export interface NodeEditorState {
   focusNodeId: string | null;
   collapsedNodes: Record<string, boolean>;
   viewport: { x: number; y: number; zoom: number };
-  activeNodeIds: string[];
+  activeNodeIds: Set<string>;
 
   // Actions
   setSelectedElementIds: (ids: string[]) => void;
@@ -41,7 +41,7 @@ export function createEditorStore() {
     focusNodeId: null,
     collapsedNodes: {},
     viewport: { x: 0, y: 0, zoom: 1 },
-    activeNodeIds: [],
+    activeNodeIds: new Set<string>(),
 
     setSelectedElementIds: (ids: string[]) => set({ selectedElementIds: ids }),
     setHoveredElementId: (id: string | null) => set({ hoveredElementId: id }),
@@ -59,7 +59,7 @@ export function createEditorStore() {
     setViewport: (viewport: { x: number; y: number; zoom: number }) => set({ viewport }),
     setNodes: (nodes: Node<OsceNodeData>[]) => set({ nodes }),
     setEdges: (edges: Edge[]) => set({ edges }),
-    setActiveNodeIds: (ids: string[]) => set({ activeNodeIds: ids }),
+    setActiveNodeIds: (ids: string[]) => set({ activeNodeIds: new Set(ids) }),
   }));
 }
 

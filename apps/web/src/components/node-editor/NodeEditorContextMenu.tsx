@@ -105,7 +105,7 @@ export function NodeEditorContextMenu({
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 min-w-[180px] bg-[var(--color-popover)] backdrop-blur-[28px] border border-[var(--color-glass-edge)] rounded-md shadow-lg py-1"
+      className="fixed z-50 min-w-[180px] bg-[var(--color-popover)] backdrop-blur-[28px] border border-[var(--color-glass-edge)] rounded-none shadow-lg py-1"
       style={style}
     >
       {position.nodeId && onToggleCollapse && (

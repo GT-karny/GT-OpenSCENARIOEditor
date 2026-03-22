@@ -32,28 +32,32 @@ interface TreeNode {
   children: TreeNode[];
 }
 
-/** Build a tree of directories and .xosc files under the xosc/ prefix. */
-function buildXoscTree(files: ProjectFileEntry[]): TreeNode[] {
+/** Build a tree of directories and matching files under the given prefix. */
+function buildFileTree(
+  files: ProjectFileEntry[],
+  prefix: string,
+  extension: string,
+): TreeNode[] {
   const root: TreeNode[] = [];
 
-  // Collect directories and xosc files
+  // Collect directories and matching files
   const dirs = new Set<string>();
-  const xoscFiles: string[] = [];
+  const matchingFiles: string[] = [];
 
   for (const f of files) {
-    if (!f.relativePath.startsWith('xosc/')) continue;
+    if (!f.relativePath.startsWith(`${prefix}/`)) continue;
     const parts = f.relativePath.split('/');
     // Collect directory paths
     for (let i = 1; i < parts.length; i++) {
       dirs.add(parts.slice(0, i).join('/'));
     }
-    if (f.type === 'xosc') {
-      xoscFiles.push(f.relativePath);
+    if (f.relativePath.endsWith(extension)) {
+      matchingFiles.push(f.relativePath);
     }
   }
 
-  // Always include xosc/ root
-  dirs.add('xosc');
+  // Always include root prefix
+  dirs.add(prefix);
 
   // Build directory nodes
   for (const dirPath of [...dirs].sort()) {
@@ -77,8 +81,8 @@ function buildXoscTree(files: ProjectFileEntry[]): TreeNode[] {
     }
   }
 
-  // Add xosc files to their parent directories
-  for (const filePath of xoscFiles) {
+  // Add matching files to their parent directories
+  for (const filePath of matchingFiles) {
     const parts = filePath.split('/');
     const parentPath = parts.slice(0, -1).join('/');
     const fileName = parts[parts.length - 1];
@@ -204,22 +208,26 @@ interface SaveAsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (relativePath: string) => Promise<void>;
+  fileType?: 'xosc' | 'xodr' | 'osce';
 }
 
-export function SaveAsDialog({ open, onOpenChange, onSave }: SaveAsDialogProps) {
+export function SaveAsDialog({ open, onOpenChange, onSave, fileType = 'xosc' }: SaveAsDialogProps) {
   const { t } = useTranslation('common');
   const currentProject = useProjectStore((s) => s.currentProject);
 
-  const [selectedDir, setSelectedDir] = useState('xosc');
+  const prefix = fileType === 'xodr' || fileType === 'osce' ? 'xodr' : 'xosc';
+  const extension = fileType === 'osce' ? '.osce.json' : `.${fileType}`;
+
+  const [selectedDir, setSelectedDir] = useState(prefix);
   const [fileName, setFileName] = useState('');
-  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set(['xosc']));
+  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set([prefix]));
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const tree = useMemo(() => {
     if (!currentProject) return [];
-    return buildXoscTree(currentProject.files);
-  }, [currentProject]);
+    return buildFileTree(currentProject.files, prefix, extension);
+  }, [currentProject, prefix, extension]);
 
   const toggleExpanded = useCallback((path: string) => {
     setExpandedPaths((prev) => {
@@ -234,8 +242,8 @@ export function SaveAsDialog({ open, onOpenChange, onSave }: SaveAsDialogProps) 
   }, []);
 
   // Compute the full relative path
-  const normalizedName = fileName.trim().replace(/\.xosc$/i, '');
-  const fullPath = normalizedName ? `${selectedDir}/${normalizedName}.xosc` : '';
+  const normalizedName = fileName.trim().replace(new RegExp(`\\${extension}$`, 'i'), '');
+  const fullPath = normalizedName ? `${selectedDir}/${normalizedName}${extension}` : '';
 
   // Check if file already exists
   const fileExists = useMemo(() => {
@@ -264,7 +272,7 @@ export function SaveAsDialog({ open, onOpenChange, onSave }: SaveAsDialogProps) 
       onOpenChange(nextOpen);
       if (!nextOpen) {
         setFileName('');
-        setSelectedDir('xosc');
+        setSelectedDir(prefix);
         setError(null);
       }
     }
@@ -281,7 +289,7 @@ export function SaveAsDialog({ open, onOpenChange, onSave }: SaveAsDialogProps) 
 
         <div className="space-y-4 py-2">
           {/* Folder tree with files */}
-          <div className="border border-[var(--color-glass-edge-mid)] bg-[var(--color-bg-deep)] rounded-sm">
+          <div className="border border-[var(--color-glass-edge-mid)] bg-[var(--color-bg-deep)] rounded-none">
             <ScrollArea className="h-48">
               <div className="py-1">
                 {tree.map((node) => (
@@ -309,7 +317,7 @@ export function SaveAsDialog({ open, onOpenChange, onSave }: SaveAsDialogProps) 
                 id="save-filename"
                 value={fileName}
                 onChange={(e) => setFileName(e.target.value)}
-                placeholder="my-scenario"
+                placeholder={fileType === 'xodr' || fileType === 'osce' ? 'my-road-network' : 'my-scenario'}
                 className="bg-[var(--color-glass-1)] border-[var(--color-glass-edge-mid)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] flex-1"
                 disabled={isSaving}
                 autoFocus
@@ -317,7 +325,7 @@ export function SaveAsDialog({ open, onOpenChange, onSave }: SaveAsDialogProps) 
                   if (e.key === 'Enter') handleSave();
                 }}
               />
-              <span className="text-xs text-[var(--color-text-muted)] shrink-0">.xosc</span>
+              <span className="text-xs text-[var(--color-text-muted)] shrink-0">{extension}</span>
             </div>
             {/* Path preview */}
             {normalizedName && (

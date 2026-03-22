@@ -42,10 +42,10 @@ export function RouteSourceSelector({
       <div className="flex gap-1">
         <button
           type="button"
-          className={`flex-1 h-7 text-xs rounded-sm border transition-colors ${
+          className={`flex-1 h-7 text-xs rounded-none border transition-colors ${
             mode === 'inline'
-              ? 'bg-primary text-primary-foreground border-primary'
-              : 'bg-transparent text-muted-foreground border-border hover:border-muted-foreground/50'
+              ? 'bg-[var(--color-accent-dim)] text-[var(--color-text-primary)] border-[var(--color-glass-edge-active)]'
+              : 'bg-transparent text-[var(--color-text-secondary)] border-[var(--color-glass-edge)] hover:border-[var(--color-glass-edge-mid)]'
           }`}
           onClick={() => onModeChange('inline')}
         >
@@ -53,10 +53,10 @@ export function RouteSourceSelector({
         </button>
         <button
           type="button"
-          className={`flex-1 h-7 text-xs rounded-sm border transition-colors ${
+          className={`flex-1 h-7 text-xs rounded-none border transition-colors ${
             mode === 'catalogRef'
-              ? 'bg-primary text-primary-foreground border-primary'
-              : 'bg-transparent text-muted-foreground border-border hover:border-muted-foreground/50'
+              ? 'bg-[var(--color-accent-dim)] text-[var(--color-text-primary)] border-[var(--color-glass-edge-active)]'
+              : 'bg-transparent text-[var(--color-text-secondary)] border-[var(--color-glass-edge)] hover:border-[var(--color-glass-edge-mid)]'
           }`}
           onClick={() => onModeChange('catalogRef')}
         >

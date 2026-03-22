@@ -19,6 +19,22 @@ export interface MinimapBounds {
   maxY: number;
 }
 
+export interface MinimapPositionMarker {
+  x: number;
+  y: number;
+  category: 'action' | 'condition';
+  isHighlighted: boolean;
+}
+
+export interface MinimapRouteSegment {
+  points: Array<{ x: number; y: number }>;
+}
+
+export interface MinimapRouteData {
+  waypoints: Array<{ x: number; y: number }>;
+  segments: MinimapRouteSegment[];
+}
+
 export interface MinimapRenderOptions {
   roadPolylines: Point2D[][];
   bounds: MinimapBounds;
@@ -33,6 +49,10 @@ export interface MinimapRenderOptions {
   cameraAngle: number;
   /** Current zoom level (used to keep icon sizes constant on screen) */
   zoom?: number;
+  /** Position markers from actions/conditions */
+  positionMarkers?: MinimapPositionMarker[];
+  /** Route data (edit route + preview routes) */
+  routes?: MinimapRouteData[];
 }
 
 /**
@@ -149,10 +169,49 @@ export function renderRoadLayer(ctx: CanvasRenderingContext2D, polylines: Point2
  * Render dynamic layer (entities + camera) on top of the cached road layer.
  */
 export function renderDynamicLayer(ctx: CanvasRenderingContext2D, options: MinimapRenderOptions): void {
-  const { bounds, canvasSize, entities, selectedEntityId, entityIdMap, cameraX, cameraY, cameraAngle, zoom = 1 } = options;
+  const { bounds, canvasSize, entities, selectedEntityId, entityIdMap, cameraX, cameraY, cameraAngle, zoom = 1, positionMarkers, routes } = options;
 
   // Inverse zoom so icons stay the same screen-pixel size regardless of zoom
   const iz = 1 / zoom;
+
+  // Draw routes (lines + waypoint dots)
+  if (routes) {
+    for (const route of routes) {
+      // Draw path segments
+      ctx.strokeStyle = '#44AAEE';
+      ctx.lineWidth = 2.5 * iz;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.globalAlpha = 0.8;
+      for (const seg of route.segments) {
+        if (seg.points.length < 2) continue;
+        ctx.beginPath();
+        const first = worldToCanvas(seg.points[0].x, seg.points[0].y, bounds, canvasSize);
+        ctx.moveTo(first.cx, first.cy);
+        for (let i = 1; i < seg.points.length; i++) {
+          const pt = worldToCanvas(seg.points[i].x, seg.points[i].y, bounds, canvasSize);
+          ctx.lineTo(pt.cx, pt.cy);
+        }
+        ctx.stroke();
+      }
+
+      // Draw waypoint dots
+      const wpSize = 2 * iz;
+      for (const wp of route.waypoints) {
+        const { cx, cy } = worldToCanvas(wp.x, wp.y, bounds, canvasSize);
+        ctx.beginPath();
+        ctx.arc(cx, cy, wpSize, 0, Math.PI * 2);
+        ctx.fillStyle = '#00CCCC';
+        ctx.globalAlpha = 0.9;
+        ctx.fill();
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 1 * iz;
+        ctx.globalAlpha = 0.6;
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
 
   // Draw entities
   for (const { name, pos, type } of entities) {
@@ -187,6 +246,37 @@ export function renderDynamicLayer(ctx: CanvasRenderingContext2D, options: Minim
     ctx.arc(cx, cy, (isSelected ? 5 : 4) * iz, 0, Math.PI * 2);
     ctx.fillStyle = color;
     ctx.fill();
+  }
+
+  // Draw position markers (small diamonds)
+  if (positionMarkers) {
+    for (const marker of positionMarkers) {
+      const { cx, cy } = worldToCanvas(marker.x, marker.y, bounds, canvasSize);
+      const mSize = (marker.isHighlighted ? 7 : 5) * iz;
+
+      let mColor: string;
+      if (marker.isHighlighted) {
+        mColor = '#FFEE55';
+      } else if (marker.category === 'action') {
+        mColor = '#FF9933';
+      } else {
+        mColor = '#DD66FF';
+      }
+
+      // Diamond shape (rotated square)
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(Math.PI / 4);
+      ctx.fillStyle = mColor;
+      ctx.globalAlpha = marker.isHighlighted ? 0.9 : 0.7;
+      ctx.fillRect(-mSize / 2, -mSize / 2, mSize, mSize);
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.5;
+      ctx.strokeRect(-mSize / 2, -mSize / 2, mSize, mSize);
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
   }
 
   // Draw camera indicator (triangle)

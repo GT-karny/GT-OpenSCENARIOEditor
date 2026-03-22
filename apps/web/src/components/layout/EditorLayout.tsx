@@ -2,13 +2,13 @@ import { useState, useCallback, useMemo, useRef, useEffect, memo } from 'react';
 import { useStore } from 'zustand';
 import { SceneComposerView } from '../scene-composer/SceneComposerView';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import type { ImperativePanelHandle } from 'react-resizable-panels';
+import type { ImperativePanelHandle, ImperativePanelGroupHandle } from 'react-resizable-panels';
 import { FolderTree } from 'lucide-react';
 import type { Node } from '@xyflow/react';
 import { NodeEditorProvider, NodeEditor, detectElementType } from '@osce/node-editor';
 import type { OsceNodeData, OsceNodeType } from '@osce/node-editor';
 import { ScenarioViewer } from '@osce/3d-viewer';
-import type { ViewerMode } from '@osce/3d-viewer';
+import type { ViewerMode, PickedPositionData } from '@osce/3d-viewer';
 import { worldToLane } from '@osce/opendrive';
 import { HeaderToolbar } from './HeaderToolbar';
 import { StatusBar } from './StatusBar';
@@ -34,6 +34,7 @@ import { useEditorStore } from '../../stores/editor-store';
 import { useProjectStore } from '../../stores/project-store';
 import { useSimulationStore } from '../../stores/simulation-store';
 import { useRouteEdit } from '../../hooks/use-route-edit';
+import { useRoutePreview } from '../../hooks/use-route-preview';
 import { useRoadManagerClient } from '../../hooks/use-road-manager-client';
 import { useCatalogStore } from '../../stores/catalog-store';
 import { useTemplateDrop } from '../../hooks/use-template-drop';
@@ -44,6 +45,7 @@ import { useFileOperations } from '../../hooks/use-file-operations';
 import { useProjectFileOperations } from '../../hooks/use-project-file-operations';
 import { buildFullPathToIdMap } from '../../lib/fullpath-mapping';
 import { buildCatalogLocationsFromProject } from '../../lib/catalog-location-utils';
+import { RoadNetworkEditorLayout } from '../opendrive/RoadNetworkEditorLayout';
 
 function ResizeHandle() {
   return (
@@ -87,8 +89,13 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   routeWarnings?: string[];
   routeWaypointCount?: number;
   resolveCatalogRoute?: (ref: { catalogName: string; entryName: string }) => import('@osce/shared').Route | null;
+  routePreviewData?: import('@osce/3d-viewer').RoutePreviewData[];
   selectedSignalKey?: string | null;
   onSignalSelect?: (key: string) => void;
+  positionPickActive?: boolean;
+  onPositionPicked?: (data: PickedPositionData) => void;
+  onPositionPickCancel?: () => void;
+  highlightedPositionElementIds?: string[];
 }) {
   const simStatus = useSimulationStore((s) => s.status);
   const simFrames = useSimulationStore((s) => s.frames);
@@ -144,8 +151,13 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       routeWarnings={props.routeWarnings}
       routeWaypointCount={props.routeWaypointCount}
       resolveCatalogRoute={props.resolveCatalogRoute}
+      routePreviewData={props.routePreviewData}
       selectedSignalKey={props.selectedSignalKey}
       onSignalSelect={props.onSignalSelect}
+      positionPickActive={props.positionPickActive}
+      onPositionPicked={props.onPositionPicked}
+      onPositionPickCancel={props.onPositionPickCancel}
+      highlightedPositionElementIds={props.highlightedPositionElementIds}
       showPerf={false}
       className="h-full w-full"
     />
@@ -163,8 +175,10 @@ export function EditorLayout() {
   const { t } = useTranslation('common');
   const scenarioStoreApi = useScenarioStoreApi();
   const currentProject = useProjectStore((s) => s.currentProject);
+  const editorMode = useEditorStore((s) => s.editorMode);
   const [centerTab, setCenterTab] = useState<'composer' | 'graph'>('composer');
   const fileTreePanelRef = useRef<ImperativePanelHandle>(null);
+  const editingPanelGroupRef = useRef<ImperativePanelGroupHandle>(null);
   const [fileTreeCollapsed, setFileTreeCollapsed] = useState(true);
 
   // --- Collapse file tree on mount ---
@@ -175,7 +189,8 @@ export function EditorLayout() {
   // --- SaveAs dialog ---
   const showSaveAs = useEditorStore((s) => s.showSaveAs);
   const setShowSaveAs = useEditorStore((s) => s.setShowSaveAs);
-  const { handleSaveAs } = useFileOperations();
+  const saveAsFileType = useEditorStore((s) => s.saveAsFileType);
+  const { handleSaveAs, handleSaveAsXodr } = useFileOperations();
 
   // --- Auto-load project catalogs ---
   const { autoLoadProjectCatalogs } = useProjectFileOperations();
@@ -246,9 +261,18 @@ export function EditorLayout() {
   }, []);
 
   const selectedSignalKey = useEditorStore((s) => s.selectedSignalKey);
+  const positionPickRequest = useEditorStore((s) => s.positionPickRequest);
 
   const handleSignalSelect = useCallback((key: string) => {
     useEditorStore.getState().setSelectedSignalKey(key);
+  }, []);
+
+  const handlePositionPicked = useCallback((data: PickedPositionData) => {
+    useEditorStore.getState().resolvePositionPick(data);
+  }, []);
+
+  const handlePositionPickCancel = useCallback(() => {
+    useEditorStore.getState().cancelPositionPick();
   }, []);
 
   const handleEntityPositionChange = useCallback(
@@ -307,6 +331,9 @@ export function EditorLayout() {
   const routeEdit = useRouteEdit(roadNetwork, roadManagerClient);
   const updateCatalogEntry = useCatalogStore((s) => s.updateEntry);
   const catalogResolveReference = useCatalogStore((s) => s.resolveReference);
+
+  // --- Route preview (read-only visualization for selected entity/action) ---
+  const routePreviewData = useRoutePreview(scenarioStoreApi, roadNetwork, roadManagerClient);
 
   const resolveCatalogRoute = useCallback(
     (ref: { catalogName: string; entryName: string }) => {
@@ -517,6 +544,22 @@ export function EditorLayout() {
     <div className="relative flex flex-col h-screen overflow-hidden">
       <HeaderToolbar />
 
+      {editorMode === 'roadNetwork' ? (
+        <>
+          <RoadNetworkEditorLayout />
+
+          <StatusBar />
+
+          {/* SaveAs Dialog */}
+          <SaveAsDialog
+            open={showSaveAs}
+            onOpenChange={setShowSaveAs}
+            onSave={saveAsFileType === 'xodr' ? handleSaveAsXodr : handleSaveAs}
+            fileType={saveAsFileType}
+          />
+        </>
+      ) : (
+      <>
       <PanelGroup direction="horizontal" className="flex-1">
         {/* Left section: 3D Viewer (top) + Editing area (bottom) */}
         <Panel defaultSize={75} minSize={40}>
@@ -557,8 +600,13 @@ export function EditorLayout() {
                     routeWarnings={routeEdit.warnings}
                     routeWaypointCount={routeEdit.editingRoute?.waypoints.length ?? 0}
                     resolveCatalogRoute={resolveCatalogRoute}
+                    routePreviewData={routePreviewData}
                     selectedSignalKey={selectedSignalKey}
                     onSignalSelect={handleSignalSelect}
+                    positionPickActive={positionPickRequest != null}
+                    onPositionPicked={handlePositionPicked}
+                    onPositionPickCancel={handlePositionPickCancel}
+                    highlightedPositionElementIds={selectedElementIds}
                   />
                 </ErrorBoundary>
                 {waypointContextMenu && (
@@ -582,7 +630,10 @@ export function EditorLayout() {
 
             {/* Editing area */}
             <Panel defaultSize={70} minSize={30}>
-              <PanelGroup direction="horizontal">
+              <PanelGroup
+                direction="horizontal"
+                ref={editingPanelGroupRef}
+              >
                 {/* File Tree sidebar (project mode only) */}
                 {currentProject && (
                   <>
@@ -593,8 +644,17 @@ export function EditorLayout() {
                       maxSize={25}
                       collapsible
                       collapsedSize={3}
-                      onCollapse={() => setFileTreeCollapsed(true)}
-                      onExpand={() => setFileTreeCollapsed(false)}
+                      onCollapse={() => {
+                        setFileTreeCollapsed(true);
+                        // Redistribute freed space to Composer (3rd panel), not Entity
+                        // Layout: [FileTree, Entity, Composer] → [3%, 25%, 72%]
+                        editingPanelGroupRef.current?.setLayout([3, 25, 72]);
+                      }}
+                      onExpand={() => {
+                        setFileTreeCollapsed(false);
+                        // Restore: take space from Composer
+                        editingPanelGroupRef.current?.setLayout([15, 25, 60]);
+                      }}
                     >
                       {fileTreeCollapsed ? (
                         <div className="flex flex-col items-center h-full bg-[var(--color-bg-deep)] border-r border-[var(--color-glass-edge-mid)] py-2">
@@ -617,7 +677,7 @@ export function EditorLayout() {
                   </>
                 )}
 
-                {/* Left sidebar */}
+                {/* Left sidebar — Entity/Parameter */}
                 <Panel defaultSize={25} minSize={8} maxSize={35}>
                   <div className="h-full bg-[var(--color-bg-deep)] enter-l">
                     <Tabs defaultValue="entities" className="flex flex-col h-full">
@@ -641,7 +701,7 @@ export function EditorLayout() {
 
                 <ResizeHandle />
 
-                {/* Center area */}
+                {/* Center area: Composer / Graph */}
                 <Panel defaultSize={60} minSize={30}>
                   <NodeEditorProvider
                     scenarioStore={scenarioStoreApi}
@@ -653,25 +713,15 @@ export function EditorLayout() {
                   >
                     <div className="flex flex-col h-full enter d2">
                       {/* Tab bar */}
-                      <div className="flex shrink-0 border-b border-[var(--color-border-glass)] bg-[var(--color-glass-1)] backdrop-blur-[28px]">
-                        {(['composer', 'graph'] as const).map((tab) => (
-                          <button
-                            key={tab}
-                            onClick={() => setCenterTab(tab)}
-                            className={[
-                              'relative px-4 py-1.5 text-xs font-medium capitalize transition-colors',
-                              centerTab === tab
-                                ? 'text-[var(--color-accent-1)]'
-                                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]',
-                            ].join(' ')}
-                          >
-                            {tab}
-                            {centerTab === tab && (
-                              <span className="absolute bottom-0 left-0 right-0 h-px bg-[var(--color-accent-1)]" />
-                            )}
-                          </button>
-                        ))}
-                      </div>
+                      <Tabs value={centerTab} onValueChange={(v) => setCenterTab(v as 'composer' | 'graph')} className="flex flex-col h-full">
+                        <TabsList className="bg-[var(--color-glass-1)] backdrop-blur-[28px] rounded-none p-0">
+                          <TabsTrigger value="composer" className="apex-tab flex-1">
+                            Composer
+                          </TabsTrigger>
+                          <TabsTrigger value="graph" className="apex-tab flex-1">
+                            Graph
+                          </TabsTrigger>
+                        </TabsList>
                       {/* Content — both views stay mounted to preserve React Flow state */}
                       <div className="flex-1 overflow-hidden relative">
                         <div className={`absolute inset-0 ${centerTab !== 'composer' ? 'hidden' : ''}`}>
@@ -697,6 +747,7 @@ export function EditorLayout() {
                           </ErrorBoundary>
                         </div>
                       </div>
+                      </Tabs>
                     </div>
                   </NodeEditorProvider>
                 </Panel>
@@ -776,6 +827,8 @@ export function EditorLayout() {
         childCount={deleteRequest?.childCount ?? 0}
         onConfirm={handleConfirmDelete}
       />
+      </>
+      )}
     </div>
   );
 }

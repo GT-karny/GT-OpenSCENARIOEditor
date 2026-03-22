@@ -27,7 +27,7 @@ export function OptionalFieldWrapper({
         type="button"
         onClick={() => setExpanded(true)}
         className="w-full flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground
-                   border border-dashed border-[var(--color-glass-edge)] rounded-sm
+                   border border-dashed border-[var(--color-glass-edge)] rounded-none
                    hover:border-[var(--color-glass-edge-mid)] hover:text-foreground
                    transition-colors cursor-pointer"
       >

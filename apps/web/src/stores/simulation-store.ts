@@ -101,12 +101,14 @@ function startPlaybackLoop() {
     if (newIndex >= frames.length - 1) {
       // Reached the end
       useSimulationStore.setState({ currentFrameIndex: frames.length - 1, isPlaying: false });
+      syncActiveElements();
       stopPlaybackLoop();
       return;
     }
 
     if (newIndex !== currentFrameIndex) {
       useSimulationStore.setState({ currentFrameIndex: newIndex });
+      syncActiveElements();
     }
 
     rafId = requestAnimationFrame(tick);
@@ -115,20 +117,81 @@ function startPlaybackLoop() {
   rafId = requestAnimationFrame(tick);
 }
 
-function computeActiveElements(events: StoryBoardEvent[]): string[] {
-  // Track the latest state for each fullPath
-  const stateMap = new Map<string, StoryBoardEvent['state']>();
-  for (const event of events) {
-    stateMap.set(event.fullPath, event.state);
+/**
+ * Compute active (running) elements at a given simulation time.
+ * Only considers events with timestamp <= time, then returns fullPaths
+ * whose latest state at that point is "running".
+ *
+ * Instantaneous actions (e.g. TrafficSignalStateAction) that transition
+ * running → complete within the same simulation step get both events with
+ * the same timestamp, so the "complete" would normally shadow "running".
+ * We detect this case and keep them as "running" for the frame at that
+ * timestamp so they flash for at least one frame in the UI.
+ */
+function computeActiveElementsAtTime(
+  sortedEvents: StoryBoardEvent[],
+  time: number,
+): string[] {
+  // Binary search for the upper bound: last event with timestamp <= time
+  let lo = 0;
+  let hi = sortedEvents.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    if (sortedEvents[mid].timestamp <= time) {
+      lo = mid + 1;
+    } else {
+      hi = mid;
+    }
   }
-  // Return fullPaths that are currently "running"
+  // lo = number of events with timestamp <= time
+
+  // Track the latest state for each fullPath up to this time,
+  // plus timestamps of the last running/complete transitions.
+  const stateMap = new Map<string, StoryBoardEvent['state']>();
+  const lastRunningTs = new Map<string, number>();
+  const lastCompleteTs = new Map<string, number>();
+  for (let i = 0; i < lo; i++) {
+    const ev = sortedEvents[i];
+    stateMap.set(ev.fullPath, ev.state);
+    if (ev.state === 'running') {
+      lastRunningTs.set(ev.fullPath, ev.timestamp);
+    } else if (ev.state === 'complete') {
+      lastCompleteTs.set(ev.fullPath, ev.timestamp);
+    }
+  }
+
   const active: string[] = [];
   for (const [path, state] of stateMap) {
     if (state === 'running') {
       active.push(path);
+    } else if (state === 'complete') {
+      // Instantaneous action: completed at the same timestamp it started running.
+      // Show as "running" for one frame (the frame at that timestamp).
+      const rt = lastRunningTs.get(path);
+      const ct = lastCompleteTs.get(path);
+      if (rt !== undefined && ct !== undefined && rt === ct && time === ct) {
+        active.push(path);
+      }
     }
   }
   return active;
+}
+
+/** Update activeElements based on the current playback frame time. */
+function syncActiveElements() {
+  const state = useSimulationStore.getState();
+  if (state.storyBoardEvents.length === 0) return;
+  const frame = state.frames[state.currentFrameIndex];
+  if (!frame) return;
+  const active = computeActiveElementsAtTime(state.storyBoardEvents, frame.time);
+  // Only update if changed (shallow array comparison)
+  const prev = state.activeElements;
+  if (
+    active.length !== prev.length ||
+    active.some((v, i) => v !== prev[i])
+  ) {
+    useSimulationStore.setState({ activeElements: active });
+  }
 }
 
 export const useSimulationStore = create<SimulationState>()((set) => ({
@@ -179,25 +242,35 @@ export const useSimulationStore = create<SimulationState>()((set) => ({
 
   setStatus: (status) => set({ status }),
 
-  addStoryBoardEvent: (event) =>
+  addStoryBoardEvent: (event) => {
     set((state) => {
-      const events = [...state.storyBoardEvents, event];
-      return {
-        storyBoardEvents: events,
-        activeElements: computeActiveElements(events),
-      };
-    }),
+      // Insert maintaining sorted order by timestamp
+      const events = [...state.storyBoardEvents];
+      let insertIdx = events.length;
+      for (let i = events.length - 1; i >= 0; i--) {
+        if (events[i].timestamp <= event.timestamp) {
+          insertIdx = i + 1;
+          break;
+        }
+        if (i === 0) insertIdx = 0;
+      }
+      events.splice(insertIdx, 0, event);
+      return { storyBoardEvents: events };
+    });
+    syncActiveElements();
+  },
 
   addConditionEvent: (event) =>
     set((state) => ({
       conditionEvents: [...state.conditionEvents, event],
     })),
 
-  setStoryBoardEvents: (events) =>
-    set({
-      storyBoardEvents: events,
-      activeElements: computeActiveElements(events),
-    }),
+  setStoryBoardEvents: (events) => {
+    // Sort by timestamp for efficient binary-search in time-based queries
+    const sorted = [...events].sort((a, b) => a.timestamp - b.timestamp);
+    set({ storyBoardEvents: sorted });
+    syncActiveElements();
+  },
 
   setConditionEvents: (events) =>
     set({
@@ -226,6 +299,7 @@ export const useSimulationStore = create<SimulationState>()((set) => ({
     if (state.currentFrameIndex >= state.frames.length - 1) {
       playbackTime = state.frames[0]?.time ?? 0;
       set({ currentFrameIndex: 0 });
+      syncActiveElements();
     }
     set({ isPlaying: true });
     startPlaybackLoop();
@@ -242,6 +316,7 @@ export const useSimulationStore = create<SimulationState>()((set) => ({
     // Sync accumulated playback time to the seeked frame
     playbackTime = frames[clamped]?.time ?? 0;
     set({ currentFrameIndex: clamped });
+    syncActiveElements();
   },
 
   setSpeed: (speed) => set({ playbackSpeed: speed }),

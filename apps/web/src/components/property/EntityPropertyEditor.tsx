@@ -48,7 +48,7 @@ export function EntityPropertyEditor({ entity }: EntityPropertyEditorProps) {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-2 pb-2 border-b">
+      <div className="flex items-center gap-2 pb-2 border-b border-[var(--color-glass-edge)]">
         <EntityIcon type={entity.type} className="h-5 w-5" />
         <div>
           <p className="text-sm font-medium">{entity.name}</p>

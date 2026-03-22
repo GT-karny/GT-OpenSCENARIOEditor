@@ -71,7 +71,7 @@ export function WaypointContextMenu({
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 min-w-[160px] bg-[var(--color-popover)] backdrop-blur-[28px] border border-[var(--color-glass-edge)] rounded-md shadow-lg py-1"
+      className="fixed z-50 min-w-[160px] bg-[var(--color-popover)] backdrop-blur-[28px] border border-[var(--color-glass-edge)] rounded-none shadow-lg py-1"
       style={{ left: position.x, top: position.y }}
     >
       <MenuItem

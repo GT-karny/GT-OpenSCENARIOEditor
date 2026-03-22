@@ -33,6 +33,7 @@ packages/
   shared/       — Type definitions (IMMUTABLE CONTRACT — do not modify without coordination)
   openscenario/ — .xosc XML parser/serializer
   opendrive/    — .xodr parser, road shape computation
+  opendrive-engine/ — OpenDRIVE editing engine (Zustand store, Command pattern)
   scenario-engine/ — Core business logic (Zustand store, Command pattern)
   node-editor/  — React Flow node editor + timeline UI
   3d-viewer/    — Three.js visualization
@@ -96,7 +97,7 @@ This project uses Claude Code worktrees for parallel development. When assigning
 
 ### React
 - Functional components only
-- Zustand for global state: core in `packages/scenario-engine/`, app stores in `apps/web/src/stores/`
+- Zustand for global state: core in `packages/scenario-engine/` and `packages/opendrive-engine/`, app stores in `apps/web/src/stores/`
 - shadcn/ui components (in `apps/web/src/components/ui/`)
 - Tailwind CSS 4 for styling
 
@@ -105,6 +106,17 @@ This project uses Claude Code worktrees for parallel development. When assigning
 - Types: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `chore`
 - Scopes: package or area name (e.g., `property`, `3d-viewer`, `ui`, `shared`)
 - Example: `feat(property): add TransitionDynamics editor with shape icons`
+
+### APEX Styling Rules (see `docs/STYLE_GUIDE.md` for full guide)
+- **Corner radius**: Always `rounded-none` (0px). Never use `rounded-sm`, `rounded-md`, `rounded-lg`. Exception: `rounded-full` for badges/pills only.
+- **Colors**: Always use CSS variable tokens (`bg-[var(--color-glass-1)]`, `text-[var(--color-text-primary)]`). Never use raw hex (`bg-[#9B84E8]`) or shadcn tokens (`bg-muted`, `hover:bg-accent`) outside of `components/ui/`.
+- **Hover**: Use `hover:bg-[var(--color-glass-hover)]`. Never use `hover:bg-muted` or `hover:bg-accent/50`.
+- **Shadows**: Use `glow-sm` / `glow-md` / `glow-lg` utilities. Never use manual `box-shadow` with inline styles.
+- **Panels**: Use `.glass` class (28px blur built-in). Header/statusbar use `backdrop-blur-[40px]`.
+- **List items**: Use `.glass-item` class with `selected` modifier for selection state.
+- **Animations**: Use `enter` / `enter-l` / `enter-r` with delay classes `d1`–`d6` for appearing elements.
+- **Tabs**: All tab bars must use Radix UI `<Tabs>` + `<TabsTrigger className="apex-tab">`. Never build custom tab buttons with inline styles.
+- **Dividers**: Never use plain `border-b` or `border-t` without a color. Never use white/bright divider lines (`border-white`, `bg-white`). Panel headers use `<div className="divider-glow" />`. Section separators use `border-[var(--color-glass-edge)]`. List items use `border-[var(--color-glass-edge)]` or spacing (`space-y-0.5`).
 
 ### Formatting
 - Prettier: single quotes, 100 char width, trailing commas, LF line endings
@@ -137,6 +149,8 @@ This project uses Claude Code worktrees for parallel development. When assigning
 | `Thirdparty/openscenario-v1.3.1/ASAM_OpenSCENARIO_v1.3.1_Schema/OpenSCENARIO.xsd` | Adding or validating OpenSCENARIO element support (primary) |
 | `Thirdparty/openscenario-v1.2.0/Schema/OpenSCENARIO.xsd` | Legacy v1.2 schema reference (backward compatibility) |
 | `Thirdparty/esmini-demo_Windows/esmini-demo/resources/xosc/` | Testing with sample .xosc scenarios |
+| `docs/LANE_TOOL_MANUAL.md` | Lane editing tool usage and operational guide |
+| `docs/proposals/` | Feature proposals and design documents |
 
 ## Environment Variables
 
@@ -147,6 +161,26 @@ This project uses Claude Code worktrees for parallel development. When assigning
 | `GT_SIM_GRPC` | GT_Sim gRPC host | 127.0.0.1:50051 |
 | `VITE_WS_URL` | Frontend WebSocket URL | ws://localhost:3001/ws |
 | `USE_GT_SIM` | Enable GT_Sim E2E tests | (unset = skip) |
+
+## Quality Gates
+
+### Before Reporting Completion
+- Run `pnpm typecheck` after every edit session — fix all errors before moving on
+- For UI/styling changes: visually verify with Playwright screenshot before reporting completion
+- For 3D/Three.js changes: confirm which specific property to modify before editing — ask if ambiguous
+
+### Zustand Selector Safety
+- Always use `useShallow()` for selectors returning arrays or objects
+- Use stable empty-array constants instead of inline `[]` in selectors
+- Wrap derived data in `useMemo` — bare `.filter()` / `.map()` in selectors cause infinite re-renders
+
+### UI Layout Defaults
+- Keep related form fields (Value+Kind, delta/factor) on the same row unless explicitly told otherwise
+- Follow existing compact styling patterns in the codebase
+
+### Git Workflow
+- Before starting git operations, confirm the full scope: branch? commit? merge? push?
+- Use `/ship` skill for品質チェック付きコミット (lint → typecheck → test → build → commit)
 
 ## Don'ts
 

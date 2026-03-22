@@ -6,7 +6,7 @@ import { NodeHandle } from '../ui/node-handle.js';
 import { useEditorStore } from '../hooks/use-editor-store.js';
 
 export function ConditionNode({ id, data, selected }: NodeProps<Node<ConditionNodeData>>) {
-  const isRunning = useEditorStore((s) => s.activeNodeIds.includes(id));
+  const isRunning = useEditorStore((s) => s.activeNodeIds.has(id));
   return (
     <NodeCard
       nodeType="condition"

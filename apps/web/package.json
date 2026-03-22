@@ -17,6 +17,7 @@
     "@osce/i18n": "workspace:*",
     "@osce/node-editor": "workspace:*",
     "@osce/opendrive": "workspace:*",
+    "@osce/opendrive-engine": "workspace:*",
     "@osce/openscenario": "workspace:*",
     "@osce/scenario-engine": "workspace:*",
     "@osce/shared": "workspace:*",

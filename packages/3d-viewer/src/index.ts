@@ -32,19 +32,37 @@ export type { RoadProjectionResult } from './utils/road-projection.js';
 // Scenario data bridge hooks
 export { useScenarioEntities } from './scenario/useScenarioEntities.js';
 export { useEntityPositions, extractEntityPositions } from './scenario/useEntityPositions.js';
+export { useScenarioPositions, collectScenarioPositions } from './scenario/useScenarioPositions.js';
+export type { ScenarioPositionEntry } from './scenario/useScenarioPositions.js';
+
+// Position markers
+export { PositionMarkersOverlay } from './markers/PositionMarkersOverlay.js';
+export type { PositionMarkersOverlayProps } from './markers/PositionMarkersOverlay.js';
 
 // Route visualization & interaction
 export { RouteOverlay } from './route/RouteOverlay.js';
 export type { RouteOverlayProps } from './route/RouteOverlay.js';
 export { RouteEditOverlay } from './route/RouteEditOverlay.js';
+export { RoutePreviewOverlay } from './route/RoutePreviewOverlay.js';
+export type { RoutePreviewData, RoutePreviewOverlayProps } from './route/RoutePreviewOverlay.js';
 export { RouteClickHandler } from './interaction/RouteClickHandler.js';
+
+// Position inspector & pick mode
+export { PositionInspectorOverlay } from './interaction/PositionInspectorOverlay.js';
+export type { PickedPositionData } from './interaction/RoadClickHandler.js';
 
 // Traffic signal rendering
 export { TrafficSignalGroup } from './signals/TrafficSignalGroup.js';
 export type { ResolvedSignal } from './signals/TrafficSignalGroup.js';
+export type { PoleAssemblyInfo } from './signals/InstancedPoles.js';
 export { classifySignal } from './utils/signal-geometry.js';
 export type { SignalCategory } from './utils/signal-geometry.js';
 export { resolveSignalPosition } from './utils/signal-position-resolver.js';
+
+// Road editing gizmos
+export { RoadEditingLayer } from './interaction/road-editing/index.js';
+export { computeAutoArc, computeGeometryEndpoint } from './interaction/road-editing/index.js';
+export type { AutoArcResult } from './interaction/road-editing/index.js';
 
 // Sub-components (for composition)
 export { RoadNetwork } from './road/RoadNetwork.js';

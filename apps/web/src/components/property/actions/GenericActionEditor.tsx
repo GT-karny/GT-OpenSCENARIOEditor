@@ -34,7 +34,7 @@ export function GenericActionEditor({ action, onUpdate }: GenericActionEditorPro
         onChange={(e) => setText(e.target.value)}
         onBlur={handleBlur}
         spellCheck={false}
-        className="w-full min-h-[160px] rounded-md border border-input bg-muted px-3 py-2 text-xs font-mono resize-y focus:outline-none focus:ring-1 focus:ring-ring"
+        className="w-full min-h-[160px] rounded-none border border-input bg-muted px-3 py-2 text-xs font-mono resize-y focus:outline-none focus:ring-1 focus:ring-ring"
       />
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>

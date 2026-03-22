@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { ProjectSummary } from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
-import { Navigation, Plus, Upload, FolderOpen, Loader2, AlertTriangle } from 'lucide-react';
+import { Navigation, Plus, Upload, FolderOpen, FolderCog, Loader2, AlertTriangle } from 'lucide-react';
+import { WindowControls } from '../layout/WindowControls';
 import { Button } from '../ui/button';
 import { useProjectStore } from '../../stores/project-store';
 import { fetchProjects, importProject, exportProjectUrl } from '../../lib/project-api';
+import { isElectron } from '../../lib/platform';
 import { ProjectCard } from './ProjectCard';
 import { NewProjectDialog } from './NewProjectDialog';
 import { toast } from 'sonner';
@@ -15,6 +17,9 @@ export function HomeScreen() {
   const createProject = useProjectStore((s) => s.createProject);
   const deleteProjectAction = useProjectStore((s) => s.deleteProject);
   const recentProjectIds = useProjectStore((s) => s.recentProjectIds);
+  const projectsRoot = useProjectStore((s) => s.projectsRoot);
+  const setProjectsRoot = useProjectStore((s) => s.setProjectsRoot);
+  const loadProjectsRoot = useProjectStore((s) => s.loadProjectsRoot);
 
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,8 +41,9 @@ export function HomeScreen() {
   }, []);
 
   useEffect(() => {
+    loadProjectsRoot();
     loadProjects();
-  }, [loadProjects]);
+  }, [loadProjects, loadProjectsRoot]);
 
   const handleOpen = useCallback(
     async (id: string) => {
@@ -75,6 +81,25 @@ export function HomeScreen() {
     [createProject],
   );
 
+  const handleChangeRoot = useCallback(async () => {
+    if (isElectron()) {
+      const result = await window.electronAPI!.showOpenDialog({
+        properties: ['openDirectory'],
+      });
+      if (!result.canceled && result.filePaths[0]) {
+        await setProjectsRoot(result.filePaths[0]);
+        await loadProjects();
+      }
+    } else {
+      // Browser: prompt for path
+      const newPath = window.prompt(t('home.enterProjectsRoot'), projectsRoot ?? '');
+      if (newPath && newPath.trim()) {
+        await setProjectsRoot(newPath.trim());
+        await loadProjects();
+      }
+    }
+  }, [setProjectsRoot, loadProjects, projectsRoot, t]);
+
   const handleImportZip = useCallback(async () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -107,8 +132,13 @@ export function HomeScreen() {
 
   return (
     <div className="flex flex-col h-screen bg-[var(--color-bg-primary)] overflow-auto">
+      {/* Titlebar drag region — electron-drag auto-excludes buttons via CSS */}
+      <div className="flex items-center h-[32px] shrink-0 electron-drag">
+        <div className="flex-1 h-full" />
+        <WindowControls />
+      </div>
       {/* Header area */}
-      <div className="flex flex-col items-center pt-16 pb-10 px-6">
+      <div className="flex flex-col items-center pt-8 pb-10 px-6">
         {/* Logo */}
         <div className="flex items-center gap-3 mb-2">
           <Navigation
@@ -161,7 +191,23 @@ export function HomeScreen() {
             <Upload size={14} />
             {t('home.importZip')}
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleChangeRoot}
+            className="border-[var(--color-glass-edge-mid)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+          >
+            <FolderCog size={14} />
+            {t('home.changeRoot')}
+          </Button>
         </div>
+
+        {/* Current projects root */}
+        {projectsRoot && (
+          <p className="mt-3 text-xs text-[var(--color-text-muted)] truncate max-w-md" title={projectsRoot}>
+            {projectsRoot}
+          </p>
+        )}
       </div>
 
       {/* Project grid */}

@@ -43,6 +43,8 @@ export function createViewerStore(preferences?: Partial<EditorPreferences>) {
     hoverLaneInfo: null as HoverLaneInfo | null,
     followTargetEntity: null,
     flySpeed: 1,
+    showInspector: false,
+    showPositionMarkers: true,
     showMinimap: true,
     minimapSize: 'medium' as MinimapSize,
     focusWorldPosition: null,
@@ -89,6 +91,8 @@ export function createViewerStore(preferences?: Partial<EditorPreferences>) {
     setFollowTarget: (entityName: string | null) => set({ followTargetEntity: entityName }),
     setFlySpeed: (speed: number) => set({ flySpeed: speed }),
 
+    toggleInspector: () => set((s) => ({ showInspector: !s.showInspector })),
+    togglePositionMarkers: () => set((s) => ({ showPositionMarkers: !s.showPositionMarkers })),
     toggleMinimap: () => set((s) => ({ showMinimap: !s.showMinimap })),
     cycleMinimapSize: () =>
       set((s) => {

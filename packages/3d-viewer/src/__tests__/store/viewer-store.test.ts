@@ -93,6 +93,8 @@ describe('createViewerStore', () => {
         heading: 0,
         worldX: 50,
         worldY: -1.75,
+        worldZ: 0,
+        roadT: -1.75,
       });
       store.getState().setViewerMode('play');
       expect(store.getState().viewerMode).toBe('play');
@@ -148,6 +150,8 @@ describe('createViewerStore', () => {
         heading: 0,
         worldX: 50,
         worldY: -1.75,
+        worldZ: 0,
+        roadT: -1.75,
       };
       store.getState().setHoverLaneInfo(info);
       expect(store.getState().hoverLaneInfo).toEqual(info);

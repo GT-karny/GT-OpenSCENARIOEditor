@@ -4,6 +4,7 @@
 import { XMLParser } from 'fast-xml-parser';
 
 const ALWAYS_ARRAY_TAGS = new Set([
+  // Road & geometry
   'road',
   'geometry',
   'elevation',
@@ -11,6 +12,7 @@ const ALWAYS_ARRAY_TAGS = new Set([
   'shape',
   'laneOffset',
   'laneSection',
+  // Lanes
   'lane',
   'width',
   'border',
@@ -20,14 +22,48 @@ const ALWAYS_ARRAY_TAGS = new Set([
   'access',
   'rule',
   'material',
+  // Objects
   'object',
+  'repeat',
+  'outline',
+  'outlines',
+  'cornerRoad',
+  'cornerLocal',
+  'marking',
+  'cornerReference',
+  'objectReference',
+  'tunnel',
+  'bridge',
+  'validity',
+  // Signals
   'signal',
+  'dependency',
+  'reference',
+  'signalReference',
+  // Controllers
   'controller',
   'control',
+  // Junctions
   'junction',
   'connection',
   'laneLink',
+  'priority',
+  'junctionGroup',
+  'junctionReference',
+  // Railroad
+  'switch',
+  'station',
+  'platform',
+  'segment',
+  // Road mark sub-elements
+  'line',
+  'sway',
+  // Road types & common
   'type',
+  'include',
+  'userData',
+  // Surface
+  'CRG',
 ]);
 
 export function createXodrXmlParser(): XMLParser {

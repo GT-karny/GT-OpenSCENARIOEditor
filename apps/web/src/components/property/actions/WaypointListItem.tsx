@@ -45,10 +45,10 @@ export function WaypointListItem({
 }: WaypointListItemProps) {
   return (
     <div
-      className={`flex items-center gap-1.5 rounded-sm border px-2 py-1 cursor-pointer transition-colors ${
+      className={`flex items-center gap-1.5 rounded-none border px-2 py-1 cursor-pointer transition-colors ${
         isSelected
-          ? 'border-primary bg-primary/10'
-          : 'border-border hover:border-muted-foreground/50 hover:bg-muted/50'
+          ? 'border-[var(--color-glass-edge-active)] bg-[var(--color-accent-dim)]'
+          : 'border-[var(--color-glass-edge)] hover:border-[var(--color-glass-edge-mid)] hover:bg-[var(--color-glass-hover)]'
       }`}
       onClick={onSelect}
       role="button"
@@ -61,7 +61,7 @@ export function WaypointListItem({
       }}
     >
       {/* Index badge */}
-      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm bg-muted text-[10px] font-semibold text-muted-foreground">
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-none bg-muted text-[10px] font-semibold text-muted-foreground">
         #{index + 1}
       </span>
 

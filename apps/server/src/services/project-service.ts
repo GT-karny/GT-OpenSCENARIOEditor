@@ -77,10 +77,24 @@ const SAMPLE_CATALOGS: ReadonlyArray<{ dir: string; file: string }> = [
 const SAMPLE_PROJECT_ID = 'esmini-samples';
 
 export class ProjectService {
-  private readonly basePath: string;
+  private basePath: string;
+  private readonly defaultBasePath: string;
 
   constructor(basePath?: string) {
-    this.basePath = basePath ?? path.resolve(process.cwd(), 'data/projects');
+    this.defaultBasePath = basePath ?? path.resolve(process.cwd(), 'data/projects');
+    this.basePath = this.defaultBasePath;
+  }
+
+  /** Get the current projects base path */
+  getBasePath(): string {
+    return this.basePath;
+  }
+
+  /** Change the projects base path at runtime */
+  async setBasePath(newPath: string): Promise<void> {
+    const resolved = path.resolve(newPath);
+    await fs.mkdir(resolved, { recursive: true });
+    this.basePath = resolved;
   }
 
   private async resolveSampleResourcesBase(): Promise<string | null> {

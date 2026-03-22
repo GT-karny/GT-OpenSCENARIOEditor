@@ -110,7 +110,7 @@ export function InfrastructureActionEditor({
 
       {mode === 'controller' && (
         <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground border-b pb-1">
+          <p className="text-xs font-medium text-muted-foreground border-b border-[var(--color-glass-edge)] pb-1">
             Traffic Signal Controller Action
           </p>
           <div className="grid gap-1">
@@ -138,7 +138,7 @@ export function InfrastructureActionEditor({
 
       {mode === 'state' && (
         <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground border-b pb-1">
+          <p className="text-xs font-medium text-muted-foreground border-b border-[var(--color-glass-edge)] pb-1">
             Traffic Signal State Action
           </p>
           <div className="grid gap-1">

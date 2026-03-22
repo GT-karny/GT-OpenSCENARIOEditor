@@ -55,6 +55,10 @@ export function buildJunctionSurfaceMesh(
   const candidates: Point3[] = [];
 
   // --- 1. Incoming road boundary points (both left and right) ---
+  // Only include incoming roads that have a link pointing to this junction
+  // (i.e., roads that have been properly split). Roads that pass through
+  // the junction without being split would produce boundary points at the
+  // wrong s-coordinate, distorting the surface mesh.
   const visitedIncoming = new Set<string>();
   for (const conn of junction.connections) {
     if (visitedIncoming.has(conn.incomingRoad)) continue;
@@ -62,6 +66,9 @@ export function buildJunctionSurfaceMesh(
 
     const road = roadMap.get(conn.incomingRoad);
     if (!road || road.lanes.length === 0) continue;
+
+    // Skip incoming roads that don't have a link to this junction
+    if (!hasJunctionLink(road, junction.id)) continue;
 
     const s = getJunctionFacingS(road, junction.id);
     const bp = getBoundaryPair(road, s);
@@ -71,9 +78,11 @@ export function buildJunctionSurfaceMesh(
     }
   }
 
-  if (candidates.length < 4) return null; // need ≥ 2 incoming roads
-
   // --- 2. Connecting road boundary points (both sides, dense sampling) ---
+  // Also collect reference-line (centerline) points for stable centroid computation.
+  // Connecting roads have only right lanes, so boundary points are biased to one side.
+  // Using centerline points for the centroid avoids this asymmetry.
+  const centerlinePoints: Point3[] = [];
   const visitedConnecting = new Set<string>();
   for (const conn of junction.connections) {
     if (visitedConnecting.has(conn.connectingRoad)) continue;
@@ -84,6 +93,10 @@ export function buildJunctionSurfaceMesh(
 
     for (let i = 0; i <= CONNECTING_SAMPLES; i++) {
       const s = (road.length * i) / CONNECTING_SAMPLES;
+      const pose = evaluateReferenceLineAtS(road.planView, s);
+      const z = evaluateElevation(road.elevationProfile, s);
+      centerlinePoints.push({ x: pose.x, y: pose.y, z });
+
       const bp = getBoundaryPair(road, s);
       if (!bp) continue;
       // Add BOTH sides — the bin filter will keep only the farthest
@@ -92,18 +105,24 @@ export function buildJunctionSurfaceMesh(
     }
   }
 
-  // --- 3. Compute centroid ---
+  // Need enough boundary points to form a surface
+  if (candidates.length < 4) return null;
+
+  // --- 3. Compute centroid from centerline points (not boundary points) ---
+  // This ensures the centroid is at the geometric center of the junction,
+  // unbiased by one-sided lane configurations on connecting roads.
+  const centroidSource = centerlinePoints.length >= 4 ? centerlinePoints : candidates;
   let cx = 0;
   let cy = 0;
   let cz = 0;
-  for (const p of candidates) {
+  for (const p of centroidSource) {
     cx += p.x;
     cy += p.y;
     cz += p.z;
   }
-  cx /= candidates.length;
-  cy /= candidates.length;
-  cz /= candidates.length;
+  cx /= centroidSource.length;
+  cy /= centroidSource.length;
+  cz /= centroidSource.length;
 
   // --- 4. Fixed-width angular bins: keep farthest point per bin ---
   interface BinEntry {
@@ -156,6 +175,21 @@ export function buildJunctionSurfaceMesh(
   }
 
   return { junctionId: junction.id, vertices, indices };
+}
+
+/**
+ * Check if a road has a link (successor or predecessor) pointing to a junction.
+ */
+function hasJunctionLink(road: OdrRoad, junctionId: string): boolean {
+  const link = road.link;
+  if (!link) return false;
+  if (link.successor?.elementId === junctionId && link.successor.elementType === 'junction') {
+    return true;
+  }
+  if (link.predecessor?.elementId === junctionId && link.predecessor.elementType === 'junction') {
+    return true;
+  }
+  return false;
 }
 
 /**

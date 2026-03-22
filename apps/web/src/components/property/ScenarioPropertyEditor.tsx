@@ -62,7 +62,7 @@ export function ScenarioPropertyEditor() {
 
   return (
     <div className="space-y-1">
-      <div className="flex items-center gap-2 pb-2 border-b">
+      <div className="flex items-center gap-2 pb-2 border-b border-[var(--color-glass-edge)]">
         <FileText className="h-4 w-4 text-muted-foreground" />
         <p className="text-sm font-medium">{t('scenario.title')}</p>
       </div>
@@ -226,7 +226,7 @@ function TrafficSignalControllersSection({
   };
 
   return (
-    <div className="space-y-2 pt-2 border-t">
+    <div className="space-y-2 pt-2 border-t border-[var(--color-glass-edge)]">
       <div className="flex items-center justify-between">
         <Label className="text-xs">Traffic Signal Controllers</Label>
         <button
@@ -244,7 +244,7 @@ function TrafficSignalControllersSection({
       )}
 
       {controllers.map((ctrl) => (
-        <div key={ctrl.id} className="border rounded-sm">
+        <div key={ctrl.id} className="border rounded-none">
           <div className="flex items-center gap-1 px-2 py-1.5 bg-muted/50">
             <button
               type="button"
@@ -343,7 +343,7 @@ function PhasesEditor({ phases, onChange }: PhasesEditorProps) {
   };
 
   return (
-    <div className="space-y-1.5 pt-1 border-t">
+    <div className="space-y-1.5 pt-1 border-t border-[var(--color-glass-edge)]">
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-muted-foreground">Phases</span>
         <button
@@ -356,7 +356,7 @@ function PhasesEditor({ phases, onChange }: PhasesEditorProps) {
       </div>
 
       {phases.map((phase, pi) => (
-        <div key={pi} className="border rounded-sm px-2 py-1.5 space-y-1.5 bg-background">
+        <div key={pi} className="border rounded-none px-2 py-1.5 space-y-1.5 bg-background">
           <div className="flex items-center gap-1">
             <span className="flex-1 text-xs font-medium truncate">{phase.name}</span>
             <button
@@ -421,7 +421,7 @@ function SignalStatesEditor({ states, onChange }: SignalStatesEditorProps) {
   };
 
   return (
-    <div className="space-y-1 pt-1 border-t border-dashed">
+    <div className="space-y-1 pt-1 border-t border-dashed border-[var(--color-glass-edge)]">
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-muted-foreground">Signal States</span>
         <button

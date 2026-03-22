@@ -408,18 +408,33 @@ async function handleRmPath(
       endRoadId, endLaneId, endS,
       sampleInterval,
     );
-    // Convert embind result to plain JS array
-    const points = Array.isArray(rawPoints)
-      ? (rawPoints as Record<string, number>[]).map((p) => ({
-          x: p.x,
-          y: p.y,
-          z: p.z,
-          h: p.h,
-          road_id: p.road_id,
-          lane_id: p.lane_id,
-          s: p.s,
-        }))
-      : [];
+    // Convert embind result to plain JS array.
+    // rawPoints may be an embind vector (with size()/get()) or a plain JS array
+    // depending on the embind binding configuration.
+    let points: Array<{
+      x: number; y: number; z: number; h: number;
+      road_id: number; lane_id: number; s: number;
+    }>;
+
+    const clonePathPoint = (p: Record<string, number>) => ({
+      x: p.x,
+      y: p.y,
+      z: p.z,
+      h: p.h,
+      road_id: p.road_id,
+      lane_id: p.lane_id,
+      s: p.s,
+    });
+
+    if (Array.isArray(rawPoints)) {
+      points = (rawPoints as Record<string, number>[]).map(clonePathPoint);
+    } else if (rawPoints && typeof (rawPoints as EsminiVector<unknown>).size === 'function') {
+      // Embind vector — use vectorToArray to convert and release WASM memory
+      const vec = rawPoints as EsminiVector<Record<string, number>>;
+      points = vectorToArray(vec).map(clonePathPoint);
+    } else {
+      points = [];
+    }
     post({ type: 'rm-path', requestId, points });
   } catch (err) {
     post({ type: 'rm-error', requestId, message: err instanceof Error ? err.message : String(err) });

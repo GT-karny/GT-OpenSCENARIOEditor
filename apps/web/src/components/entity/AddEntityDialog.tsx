@@ -106,7 +106,7 @@ export function AddEntityDialog({ open, onOpenChange }: AddEntityDialogProps) {
           {/* Definition source toggle */}
           <div className="grid gap-2">
             <Label>{t('catalog.sourceMode')}</Label>
-            <div className="flex rounded-md border border-[var(--color-glass-edge-mid)] overflow-hidden">
+            <div className="flex rounded-none border border-[var(--color-glass-edge-mid)] overflow-hidden">
               <button
                 type="button"
                 onClick={() => setDefinitionSource('inline')}

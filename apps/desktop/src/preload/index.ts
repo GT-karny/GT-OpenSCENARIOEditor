@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -24,6 +25,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Window title
   setTitle: (title: string) => ipcRenderer.send('window:setTitle', title),
+
+  // Window controls (custom titlebar)
+  windowMinimize: () => ipcRenderer.send('window:minimize'),
+  windowMaximize: () => ipcRenderer.send('window:maximize'),
+  windowClose: () => ipcRenderer.send('window:close'),
+  windowIsMaximized: () => ipcRenderer.invoke('window:isMaximized') as Promise<boolean>,
+  onMaximizedChanged: (callback: (isMaximized: boolean) => void) => {
+    const handler = (_event: unknown, isMaximized: boolean) => callback(isMaximized);
+    ipcRenderer.on('window:maximized-changed', handler);
+    return () => {
+      ipcRenderer.removeListener('window:maximized-changed', handler);
+    };
+  },
 
   // Recent files
   getRecentFiles: () => ipcRenderer.invoke('recent:get'),

@@ -107,7 +107,7 @@ const textureCache = new Map<string, THREE.CanvasTexture>();
 
 export function buildCacheKey(desc: SignalDescriptor, activeState?: string): string {
   const bulbKey = desc.bulbs.map((b) => `${b.color}:${b.shape}`).join(',');
-  return `${desc.bulbs.length}|${bulbKey}|${desc.bulbRadius}|${desc.housing.width}:${desc.housing.height}|${activeState ?? ''}`;
+  return `${desc.bulbs.length}|${bulbKey}|${desc.bulbRadius}|${desc.housing.width}:${desc.housing.height}|${desc.orientation ?? 'vertical'}|${activeState ?? ''}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -127,6 +127,7 @@ export function getSignalTexture(
   if (cached) return cached;
 
   const { bulbs, housing, bulbRadius } = descriptor;
+  const isHorizontal = descriptor.orientation === 'horizontal';
 
   // Canvas dimensions
   const w = Math.max(32, Math.ceil(housing.width * PX_PER_UNIT));
@@ -150,8 +151,14 @@ export function getSignalTexture(
     const isActive = activeState ? isBulbActiveByIndex(activeState, i, bulb.color) : false;
     const color = isActive ? BULB_COLORS[bulb.color] : OFF_BULB_COLORS[bulb.color];
 
-    const cx = w / 2;
-    const cy = h / 2 - offsets[i] * PX_PER_UNIT;
+    let cx: number, cy: number;
+    if (isHorizontal) {
+      cx = w / 2 - offsets[i] * PX_PER_UNIT;
+      cy = h / 2;
+    } else {
+      cx = w / 2;
+      cy = h / 2 - offsets[i] * PX_PER_UNIT;
+    }
     const r = bulbRadius * PX_PER_UNIT;
 
     // Glow halo behind the bulb (additive blending)
@@ -180,9 +187,14 @@ export function getSignalTexture(
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
-  // Rotate 90° CCW to align canvas vertical (bulb stack) with box X → world Z (up)
-  texture.center.set(0.5, 0.5);
-  texture.rotation = Math.PI / 2;
+
+  if (!isHorizontal) {
+    // Vertical: rotate 90° CCW to align canvas vertical (bulb stack) with box X → world Z (up)
+    texture.center.set(0.5, 0.5);
+    texture.rotation = Math.PI / 2;
+  }
+  // Horizontal: no rotation needed (canvas width maps to box width in world)
+
   textureCache.set(key, texture);
   return texture;
 }

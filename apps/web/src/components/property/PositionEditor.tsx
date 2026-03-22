@@ -1,3 +1,5 @@
+import { useEffect, useId, useRef } from 'react';
+import { Crosshair } from 'lucide-react';
 import type {
   Position,
   WorldPosition,
@@ -18,6 +20,7 @@ import {
   POSITION_TYPE_LABELS,
   createDefaultPosition,
 } from '../../constants/position-defaults';
+import { useEditorStore } from '../../stores/editor-store';
 
 interface PositionEditorProps {
   position: Position;
@@ -29,6 +32,59 @@ interface PositionEditorProps {
 }
 
 export function PositionEditor({ position, onChange, elementId, fieldPathPrefix }: PositionEditorProps) {
+  const pickRequestId = useId();
+  const positionPickRequest = useEditorStore((s) => s.positionPickRequest);
+  const pickedPosition = useEditorStore((s) => s.pickedPosition);
+  const isMyPickActive = positionPickRequest?.requestId === pickRequestId;
+
+  // Resolve picked position when it arrives
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  useEffect(() => {
+    if (!pickedPosition || pickedPosition.requestId !== pickRequestId) return;
+
+    const targetType = positionPickRequest?.targetType;
+    // Build position based on target type stored in the request
+    // (request is cleared by now, so read from pickedPosition's associated type)
+    if (targetType === 'lanePosition' || position.type === 'lanePosition') {
+      onChangeRef.current({
+        type: 'lanePosition',
+        roadId: pickedPosition.roadId,
+        laneId: String(pickedPosition.laneId),
+        s: Math.round(pickedPosition.s * 100) / 100,
+        offset: Math.abs(pickedPosition.offset) > 0.01
+          ? Math.round(pickedPosition.offset * 100) / 100
+          : undefined,
+        orientation: { h: 0 },
+      });
+    } else {
+      onChangeRef.current({
+        type: 'worldPosition',
+        x: Math.round(pickedPosition.worldX * 100) / 100,
+        y: Math.round(pickedPosition.worldY * 100) / 100,
+        z: Math.abs(pickedPosition.worldZ) > 0.01
+          ? Math.round(pickedPosition.worldZ * 100) / 100
+          : undefined,
+        h: Math.round(pickedPosition.heading * 1000) / 1000,
+      });
+    }
+    // Clear picked result
+    useEditorStore.getState().cancelPositionPick();
+  }, [pickedPosition, pickRequestId, positionPickRequest?.targetType, position.type]);
+
+  const canPick = position.type === 'worldPosition' || position.type === 'lanePosition';
+
+  const handlePickClick = () => {
+    if (isMyPickActive) {
+      useEditorStore.getState().cancelPositionPick();
+    } else {
+      useEditorStore.getState().requestPositionPick({
+        targetType: position.type === 'lanePosition' ? 'lanePosition' : 'worldPosition',
+        requestId: pickRequestId,
+      });
+    }
+  };
+
   const handleTypeChange = (newType: string) => {
     if (newType === position.type) return;
     onChange(createDefaultPosition(newType as Position['type']));
@@ -36,7 +92,24 @@ export function PositionEditor({ position, onChange, elementId, fieldPathPrefix 
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">Position</p>
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium text-muted-foreground">Position</p>
+        {canPick && (
+          <button
+            type="button"
+            onClick={handlePickClick}
+            className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-none border transition-colors ${
+              isMyPickActive
+                ? 'bg-[var(--color-accent-1)] text-white border-[var(--color-accent-1)]'
+                : 'bg-[var(--color-glass-1)] text-[var(--color-text-secondary)] border-[var(--color-glass-edge)] hover:bg-[var(--color-glass-hover)]'
+            }`}
+            title={isMyPickActive ? 'Cancel pick mode' : 'Pick position from 3D viewer'}
+          >
+            <Crosshair size={12} />
+            {isMyPickActive ? 'Cancel' : 'Pick'}
+          </button>
+        )}
+      </div>
 
       <div className="grid gap-1">
         <Label className="text-xs">Type</Label>

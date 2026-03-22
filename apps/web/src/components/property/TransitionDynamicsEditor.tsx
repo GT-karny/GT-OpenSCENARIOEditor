@@ -72,14 +72,14 @@ export function TransitionDynamicsEditor({
           acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
           className="h-8 text-sm flex-1 min-w-0"
         />
-        <div className="flex gap-0 p-0.5 bg-muted rounded-sm shrink-0">
+        <div className="flex gap-0 p-0.5 bg-muted rounded-none shrink-0">
           {DYNAMICS_DIMENSIONS.map((dim) => (
             <button
               key={dim}
               type="button"
               onClick={() => updateDimension(dim)}
               className={cn(
-                'px-2 py-1 text-[10px] font-medium transition-all rounded-sm whitespace-nowrap',
+                'px-2 py-1 text-[10px] font-medium transition-all rounded-none whitespace-nowrap',
                 dynamics.dynamicsDimension === dim
                   ? 'glass-item selected'
                   : 'text-muted-foreground hover:text-foreground hover:bg-[var(--color-glass-hover)]',
@@ -92,7 +92,7 @@ export function TransitionDynamicsEditor({
       </div>
 
       {/* Row 2: Shape — 4 icon buttons */}
-      <div className="flex gap-0.5 p-0.5 bg-muted rounded-sm">
+      <div className="flex gap-0.5 p-0.5 bg-muted rounded-none">
         {DYNAMICS_SHAPES.map((shape) => (
           <button
             key={shape}
@@ -100,7 +100,7 @@ export function TransitionDynamicsEditor({
             title={SHAPE_LABELS[shape]}
             onClick={() => updateShape(shape)}
             className={cn(
-              'flex-1 flex items-center justify-center py-1.5 transition-all rounded-sm',
+              'flex-1 flex items-center justify-center py-1.5 transition-all rounded-none',
               dynamics.dynamicsShape === shape
                 ? 'glass-item selected'
                 : 'text-muted-foreground hover:text-foreground hover:bg-[var(--color-glass-hover)]',

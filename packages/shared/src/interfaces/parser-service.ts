@@ -18,6 +18,11 @@ export interface IXodrParser {
   parse(xml: string): OpenDriveDocument;
 }
 
+export interface IXodrSerializer {
+  serialize(doc: OpenDriveDocument): string;
+  serializeFormatted(doc: OpenDriveDocument): string;
+}
+
 export interface IValidator {
   validate(doc: ScenarioDocument): ValidationResult;
 }

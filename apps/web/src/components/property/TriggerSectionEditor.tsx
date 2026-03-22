@@ -67,7 +67,7 @@ export function TriggerSectionEditor({
       </div>
 
       {/* Condition list panel */}
-      <div className="glass rounded-md p-2 space-y-1.5">
+      <div className="glass rounded-none p-2 space-y-1.5">
         {!hasConditions ? (
           <p className="text-[11px] text-muted-foreground italic px-1">
             {t('trigger.noConditions')}

@@ -102,6 +102,11 @@ const _qHeadRot = new THREE.Quaternion().setFromAxisAngle(
   new THREE.Vector3(0, 1, 0),
   Math.PI / 2,
 );
+/** Additional 90° rotation around local Z-axis to lay housing sideways for horizontal signals */
+const _qHoriz = new THREE.Quaternion().setFromAxisAngle(
+  new THREE.Vector3(0, 0, 1),
+  Math.PI / 2,
+);
 
 const TrafficLightGroup: React.FC<TrafficLightGroupProps> = React.memo(
   ({ group }) => {
@@ -154,7 +159,11 @@ const TrafficLightGroup: React.FC<TrafficLightGroupProps> = React.memo(
         );
 
         // Rotation: signal rotation * head rotation (PI/2 around Y)
+        // For horizontal signals, add 90° around local Z to lay housing sideways
         dummy.quaternion.copy(_qSignal).multiply(_qHeadRot);
+        if (descriptor.orientation === 'horizontal') {
+          dummy.quaternion.multiply(_qHoriz);
+        }
         dummy.scale.set(1, 1, 1);
         dummy.updateMatrix();
         mesh.setMatrixAt(i, dummy.matrix);

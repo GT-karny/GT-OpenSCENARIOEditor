@@ -20,9 +20,10 @@ async function createWindow() {
     y: windowState.y,
     title: 'OpenSCENARIO Editor',
     backgroundColor: '#0a0a0f',
+    frame: false,
     show: false,
     webPreferences: {
-      preload: path.join(import.meta.dirname, '../preload/index.js'),
+      preload: path.join(import.meta.dirname, '../preload/index.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,

@@ -7,6 +7,7 @@ import type {
   ByValueCondition,
   EntityCondition,
   ValueCondition,
+  TriggeringEntities,
   Rule,
 } from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
@@ -22,9 +23,10 @@ import {
   ENTITY_CONDITION_TYPES,
   CONDITION_SUBCATEGORIES,
 } from '../../constants/osc-enum-values';
-import { Lock } from 'lucide-react';
+import { Lock, Plus, X } from 'lucide-react';
 import { useFeatureGate } from '../../hooks/use-feature-gate';
 import { cn } from '@/lib/utils';
+import { useScenarioStore } from '../../stores/use-scenario-store';
 import { GenericConditionEditor } from './conditions/GenericConditionEditor';
 import { SimulationTimeConditionEditor } from './conditions/SimulationTimeConditionEditor';
 import { TimeHeadwayConditionEditor } from './conditions/TimeHeadwayConditionEditor';
@@ -94,7 +96,7 @@ export function ConditionPropertyEditor({ trigger, onUpdateCondition }: Conditio
 
   return (
     <div className="space-y-4">
-      <div className="pb-2 border-b">
+      <div className="pb-2 border-b border-[var(--color-glass-edge)]">
         <p className="text-sm font-medium">Trigger</p>
         <p className="text-xs text-muted-foreground">
           {trigger.conditionGroups.length} group{trigger.conditionGroups.length !== 1 ? 's' : ''},{' '}
@@ -121,6 +123,8 @@ interface ConditionItemProps {
 export function ConditionItem({ condition, onUpdateCondition }: ConditionItemProps) {
   const { t } = useTranslation('openscenario');
   const { checkCondition } = useFeatureGate();
+  const entities = useScenarioStore((s) => s.document.entities);
+  const entityNames = useMemo(() => entities.map((e) => e.name), [entities]);
 
   const handleConditionEdgeChange = (value: string) => {
     onUpdateCondition(condition.id, {
@@ -145,10 +149,13 @@ export function ConditionItem({ condition, onUpdateCondition }: ConditionItemPro
     if (newType === conditionType) return;
     let newConditionBody: ByEntityCondition | ByValueCondition;
     if (isEntityConditionType(newType)) {
-      const existingEntities =
+      const existingEntities: TriggeringEntities =
         condition.condition.kind === 'byEntity'
           ? condition.condition.triggeringEntities
-          : { triggeringEntitiesRule: 'any' as const, entityRefs: [] as string[] };
+          : {
+              triggeringEntitiesRule: 'any' as const,
+              entityRefs: [],
+            };
       newConditionBody = {
         kind: 'byEntity',
         triggeringEntities: existingEntities,
@@ -235,6 +242,44 @@ export function ConditionItem({ condition, onUpdateCondition }: ConditionItemPro
     return undefined;
   })();
 
+  // --- TriggeringEntities handlers ---
+  const handleTriggeringEntitiesUpdate = (updates: Partial<TriggeringEntities>) => {
+    const inner = condition.condition;
+    if (inner.kind !== 'byEntity') return;
+    onUpdateCondition(condition.id, {
+      condition: {
+        ...inner,
+        triggeringEntities: { ...inner.triggeringEntities, ...updates },
+      },
+    } as Partial<Condition>);
+  };
+
+  const handleAddEntityRef = () => {
+    const inner = condition.condition;
+    if (inner.kind !== 'byEntity') return;
+    const current = inner.triggeringEntities.entityRefs;
+    // Pick the first entity not already in the list, or empty string
+    const available = entityNames.filter((n) => !current.includes(n));
+    const toAdd = available.length > 0 ? available[0] : '';
+    handleTriggeringEntitiesUpdate({ entityRefs: [...current, toAdd] });
+  };
+
+  const handleRemoveEntityRef = (index: number) => {
+    const inner = condition.condition;
+    if (inner.kind !== 'byEntity') return;
+    const next = [...inner.triggeringEntities.entityRefs];
+    next.splice(index, 1);
+    handleTriggeringEntitiesUpdate({ entityRefs: next });
+  };
+
+  const handleChangeEntityRef = (index: number, value: string) => {
+    const inner = condition.condition;
+    if (inner.kind !== 'byEntity') return;
+    const next = [...inner.triggeringEntities.entityRefs];
+    next[index] = value;
+    handleTriggeringEntitiesUpdate({ entityRefs: next });
+  };
+
   // Only show generic position editor for conditions without a dedicated editor
   const conditionPosition = DEDICATED_EDITOR_TYPES.has(conditionType)
     ? null
@@ -308,7 +353,7 @@ export function ConditionItem({ condition, onUpdateCondition }: ConditionItemPro
   };
 
   return (
-    <div className="space-y-2 border-b pb-3">
+    <div className="space-y-2 border-b border-[var(--color-glass-edge)] pb-3">
       {condition.name && (
         <div className="grid gap-1">
           <Label className="text-[10px]">Name</Label>
@@ -373,7 +418,7 @@ export function ConditionItem({ condition, onUpdateCondition }: ConditionItemPro
       {/* Type list — flat buttons with descriptions */}
       <div className="grid gap-1.5">
         <Label className="text-xs">Type</Label>
-        <div className="mx-4 flex flex-col divide-y divide-border border border-border bg-[var(--color-glass-1)] shadow-[inset_0_2px_6px_rgba(0,0,0,0.4)]">
+        <div className="mx-4 flex flex-col divide-y divide-[var(--color-glass-edge)] border border-[var(--color-glass-edge)] bg-[var(--color-glass-1)] shadow-[inset_0_2px_6px_rgba(0,0,0,0.4)]">
           {typeList.map((type) => {
             const gate = checkCondition(type);
             return (
@@ -388,7 +433,7 @@ export function ConditionItem({ condition, onUpdateCondition }: ConditionItemPro
                   conditionType === type
                     ? 'glass-item selected'
                     : gate.allowed
-                      ? 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      ? 'text-muted-foreground hover:text-foreground hover:bg-[var(--color-glass-hover)]'
                       : 'text-muted-foreground/40 cursor-not-allowed',
                 )}
               >
@@ -420,6 +465,67 @@ export function ConditionItem({ condition, onUpdateCondition }: ConditionItemPro
           position={conditionPosition}
           onChange={handlePositionChange}
         />
+      )}
+
+      {/* TriggeringEntities editor — only for ByEntityCondition */}
+      {condition.condition.kind === 'byEntity' && (
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <Label className="text-[10px]">Triggering Entities</Label>
+            <SegmentedControl
+              value={condition.condition.triggeringEntities.triggeringEntitiesRule}
+              options={['any', 'all']}
+              onValueChange={(v) =>
+                handleTriggeringEntitiesUpdate({
+                  triggeringEntitiesRule: v as 'any' | 'all',
+                })
+              }
+              labels={{ any: 'Any', all: 'All' }}
+            />
+          </div>
+          <div className="space-y-1">
+            {condition.condition.triggeringEntities.entityRefs.map((ref, idx) => (
+              <div key={idx} className="flex items-center gap-1">
+                <select
+                  value={ref}
+                  onChange={(e) => handleChangeEntityRef(idx, e.target.value)}
+                  className="h-7 flex-1 min-w-0 text-xs bg-[var(--color-glass-1)] border border-[var(--color-glass-edge)] text-[var(--color-text-primary)] px-2 rounded-none"
+                >
+                  {/* Show current value even if not in entityNames (manual entry) */}
+                  {ref && !entityNames.includes(ref) && (
+                    <option value={ref}>{ref}</option>
+                  )}
+                  {entityNames.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveEntityRef(idx)}
+                  className="p-1 text-muted-foreground hover:text-[var(--color-status-error)] transition-colors"
+                  title="Remove entity"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+            {condition.condition.triggeringEntities.entityRefs.length === 0 && (
+              <p className="text-[10px] text-[var(--color-status-error)]">
+                No triggering entities — condition will not fire
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={handleAddEntityRef}
+              className="flex items-center gap-1 text-[10px] text-[var(--color-accent-vivid)] hover:opacity-80 transition-opacity"
+            >
+              <Plus className="h-2.5 w-2.5" />
+              Add Entity
+            </button>
+          </div>
+        </div>
       )}
 
       <div className="pt-1">

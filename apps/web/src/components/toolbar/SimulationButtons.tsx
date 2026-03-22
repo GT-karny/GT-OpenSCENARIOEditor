@@ -3,6 +3,7 @@ import { Play, Square } from 'lucide-react';
 import { toast } from 'sonner';
 import { XoscSerializer, serializeCatalog } from '@osce/openscenario';
 import { Button } from '../ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { useSimulationStore } from '../../stores/simulation-store';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
@@ -61,7 +62,7 @@ async function loadProjectCatalogs(): Promise<void> {
   );
 }
 
-export function SimulationButtons() {
+export function SimulationButtons({ compact }: { compact?: boolean }) {
   const { t } = useTranslation('common');
   const simStatus = useSimulationStore((s) => s.status);
   const storeApi = useScenarioStoreApi();
@@ -118,27 +119,41 @@ export function SimulationButtons() {
 
   if (simStatus === 'running') {
     return (
-      <Button
-        variant="ghost"
-        size="sm"
-        className="text-xs text-[var(--color-destructive)] hover:text-[var(--color-destructive)]"
-        onClick={handleStop}
-      >
-        <Square className="h-3.5 w-3.5 mr-1" />
-        {t('buttons.stop')}
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size={compact ? 'icon' : 'sm'}
+            className={
+              compact
+                ? 'h-8 w-8 text-[var(--color-destructive)] hover:text-[var(--color-destructive)]'
+                : 'text-xs text-[var(--color-destructive)] hover:text-[var(--color-destructive)]'
+            }
+            onClick={handleStop}
+          >
+            <Square className={compact ? 'h-3.5 w-3.5' : 'h-3.5 w-3.5 mr-1'} />
+            {!compact && t('buttons.stop')}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{t('buttons.stop')}</TooltipContent>
+      </Tooltip>
     );
   }
 
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="text-xs"
-      onClick={handleRun}
-    >
-      <Play className="h-3.5 w-3.5 mr-1" />
-      {t('buttons.run')}
-    </Button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size={compact ? 'icon' : 'sm'}
+          className={compact ? 'h-8 w-8' : 'text-xs'}
+          onClick={handleRun}
+        >
+          <Play className={compact ? 'h-3.5 w-3.5' : 'h-3.5 w-3.5 mr-1'} />
+          {!compact && t('buttons.run')}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{t('buttons.run')}</TooltipContent>
+    </Tooltip>
   );
 }

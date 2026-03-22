@@ -1,6 +1,8 @@
 /**
  * Renders all signal poles as a single InstancedMesh for minimal draw calls.
  * Uses a unit-height cylinder scaled per instance to match each pole's height.
+ *
+ * Signals belonging to arm-type assemblies are rendered separately via ArmPole.
  */
 
 import React, { useRef, useEffect, useMemo } from 'react';
@@ -12,9 +14,21 @@ import {
   DEFAULT_SIGNAL_HEIGHT,
 } from '../utils/signal-geometry.js';
 import { getSharedStandardMaterial } from '../utils/shared-materials.js';
+import { ArmPole } from './ArmPole.js';
+
+/** Minimal assembly info needed for pole rendering. */
+export interface PoleAssemblyInfo {
+  assemblyId: string;
+  poleType: 'straight' | 'arm';
+  armLength?: number;
+  armAngle?: number;
+  signalIds: string[];
+}
 
 interface InstancedPolesProps {
   signals: ResolvedSignal[];
+  /** Map from signalId to assembly info. Only needed when assemblies exist. */
+  assemblyMap?: Map<string, PoleAssemblyInfo>;
 }
 
 // Unit cylinder (height=1, Y-aligned) shared across all instances.
@@ -27,74 +41,99 @@ const _qCylToZ = new THREE.Quaternion().setFromAxisAngle(
   Math.PI / 2,
 );
 
-export const InstancedPoles: React.FC<InstancedPolesProps> = React.memo(({ signals }) => {
-  const meshRef = useRef<THREE.InstancedMesh>(null);
+export const InstancedPoles: React.FC<InstancedPolesProps> = React.memo(
+  ({ signals, assemblyMap }) => {
+    const meshRef = useRef<THREE.InstancedMesh>(null);
 
-  const material = useMemo(
-    () => getSharedStandardMaterial({ color: POLE_COLOR, roughness: 0.8 }),
-    [],
-  );
+    const material = useMemo(
+      () => getSharedStandardMaterial({ color: POLE_COLOR, roughness: 0.8 }),
+      [],
+    );
 
-  useEffect(() => {
-    const mesh = meshRef.current;
-    if (!mesh || signals.length === 0) return;
+    // Split signals into straight (instanced) and arm (individual) poles.
+    // For arm assemblies, only the first signal in each assembly gets the pole.
+    const { straightSignals, armSignals } = useMemo(() => {
+      const straight: ResolvedSignal[] = [];
+      const arm: { rs: ResolvedSignal; assembly: PoleAssemblyInfo }[] = [];
+      const seenArmAssemblies = new Set<string>();
 
-    const dummy = new THREE.Object3D();
-    const euler = new THREE.Euler();
+      for (const rs of signals) {
+        const assembly = assemblyMap?.get(rs.signal.id);
+        if (assembly && assembly.poleType === 'arm') {
+          // Only render one pole per arm assembly (the first signal we encounter)
+          if (!seenArmAssemblies.has(assembly.assemblyId)) {
+            seenArmAssemblies.add(assembly.assemblyId);
+            arm.push({ rs, assembly });
+          }
+          // Skip this signal from instanced rendering (pole handled by ArmPole)
+        } else {
+          // For straight assemblies, only render one pole per assembly
+          if (assembly && assembly.poleType === 'straight') {
+            if (seenArmAssemblies.has(assembly.assemblyId)) continue;
+            seenArmAssemblies.add(assembly.assemblyId);
+          }
+          straight.push(rs);
+        }
+      }
 
-    for (let i = 0; i < signals.length; i++) {
-      const { signal, position } = signals[i];
-      const signalHeight = signal.zOffset ?? DEFAULT_SIGNAL_HEIGHT;
-      const poleHeight = signalHeight;
+      return { straightSignals: straight, armSignals: arm };
+    }, [signals, assemblyMap]);
 
-      // The pole extends from z=0 to z=poleHeight (relative to signal base group)
-      // Signal base group is positioned at z = position.z - signalHeight in world.
-      // Pole center is at z = poleHeight / 2 relative to base.
+    useEffect(() => {
+      const mesh = meshRef.current;
+      if (!mesh || straightSignals.length === 0) return;
 
-      // The original TrafficSignalEntity applies:
-      //   group position = [x, y, z - signalHeight]
-      //   group rotation = [pitch, roll, h]
-      //   pole mesh position = [0, 0, poleHeight/2], rotation = [PI/2, 0, 0]
-      //
-      // In instanced rendering we must compose these transforms into one matrix.
+      const dummy = new THREE.Object3D();
+      const euler = new THREE.Euler();
 
-      // 1. Signal-level rotation (OpenDRIVE heading, pitch, roll)
-      euler.set(position.pitch ?? 0, position.roll ?? 0, position.h);
-      _qSignal.setFromEuler(euler);
+      for (let i = 0; i < straightSignals.length; i++) {
+        const { signal, position } = straightSignals[i];
+        const signalHeight = signal.zOffset ?? DEFAULT_SIGNAL_HEIGHT;
+        const poleHeight = signalHeight;
 
-      // 2. Local pole offset in signal-local frame: [0, 0, poleHeight/2]
-      const localOffset = new THREE.Vector3(0, 0, poleHeight / 2);
-      localOffset.applyQuaternion(_qSignal);
+        euler.set(position.pitch ?? 0, position.roll ?? 0, position.h);
+        _qSignal.setFromEuler(euler);
 
-      dummy.position.set(
-        position.x + localOffset.x,
-        position.y + localOffset.y,
-        (position.z - signalHeight) + localOffset.z,
-      );
+        const localOffset = new THREE.Vector3(0, 0, poleHeight / 2);
+        localOffset.applyQuaternion(_qSignal);
 
-      // 3. Rotation: signal rotation * cylinder-to-Z rotation
-      dummy.quaternion.copy(_qSignal).multiply(_qCylToZ);
+        dummy.position.set(
+          position.x + localOffset.x,
+          position.y + localOffset.y,
+          position.z - signalHeight + localOffset.z,
+        );
 
-      // 4. Scale Y to pole height (cylinder is unit-height, Y-aligned)
-      dummy.scale.set(1, poleHeight, 1);
+        dummy.quaternion.copy(_qSignal).multiply(_qCylToZ);
+        dummy.scale.set(1, poleHeight, 1);
 
-      dummy.updateMatrix();
-      mesh.setMatrixAt(i, dummy.matrix);
-    }
+        dummy.updateMatrix();
+        mesh.setMatrixAt(i, dummy.matrix);
+      }
 
-    mesh.instanceMatrix.needsUpdate = true;
-    mesh.computeBoundingSphere();
-  }, [signals]);
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.computeBoundingSphere();
+    }, [straightSignals]);
 
-  if (signals.length === 0) return null;
-
-  return (
-    <instancedMesh
-      ref={meshRef}
-      args={[UNIT_CYLINDER, material, signals.length]}
-      frustumCulled={false}
-    />
-  );
-});
+    return (
+      <>
+        {straightSignals.length > 0 && (
+          <instancedMesh
+            ref={meshRef}
+            args={[UNIT_CYLINDER, material, straightSignals.length]}
+            frustumCulled={false}
+          />
+        )}
+        {armSignals.map(({ rs, assembly }) => (
+          <ArmPole
+            key={rs.key}
+            signal={rs}
+            armLength={assembly.armLength ?? 3}
+            armAngle={assembly.armAngle ?? 0}
+          />
+        ))}
+      </>
+    );
+  },
+);
 
 InstancedPoles.displayName = 'InstancedPoles';

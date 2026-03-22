@@ -8,6 +8,25 @@
 @import "tailwindcss";
 
 /* ============================================
+   Electron custom titlebar: drag regions
+   ① ヘッダー全体をドラッグ可能に
+   ② インタラクティブ要素は自動でドラッグ対象から除外
+   ============================================ */
+.electron-drag {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+.electron-drag a,
+.electron-drag button,
+.electron-drag input,
+.electron-drag select,
+.electron-drag [role="button"],
+.electron-no-drag {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+/* ============================================
    React Flow dark theme overrides
    (app-specific, not part of APEX theme)
    ============================================ */
@@ -49,4 +68,24 @@
   .react-flow__background {
     background: transparent !important;
   }
+}
+
+/* ============================================
+   Simulation: flash + afterglow for instant actions
+   ============================================ */
+@keyframes sim-flash-fade {
+  0% {
+    background-color: rgba(52, 211, 153, 0.12);
+    border-color: rgba(52, 211, 153, 0.35);
+    box-shadow: 0 0 10px rgba(52, 211, 153, 0.25);
+  }
+  100% {
+    background-color: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+}
+
+.sim-flash-fade {
+  animation: sim-flash-fade 600ms ease-out forwards;
 }
