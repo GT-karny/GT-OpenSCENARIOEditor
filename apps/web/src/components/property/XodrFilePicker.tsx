@@ -58,7 +58,9 @@ export function XodrFilePicker({ currentPath, onPathChange }: XodrFilePickerProp
 
   // Project mode: dropdown of .xodr files
   if (currentProject) {
-    const xodrFiles = currentProject.files.filter((f) => f.type === 'xodr');
+    const xodrFiles = currentProject.files.filter(
+      (f) => f.type === 'xodr' && !f.relativePath.startsWith('.trash/'),
+    );
     const options = ['', ...xodrFiles.map((f) => f.relativePath)] as const;
 
     return (

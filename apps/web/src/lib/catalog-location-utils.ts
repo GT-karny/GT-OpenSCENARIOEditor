@@ -52,6 +52,37 @@ export function buildCatalogLocationsFromProject(
 }
 
 /**
+ * Compute a relative file path from one file to another, where both paths
+ * are relative to the same root (e.g., project root).
+ *
+ * Example: computeRelativeFilePath('xosc/scenario.xosc', 'xodr/highway.xodr')
+ *   → '../xodr/highway.xodr'
+ */
+export function computeRelativeFilePath(fromFile: string, toFile: string): string {
+  const fromDir = fromFile.includes('/')
+    ? fromFile.substring(0, fromFile.lastIndexOf('/'))
+    : '';
+  if (!fromDir) return toFile;
+
+  const fromParts = fromDir.split('/');
+  const toParts = toFile.split('/');
+
+  // Find common prefix length
+  let common = 0;
+  while (
+    common < fromParts.length &&
+    common < toParts.length - 1 &&
+    fromParts[common] === toParts[common]
+  ) {
+    common++;
+  }
+
+  const ups = '../'.repeat(fromParts.length - common);
+  const remainder = toParts.slice(common).join('/');
+  return ups + remainder;
+}
+
+/**
  * Build CatalogLocations XML string for embedding in an xosc template.
  * Returns `<CatalogLocations/>` if no catalogs are found.
  */

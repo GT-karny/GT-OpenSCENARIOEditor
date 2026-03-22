@@ -14,7 +14,10 @@ import { useScenarioStoreApi } from '../stores/use-scenario-store';
 import { useEditorStore } from '../stores/editor-store';
 import { useProjectStore } from '../stores/project-store';
 import { useCatalogStore } from '../stores/catalog-store';
-import { buildCatalogLocationsFromProject } from '../lib/catalog-location-utils';
+import {
+  buildCatalogLocationsFromProject,
+  computeRelativeFilePath,
+} from '../lib/catalog-location-utils';
 import { editorMetadataStoreApi } from '../stores/editor-metadata-store-instance';
 import * as api from '../lib/project-api';
 
@@ -179,6 +182,34 @@ function resolvePath(base: string, relative: string): string {
   return resolved.join('/');
 }
 
+/**
+ * Convert project-root-relative file references in the document to be relative
+ * to the xosc file location, matching the OpenSCENARIO spec convention.
+ *
+ * Internal state stores paths relative to project root (e.g. "xodr/highway.xodr"),
+ * but the spec expects paths relative to the .xosc file (e.g. "../xodr/highway.xodr").
+ */
+function convertPathsForSerialization(
+  doc: import('@osce/shared').ScenarioDocument,
+  xoscRelativePath: string,
+): import('@osce/shared').ScenarioDocument {
+  const xodrPath = useProjectStore.getState().currentXodrPath;
+  if (!xodrPath || !doc.roadNetwork?.logicFile) return doc;
+
+  const relativeXodrPath = computeRelativeFilePath(xoscRelativePath, xodrPath);
+
+  // Only update if the path actually differs (avoid unnecessary cloning)
+  if (doc.roadNetwork.logicFile.filepath === relativeXodrPath) return doc;
+
+  return {
+    ...doc,
+    roadNetwork: {
+      ...doc.roadNetwork,
+      logicFile: { filepath: relativeXodrPath },
+    },
+  };
+}
+
 async function autoLoadCatalogs(
   xoscFilePath: string,
   catalogLocations: CatalogLocations,
@@ -278,7 +309,10 @@ export function useFileOperations() {
     // Project mode with known file: save via API (overwrite)
     if (currentProject && currentFilePath) {
       try {
-        const doc = storeApi.getState().document;
+        const doc = convertPathsForSerialization(
+          storeApi.getState().document,
+          currentFilePath,
+        );
         const serializer = new XoscSerializer();
         const xml = serializer.serializeFormatted(doc);
         await useProjectStore.getState().saveCurrentFile(xml);
@@ -360,7 +394,10 @@ export function useFileOperations() {
       const currentProject = useProjectStore.getState().currentProject;
       if (!currentProject) return;
 
-      const doc = storeApi.getState().document;
+      const doc = convertPathsForSerialization(
+        storeApi.getState().document,
+        relativePath,
+      );
       const serializer = new XoscSerializer();
       const xml = serializer.serializeFormatted(doc);
 

@@ -271,7 +271,7 @@ function TrashFileItem({
   const originalPath = file.relativePath.replace(/^\.trash\//, '');
 
   return (
-    <div className="group flex items-center gap-1.5 px-2 py-1 text-xs text-[var(--color-text-muted)] hover:bg-[var(--color-glass-2)]">
+    <div className="group flex items-center gap-1.5 px-2 py-1 text-xs text-[var(--color-text-tertiary)] hover:bg-[var(--color-glass-2)]">
       <span className="w-3 shrink-0" />
       {getFileIcon(file)}
       <span className="truncate flex-1" title={originalPath}>
@@ -281,7 +281,7 @@ function TrashFileItem({
         <button
           type="button"
           onClick={() => onRestore(file.relativePath)}
-          className="p-0.5 hover:bg-[var(--color-glass-3)] rounded-none text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+          className="p-0.5 hover:bg-[var(--color-glass-3)] rounded-none text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]"
           title={t('fileTree.restore')}
         >
           <Undo2 size={10} />
@@ -289,7 +289,7 @@ function TrashFileItem({
         <button
           type="button"
           onClick={() => onPermanentDelete(file.relativePath, file.name)}
-          className="p-0.5 hover:bg-[var(--color-glass-3)] rounded-none text-[var(--color-text-muted)] hover:text-red-400"
+          className="p-0.5 hover:bg-[var(--color-glass-3)] rounded-none text-[var(--color-text-tertiary)] hover:text-red-400"
           title={t('fileTree.permanentDelete')}
         >
           <X size={10} />
@@ -485,7 +485,7 @@ export function FileTreeSidebar({ onCollapse }: FileTreeSidebarProps) {
             <button
               type="button"
               onClick={() => setTrashExpanded((prev) => !prev)}
-              className="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs text-[var(--color-text-muted)] hover:bg-[var(--color-glass-2)] transition-colors"
+              className="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs text-[var(--color-text-tertiary)] hover:bg-[var(--color-glass-2)] transition-colors"
             >
               {trashExpanded ? (
                 <ChevronDown size={12} className="shrink-0" />
