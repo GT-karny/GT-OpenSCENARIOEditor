@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import type {
   Trigger,
   Condition,
@@ -123,7 +124,7 @@ interface ConditionItemProps {
 export function ConditionItem({ condition, onUpdateCondition }: ConditionItemProps) {
   const { t } = useTranslation('openscenario');
   const { checkCondition } = useFeatureGate();
-  const entities = useScenarioStore((s) => s.document.entities);
+  const entities = useScenarioStore(useShallow((s) => s.document.entities));
   const entityNames = useMemo(() => entities.map((e) => e.name), [entities]);
 
   const handleConditionEdgeChange = (value: string) => {

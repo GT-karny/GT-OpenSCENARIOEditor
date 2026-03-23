@@ -7,7 +7,7 @@
  * Only shown for editable types (line, arc).
  */
 
-import React, { useRef, useState, useCallback, useMemo } from 'react';
+import React, { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { OdrGeometry, OpenDriveDocument } from '@osce/shared';
@@ -68,6 +68,8 @@ export function EndPointGizmo({
 
   const isEditable = EDITABLE_TYPES.has(geometry.type);
   const isDragging = useRef(false);
+  const activeMoveRef = useRef<((e: PointerEvent) => void) | null>(null);
+  const activeUpRef = useRef<((e: PointerEvent) => void) | null>(null);
 
   // Compute endpoint position
   const endPos = useMemo(() => computeEndpoint(geometry), [geometry]);
@@ -171,11 +173,22 @@ export function EndPointGizmo({
         isDragging.current = false;
       };
 
+      activeMoveRef.current = handleMove;
+      activeUpRef.current = handleUp;
       gl.domElement.addEventListener('pointermove', handleMove);
       gl.domElement.addEventListener('pointerup', handleUp);
     },
     [geometry, index, isEditable, onDragEnd, onTranslateDragEnd, orbitControlsRef, gl, camera, position, endPos, isLastGeometry, openDriveDocument, roadId, onSnapLink, onSnapUnlink],
   );
+
+  // Cleanup listeners on unmount to prevent leaks during mid-drag unmount
+  useEffect(() => {
+    return () => {
+      if (activeMoveRef.current) gl.domElement.removeEventListener('pointermove', activeMoveRef.current);
+      if (activeUpRef.current) gl.domElement.removeEventListener('pointerup', activeUpRef.current);
+      if (orbitControlsRef?.current) orbitControlsRef.current.enabled = true;
+    };
+  }, [gl, orbitControlsRef]);
 
   if (!isEditable) return null;
 

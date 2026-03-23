@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { ScrollArea } from '../ui/scroll-area';
 import { PropertyEditor } from '../property/PropertyEditor';
 import { ScenarioPropertyEditor } from '../property/ScenarioPropertyEditor';
@@ -7,7 +8,7 @@ import { useScenarioStore } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
 
 export function PropertyPanel() {
-  const selectedIds = useEditorStore((s) => s.selection.selectedElementIds);
+  const selectedIds = useEditorStore(useShallow((s) => s.selection.selectedElementIds));
   const selectedId = selectedIds[0] ?? null;
   const selectedSignalKey = useEditorStore((s) => s.selectedSignalKey);
   const roadNetwork = useEditorStore((s) => s.roadNetwork);

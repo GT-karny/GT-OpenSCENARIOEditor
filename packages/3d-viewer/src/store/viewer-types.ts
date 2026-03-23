@@ -101,6 +101,9 @@ export interface ViewerActions {
   toggleMinimap: () => void;
   cycleMinimapSize: () => void;
   setFocusWorldPosition: (pos: [number, number, number] | null) => void;
+
+  /** Reset viewer to edit mode, clearing play-related state */
+  resetToEdit: () => void;
 }
 
 export type ViewerStore = ViewerState & ViewerActions;

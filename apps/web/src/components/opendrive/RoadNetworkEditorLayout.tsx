@@ -70,18 +70,22 @@ export function RoadNetworkEditorLayout() {
   const odrDocument = useOpenDriveStore((s) => s.document);
   const preferences = useEditorStore((s) => s.preferences);
 
-  // Sync roadNetwork from editorStore → openDriveStore on mode entry
+  // Sync roadNetwork from editorStore → openDriveStore on mode entry and file changes.
+  // Reference comparison prevents infinite loops: the reverse subscription (below)
+  // sets editorStore.roadNetwork to the same object reference as odrStore.document,
+  // so subsequent renders will see document === roadNetwork and skip the load.
   useEffect(() => {
     if (roadNetwork) {
-      const store = odrStoreApi.getState();
-      store.loadDocument(roadNetwork);
+      if (odrStoreApi.getState().document !== roadNetwork) {
+        odrStoreApi.getState().loadDocument(roadNetwork);
 
-      // Ensure lane-level links exist for all direct road-to-road connections.
-      // Imported xodr files (especially from third-party tools) may omit these.
-      const allRoadIds = roadNetwork.roads.map((r) => r.id);
-      syncLaneLinksForDirectConnections(store, allRoadIds);
+        // Ensure lane-level links exist for all direct road-to-road connections.
+        // Imported xodr files (especially from third-party tools) may omit these.
+        const allRoadIds = roadNetwork.roads.map((r) => r.id);
+        syncLaneLinksForDirectConnections(odrStoreApi.getState(), allRoadIds);
+      }
     }
-  }, []); // Only on mount
+  }, [roadNetwork, odrStoreApi]);
 
   // Sync openDriveStore → editorStore.roadNetwork reactively + dirty tracking
   useEffect(() => {

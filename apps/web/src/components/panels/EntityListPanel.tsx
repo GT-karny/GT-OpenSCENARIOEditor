@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { Plus } from 'lucide-react';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
@@ -8,8 +9,8 @@ import { useScenarioStore, useScenarioStoreApi } from '../../stores/use-scenario
 import { useEditorStore } from '../../stores/editor-store';
 
 export function EntityListPanel() {
-  const entities = useScenarioStore((s) => s.document.entities);
-  const selectedIds = useEditorStore((s) => s.selection.selectedElementIds);
+  const entities = useScenarioStore(useShallow((s) => s.document.entities));
+  const selectedIds = useEditorStore(useShallow((s) => s.selection.selectedElementIds));
   const setSelection = useEditorStore((s) => s.setSelection);
   const storeApi = useScenarioStoreApi();
   const [addDialogOpen, setAddDialogOpen] = useState(false);

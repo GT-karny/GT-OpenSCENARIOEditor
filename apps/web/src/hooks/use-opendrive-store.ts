@@ -233,6 +233,9 @@ interface OpenDriveSidebarState {
   setSignalPlaceTSnapMode: (mode: SignalTSnapMode) => void;
   setSignalPlaceGhost: (ghost: SignalPlaceGhost | null) => void;
   resetSignalPlace: () => void;
+
+  // Global reset (for file/mode transitions)
+  resetAll: () => void;
 }
 
 export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
@@ -402,6 +405,17 @@ export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
     set((state) => ({
       signalPlace: { ...DEFAULT_SIGNAL_PLACE, selectedPresetId: state.signalPlace.selectedPresetId },
     })),
+
+  resetAll: () =>
+    set({
+      selection: { type: null, id: null },
+      searchQuery: '',
+      activeTool: 'select' as RoadToolMode,
+      roadCreation: DEFAULT_ROAD_CREATION,
+      laneEdit: DEFAULT_LANE_EDIT,
+      junctionCreate: DEFAULT_JUNCTION_CREATE,
+      signalPlace: DEFAULT_SIGNAL_PLACE,
+    }),
 }));
 
 // ---- Derived Data Selectors ----

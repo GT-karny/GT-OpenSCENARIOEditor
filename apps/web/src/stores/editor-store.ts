@@ -119,6 +119,9 @@ export interface EditorState {
   requestPositionPick: (req: PositionPickRequest) => void;
   resolvePositionPick: (data: Omit<PickedPositionData, 'requestId'>) => void;
   cancelPositionPick: () => void;
+
+  // Reset transient state (preserves preferences, panelVisibility, file state)
+  resetTransientState: () => void;
 }
 
 const defaultPreferences: EditorPreferences = {
@@ -271,6 +274,19 @@ export const useEditorStore = create<EditorState>()(
           positionPickRequest: null,
         })),
       cancelPositionPick: () => set({ positionPickRequest: null, pickedPosition: null }),
+
+      // Reset transient state (preserves preferences, panelVisibility, file state)
+      resetTransientState: () =>
+        set({
+          selection: { selectedElementIds: [], hoveredElementId: null, focusedPanelId: null },
+          validationResult: null,
+          focusNodeId: null,
+          focusEntityId: null,
+          selectedSignalKey: null,
+          activeActId: null,
+          positionPickRequest: null,
+          pickedPosition: null,
+        }),
     }),
     {
       name: 'osce-editor-preferences',

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, forwardRef } from 'react';
+import { useState, useRef, useCallback, useEffect, forwardRef } from 'react';
 import { Input } from '../ui/input';
 import { useScenarioStore, useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { PARAMETER_DND_TYPE } from '../parameter/ParameterListItem';
@@ -41,6 +41,7 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
     const [isDragOver, setIsDragOver] = useState(false);
     const [localEditValue, setLocalEditValue] = useState<string | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Filter by name prefix and optionally by accepted parameter types
     const filtered = parameters.filter((p) => {
@@ -149,10 +150,17 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
 
     const handleBlur = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
       // Delay to allow click on suggestion
-      setTimeout(() => setShowSuggestions(false), 150);
+      blurTimerRef.current = setTimeout(() => setShowSuggestions(false), 150);
       setLocalEditValue(null);
       props.onBlur?.(e);
     }, [props]);
+
+    // Cleanup blur timer on unmount
+    useEffect(() => {
+      return () => {
+        if (blurTimerRef.current) clearTimeout(blurTimerRef.current);
+      };
+    }, []);
 
     const handleDropDragOver = useCallback((e: React.DragEvent) => {
       if (e.dataTransfer.types.includes(PARAMETER_DND_TYPE)) {

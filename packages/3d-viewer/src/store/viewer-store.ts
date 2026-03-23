@@ -101,6 +101,14 @@ export function createViewerStore(preferences?: Partial<EditorPreferences>) {
         return { minimapSize: sizes[(idx + 1) % sizes.length] };
       }),
     setFocusWorldPosition: (pos: [number, number, number] | null) => set({ focusWorldPosition: pos }),
+
+    resetToEdit: () =>
+      set({
+        viewerMode: 'edit' as ViewerMode,
+        gizmoMode: 'translate' as GizmoMode,
+        hoverLaneInfo: null,
+        followTargetEntity: null,
+      }),
   }));
 }
 

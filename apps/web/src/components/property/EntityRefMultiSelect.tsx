@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import type { EntityType } from '@osce/shared';
 import { Plus, X, Check } from 'lucide-react';
 import { useScenarioStore } from '../../stores/use-scenario-store';
@@ -22,7 +23,7 @@ const TYPE_LABELS: Record<EntityType, string> = {
 const TYPE_ORDER: EntityType[] = ['vehicle', 'pedestrian', 'miscObject'];
 
 export function EntityRefMultiSelect({ value, onValueChange, className }: EntityRefMultiSelectProps) {
-  const entities = useScenarioStore((s) => s.document.entities);
+  const entities = useScenarioStore(useShallow((s) => s.document.entities));
   const parameters = useScenarioStore((s) => s.document.parameterDeclarations);
 
   const [open, setOpen] = useState(false);

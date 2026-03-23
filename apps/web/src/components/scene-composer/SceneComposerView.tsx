@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { Car, Plus } from 'lucide-react';
 import { useScenarioStore, useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
@@ -20,7 +21,7 @@ import type { Act } from '@osce/shared';
 export function SceneComposerView() {
   const storeApi = useScenarioStoreApi();
   const stories = useScenarioStore((s) => s.document.storyboard.stories);
-  const selectedIds = useEditorStore((s) => s.selection.selectedElementIds);
+  const selectedIds = useEditorStore(useShallow((s) => s.selection.selectedElementIds));
   const activeActId = useEditorStore((s) => s.activeActId);
   const setActiveActId = useEditorStore((s) => s.setActiveActId);
   const activeSimIds = useActiveSimulationIds();

@@ -4,7 +4,7 @@
  * Dragging the endpoint sphere rotates the heading of the geometry segment.
  */
 
-import React, { useMemo, useRef, useState, useCallback } from 'react';
+import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { OdrGeometry } from '@osce/shared';
@@ -36,6 +36,8 @@ export function TangentHandle({
   const sphereRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
   const isDragging = useRef(false);
+  const activeMoveRef = useRef<((e: PointerEvent) => void) | null>(null);
+  const activeUpRef = useRef<((e: PointerEvent) => void) | null>(null);
 
   // Compute tangent endpoint in OpenDRIVE coords
   const { endPos, linePoints } = useMemo(() => {
@@ -136,11 +138,22 @@ export function TangentHandle({
         isDragging.current = false;
       };
 
+      activeMoveRef.current = handleMove;
+      activeUpRef.current = handleUp;
       gl.domElement.addEventListener('pointermove', handleMove);
       gl.domElement.addEventListener('pointerup', handleUp);
     },
     [geometry.x, geometry.y, endPos, index, handleLength, onHeadingChange, orbitControlsRef, gl, camera],
   );
+
+  // Cleanup listeners on unmount to prevent leaks during mid-drag unmount
+  useEffect(() => {
+    return () => {
+      if (activeMoveRef.current) gl.domElement.removeEventListener('pointermove', activeMoveRef.current);
+      if (activeUpRef.current) gl.domElement.removeEventListener('pointerup', activeUpRef.current);
+      if (orbitControlsRef?.current) orbitControlsRef.current.enabled = true;
+    };
+  }, [gl, orbitControlsRef]);
 
   if (!selected) return null;
 

@@ -7,6 +7,7 @@ import type { StoreApi } from 'zustand';
 import type { ScenarioStore } from '@osce/scenario-engine';
 import type { ScenarioDocument } from '@osce/shared';
 import { ScenarioStoreContext } from '../components/NodeEditorProvider.js';
+import { useShallow } from 'zustand/react/shallow';
 import { useEditorStore } from './use-editor-store.js';
 import type { TimelineEventData } from '../components/TimelineEvent.js';
 
@@ -71,7 +72,7 @@ function extractTimelineData(doc: ScenarioDocument, selectedIds: string[]): Time
 
 export function useTimelineData(): TimelineTrackData[] {
   const scenarioStore = useContext(ScenarioStoreContext) as StoreApi<ScenarioStore> | null;
-  const selectedIds = useEditorStore((s) => s.selectedElementIds);
+  const selectedIds = useEditorStore(useShallow((s) => s.selectedElementIds));
 
   return useMemo(() => {
     if (!scenarioStore) return [];

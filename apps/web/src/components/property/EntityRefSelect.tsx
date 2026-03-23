@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import type { EntityType } from '@osce/shared';
 import { ChevronDown, Check } from 'lucide-react';
 import { useScenarioStore } from '../../stores/use-scenario-store';
@@ -30,7 +31,7 @@ export function EntityRefSelect({
   placeholder = 'Select entity...',
   className,
 }: EntityRefSelectProps) {
-  const entities = useScenarioStore((s) => s.document.entities);
+  const entities = useScenarioStore(useShallow((s) => s.document.entities));
   const parameters = useScenarioStore((s) => s.document.parameterDeclarations);
 
   const [open, setOpen] = useState(false);

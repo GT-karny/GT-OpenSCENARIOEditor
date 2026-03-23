@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect, memo } from 'react';
 import { useStore } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
 import { SceneComposerView } from '../scene-composer/SceneComposerView';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import type { ImperativePanelHandle, ImperativePanelGroupHandle } from 'react-resizable-panels';
@@ -98,7 +99,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   highlightedPositionElementIds?: string[];
 }) {
   const simStatus = useSimulationStore((s) => s.status);
-  const simFrames = useSimulationStore((s) => s.frames);
+  const simFrames = useSimulationStore(useShallow((s) => s.frames));
   const currentFrameIndex = useSimulationStore((s) => s.currentFrameIndex);
 
   // Compute display frame based on simulation state:
@@ -216,7 +217,7 @@ export function EditorLayout() {
   }, [currentProject, autoLoadProjectCatalogs, scenarioStoreApi]);
 
   // --- Selection sync ---
-  const selectedElementIds = useEditorStore((s) => s.selection.selectedElementIds);
+  const selectedElementIds = useEditorStore(useShallow((s) => s.selection.selectedElementIds));
   const hoveredElementId = useEditorStore((s) => s.selection.hoveredElementId);
   const roadNetwork = useEditorStore((s) => s.roadNetwork);
   const preferences = useEditorStore((s) => s.preferences);
@@ -311,11 +312,26 @@ export function EditorLayout() {
 
   // --- Simulation state ---
   const [viewerMode, setViewerMode] = useState<ViewerMode>('edit');
+  const handleViewerModeChange = useCallback(
+    (mode: ViewerMode) => {
+      if (mode === 'edit') {
+        useSimulationStore.getState().pause();
+      }
+      setViewerMode(mode);
+    },
+    [],
+  );
+
+  // Reset viewerMode to 'edit' when switching editor modes (scenario ↔ roadNetwork)
+  useEffect(() => {
+    setViewerMode('edit');
+  }, [editorMode]);
+
   const simStatus = useSimulationStore((s) => s.status);
   // NOTE: Do NOT subscribe to s.frames here — it changes 30x/sec and would
   // re-render the entire EditorLayout. Frames are subscribed in
   // SimulationViewerBridge below, which only re-renders the 3D viewer.
-  const activeElements = useSimulationStore((s) => s.activeElements);
+  const activeElements = useSimulationStore(useShallow((s) => s.activeElements));
 
   const activeNodeIds = useMemo(() => {
     if (activeElements.length === 0) return [];
@@ -579,7 +595,7 @@ export function EditorLayout() {
                       useEditorStore.getState().setFocusEntityId(null);
                     }}
                     onEntityPositionChange={handleEntityPositionChange}
-                    onViewerModeChange={setViewerMode}
+                    onViewerModeChange={handleViewerModeChange}
                     preferences={{
                       showGrid3D: preferences.showGrid3D,
                       showLaneIds: preferences.showLaneIds,

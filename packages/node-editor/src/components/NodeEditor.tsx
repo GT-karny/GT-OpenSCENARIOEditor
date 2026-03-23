@@ -16,6 +16,7 @@ import {
   applyEdgeChanges,
   BackgroundVariant,
 } from '@xyflow/react';
+import { useShallow } from 'zustand/react/shallow';
 import { osceNodeTypes } from '../nodes/node-registry.js';
 import { osceEdgeTypes } from '../edges/edge-registry.js';
 import { useEditorStore } from '../hooks/use-editor-store.js';
@@ -44,8 +45,8 @@ export function NodeEditor({
   disableBuiltinShortcuts = false,
   className,
 }: NodeEditorProps) {
-  const nodes = useEditorStore((s) => s.nodes);
-  const edges = useEditorStore((s) => s.edges);
+  const nodes = useEditorStore(useShallow((s) => s.nodes));
+  const edges = useEditorStore(useShallow((s) => s.edges));
   const setNodes = useEditorStore((s) => s.setNodes);
   const setEdges = useEditorStore((s) => s.setEdges);
   const setViewport = useEditorStore((s) => s.setViewport);
