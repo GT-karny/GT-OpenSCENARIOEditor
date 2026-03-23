@@ -54,6 +54,12 @@ export function useAppLifecycle() {
 
     // 5. Reset OpenDRIVE sidebar tool state
     useOdrSidebarStore.getState().resetAll();
+
+    // 6. Clear file handles, paths, names, dirty flags
+    useEditorStore.getState().resetFileState();
+
+    // 7. Reset editor metadata (virtual roads, junction metadata)
+    editorMetadataStoreApi.getState().resetMetadata();
   }, []);
 
   const resetForNewRoadNetwork = useCallback(() => {

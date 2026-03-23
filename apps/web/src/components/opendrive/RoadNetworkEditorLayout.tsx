@@ -89,15 +89,20 @@ export function RoadNetworkEditorLayout() {
 
   // Sync openDriveStore → editorStore.roadNetwork reactively + dirty tracking
   useEffect(() => {
+    let mounted = true;
     let prevDoc = odrStoreApi.getState().document;
     const unsub = odrStoreApi.subscribe((state: { document: OpenDriveDocument }) => {
+      if (!mounted) return;
       useEditorStore.getState().setRoadNetwork(state.document);
       if (state.document !== prevDoc) {
         prevDoc = state.document;
         useEditorStore.getState().setRoadNetworkDirty(true);
       }
     });
-    return unsub;
+    return () => {
+      mounted = false;
+      unsub();
+    };
   }, [odrStoreApi]);
 
   // --- Selection from sidebar store ---

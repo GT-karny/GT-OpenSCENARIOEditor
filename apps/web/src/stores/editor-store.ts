@@ -122,6 +122,9 @@ export interface EditorState {
 
   // Reset transient state (preserves preferences, panelVisibility, file state)
   resetTransientState: () => void;
+
+  // Reset file-related state (handles, paths, names, dirty flags, road network)
+  resetFileState: () => void;
 }
 
 const defaultPreferences: EditorPreferences = {
@@ -286,6 +289,25 @@ export const useEditorStore = create<EditorState>()(
           activeActId: null,
           positionPickRequest: null,
           pickedPosition: null,
+          showSaveAs: false,
+          saveAsFileType: 'xosc' as const,
+        }),
+
+      // Reset file-related state (for project close / new file)
+      resetFileState: () =>
+        set({
+          xoscFileHandle: null,
+          xodrFileHandle: null,
+          osceFileHandle: null,
+          xoscFilePath: null,
+          xodrFilePath: null,
+          osceFilePath: null,
+          currentFileName: null,
+          roadNetworkFileName: null,
+          isDirty: false,
+          isRoadNetworkDirty: false,
+          roadNetwork: null,
+          roadNetworkXml: null,
         }),
     }),
     {
