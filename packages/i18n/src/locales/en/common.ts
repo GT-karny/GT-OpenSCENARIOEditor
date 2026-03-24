@@ -34,6 +34,7 @@ export const common = {
     templates: 'Templates',
     simulation: 'Simulation',
     parameters: 'Parameters',
+    variables: 'Variables',
   },
   timeline: {
     entity: 'Entity',
@@ -73,6 +74,9 @@ export const common = {
     parameterType: 'Parameter Type',
     defaultValue: 'Default Value',
     noParameters: 'No parameters defined',
+    addVariable: 'Add Variable',
+    variableType: 'Variable Type',
+    noVariables: 'No variables defined',
     definitionTab: 'Definition',
     initialStateTab: 'Initial State',
   },

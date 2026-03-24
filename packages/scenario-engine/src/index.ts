@@ -14,6 +14,7 @@ export {
   createDefaultTrigger,
   createDefaultConditionGroup,
   createParameterFromPartial,
+  createVariableFromPartial,
   createEntityFromPartial,
   createStoryFromPartial,
   createActFromPartial,

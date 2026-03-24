@@ -10,6 +10,7 @@ import type {
   EditorMetadata,
   ScenarioEntity,
   ParameterDeclaration,
+  VariableDeclaration,
   Storyboard,
   Init,
   Story,
@@ -169,6 +170,15 @@ export function createParameterFromPartial(partial: Partial<ParameterDeclaration
     parameterType: partial.parameterType ?? 'double',
     value: partial.value ?? '0',
     constraintGroups: partial.constraintGroups,
+  };
+}
+
+export function createVariableFromPartial(partial: Partial<VariableDeclaration>): VariableDeclaration {
+  return {
+    id: partial.id ?? uuidv4(),
+    name: partial.name ?? 'NewVariable',
+    variableType: partial.variableType ?? 'double',
+    value: partial.value ?? '0',
   };
 }
 

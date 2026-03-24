@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect, forwardRef } from 'react';
 import { Input } from '../ui/input';
 import { useScenarioStore, useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { PARAMETER_DND_TYPE } from '../parameter/ParameterListItem';
+import { VARIABLE_DND_TYPE } from '../variable/VariableListItem';
 import { cn } from '@/lib/utils';
 
 interface ParameterAwareInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value'> {
@@ -27,6 +28,7 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
     onValueChange, value, className, acceptedTypes, elementId, fieldName, ...props
   }, _ref) {
     const parameters = useScenarioStore((s) => s.document.parameterDeclarations);
+    const variables = useScenarioStore((s) => s.document.variableDeclarations);
     const binding = useScenarioStore((s) =>
       elementId && fieldName
         ? s.document._editor.parameterBindings[elementId]?.[fieldName] ?? null
@@ -43,20 +45,31 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
     const inputRef = useRef<HTMLInputElement>(null);
     const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Filter by name prefix and optionally by accepted parameter types
-    const filtered = parameters.filter((p) => {
-      if (acceptedTypes && !acceptedTypes.includes(p.parameterType)) return false;
-      return p.name.toLowerCase().startsWith(filter.toLowerCase());
-    });
+    // Merge parameters and variables into a unified suggestion list
+    const filtered: { name: string; type: string; value: string; kind: 'param' | 'var' }[] = [];
+    const lowerFilter = filter.toLowerCase();
+    for (const p of parameters) {
+      if (acceptedTypes && !acceptedTypes.includes(p.parameterType)) continue;
+      if (p.name.toLowerCase().startsWith(lowerFilter)) {
+        filtered.push({ name: p.name, type: p.parameterType, value: p.value, kind: 'param' });
+      }
+    }
+    for (const v of variables) {
+      if (acceptedTypes && !acceptedTypes.includes(v.variableType)) continue;
+      if (v.name.toLowerCase().startsWith(lowerFilter)) {
+        filtered.push({ name: v.name, type: v.variableType, value: v.value, kind: 'var' });
+      }
+    }
 
     // Determine display value: binding overrides the actual value for numeric fields
     const displayValue = localEditValue ?? binding ?? String(value);
     const isBound = binding !== null;
 
-    // Resolve the parameter's current value for the badge shown on bound fields
+    // Resolve the parameter/variable's current value for the badge shown on bound fields
     const activeRef = binding ?? localEditValue;
     const resolvedParam = activeRef
       ? parameters.find((p) => `$${p.name}` === activeRef)
+        ?? variables.find((v) => `$${v.name}` === activeRef)
       : null;
 
     const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -163,7 +176,7 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
     }, []);
 
     const handleDropDragOver = useCallback((e: React.DragEvent) => {
-      if (e.dataTransfer.types.includes(PARAMETER_DND_TYPE)) {
+      if (e.dataTransfer.types.includes(PARAMETER_DND_TYPE) || e.dataTransfer.types.includes(VARIABLE_DND_TYPE)) {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
         setIsDragOver(true);
@@ -178,7 +191,7 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
       (e: React.DragEvent) => {
         e.preventDefault();
         setIsDragOver(false);
-        const paramName = e.dataTransfer.getData(PARAMETER_DND_TYPE);
+        const paramName = e.dataTransfer.getData(PARAMETER_DND_TYPE) || e.dataTransfer.getData(VARIABLE_DND_TYPE);
         if (!paramName) return;
 
         const replacement = `$${paramName}`;
@@ -223,19 +236,20 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
         )}
         {showSuggestions && filtered.length > 0 && (
           <div className="absolute z-50 top-full left-0 mt-1 w-full max-h-32 overflow-auto rounded border border-[var(--color-border-glass)] bg-[var(--color-bg-deep)] shadow-md">
-            {filtered.map((p, i) => (
+            {filtered.map((item, i) => (
               <button
-                key={p.id}
+                key={`${item.kind}-${item.name}`}
                 type="button"
                 className={cn(
                   'w-full px-2 py-1 text-left text-xs flex items-center gap-2 hover:bg-[var(--color-glass-1)]',
                   i === selectedIndex && 'bg-[var(--color-glass-1)]',
                 )}
-                onMouseDown={(e) => { e.preventDefault(); handleSelect(p.name); }}
+                onMouseDown={(e) => { e.preventDefault(); handleSelect(item.name); }}
               >
-                <span className="font-medium text-[var(--color-accent-1)]">${p.name}</span>
-                <span className="text-[var(--color-text-tertiary)] text-[10px]">{p.parameterType}</span>
-                <span className="text-[var(--color-text-tertiary)] text-[10px] ml-auto">= {p.value}</span>
+                <span className="font-medium text-[var(--color-accent-1)]">${item.name}</span>
+                <span className="text-[var(--color-text-tertiary)] text-[10px]">{item.kind === 'var' ? 'var' : 'param'}</span>
+                <span className="text-[var(--color-text-tertiary)] text-[10px]">{item.type}</span>
+                <span className="text-[var(--color-text-tertiary)] text-[10px] ml-auto">= {item.value}</span>
               </button>
             ))}
           </div>

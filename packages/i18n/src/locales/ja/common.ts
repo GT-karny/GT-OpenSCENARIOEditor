@@ -34,6 +34,7 @@ export const common = {
     templates: 'テンプレート',
     simulation: 'シミュレーション',
     parameters: 'パラメータ',
+    variables: '変数',
   },
   timeline: {
     entity: 'エンティティ',
@@ -73,6 +74,9 @@ export const common = {
     parameterType: 'パラメータ型',
     defaultValue: 'デフォルト値',
     noParameters: 'パラメータが定義されていません',
+    addVariable: '変数を追加',
+    variableType: '変数型',
+    noVariables: '変数が定義されていません',
     definitionTab: '定義',
     initialStateTab: '初期状態',
   },

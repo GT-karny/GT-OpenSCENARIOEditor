@@ -5,7 +5,7 @@
 
 import type { ScenarioDocument } from '../types/scenario.js';
 import type { ScenarioEntity } from '../types/entities.js';
-import type { ParameterDeclaration } from '../types/parameters.js';
+import type { ParameterDeclaration, VariableDeclaration } from '../types/parameters.js';
 import type {
   Story, Act, ManeuverGroup, Maneuver, ScenarioEvent,
 } from '../types/storyboard.js';
@@ -23,6 +23,12 @@ export interface IScenarioService {
   removeParameter(paramId: string): void;
   updateParameter(paramId: string, updates: Partial<ParameterDeclaration>): void;
   renameParameter(paramId: string, newName: string): void;
+
+  // --- Variable operations ---
+  addVariable(partial: Partial<VariableDeclaration>): VariableDeclaration;
+  removeVariable(varId: string): void;
+  updateVariable(varId: string, updates: Partial<VariableDeclaration>): void;
+  renameVariable(varId: string, newName: string): void;
 
   // --- Parameter binding operations ---
   setParameterBinding(elementId: string, fieldName: string, paramRef: string): void;

@@ -8,6 +8,7 @@ import type {
   ScenarioDocument,
   ScenarioEntity,
   ParameterDeclaration,
+  VariableDeclaration,
   FileHeader,
   RoadNetwork,
   CatalogLocations,
@@ -32,6 +33,10 @@ import {
   AddParameterCommand, RemoveParameterCommand, UpdateParameterCommand,
   RenameParameterCommand, SetParameterBindingCommand, RemoveParameterBindingCommand,
 } from '../commands/parameter-commands.js';
+import {
+  AddVariableCommand, RemoveVariableCommand, UpdateVariableCommand,
+  RenameVariableCommand,
+} from '../commands/variable-commands.js';
 import { AddStoryCommand, RemoveStoryCommand } from '../commands/story-commands.js';
 import { AddActCommand, RemoveActCommand } from '../commands/act-commands.js';
 import { AddManeuverGroupCommand, RemoveManeuverGroupCommand } from '../commands/maneuver-group-commands.js';
@@ -149,6 +154,32 @@ export function createScenarioStore() {
 
       renameParameter: (paramId: string, newName: string): void => {
         const cmd = new RenameParameterCommand(paramId, newName, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
+      // --- Variable operations ---
+      addVariable: (partial: Partial<VariableDeclaration>): VariableDeclaration => {
+        const cmd = new AddVariableCommand(partial, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+        return cmd.getCreatedVariable();
+      },
+
+      removeVariable: (varId: string): void => {
+        const cmd = new RemoveVariableCommand(varId, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
+      updateVariable: (varId: string, updates: Partial<VariableDeclaration>): void => {
+        const cmd = new UpdateVariableCommand(varId, updates, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
+      renameVariable: (varId: string, newName: string): void => {
+        const cmd = new RenameVariableCommand(varId, newName, getDoc, setDoc);
         commandHistory.execute(cmd);
         syncUndoRedo();
       },
