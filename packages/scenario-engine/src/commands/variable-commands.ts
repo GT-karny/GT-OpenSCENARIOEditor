@@ -7,7 +7,11 @@ import type { ScenarioDocument, VariableDeclaration } from '@osce/shared';
 import { BaseCommand } from './base-command.js';
 import { createVariableFromPartial } from '../store/defaults.js';
 import { findVariableById, findVariableIndex } from '../operations/variable-operations.js';
-import { deepReplaceParamRef, replaceInBindings } from '../operations/parameter-rename-utils.js';
+import {
+  deepReplaceParamRef,
+  deepReplaceDirectRef,
+  replaceInBindings,
+} from '../operations/parameter-rename-utils.js';
 
 export type GetDoc = () => ScenarioDocument;
 export type SetDoc = (doc: ScenarioDocument) => void;
@@ -143,8 +147,11 @@ export class RenameVariableCommand extends BaseCommand {
       // 2. Update all bindings values (shared parameterBindings map)
       replaceInBindings(draft._editor.parameterBindings, oldName, this.newName);
 
-      // 3. Deep-replace in all string values throughout the document
+      // 3. Deep-replace $VarName in all string values throughout the document
       deepReplaceParamRef(draft, oldName, this.newName);
+
+      // 4. Replace direct variableRef fields (e.g., VariableAction, VariableCondition)
+      deepReplaceDirectRef(draft, 'variableRef', oldName, this.newName);
     }));
   }
 

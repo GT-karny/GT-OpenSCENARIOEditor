@@ -51,7 +51,11 @@ export {
 
 // Operations
 export { getElementById, getParentOf } from './operations/tree-traversal.js';
-export { deepReplaceParamRef, replaceInBindings, escapeRegex } from './operations/parameter-rename-utils.js';
+export { deepReplaceParamRef, deepReplaceDirectRef, replaceInBindings, escapeRegex } from './operations/parameter-rename-utils.js';
+export { deepReplaceEntityRef, deepRemoveEntityRef } from './operations/entity-rename-utils.js';
+export { findEntityRefUsages } from './operations/entity-ref-utils.js';
+export type { EntityRefUsage } from './operations/entity-ref-utils.js';
+export type { EntityCleanupOption } from './commands/entity-commands.js';
 
 // Component Engine
 export { applyUseCaseComponent, reconcileComponent } from './components/component-engine.js';

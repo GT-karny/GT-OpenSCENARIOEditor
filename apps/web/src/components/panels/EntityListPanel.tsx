@@ -1,12 +1,22 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { Plus } from 'lucide-react';
+import { findEntityRefUsages } from '@osce/scenario-engine';
+import type { EntityRefUsage, EntityCleanupOption } from '@osce/scenario-engine';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
 import { EntityListItem } from '../entity/EntityListItem';
 import { AddEntityDialog } from '../entity/AddEntityDialog';
+import { DeleteEntityDialog } from '../entity/DeleteEntityDialog';
 import { useScenarioStore, useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
+
+interface DeleteTarget {
+  id: string;
+  name: string;
+  usages: EntityRefUsage[];
+  availableEntities: string[];
+}
 
 export function EntityListPanel() {
   const entities = useScenarioStore(useShallow((s) => s.document.entities));
@@ -14,13 +24,51 @@ export function EntityListPanel() {
   const setSelection = useEditorStore((s) => s.setSelection);
   const storeApi = useScenarioStoreApi();
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
 
-  const handleDelete = (id: string) => {
-    storeApi.getState().removeEntity(id);
-    if (selectedIds.includes(id)) {
-      setSelection({ selectedElementIds: selectedIds.filter((eid) => eid !== id) });
-    }
-  };
+  const executeDelete = useCallback(
+    (id: string, cleanupOption?: EntityCleanupOption) => {
+      storeApi.getState().removeEntity(id, cleanupOption);
+      if (selectedIds.includes(id)) {
+        setSelection({ selectedElementIds: selectedIds.filter((eid) => eid !== id) });
+      }
+    },
+    [storeApi, selectedIds, setSelection],
+  );
+
+  const handleDelete = useCallback(
+    (id: string) => {
+      const state = storeApi.getState();
+      const entity = state.document.entities.find((e) => e.id === id);
+      if (!entity) return;
+
+      // Check for entityRef usages (excluding init.entityActions which are always cleaned up)
+      const usages = findEntityRefUsages(state.document, entity.name).filter(
+        (u) => u.type !== 'initAction',
+      );
+
+      if (usages.length === 0) {
+        // No references — delete directly
+        executeDelete(id);
+      } else {
+        // Show dialog for user to choose cleanup action
+        const availableEntities = state.document.entities
+          .filter((e) => e.id !== id)
+          .map((e) => e.name);
+        setDeleteTarget({ id, name: entity.name, usages, availableEntities });
+      }
+    },
+    [storeApi, executeDelete],
+  );
+
+  const handleDeleteConfirm = useCallback(
+    (option: EntityCleanupOption) => {
+      if (!deleteTarget) return;
+      executeDelete(deleteTarget.id, option);
+      setDeleteTarget(null);
+    },
+    [deleteTarget, executeDelete],
+  );
 
   return (
     <div className="flex flex-col h-full">
@@ -51,6 +99,17 @@ export function EntityListPanel() {
       </ScrollArea>
 
       <AddEntityDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
+
+      {deleteTarget && (
+        <DeleteEntityDialog
+          open
+          onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+          entityName={deleteTarget.name}
+          usages={deleteTarget.usages}
+          availableEntities={deleteTarget.availableEntities}
+          onConfirm={handleDeleteConfirm}
+        />
+      )}
     </div>
   );
 }
