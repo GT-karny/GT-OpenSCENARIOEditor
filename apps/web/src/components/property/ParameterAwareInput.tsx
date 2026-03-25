@@ -1,9 +1,10 @@
-import { useState, useRef, useCallback, useEffect, forwardRef } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo, forwardRef } from 'react';
 import { Input } from '../ui/input';
 import { useScenarioStore, useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { PARAMETER_DND_TYPE } from '../parameter/ParameterListItem';
 import { VARIABLE_DND_TYPE } from '../variable/VariableListItem';
 import { cn } from '@/lib/utils';
+import { isExpression, looksLikeExpression, evaluateExpression } from '@/lib/expression-utils';
 
 interface ParameterAwareInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value'> {
   onValueChange: (value: string) => void;
@@ -22,6 +23,7 @@ interface ParameterAwareInputProps extends Omit<React.InputHTMLAttributes<HTMLIn
  *
  * For text fields: value can contain `$ParamName` directly.
  * For numeric fields: provide `elementId` + `fieldName` to use the parameter bindings map.
+ * Also supports OpenSCENARIO v1.3.1 expressions: `${250/3.6}`, `${$speed * 0.5}`.
  */
 export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareInputProps>(
   function ParameterAwareInput({
@@ -45,6 +47,10 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
     const inputRef = useRef<HTMLInputElement>(null);
     const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // Ref to always have the latest localEditValue (avoids stale closure in blur/keydown)
+    const localEditValueRef = useRef<string | null>(null);
+    localEditValueRef.current = localEditValue;
+
     // Merge parameters and variables into a unified suggestion list
     const filtered: { name: string; type: string; value: string; kind: 'param' | 'var' }[] = [];
     const lowerFilter = filter.toLowerCase();
@@ -62,15 +68,46 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
     }
 
     // Determine display value: binding overrides the actual value for numeric fields
-    const displayValue = localEditValue ?? binding ?? String(value);
+    // Strip ${} wrapper for display — users see raw expressions (e.g. "250/3.6" not "${250/3.6}")
+    const displayBinding = binding && isExpression(binding) ? binding.slice(2, -1) : binding;
+    const displayValue = localEditValue ?? displayBinding ?? String(value);
     const isBound = binding !== null;
+    const isExpr = binding ? isExpression(binding) : false;
+    const isParamRef = isBound && !isExpr;
 
     // Resolve the parameter/variable's current value for the badge shown on bound fields
     const activeRef = binding ?? localEditValue;
-    const resolvedParam = activeRef
+    const resolvedParam = activeRef && !isExpression(activeRef)
       ? parameters.find((p) => `$${p.name}` === activeRef)
         ?? variables.find((v) => `$${v.name}` === activeRef)
       : null;
+
+    // Evaluate expression to show computed result
+    const evaluatedResult = useMemo(() => {
+      if (!isExpr || !binding) return undefined;
+      return evaluateExpression(binding, parameters, variables);
+    }, [isExpr, binding, parameters, variables]);
+
+    /** Save an expression or $param to parameterBindings. Auto-wraps arithmetic in ${}. */
+    const confirmExpression = useCallback((expr: string) => {
+      if (!elementId || !fieldName) return false;
+      // Already wrapped: ${...}
+      if (isExpression(expr)) {
+        storeApi.getState().setParameterBinding(elementId, fieldName, expr);
+        return true;
+      }
+      // Contains arithmetic operators → auto-wrap in ${...}
+      if (looksLikeExpression(expr)) {
+        storeApi.getState().setParameterBinding(elementId, fieldName, `\${${expr.trim()}}`);
+        return true;
+      }
+      // $ParamName → save as parameter reference
+      if (expr.startsWith('$')) {
+        storeApi.getState().setParameterBinding(elementId, fieldName, expr);
+        return true;
+      }
+      return false;
+    }, [elementId, fieldName, storeApi]);
 
     const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
       const val = e.target.value;
@@ -81,9 +118,9 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
         storeApi.getState().removeParameterBinding(elementId, fieldName);
       }
 
-      // For numeric fields: don't propagate $-prefixed values to parent
-      // (parent would parseFloat them to NaN/0)
-      if (elementId && fieldName && val.startsWith('$')) {
+      // For numeric fields: hold $-prefixed values and arithmetic expressions
+      // in local state (parent would parseFloat them to NaN/0)
+      if (elementId && fieldName && (val.startsWith('$') || looksLikeExpression(val))) {
         setLocalEditValue(val);
       } else {
         setLocalEditValue(null);
@@ -94,12 +131,12 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
       const beforeCursor = val.substring(0, pos);
       const dIdx = beforeCursor.lastIndexOf('$');
       if (dIdx !== -1) {
-        // Only trigger if $ is at start or preceded by whitespace/expression chars
+        // Only trigger if $ is at start or preceded by whitespace/operator/expression chars
         const charBefore = dIdx > 0 ? beforeCursor[dIdx - 1] : ' ';
-        if (charBefore === ' ' || charBefore === '{' || dIdx === 0) {
+        if (dIdx === 0 || /[\s{+\-*/%,(]/.test(charBefore)) {
           const fragment = beforeCursor.substring(dIdx + 1);
-          // Only show if fragment doesn't contain spaces
-          if (!fragment.includes(' ')) {
+          // Only show if fragment looks like a parameter name (no operators/spaces)
+          if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(fragment) || fragment === '') {
             setFilter(fragment);
             setDollarIndex(dIdx);
             setShowSuggestions(true);
@@ -114,7 +151,14 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
     const handleSelect = useCallback((paramName: string) => {
       const replacement = `$${paramName}`;
 
-      if (elementId && fieldName) {
+      if (elementId && fieldName && localEditValue && (localEditValue.startsWith('${') || looksLikeExpression(localEditValue))) {
+        // Inside expression: insert param ref at $ position within the expression
+        const afterDollar = localEditValue.substring(dollarIndex + 1);
+        const nextDelim = afterDollar.search(/[\s}+\-*/%(),]/);
+        const endPos = dollarIndex + 1 + (nextDelim === -1 ? afterDollar.length : nextDelim);
+        const newVal = localEditValue.substring(0, dollarIndex) + replacement + localEditValue.substring(endPos);
+        setLocalEditValue(newVal);
+      } else if (elementId && fieldName) {
         // Numeric field: set binding instead of changing the value
         storeApi.getState().setParameterBinding(elementId, fieldName, replacement);
         setLocalEditValue(null);
@@ -130,9 +174,20 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
 
       setShowSuggestions(false);
       inputRef.current?.focus();
-    }, [value, dollarIndex, onValueChange, elementId, fieldName, storeApi]);
+    }, [value, dollarIndex, localEditValue, onValueChange, elementId, fieldName, storeApi]);
 
     const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+      // Confirm expression on Enter — but only when no suggestion is available to select
+      const hasSuggestions = showSuggestions && filtered.length > 0;
+      if (e.key === 'Enter' && !hasSuggestions && localEditValueRef.current && elementId && fieldName) {
+        if (confirmExpression(localEditValueRef.current)) {
+          setLocalEditValue(null);
+          setShowSuggestions(false);
+          e.preventDefault();
+          return;
+        }
+      }
+
       if (!showSuggestions || filtered.length === 0) {
         props.onKeyDown?.(e);
         return;
@@ -152,7 +207,7 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
       } else {
         props.onKeyDown?.(e);
       }
-    }, [showSuggestions, filtered, selectedIndex, handleSelect, props]);
+    }, [showSuggestions, filtered, selectedIndex, handleSelect, confirmExpression, elementId, fieldName, props]);
 
     const handleFocus = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
       if (elementId && fieldName) {
@@ -164,9 +219,14 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
     const handleBlur = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
       // Delay to allow click on suggestion
       blurTimerRef.current = setTimeout(() => setShowSuggestions(false), 150);
+      // Confirm complete expression on blur (use ref for latest value)
+      const editVal = localEditValueRef.current;
+      if (editVal) {
+        confirmExpression(editVal);
+      }
       setLocalEditValue(null);
       props.onBlur?.(e);
-    }, [props]);
+    }, [confirmExpression, props]);
 
     // Cleanup blur timer on unmount
     useEffect(() => {
@@ -215,7 +275,10 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
         onDrop={handleDropParam}
       >
         <Input
+          {...props}
           ref={inputRef}
+          type="text"
+          inputMode={elementId && fieldName ? 'text' : undefined}
           value={displayValue}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
@@ -224,12 +287,19 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
           className={cn(
             className,
             resolvedParam && 'pr-16',
-            isBound && 'text-[var(--color-accent-1)] font-medium',
+            isExpr && 'pr-16 text-[var(--color-accent-2)] font-mono text-[11px]',
+            isParamRef && 'text-[var(--color-accent-1)] font-medium',
             isDragOver && 'ring-2 ring-[var(--color-accent-1)] border-[var(--color-accent-1)]',
           )}
-          {...props}
         />
-        {resolvedParam && (
+        {isExpr && (
+          <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[9px] font-mono text-[var(--color-accent-2)] opacity-70 pointer-events-none select-none tabular-nums">
+            {evaluatedResult !== undefined
+              ? `= ${Number.isInteger(evaluatedResult) ? evaluatedResult : evaluatedResult.toFixed(2)}`
+              : 'fx'}
+          </span>
+        )}
+        {isParamRef && resolvedParam && (
           <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[var(--color-text-tertiary)] pointer-events-none select-none tabular-nums">
             = {resolvedParam.value}
           </span>
