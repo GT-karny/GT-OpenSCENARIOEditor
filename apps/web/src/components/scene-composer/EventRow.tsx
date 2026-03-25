@@ -5,6 +5,7 @@ import { cn } from '../../lib/utils';
 import { useFlashState } from '../../hooks/use-flash-state';
 import { TriggerSummaryBadges } from './TriggerSummaryBadges';
 import { ActionItem } from './ActionItem';
+import { isCustomName } from './name-utils';
 
 interface EventRowProps {
   event: ScenarioEvent;
@@ -88,8 +89,13 @@ export function EventRow({
           <Zap className={cn('h-3 w-3 shrink-0', eventFlash !== 'idle' ? 'text-emerald-400' : 'text-[var(--color-accent-vivid)]')} />
         )}
 
-        {/* Trigger summary */}
+        {/* Event name (shown only when user has set a custom name) + Trigger summary */}
         <div className="flex-1 min-w-0 flex items-start gap-1">
+          {isCustomName(event.name, 'event') && (
+            <span className="text-[11px] font-semibold text-[var(--color-accent-1)] shrink-0">
+              {event.name}:
+            </span>
+          )}
           <TriggerSummaryBadges trigger={event.startTrigger} t={t} />
           <ChevronRight className="h-2.5 w-2.5 shrink-0 text-[var(--color-text-muted)] mt-0.5" />
         </div>

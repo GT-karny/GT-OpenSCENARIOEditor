@@ -141,7 +141,12 @@ export function ActionPropertyEditor({ action, onUpdate }: ActionPropertyEditorP
 
       <div className="grid gap-2">
         <Label className="text-xs">Name</Label>
-        <Input value={action.name} readOnly className="h-8 text-sm bg-muted" />
+        <Input
+          value={action.name}
+          onChange={(e) => onUpdate(action.id, { name: e.target.value })}
+          className="h-8 text-sm"
+          placeholder="Action name"
+        />
       </div>
 
       {/* Category — Segmented Control */}

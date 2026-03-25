@@ -82,8 +82,24 @@ export function EventPropertyEditor({ event }: EventPropertyEditorProps) {
     storeApi.getState().updateCondition(conditionId, partial);
   };
 
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const trimmed = e.target.value;
+    storeApi.getState().updateEvent(event.id, { name: trimmed });
+  };
+
   return (
     <div className="flex flex-col gap-3 p-2">
+      {/* Event Name */}
+      <div className="grid gap-1.5">
+        <Label className="text-xs">Name</Label>
+        <Input
+          value={event.name}
+          onChange={handleNameChange}
+          className="h-8 text-sm"
+          placeholder="Event name"
+        />
+      </div>
+
       {/* Priority — Segmented Control */}
       <div className="grid gap-1.5">
         <Label className="text-xs">{tc('catalog.priority')}</Label>
