@@ -26,6 +26,7 @@ export interface ConversionOptions {
   collapsedNodes: Record<string, boolean>;
   savedPositions: Record<string, { x: number; y: number }>;
   selectedIds: string[];
+  parameterBindings?: Record<string, Record<string, string>>;
 }
 
 export interface ConversionResult {
@@ -45,7 +46,7 @@ export function documentToFlow(
 ): ConversionResult {
   const nodes: Node<OsceNodeData>[] = [];
   const edges: Edge[] = [];
-  const { collapsedNodes, savedPositions } = options;
+  const { collapsedNodes, savedPositions, parameterBindings: bindings } = options;
 
   resetEdgeCounter();
 
@@ -66,9 +67,9 @@ export function documentToFlow(
 
   // --- Stop Trigger ---
   if (sb.stopTrigger.conditionGroups.length > 0) {
-    nodes.push(createTriggerNode(sb.stopTrigger, 'stop', posFor(sb.stopTrigger.id, savedPositions)));
+    nodes.push(createTriggerNode(sb.stopTrigger, 'stop', posFor(sb.stopTrigger.id, savedPositions), bindings));
     edges.push(createHierarchyEdge(sb.id, sb.stopTrigger.id));
-    addConditionNodes(sb.stopTrigger.id, sb.stopTrigger, nodes, edges, savedPositions);
+    addConditionNodes(sb.stopTrigger.id, sb.stopTrigger, nodes, edges, savedPositions, bindings);
   }
 
   // --- Stories ---
@@ -87,16 +88,16 @@ export function documentToFlow(
 
       // Act start trigger
       if (act.startTrigger.conditionGroups.length > 0) {
-        nodes.push(createTriggerNode(act.startTrigger, 'start', posFor(act.startTrigger.id, savedPositions)));
+        nodes.push(createTriggerNode(act.startTrigger, 'start', posFor(act.startTrigger.id, savedPositions), bindings));
         edges.push(createTriggerEdge(act.startTrigger.id, act.id, 'start'));
-        addConditionNodes(act.startTrigger.id, act.startTrigger, nodes, edges, savedPositions);
+        addConditionNodes(act.startTrigger.id, act.startTrigger, nodes, edges, savedPositions, bindings);
       }
 
       // Act stop trigger
       if (act.stopTrigger && act.stopTrigger.conditionGroups.length > 0) {
-        nodes.push(createTriggerNode(act.stopTrigger, 'stop', posFor(act.stopTrigger.id, savedPositions)));
+        nodes.push(createTriggerNode(act.stopTrigger, 'stop', posFor(act.stopTrigger.id, savedPositions), bindings));
         edges.push(createTriggerEdge(act.stopTrigger.id, act.id, 'stop'));
-        addConditionNodes(act.stopTrigger.id, act.stopTrigger, nodes, edges, savedPositions);
+        addConditionNodes(act.stopTrigger.id, act.stopTrigger, nodes, edges, savedPositions, bindings);
       }
 
       if (actCollapsed) continue;
@@ -120,21 +121,21 @@ export function documentToFlow(
           // --- Events ---
           for (const event of maneuver.events) {
             const eventCollapsed = collapsedNodes[event.id] ?? false;
-            nodes.push(createEventNode(event, posFor(event.id, savedPositions), eventCollapsed));
+            nodes.push(createEventNode(event, posFor(event.id, savedPositions), eventCollapsed, bindings));
             edges.push(createHierarchyEdge(maneuver.id, event.id));
 
             // Event start trigger
             if (event.startTrigger.conditionGroups.length > 0) {
-              nodes.push(createTriggerNode(event.startTrigger, 'start', posFor(event.startTrigger.id, savedPositions)));
+              nodes.push(createTriggerNode(event.startTrigger, 'start', posFor(event.startTrigger.id, savedPositions), bindings));
               edges.push(createTriggerEdge(event.startTrigger.id, event.id, 'start'));
-              addConditionNodes(event.startTrigger.id, event.startTrigger, nodes, edges, savedPositions);
+              addConditionNodes(event.startTrigger.id, event.startTrigger, nodes, edges, savedPositions, bindings);
             }
 
             if (eventCollapsed) continue;
 
             // --- Actions ---
             for (const action of event.actions) {
-              nodes.push(createActionNode(action, posFor(action.id, savedPositions)));
+              nodes.push(createActionNode(action, posFor(action.id, savedPositions), bindings));
               edges.push(createHierarchyEdge(event.id, action.id));
             }
           }
@@ -152,11 +153,12 @@ function addConditionNodes(
   nodes: Node<OsceNodeData>[],
   edges: Edge[],
   savedPositions: Record<string, { x: number; y: number }>,
+  bindings?: Record<string, Record<string, string>>,
 ): void {
   for (const group of trigger.conditionGroups) {
     for (const condition of group.conditions) {
       const cond = condition as { id: string; name: string; delay: number; conditionEdge: string; condition: unknown };
-      nodes.push(createConditionNode(cond as Parameters<typeof createConditionNode>[0], posFor(cond.id, savedPositions)));
+      nodes.push(createConditionNode(cond as Parameters<typeof createConditionNode>[0], posFor(cond.id, savedPositions), bindings));
       edges.push(createHierarchyEdge(triggerId, cond.id));
     }
   }

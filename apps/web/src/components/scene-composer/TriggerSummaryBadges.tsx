@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
 import type { Trigger } from '@osce/shared';
+import { useScenarioStore } from '../../stores/use-scenario-store';
 import type { TranslateFunc } from './trigger-summary';
 import { getConditionNaturalSummary } from './trigger-summary';
 
@@ -13,6 +14,7 @@ interface TriggerSummaryBadgesProps {
  * Groups are separated by `||`, conditions within a group by `&`.
  */
 export function TriggerSummaryBadges({ trigger, t }: TriggerSummaryBadgesProps) {
+  const bindings = useScenarioStore((s) => s.document._editor.parameterBindings);
   const groups = trigger.conditionGroups.filter((g) => g.conditions.length > 0);
 
   if (groups.length === 0) {
@@ -32,7 +34,7 @@ export function TriggerSummaryBadges({ trigger, t }: TriggerSummaryBadgesProps) 
             <Fragment key={cond.id}>
               {ci > 0 && <OperatorBadge op="&" />}
               <span className="text-[11px] font-medium text-[var(--color-text-primary)]">
-                {getConditionNaturalSummary(cond, t)}
+                {getConditionNaturalSummary(cond, t, bindings)}
               </span>
             </Fragment>
           ))}

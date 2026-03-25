@@ -20,6 +20,7 @@ import {
 import type { ScenarioAction } from '@osce/shared';
 import { cn } from '../../lib/utils';
 import { useFlashState } from '../../hooks/use-flash-state';
+import { useScenarioStore } from '../../stores/use-scenario-store';
 import { getActionSummary } from './action-summary';
 
 interface ActionItemProps {
@@ -64,8 +65,9 @@ export const actionIcons: Record<string, React.ComponentType<{ className?: strin
  * A single action row within an EventRow, shown indented under the trigger.
  */
 export function ActionItem({ action, selected, running, onSelect, onRemove }: ActionItemProps) {
+  const bindings = useScenarioStore((s) => s.document._editor.parameterBindings);
   const Icon = actionIcons[action.action.type] ?? Settings;
-  const summary = getActionSummary(action);
+  const summary = getActionSummary(action, bindings);
   const flash = useFlashState(running ?? false);
 
   return (

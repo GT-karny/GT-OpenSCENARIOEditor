@@ -40,6 +40,26 @@ export function looksLikeExpression(v: string): boolean {
 }
 
 /**
+ * Resolve a binding-aware display value for summary strings.
+ * If a binding exists for the given field, return the binding (stripped of ${}).
+ * Otherwise return the numeric value as string.
+ */
+export function resolveBindingDisplay(
+  value: number | string | undefined | null,
+  fieldPath: string,
+  elementBindings?: Record<string, string>,
+): string {
+  const binding = elementBindings?.[fieldPath];
+  if (binding) {
+    if (binding.startsWith('${') && binding.endsWith('}')) {
+      return binding.slice(2, -1);
+    }
+    return binding;
+  }
+  return String(value ?? '');
+}
+
+/**
  * Evaluate an OpenSCENARIO expression by resolving $param references
  * and computing the arithmetic result.
  *

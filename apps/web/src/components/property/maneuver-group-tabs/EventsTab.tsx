@@ -2,7 +2,7 @@ import type { ScenarioEvent, EventPriority } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { EnumSelect } from '../EnumSelect';
-import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
+import { useScenarioStore, useScenarioStoreApi } from '../../../stores/use-scenario-store';
 import { useEditorStore } from '../../../stores/editor-store';
 import { EVENT_PRIORITIES } from '../../../constants/osc-enum-values';
 import { getActionSummary, getActionTypeLabel } from '../../scene-composer/action-summary';
@@ -12,6 +12,7 @@ interface EventsTabProps {
 }
 
 export function EventsTab({ events }: EventsTabProps) {
+  const bindings = useScenarioStore((s) => s.document._editor.parameterBindings);
   const storeApi = useScenarioStoreApi();
 
   const handleSelectEvent = (eventId: string) => {
@@ -47,7 +48,7 @@ export function EventsTab({ events }: EventsTabProps) {
             {/* Action summary (read-only) */}
             {firstAction && (
               <p className="text-[10px] text-muted-foreground truncate px-1">
-                {getActionTypeLabel(firstAction)}: {getActionSummary(firstAction)}
+                {getActionTypeLabel(firstAction)}: {getActionSummary(firstAction, bindings)}
               </p>
             )}
 
