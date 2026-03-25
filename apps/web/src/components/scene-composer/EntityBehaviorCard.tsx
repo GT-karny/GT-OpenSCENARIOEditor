@@ -161,7 +161,10 @@ export function EntityBehaviorCard({ group, selected, onSelect, activeSimIds, on
         selected && 'selected border-l-2 border-l-[var(--color-accent-1)]',
         isGroupRunning && !selected && 'border-l-2 border-l-emerald-400/60 shadow-[0_0_12px_rgba(52,211,153,0.2)]',
       )}
-      onClick={onSelect}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect();
+      }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
