@@ -14,8 +14,7 @@ import { worldToLane } from '@osce/opendrive';
 import { HeaderToolbar } from './HeaderToolbar';
 import { StatusBar } from './StatusBar';
 import { EntityListPanel } from '../panels/EntityListPanel';
-import { ParameterListPanel } from '../panels/ParameterListPanel';
-import { VariableListPanel } from '../panels/VariableListPanel';
+import { VariablesPanel } from '../panels/VariablesPanel';
 import { PropertyPanel } from '../panels/PropertyPanel';
 import { ValidationPanel } from '../panels/ValidationPanel';
 import { SimulationTimeline } from '../panels/SimulationTimeline';
@@ -702,9 +701,6 @@ export function EditorLayout() {
                         <TabsTrigger value="entities" className="apex-tab flex-1">
                           {t('panels.entityList')}
                         </TabsTrigger>
-                        <TabsTrigger value="parameters" className="apex-tab flex-1">
-                          {t('panels.parameters')}
-                        </TabsTrigger>
                         <TabsTrigger value="variables" className="apex-tab flex-1">
                           {t('panels.variables')}
                         </TabsTrigger>
@@ -712,11 +708,8 @@ export function EditorLayout() {
                       <TabsContent value="entities" className="flex-1 overflow-hidden mt-0">
                         <EntityListPanel />
                       </TabsContent>
-                      <TabsContent value="parameters" className="flex-1 overflow-hidden mt-0">
-                        <ParameterListPanel />
-                      </TabsContent>
                       <TabsContent value="variables" className="flex-1 overflow-hidden mt-0">
-                        <VariableListPanel />
+                        <VariablesPanel />
                       </TabsContent>
                     </Tabs>
                   </div>
