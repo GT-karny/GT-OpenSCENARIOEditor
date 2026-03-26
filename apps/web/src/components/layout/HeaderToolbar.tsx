@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from '@osce/i18n';
-import { Navigation, Home } from 'lucide-react';
+import { Navigation, Home, TrafficCone } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { Button } from '../ui/button';
 import { FileMenu } from '../toolbar/FileMenu';
@@ -141,6 +141,8 @@ export function HeaderToolbar() {
       <ValidateButton compact={compact} />
       <Separator orientation="vertical" className="h-5 shrink-0 bg-[var(--color-glass-edge-bright)]" />
       <SimulationButtons compact={compact} />
+      <Separator orientation="vertical" className="h-5 shrink-0 bg-[var(--color-glass-edge-bright)]" />
+      <SignalTimelineToggle compact={compact} />
 
       {/* Spacer — reserves space for the absolute-positioned right controls */}
       <div className="flex-1 min-w-[180px] h-full" />
@@ -151,5 +153,29 @@ export function HeaderToolbar() {
         <WindowControls />
       </div>
     </div>
+  );
+}
+
+function SignalTimelineToggle({ compact }: { compact: boolean }) {
+  const show = useEditorStore((s) => s.showIntersectionTimeline);
+  const toggle = useEditorStore((s) => s.toggleIntersectionTimeline);
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggle}
+            className={`h-7 gap-1.5 px-2 text-xs font-medium ${show ? 'text-[var(--color-accent)]' : ''}`}
+          >
+            <TrafficCone className="size-3.5" />
+            {!compact && 'Signals'}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Signal Timeline</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

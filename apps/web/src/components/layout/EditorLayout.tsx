@@ -18,6 +18,7 @@ import { VariablesPanel } from '../panels/VariablesPanel';
 import { PropertyPanel } from '../panels/PropertyPanel';
 import { ValidationPanel } from '../panels/ValidationPanel';
 import { SimulationTimeline } from '../panels/SimulationTimeline';
+import { IntersectionTimelinePanel } from '../panels/intersection-timeline';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { NodeEditorContextMenu } from '../node-editor/NodeEditorContextMenu';
 import { WaypointContextMenu } from '../route/WaypointContextMenu';
@@ -223,6 +224,7 @@ export function EditorLayout() {
   const preferences = useEditorStore((s) => s.preferences);
   const focusNodeId = useEditorStore((s) => s.focusNodeId);
   const focusEntityId = useEditorStore((s) => s.focusEntityId);
+  const showIntersectionTimeline = useEditorStore((s) => s.showIntersectionTimeline);
   const selectedEntityId = selectedElementIds.length === 1 ? selectedElementIds[0] : null;
 
   // Resolve ManeuverGroup selection → first actor entity ID for 3D highlighting
@@ -576,7 +578,9 @@ export function EditorLayout() {
         </>
       ) : (
       <>
-      <PanelGroup direction="horizontal" className="flex-1">
+      <PanelGroup direction="vertical" className="flex-1">
+        <Panel defaultSize={showIntersectionTimeline ? 70 : 100} minSize={30}>
+      <PanelGroup direction="horizontal" className="h-full">
         {/* Left section: 3D Viewer (top) + Editing area (bottom) */}
         <Panel defaultSize={75} minSize={40}>
           <PanelGroup direction="vertical">
@@ -795,6 +799,20 @@ export function EditorLayout() {
             </Tabs>
           </div>
         </Panel>
+      </PanelGroup>
+        </Panel>
+
+        {/* Intersection timeline (signal controller phase visualization) */}
+        {showIntersectionTimeline && (
+          <>
+            <ResizeHandleH />
+            <Panel defaultSize={30} minSize={10} maxSize={60}>
+              <div className="h-full border-t border-[var(--color-glass-edge-mid)]">
+                <IntersectionTimelinePanel />
+              </div>
+            </Panel>
+          </>
+        )}
       </PanelGroup>
 
       {/* Simulation timeline (visible during/after simulation in play mode) */}

@@ -59,6 +59,16 @@ export { classifySignal } from './utils/signal-geometry.js';
 export type { SignalCategory } from './utils/signal-geometry.js';
 export { resolveSignalPosition } from './utils/signal-position-resolver.js';
 
+// Signal catalog (types, data, and state parsing for 2D consumers)
+export type {
+  SignalDescriptor,
+  BulbDefinition,
+  BulbColor,
+  BulbFaceShape,
+} from './utils/signal-catalog.js';
+export { SIGNAL_CATALOG, resolveSignalDescriptor } from './utils/signal-catalog.js';
+export { isBulbActiveByIndex } from './utils/parse-traffic-light-state.js';
+
 // Road editing gizmos
 export { RoadEditingLayer } from './interaction/road-editing/index.js';
 export { computeAutoArc, computeGeometryEndpoint } from './interaction/road-editing/index.js';

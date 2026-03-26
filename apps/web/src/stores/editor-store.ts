@@ -120,6 +120,10 @@ export interface EditorState {
   resolvePositionPick: (data: Omit<PickedPositionData, 'requestId'>) => void;
   cancelPositionPick: () => void;
 
+  // Intersection Timeline panel visibility
+  showIntersectionTimeline: boolean;
+  toggleIntersectionTimeline: () => void;
+
   // Reset transient state (preserves preferences, panelVisibility, file state)
   resetTransientState: () => void;
 
@@ -278,6 +282,11 @@ export const useEditorStore = create<EditorState>()(
         })),
       cancelPositionPick: () => set({ positionPickRequest: null, pickedPosition: null }),
 
+      // Intersection Timeline
+      showIntersectionTimeline: false,
+      toggleIntersectionTimeline: () =>
+        set((state) => ({ showIntersectionTimeline: !state.showIntersectionTimeline })),
+
       // Reset transient state (preserves preferences, panelVisibility, file state)
       resetTransientState: () =>
         set({
@@ -316,6 +325,7 @@ export const useEditorStore = create<EditorState>()(
         preferences: state.preferences,
         panelVisibility: state.panelVisibility,
         entityPropertyTab: state.entityPropertyTab,
+        showIntersectionTimeline: state.showIntersectionTimeline,
       }),
       merge: (persisted, current) => {
         const p = persisted as Partial<EditorState>;
