@@ -6,7 +6,7 @@
  * Columns = phases (shared across all tracks).
  */
 
-import { useMemo, useCallback, useState } from 'react';
+import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { Plus, Trash2 } from 'lucide-react';
 import type { TrafficSignalController } from '@osce/shared';
@@ -100,50 +100,49 @@ export function IntersectionTimelinePanel() {
   // Track metadata (editor-local, keyed by controller ID)
   const [trackMetaMap, setTrackMetaMap] = useState<Record<string, TrackMeta[]>>({});
 
-  // Get or auto-generate tracks for current controller
-  const tracks: TrackDefinition[] = useMemo(() => {
-    if (!selectedController) return [];
-
-    const existing = trackMetaMap[selectedController.id];
-    if (existing && existing.length > 0) {
-      return existing.map((meta) => ({
-        trackKey: meta.trackKey,
-        label: meta.label,
-        catalogKey: meta.catalogKey,
-        descriptor: SIGNAL_CATALOG.get(meta.catalogKey) ?? DEFAULT_DESCRIPTOR,
-        signalIds: meta.signalIds,
-        pendingStates: meta.pendingStates,
-      }));
-    }
-
-    // Auto-generate from existing phase data
-    const seen = new Map<string, TrackMeta>();
-    for (const phase of selectedController.phases) {
-      for (const st of phase.trafficSignalStates) {
-        if (!seen.has(st.trafficSignalId)) {
-          const key = `track_${++trackCounter}`;
-          seen.set(st.trafficSignalId, {
-            trackKey: key,
-            label: `Signal ${st.trafficSignalId}`,
-            catalogKey: '1000001',
-            signalIds: [st.trafficSignalId],
-          });
+  // Auto-generate tracks for a controller that has phase data but no track metadata yet.
+  // This runs as an effect (not inside useMemo) to avoid setState-during-render.
+  const autoGenRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!selectedController) return;
+    const cid = selectedController.id;
+    // Skip if already generated or if trackMetaMap already has entries
+    if (autoGenRef.current.has(cid)) return;
+    setTrackMetaMap((prev) => {
+      if (prev[cid] && prev[cid].length > 0) return prev;
+      const seen = new Map<string, TrackMeta>();
+      for (const phase of selectedController.phases) {
+        for (const st of phase.trafficSignalStates) {
+          if (!seen.has(st.trafficSignalId)) {
+            const key = `track_${++trackCounter}`;
+            seen.set(st.trafficSignalId, {
+              trackKey: key,
+              label: `Signal ${st.trafficSignalId}`,
+              catalogKey: '1000001',
+              signalIds: [st.trafficSignalId],
+            });
+          }
         }
       }
-    }
+      const generated = Array.from(seen.values());
+      if (generated.length === 0) return prev;
+      autoGenRef.current.add(cid);
+      return { ...prev, [cid]: generated };
+    });
+  }, [selectedController]);
 
-    const generated = Array.from(seen.values());
-    if (generated.length > 0) {
-      // Persist auto-generated tracks
-      setTrackMetaMap((prev) => ({ ...prev, [selectedController.id]: generated }));
-    }
-
-    return generated.map((meta) => ({
+  // Build TrackDefinition[] from trackMetaMap
+  const tracks: TrackDefinition[] = useMemo(() => {
+    if (!selectedController) return [];
+    const metas = trackMetaMap[selectedController.id];
+    if (!metas || metas.length === 0) return [];
+    return metas.map((meta) => ({
       trackKey: meta.trackKey,
       label: meta.label,
       catalogKey: meta.catalogKey,
       descriptor: SIGNAL_CATALOG.get(meta.catalogKey) ?? DEFAULT_DESCRIPTOR,
       signalIds: meta.signalIds,
+      pendingStates: meta.pendingStates,
     }));
   }, [selectedController, trackMetaMap]);
 
@@ -336,17 +335,23 @@ export function IntersectionTimelinePanel() {
     (trackKey: string, signalId: string) => {
       if (!selectedController) return;
 
-      // Find pending states for this track
-      const meta = trackMetaMap[selectedController.id]?.find((t) => t.trackKey === trackKey);
-      const pending = meta?.pendingStates ?? {};
+      // Extract pending states from the latest trackMetaMap via functional updater,
+      // then update signalIds in the same pass to avoid stale closure.
+      let pending: Record<number, string> = {};
+      setTrackMetaMap((prev) => {
+        const metas = prev[selectedController.id] ?? [];
+        const meta = metas.find((t) => t.trackKey === trackKey);
+        pending = meta?.pendingStates ?? {};
+        return {
+          ...prev,
+          [selectedController.id]: metas.map((t) =>
+            t.trackKey === trackKey && !t.signalIds.includes(signalId)
+              ? { ...t, signalIds: [...t.signalIds, signalId] }
+              : t,
+          ),
+        };
+      });
 
-      updateTrackMeta(selectedController.id, (prev) =>
-        prev.map((t) =>
-          t.trackKey === trackKey && !t.signalIds.includes(signalId)
-            ? { ...t, signalIds: [...t.signalIds, signalId] }
-            : t,
-        ),
-      );
       // Add TrafficSignalState entries for this ID in all phases, using pending states
       updateControllerPhases((ctrl) => ({
         ...ctrl,
@@ -362,7 +367,7 @@ export function IntersectionTimelinePanel() {
         }),
       }));
     },
-    [selectedController, updateTrackMeta, updateControllerPhases],
+    [selectedController, updateControllerPhases],
   );
 
   // Remove signal ID from track

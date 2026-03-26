@@ -6,7 +6,7 @@
 
 import { memo, useMemo } from 'react';
 import type { TrafficSignalPhase } from '@osce/shared';
-import type { SignalDescriptor } from '@osce/3d-viewer';
+import type { SignalDescriptor, BulbColor } from '@osce/3d-viewer';
 import { SignalIcon2D } from './SignalIcon2D';
 
 export interface TrackDefinition {
@@ -47,45 +47,84 @@ function getTrackStateInPhase(
   return pendingStates?.[phaseIndex] ?? '';
 }
 
-/** Determine cell background color from state string */
-function cellColor(state: string): { bg: string; text: string } {
+// Color palette for cell backgrounds
+const COLOR_BG: Record<BulbColor | 'off', { bg: string; text: string }> = {
+  red: { bg: 'rgba(239,68,68,0.18)', text: '#f87171' },
+  yellow: { bg: 'rgba(251,191,36,0.18)', text: '#fbbf24' },
+  green: { bg: 'rgba(16,185,129,0.18)', text: '#34d399' },
+  off: { bg: 'rgba(115,115,115,0.08)', text: '#6b7280' },
+};
+
+const LABEL_MAP: Record<BulbColor, string> = { red: 'R', yellow: 'Y', green: 'G' };
+
+/**
+ * Determine cell background color from state string + bulb definitions.
+ * Uses the descriptor's bulb colors instead of assuming [red, yellow, green] order.
+ */
+function cellColor(state: string, bulbs: readonly { color: BulbColor }[]): { bg: string; text: string } {
   if (!state) return { bg: 'transparent', text: '#6b7280' };
   const lower = state.toLowerCase().trim();
-  if (lower === 'off' || lower === 'off;off;off' || !lower) {
-    return { bg: 'rgba(115,115,115,0.08)', text: '#6b7280' };
-  }
+  if (!lower || lower === 'off') return COLOR_BG.off;
+
+  // Check for all-off patterns
+  const allOff = lower.split(';').every((s) => s.trim() === 'off');
+  if (allOff) return COLOR_BG.off;
 
   if (lower.includes(';')) {
     const parts = lower.split(';').map((s) => s.trim());
-    const hasRed = parts[0] === 'on';
-    const hasYellow = parts.length > 1 && parts[1] === 'on';
-    const hasGreen = parts.length > 2 && parts[2] === 'on';
-    if (hasRed && hasGreen) return { bg: 'rgba(239,68,68,0.15)', text: '#f87171' };
-    if (hasGreen) return { bg: 'rgba(16,185,129,0.18)', text: '#34d399' };
-    if (hasYellow) return { bg: 'rgba(251,191,36,0.18)', text: '#fbbf24' };
-    if (hasRed) return { bg: 'rgba(239,68,68,0.18)', text: '#f87171' };
-    if (parts.some((p) => p === 'on')) return { bg: 'rgba(16,185,129,0.18)', text: '#34d399' };
-  } else {
-    if (lower.includes('green') || lower === 'on') return { bg: 'rgba(16,185,129,0.18)', text: '#34d399' };
-    if (lower.includes('yellow')) return { bg: 'rgba(251,191,36,0.18)', text: '#fbbf24' };
-    if (lower.includes('red')) return { bg: 'rgba(239,68,68,0.18)', text: '#f87171' };
+    // Collect active bulb colors using the descriptor
+    const activeColors: BulbColor[] = [];
+    for (let i = 0; i < parts.length; i++) {
+      if (parts[i] === 'on' && i < bulbs.length) {
+        activeColors.push(bulbs[i].color);
+      }
+    }
+    if (activeColors.length === 0) return COLOR_BG.off;
+    // Priority: red > yellow > green (for mixed states like R+Y)
+    if (activeColors.includes('red')) return COLOR_BG.red;
+    if (activeColors.includes('yellow')) return COLOR_BG.yellow;
+    if (activeColors.includes('green')) return COLOR_BG.green;
+    // Fallback for unknown bulb colors
+    return COLOR_BG[activeColors[0]] ?? COLOR_BG.off;
   }
+
+  // Named color format
+  if (lower.includes('green') || lower === 'on') return COLOR_BG.green;
+  if (lower.includes('yellow')) return COLOR_BG.yellow;
+  if (lower.includes('red')) return COLOR_BG.red;
   return { bg: 'rgba(115,115,115,0.08)', text: '#9ca3af' };
 }
 
-/** Short display label for a state */
-function stateLabel(state: string): string {
+/**
+ * Short display label for a state, using bulb definitions for correct naming.
+ */
+function stateLabel(state: string, bulbs: readonly { color: BulbColor }[]): string {
   if (!state) return '—';
   const lower = state.toLowerCase().trim();
-  if (lower === 'off' || lower === 'off;off;off') return 'OFF';
+
+  // All-off patterns
+  if (!lower || lower === 'off') return 'OFF';
+  const parts = lower.split(';').map((s) => s.trim());
+  if (parts.every((s) => s === 'off')) return 'OFF';
+
   if (lower === 'on') return 'ON';
-  if (lower === 'off;off;on' || lower === 'green') return 'G';
-  if (lower === 'off;on;off' || lower === 'yellow') return 'Y';
-  if (lower === 'on;off;off' || lower === 'red') return 'R';
-  if (lower === 'on;on;off') return 'R+Y';
-  if (lower === 'on;off;on') return 'R+G';
-  if (lower === 'on;off') return '1st';
-  if (lower === 'off;on') return '2nd';
+
+  if (lower.includes(';')) {
+    // Build label from active bulb colors
+    const labels: string[] = [];
+    for (let i = 0; i < parts.length; i++) {
+      if (parts[i] === 'on' && i < bulbs.length) {
+        labels.push(LABEL_MAP[bulbs[i].color] ?? `#${i + 1}`);
+      }
+    }
+    if (labels.length === 0) return 'OFF';
+    return labels.join('+');
+  }
+
+  // Named color format
+  if (lower.includes('green')) return 'G';
+  if (lower.includes('yellow')) return 'Y';
+  if (lower.includes('red')) return 'R';
   return state.length > 8 ? state.slice(0, 7) + '…' : state;
 }
 
@@ -131,7 +170,7 @@ export const SignalTrack = memo(function SignalTrack({
       <div className="flex-1 flex items-stretch">
         {phases.map((phase, pi) => {
           const state = getTrackStateInPhase(phase, track.signalIds, pi, track.pendingStates);
-          const colors = cellColor(state);
+          const colors = cellColor(state, track.descriptor.bulbs);
           const isActive = activePhaseIndex === pi;
           const isSelected =
             selectedCell?.phaseIndex === pi && selectedCell?.trackKey === track.trackKey;
@@ -160,7 +199,7 @@ export const SignalTrack = memo(function SignalTrack({
                 className="text-[10px] font-medium"
                 style={{ color: colors.text }}
               >
-                {stateLabel(state)}
+                {stateLabel(state, track.descriptor.bulbs)}
               </span>
             </button>
           );
