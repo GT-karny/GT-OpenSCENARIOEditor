@@ -90,7 +90,7 @@ export function evaluateExpression(
   if (!/^[\d+\-*/%().\s]+$/.test(inner)) return undefined;
 
   try {
-    // eslint-disable-next-line no-new-func
+     
     const result = new Function(`"use strict"; return (${inner});`)() as unknown;
     if (typeof result === 'number' && Number.isFinite(result)) return result;
     return undefined;

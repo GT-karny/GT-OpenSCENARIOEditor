@@ -51,6 +51,7 @@ All packages depend on `@osce/shared` for type contracts. Changes affect every p
 ## Commands
 
 ```bash
+pnpm package          # Full packaging pipeline (typecheck → build → exe)
 pnpm dev              # Start frontend only (port 5173)
 pnpm dev:server       # Start backend only (port 3001)
 pnpm dev:full         # Start frontend + backend (ports 5173, 3001)

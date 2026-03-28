@@ -214,7 +214,7 @@ export function IntersectionTimelinePanel() {
           ...ctrl,
           phases: ctrl.phases.map((phase, pi) => {
             if (pi !== selectedCell.phaseIndex) return phase;
-            let newStates = [...phase.trafficSignalStates];
+            const newStates = [...phase.trafficSignalStates];
             for (const signalId of track.signalIds) {
               const idx = newStates.findIndex((s) => s.trafficSignalId === signalId);
               if (idx >= 0) {
