@@ -25,6 +25,9 @@ import { SignalPlaceInteraction } from './SignalPlaceInteraction.js';
 import type { SignalPlaceGhostData } from './SignalPlaceInteraction.js';
 import { SignalGhostPreview } from './SignalGhostPreview.js';
 import { SignalMoveInteraction } from './SignalMoveInteraction.js';
+import { SignalGizmo } from './SignalGizmo.js';
+import { resolveSignalPosition } from '../../utils/signal-position-resolver.js';
+import { evaluateReferenceLineAtS } from '@osce/opendrive';
 
 interface RoadEditingLayerProps {
   /** Full OpenDRIVE document */
@@ -181,6 +184,10 @@ interface RoadEditingLayerProps {
     newT: number,
     armInfo?: { armLength: number; armAngle: number },
   ) => void;
+
+  // ---- Signal Select Gizmo ----
+  /** Selected signal key (roadId:signalId) for showing gizmo in select mode */
+  selectedSignalKey?: string | null;
 }
 
 export function RoadEditingLayer({
@@ -241,11 +248,36 @@ export function RoadEditingLayer({
   onSignalPlace,
   onSignalGhostUpdate,
   onSignalMove,
+  selectedSignalKey,
 }: RoadEditingLayerProps) {
   const selectedRoad = useMemo(
     () => openDriveDocument.roads.find((r) => r.id === selectedRoadId) ?? null,
     [openDriveDocument.roads, selectedRoadId],
   );
+
+  // Resolve selected signal for gizmo display in select mode
+  const selectedSignalInfo = useMemo(() => {
+    if (!selectedSignalKey || !selectModeActive) return null;
+    const colonIdx = selectedSignalKey.indexOf(':');
+    if (colonIdx < 0) return null;
+    const sigRoadId = selectedSignalKey.slice(0, colonIdx);
+    const sigId = selectedSignalKey.slice(colonIdx + 1);
+    const road = openDriveDocument.roads.find((r) => r.id === sigRoadId);
+    if (!road) return null;
+    const signal = road.signals.find((s) => s.id === sigId);
+    if (!signal) return null;
+    const position = resolveSignalPosition(signal, road);
+    if (!position) return null;
+    // Use road heading (not signal heading which includes hOffset + orientation flip)
+    const pose = evaluateReferenceLineAtS(road.planView, signal.s);
+    const roadHeading = pose?.hdg ?? position.h;
+    return {
+      roadId: sigRoadId,
+      signalId: sigId,
+      signal,
+      position: { ...position, h: roadHeading },
+    };
+  }, [selectedSignalKey, selectModeActive, openDriveDocument.roads]);
 
   const handleControlPointClick = useCallback(
     (index: number) => {
@@ -530,6 +562,20 @@ export function RoadEditingLayer({
           tSnapMode={signalPlaceTSnapMode ?? 'lane-above'}
           onSignalMove={onSignalMove}
           orbitControlsRef={orbitControlsRef}
+        />
+      )}
+
+      {/* Signal gizmo in select mode */}
+      {selectModeActive && selectedSignalInfo && (
+        <SignalGizmo
+          signalPosition={selectedSignalInfo.position}
+          roadId={selectedSignalInfo.roadId}
+          signalId={selectedSignalInfo.signalId}
+          currentS={selectedSignalInfo.signal.s}
+          currentT={selectedSignalInfo.signal.t}
+          openDriveDocument={openDriveDocument}
+          orbitControlsRef={orbitControlsRef}
+          onDragEnd={onSignalMove}
         />
       )}
 

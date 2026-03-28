@@ -823,6 +823,7 @@ function ScenarioViewerScene({
             onSignalPlace={onSignalPlace}
             onSignalGhostUpdate={onSignalGhostUpdate}
             onSignalMove={onSignalMove}
+            selectedSignalKey={selectedSignalKey}
           />
         </group>
       )}
