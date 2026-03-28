@@ -5,7 +5,7 @@
  */
 
 import { memo, useMemo, useState, useCallback } from 'react';
-import { Plus, X, Trash2, Settings2 } from 'lucide-react';
+import { Plus, X, Trash2, Settings2, Crosshair, Check } from 'lucide-react';
 import type { TrafficSignalPhase } from '@osce/shared';
 import type { SignalDescriptor, BulbColor } from '@osce/3d-viewer';
 import { SignalIcon2D } from './SignalIcon2D';
@@ -38,6 +38,12 @@ interface SignalTrackProps {
   onAddSignalId: (trackKey: string, signalId: string) => void;
   onRemoveSignalId: (trackKey: string, signalId: string) => void;
   onDeleteTrack: (trackKey: string) => void;
+  /** Whether this track is the active pick mode target */
+  isPickModeTarget?: boolean;
+  /** Whether any track is in pick mode (disables pick button for non-targets) */
+  isPickModeActive?: boolean;
+  onEnterPickMode?: (trackKey: string) => void;
+  onExitPickMode?: () => void;
 }
 
 /** Get state string for this track in a phase (uses first signalId, falls back to pendingStates) */
@@ -158,6 +164,10 @@ export const SignalTrack = memo(function SignalTrack({
   onAddSignalId,
   onRemoveSignalId,
   onDeleteTrack,
+  isPickModeTarget,
+  isPickModeActive,
+  onEnterPickMode,
+  onExitPickMode,
 }: SignalTrackProps) {
   const [showPopover, setShowPopover] = useState(false);
   const [newIdInput, setNewIdInput] = useState('');
@@ -181,8 +191,16 @@ export const SignalTrack = memo(function SignalTrack({
   }, [newIdInput, onAddSignalId, track.trackKey]);
 
   return (
-    <div className="group/track flex items-stretch h-10 border-b border-[var(--color-glass-edge)]">
-      {/* Track label + signal icon — click to select, settings button for popover */}
+    <div
+      className={`group/track flex items-stretch h-10 border-b border-[var(--color-glass-edge)] ${
+        isPickModeTarget ? 'animate-pulse' : ''
+      }`}
+      style={isPickModeTarget ? {
+        boxShadow: 'inset 0 0 0 2px #00e5ff',
+        backgroundColor: 'rgba(0,229,255,0.08)',
+      } : undefined}
+    >
+      {/* Track label + signal icon — click to select */}
       <div className="relative w-[140px] shrink-0 border-r border-[var(--color-glass-edge)]">
         <button
           type="button"
@@ -200,11 +218,39 @@ export const SignalTrack = memo(function SignalTrack({
             height={36}
           />
           <div className="flex flex-col min-w-0 flex-1">
-            <span className="text-[10px] text-[var(--color-text-primary)] truncate font-medium leading-tight">
+            <span className="text-[10px] text-[var(--color-text-primary)] truncate font-medium leading-tight pr-4">
               {track.label}
             </span>
-            <span className={`text-[9px] truncate leading-tight ${track.signalIds.length > 0 ? 'text-[var(--color-text-secondary)]' : 'text-[var(--color-status-warning)]'}`}>
-              {idsDisplay}
+            {/* ID row + inline 3D Pick / Done button */}
+            <span className="flex items-center gap-1 leading-tight">
+              <span className={`text-[9px] truncate ${track.signalIds.length > 0 ? 'text-[var(--color-text-secondary)]' : 'text-[var(--color-status-warning)]'}`}>
+                {idsDisplay}
+              </span>
+              {isPickModeTarget ? (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => { e.stopPropagation(); onExitPickMode?.(); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onExitPickMode?.(); } }}
+                  className="shrink-0 inline-flex items-center gap-px px-1 py-px text-[8px] font-semibold cursor-pointer hover:opacity-80 transition-opacity"
+                  style={{ backgroundColor: '#00b8d4', color: '#fff' }}
+                >
+                  <Check className="size-2.5" />
+                  Done
+                </span>
+              ) : !isPickModeActive ? (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => { e.stopPropagation(); onEnterPickMode?.(track.trackKey); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onEnterPickMode?.(track.trackKey); } }}
+                  className="shrink-0 inline-flex items-center gap-px px-1 py-px text-[8px] font-medium cursor-pointer opacity-0 group-hover/track:opacity-100 transition-opacity"
+                  style={{ backgroundColor: 'rgba(0,229,255,0.15)', color: '#00e5ff', border: '1px solid rgba(0,229,255,0.4)' }}
+                >
+                  <Crosshair className="size-2.5" />
+                  3D
+                </span>
+              ) : null}
             </span>
           </div>
         </button>

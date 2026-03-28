@@ -5,6 +5,9 @@
  * per-frame InstancedMesh raycast was too expensive (up to 3ms spikes).
  * Click detection uses DOM pointer events and only raycasts on actual clicks.
  *
+ * In pick mode, throttled hover raycasting is re-enabled (100ms interval)
+ * to show action preview feedback on hovered signals.
+ *
  * Signal keys are resolved from mesh.userData:
  * - InstancedMesh: userData.signalKeys[instanceId]
  * - Regular mesh/group: userData.signalKey (traverses up the parent chain)
@@ -19,6 +22,14 @@ interface SignalHoverHandlerProps {
   signalGroupRef: React.RefObject<THREE.Group | null>;
   /** Callback for signal click */
   onSignalSelect?: (key: string) => void;
+  /** Whether pick mode is active (enables hover raycasting) */
+  pickModeActive?: boolean;
+  /** Callback when a signal is hovered during pick mode */
+  onSignalHover?: (signalId: string | null) => void;
+  /** Signal ID → bulb count map (for type filtering in pick mode hover) */
+  signalBulbCountMap?: ReadonlyMap<string, number>;
+  /** Required bulb count for pick mode (incompatible signals ignored) */
+  pickModeBulbCount?: number;
 }
 
 const _raycaster = new THREE.Raycaster();
@@ -40,9 +51,19 @@ function resolveSignalKey(hit: THREE.Intersection): string | null {
   return null;
 }
 
+/** Extract signalId from a key like "roadId:signalId" */
+function extractSignalId(key: string): string {
+  const idx = key.indexOf(':');
+  return idx >= 0 ? key.slice(idx + 1) : key;
+}
+
 export function SignalHoverHandler({
   signalGroupRef,
   onSignalSelect,
+  pickModeActive,
+  onSignalHover,
+  signalBulbCountMap,
+  pickModeBulbCount,
 }: SignalHoverHandlerProps) {
   const { camera, gl } = useThree();
 
@@ -71,14 +92,21 @@ export function SignalHoverHandler({
       for (const hit of hits) {
         const key = resolveSignalKey(hit);
         if (key) {
+          // In pick mode, filter out incompatible signals
+          if (pickModeActive && signalBulbCountMap && pickModeBulbCount != null) {
+            const sid = extractSignalId(key);
+            const bc = signalBulbCountMap.get(sid);
+            if (bc !== pickModeBulbCount) continue;
+          }
           onSignalSelect(key);
           return;
         }
       }
     },
-    [gl, camera, signalGroupRef, onSignalSelect],
+    [gl, camera, signalGroupRef, onSignalSelect, pickModeActive, signalBulbCountMap, pickModeBulbCount],
   );
 
+  // Register click handlers
   useEffect(() => {
     const canvas = gl.domElement;
     canvas.addEventListener('pointerdown', handlePointerDown);
@@ -88,6 +116,71 @@ export function SignalHoverHandler({
       canvas.removeEventListener('pointerup', handlePointerUp);
     };
   }, [gl, handlePointerDown, handlePointerUp]);
+
+  // Pick mode: throttled hover raycasting for preview feedback
+  const lastHoveredRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!pickModeActive || !onSignalHover) return;
+    const canvas = gl.domElement;
+    let throttleTimer: ReturnType<typeof setTimeout> | null = null;
+    let pendingEvent: PointerEvent | null = null;
+
+    const doRaycast = (e: PointerEvent) => {
+      if (!signalGroupRef.current) return;
+      const rect = canvas.getBoundingClientRect();
+      _pointerNdc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      _pointerNdc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      _raycaster.setFromCamera(_pointerNdc, camera);
+
+      const hits = _raycaster.intersectObject(signalGroupRef.current, true);
+      let foundId: string | null = null;
+      for (const hit of hits) {
+        const key = resolveSignalKey(hit);
+        if (key) {
+          const sid = extractSignalId(key);
+          // Filter incompatible signals
+          if (signalBulbCountMap && pickModeBulbCount != null) {
+            const bc = signalBulbCountMap.get(sid);
+            if (bc !== pickModeBulbCount) continue;
+          }
+          foundId = sid;
+          break;
+        }
+      }
+
+      if (foundId !== lastHoveredRef.current) {
+        lastHoveredRef.current = foundId;
+        onSignalHover(foundId);
+      }
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (throttleTimer) {
+        pendingEvent = e;
+        return;
+      }
+      doRaycast(e);
+      throttleTimer = setTimeout(() => {
+        throttleTimer = null;
+        if (pendingEvent) {
+          doRaycast(pendingEvent);
+          pendingEvent = null;
+        }
+      }, 100);
+    };
+
+    canvas.addEventListener('pointermove', handlePointerMove);
+    return () => {
+      canvas.removeEventListener('pointermove', handlePointerMove);
+      if (throttleTimer) clearTimeout(throttleTimer);
+      // Clear hover state when leaving pick mode
+      if (lastHoveredRef.current) {
+        lastHoveredRef.current = null;
+        onSignalHover(null);
+      }
+    };
+  }, [gl, camera, signalGroupRef, pickModeActive, onSignalHover, signalBulbCountMap, pickModeBulbCount]);
 
   return null;
 }

@@ -124,6 +124,14 @@ export interface ScenarioViewerProps {
   onSignalSelect?: (key: string) => void;
   /** Signal IDs to highlight in the viewer (e.g. signals belonging to selected controller) */
   highlightedSignalIds?: ReadonlySet<string>;
+  /** Signal pick mode configuration (null = not in pick mode) */
+  signalPickMode?: {
+    bulbCount: number;
+    trackSignalIds: ReadonlySet<string>;
+    allTrackSignalMap: ReadonlyMap<string, ReadonlySet<string>>;
+  } | null;
+  /** Callback when a signal is hovered during pick mode */
+  onSignalHover?: (signalId: string | null) => void;
   /** Show r3f-perf overlay for performance monitoring */
   showPerf?: boolean;
   /** Whether position pick mode is active */
@@ -326,6 +334,8 @@ function ScenarioViewerScene({
   selectedSignalKey,
   onSignalSelect,
   highlightedSignalIds,
+  signalPickMode,
+  onSignalHover,
   positionPickActive,
   onPositionPicked,
   onPositionPickCancel,
@@ -415,6 +425,8 @@ function ScenarioViewerScene({
   selectedSignalKey?: string | null;
   onSignalSelect?: (key: string) => void;
   highlightedSignalIds?: ReadonlySet<string>;
+  signalPickMode?: ScenarioViewerProps['signalPickMode'];
+  onSignalHover?: (signalId: string | null) => void;
   positionPickActive?: boolean;
   onPositionPicked?: (data: PickedPositionData) => void;
   onPositionPickCancel?: () => void;
@@ -641,6 +653,8 @@ function ScenarioViewerScene({
           onSignalSelect={onSignalSelect}
           currentFrame={currentFrame}
           highlightedSignalIds={highlightedSignalIds}
+          signalPickMode={signalPickMode}
+          onSignalHover={onSignalHover}
         />
       )}
 
@@ -861,6 +875,8 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   selectedSignalKey,
   onSignalSelect,
   highlightedSignalIds,
+  signalPickMode,
+  onSignalHover,
   showPerf,
   positionPickActive,
   onPositionPicked,
@@ -1176,6 +1192,8 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           selectedSignalKey={selectedSignalKey}
           onSignalSelect={onSignalSelect}
           highlightedSignalIds={highlightedSignalIds}
+          signalPickMode={signalPickMode}
+          onSignalHover={onSignalHover}
           positionPickActive={positionPickActive}
           onPositionPicked={onPositionPicked}
           onPositionPickCancel={onPositionPickCancel}

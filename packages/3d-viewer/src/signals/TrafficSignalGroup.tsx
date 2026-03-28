@@ -34,6 +34,16 @@ export interface ResolvedSignal {
   category: SignalCategory;
 }
 
+/** Signal pick mode configuration passed from the app layer */
+export interface SignalPickModeProps {
+  bulbCount: number;
+  trackSignalIds: ReadonlySet<string>;
+  allTrackSignalMap: ReadonlyMap<string, ReadonlySet<string>>;
+}
+
+/** Pick mode category for a signal */
+export type PickCategory = 'currentTrack' | 'otherTrack' | 'available' | 'incompatible';
+
 interface TrafficSignalGroupProps {
   openDriveDocument: OpenDriveDocument | null;
   showLabels: boolean;
@@ -42,10 +52,14 @@ interface TrafficSignalGroupProps {
   currentFrame?: SimulationFrame | null;
   /** Signal IDs to highlight (e.g. signals belonging to the selected controller) */
   highlightedSignalIds?: ReadonlySet<string>;
+  /** Signal pick mode configuration (null = not in pick mode) */
+  signalPickMode?: SignalPickModeProps | null;
+  /** Callback when a signal is hovered during pick mode */
+  onSignalHover?: (signalId: string | null) => void;
 }
 
 export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
-  ({ openDriveDocument, showLabels, selectedSignalKey, onSignalSelect, currentFrame, highlightedSignalIds }) => {
+  ({ openDriveDocument, showLabels, selectedSignalKey, onSignalSelect, currentFrame, highlightedSignalIds, signalPickMode, onSignalHover }) => {
     const signalGroupRef = useRef<THREE.Group>(null);
 
     // Build signal ID → state string map from current simulation frame
@@ -101,6 +115,44 @@ export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
       return map;
     }, [resolvedSignals]);
 
+    // Build signalId → bulbCount map for type checking during pick mode
+    const signalBulbCountMap = useMemo(() => {
+      const map = new Map<string, number>();
+      for (const rs of trafficLightSignals) {
+        const desc = resolveSignalDescriptor(rs.signal);
+        if (desc) map.set(rs.signal.id, desc.bulbs.length);
+      }
+      return map;
+    }, [trafficLightSignals]);
+
+    // Classify signals for pick mode overlays
+    const pickCategoryMap = useMemo(() => {
+      if (!signalPickMode) return null;
+      const map = new Map<string, PickCategory>();
+      const { bulbCount, trackSignalIds, allTrackSignalMap } = signalPickMode;
+
+      // Collect all signal IDs from other tracks
+      const otherTrackIds = new Set<string>();
+      for (const [, ids] of allTrackSignalMap) {
+        for (const id of ids) {
+          if (!trackSignalIds.has(id)) otherTrackIds.add(id);
+        }
+      }
+
+      for (const rs of trafficLightSignals) {
+        const sid = rs.signal.id;
+        if (trackSignalIds.has(sid)) {
+          map.set(sid, 'currentTrack');
+        } else if (otherTrackIds.has(sid)) {
+          map.set(sid, 'otherTrack');
+        } else {
+          const bc = signalBulbCountMap.get(sid);
+          map.set(sid, bc === bulbCount ? 'available' : 'incompatible');
+        }
+      }
+      return map;
+    }, [signalPickMode, trafficLightSignals, signalBulbCountMap]);
+
     // Selection overlay (selected signal only — no hover)
     const overlaySignal = selectedSignalKey ? signalByKey.get(selectedSignalKey) : undefined;
     const showOverlay = overlaySignal?.category === 'trafficLight';
@@ -114,14 +166,42 @@ export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
     }, [signalStateMap]);
     const flashOn = useFlashingClock(anyFlashing);
 
+    // DEBUG: log which overlay layers are active
+    if (process.env.NODE_ENV !== 'production') {
+      const hlCount = highlightedSignalIds
+        ? trafficLightSignals.filter((rs) => highlightedSignalIds.has(rs.signal.id)).length
+        : 0;
+      const pickCount = pickCategoryMap
+        ? trafficLightSignals.filter((rs) => {
+            const c = pickCategoryMap.get(rs.signal.id);
+            return c && c !== 'incompatible';
+          }).length
+        : 0;
+      if (hlCount > 0 || pickCount > 0) {
+        console.debug(
+          '[TrafficSignalGroup] overlays:',
+          `highlight=${hlCount}`,
+          `pick=${pickCount}`,
+          `selectedKey=${selectedSignalKey}`,
+          pickCategoryMap
+            ? `categories=${JSON.stringify(Object.fromEntries(pickCategoryMap))}`
+            : '',
+        );
+      }
+    }
+
     if (resolvedSignals.length === 0) return null;
 
     return (
       <group rotation={[-Math.PI / 2, 0, 0]} ref={signalGroupRef}>
-        {/* Click-only handler (no per-frame hover raycasting) */}
+        {/* Click handler (+ hover raycasting in pick mode) */}
         <SignalHoverHandler
           signalGroupRef={signalGroupRef}
           onSignalSelect={onSignalSelect}
+          pickModeActive={signalPickMode != null}
+          onSignalHover={onSignalHover}
+          signalBulbCountMap={signalPickMode ? signalBulbCountMap : undefined}
+          pickModeBulbCount={signalPickMode?.bulbCount}
         />
 
         {/* Instanced poles for ALL signals (1 draw call) */}
@@ -146,12 +226,25 @@ export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
           />
         )}
 
-        {/* Highlight overlays for signals belonging to selected controller/track */}
+        {/* Highlight overlays — ONLY when NOT in pick mode */}
         {highlightedSignalIds &&
+          !pickCategoryMap &&
           trafficLightSignals
             .filter((rs) => highlightedSignalIds.has(rs.signal.id) && rs.key !== selectedSignalKey)
             .map((rs) => (
               <SignalHighlightOverlay key={`hl-${rs.key}`} signal={rs} />
+            ))}
+
+        {/* Pick mode category overlays (currentTrack only) */}
+        {pickCategoryMap &&
+          trafficLightSignals
+            .filter((rs) => pickCategoryMap.get(rs.signal.id) === 'currentTrack')
+            .map((rs) => (
+              <SignalPickCategoryOverlay
+                key={`pick-${rs.key}`}
+                signal={rs}
+                category="currentTrack"
+              />
             ))}
 
         {/* Non-traffic-light signals: rendered individually (usually few) */}
@@ -176,7 +269,9 @@ export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
             const descriptor =
               rs.category === 'trafficLight' ? resolveSignalDescriptor(rs.signal) : null;
             const headHeight = descriptor ? descriptor.housing.height : 0;
-            const isHighlighted = highlightedSignalIds?.has(rs.signal.id) ?? false;
+            const pickCat = pickCategoryMap?.get(rs.signal.id);
+            const isHighlighted = (highlightedSignalIds?.has(rs.signal.id) ?? false)
+              || pickCat === 'currentTrack';
             return (
               <group
                 key={`label-${rs.key}`}
@@ -250,3 +345,78 @@ const SignalHighlightOverlay: React.FC<{ signal: ResolvedSignal }> = React.memo(
 );
 
 SignalHighlightOverlay.displayName = 'SignalHighlightOverlay';
+
+// ---------------------------------------------------------------------------
+// Pick mode category overlay — colored glow per category
+// ---------------------------------------------------------------------------
+
+const PICK_GLOW_CURRENT_TRACK = new THREE.MeshBasicMaterial({
+  color: new THREE.Color(0.2, 2.5, 0.5), // green
+  transparent: true,
+  opacity: 0.55,
+  side: THREE.DoubleSide,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+});
+
+const PICK_GLOW_OTHER_TRACK = new THREE.MeshBasicMaterial({
+  color: new THREE.Color(2.5, 1.8, 0.2), // orange (same as highlight)
+  transparent: true,
+  opacity: 0.55,
+  side: THREE.DoubleSide,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+});
+
+const PICK_GLOW_AVAILABLE = new THREE.MeshBasicMaterial({
+  color: new THREE.Color(0.5, 1.5, 2.5), // cyan
+  transparent: true,
+  opacity: 0.55,
+  side: THREE.DoubleSide,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+});
+
+const PICK_CATEGORY_MATERIALS: Record<Exclude<PickCategory, 'incompatible'>, THREE.MeshBasicMaterial> = {
+  currentTrack: PICK_GLOW_CURRENT_TRACK,
+  otherTrack: PICK_GLOW_OTHER_TRACK,
+  available: PICK_GLOW_AVAILABLE,
+};
+
+const SignalPickCategoryOverlay: React.FC<{
+  signal: ResolvedSignal;
+  category: Exclude<PickCategory, 'incompatible'>;
+}> = React.memo(({ signal: rs, category }) => {
+  const { signal, position } = rs;
+  const signalHeight = signal.zOffset ?? DEFAULT_SIGNAL_HEIGHT;
+  const poleHeight = signalHeight;
+  const descriptor = resolveSignalDescriptor(signal);
+  if (!descriptor) return null;
+
+  const { housing } = descriptor;
+  const headHeight = housing.height;
+  const isHorizontal = descriptor.orientation === 'horizontal';
+  const rotation: [number, number, number] = isHorizontal
+    ? [0, Math.PI / 2, Math.PI / 2]
+    : [0, Math.PI / 2, 0];
+
+  const pad = 0.06;
+  const boxGeo = getSharedBox(housing.height + pad, housing.width + pad, housing.depth + pad);
+  const material = PICK_CATEGORY_MATERIALS[category];
+
+  return (
+    <group
+      position={[position.x, position.y, position.z - signalHeight]}
+      rotation={[position.pitch ?? 0, position.roll ?? 0, position.h]}
+    >
+      <mesh
+        position={[0, 0, poleHeight + headHeight / 2]}
+        rotation={rotation}
+        geometry={boxGeo}
+        material={material}
+      />
+    </group>
+  );
+});
+
+SignalPickCategoryOverlay.displayName = 'SignalPickCategoryOverlay';

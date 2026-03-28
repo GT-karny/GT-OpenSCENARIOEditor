@@ -95,6 +95,8 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   selectedSignalKey?: string | null;
   onSignalSelect?: (key: string) => void;
   highlightedSignalIds?: ReadonlySet<string>;
+  signalPickMode?: import('@osce/3d-viewer').ScenarioViewerProps['signalPickMode'];
+  onSignalHover?: (signalId: string | null) => void;
   positionPickActive?: boolean;
   onPositionPicked?: (data: PickedPositionData) => void;
   onPositionPickCancel?: () => void;
@@ -158,6 +160,8 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       selectedSignalKey={props.selectedSignalKey}
       onSignalSelect={props.onSignalSelect}
       highlightedSignalIds={props.highlightedSignalIds}
+      signalPickMode={props.signalPickMode}
+      onSignalHover={props.onSignalHover}
       positionPickActive={props.positionPickActive}
       onPositionPicked={props.onPositionPicked}
       onPositionPickCancel={props.onPositionPickCancel}
@@ -266,36 +270,33 @@ export function EditorLayout() {
   }, []);
 
   const selectedSignalKey = useEditorStore((s) => s.selectedSignalKey);
-  const selectedControllerId = useEditorStore((s) => s.selectedControllerId);
   const positionPickRequest = useEditorStore((s) => s.positionPickRequest);
 
   // Signal IDs to highlight in 3D viewer (set by timeline track selection, or all controller signals)
   const storeHighlightedSignalIds = useEditorStore((s) => s.highlightedSignalIds);
-  const trafficSignals = useStore(
-    scenarioStoreApi,
-    useShallow((s) => s.document.roadNetwork?.trafficSignals),
-  );
   const highlightedSignalIds = useMemo(() => {
     if (!showIntersectionTimeline) return undefined;
-    // Track-level selection takes priority
+    // Only highlight when a specific track is selected
     if (storeHighlightedSignalIds && storeHighlightedSignalIds.size > 0) {
       return storeHighlightedSignalIds;
     }
-    // Fallback: highlight all signals in the selected controller
-    if (!selectedControllerId || !trafficSignals) return undefined;
-    const ctrl = trafficSignals.find((c) => c.id === selectedControllerId);
-    if (!ctrl) return undefined;
-    const ids = new Set<string>();
-    for (const phase of ctrl.phases) {
-      for (const st of phase.trafficSignalStates) {
-        ids.add(st.trafficSignalId);
-      }
-    }
-    return ids.size > 0 ? ids : undefined;
-  }, [showIntersectionTimeline, storeHighlightedSignalIds, selectedControllerId, trafficSignals]);
+    return undefined;
+  }, [showIntersectionTimeline, storeHighlightedSignalIds]);
+
+  const signalPickMode = useEditorStore((s) => s.signalPickMode);
 
   const handleSignalSelect = useCallback((key: string) => {
-    useEditorStore.getState().setSelectedSignalKey(key);
+    const state = useEditorStore.getState();
+    if (state.signalPickMode) {
+      // Pick mode: delegate to IntersectionTimelinePanel via pendingSignalPick
+      state.submitSignalPick(key);
+      return;
+    }
+    state.setSelectedSignalKey(key);
+  }, []);
+
+  const handleSignalHover = useCallback((signalId: string | null) => {
+    useEditorStore.getState().setPickModeHoveredSignalId(signalId);
   }, []);
 
   const handlePositionPicked = useCallback((data: PickedPositionData) => {
@@ -614,7 +615,58 @@ export function EditorLayout() {
           <PanelGroup direction="vertical">
             {/* 3D Viewer (top) */}
             <Panel defaultSize={30} minSize={10}>
-              <div data-testid="viewer-3d-panel" className="h-full bg-[var(--color-bg-deep)] enter d5">
+              <div
+                data-testid="viewer-3d-panel"
+                className="h-full bg-[var(--color-bg-deep)] enter d5 relative"
+                style={signalPickMode ? { cursor: 'crosshair' } : undefined}
+              >
+                {signalPickMode && (
+                  <>
+                    {/* Bright cyan border overlay — clearly distinct from default accent */}
+                    <div
+                      className="absolute inset-0 z-10 pointer-events-none"
+                      style={{
+                        boxShadow: 'inset 0 0 0 3px #00e5ff, inset 0 0 20px 0 rgba(0,229,255,0.2)',
+                      }}
+                    />
+                    {/* Bottom bar (RouteEditOverlay style) */}
+                    <div
+                      className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2.5 px-4 py-2"
+                      style={{
+                        backgroundColor: 'rgba(10, 25, 35, 0.94)',
+                        border: '1px solid rgba(0, 229, 255, 0.5)',
+                        backdropFilter: 'blur(8px)',
+                        whiteSpace: 'nowrap',
+                        pointerEvents: 'auto',
+                      }}
+                    >
+                      <span className="inline-block size-2 rounded-full animate-pulse" style={{ backgroundColor: '#00e5ff' }} />
+                      <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#00e5ff' }}>
+                        Signal Pick
+                      </span>
+                      <span style={{ color: 'rgba(0,229,255,0.3)' }}>|</span>
+                      <span className="text-[11px] text-[var(--color-text-secondary)]">
+                        Click signals to add / remove
+                      </span>
+                      <span style={{ color: 'rgba(0,229,255,0.3)' }}>|</span>
+                      <button
+                        type="button"
+                        className="px-3 py-1 text-[11px] font-medium text-white transition-opacity hover:opacity-80"
+                        style={{ backgroundColor: '#00b8d4' }}
+                        onClick={() => useEditorStore.getState().exitSignalPickMode()}
+                      >
+                        Done
+                      </button>
+                      <button
+                        type="button"
+                        className="px-3 py-1 text-[11px] font-medium text-[var(--color-text-secondary)] bg-[var(--color-glass-2)] hover:bg-[var(--color-glass-hover)] transition-colors"
+                        onClick={() => useEditorStore.getState().exitSignalPickMode()}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </>
+                )}
                 <ErrorBoundary fallbackTitle="3D Viewer Error">
                   <SimulationViewerBridge
                     scenarioStore={scenarioStoreApi}
@@ -651,7 +703,13 @@ export function EditorLayout() {
                     routePreviewData={routePreviewData}
                     selectedSignalKey={selectedSignalKey}
                     onSignalSelect={handleSignalSelect}
-                    highlightedSignalIds={highlightedSignalIds}
+                    highlightedSignalIds={signalPickMode ? undefined : highlightedSignalIds}
+                    signalPickMode={signalPickMode ? {
+                      bulbCount: signalPickMode.bulbCount,
+                      trackSignalIds: signalPickMode.trackSignalIds,
+                      allTrackSignalMap: signalPickMode.allTrackSignalMap,
+                    } : undefined}
+                    onSignalHover={handleSignalHover}
                     positionPickActive={positionPickRequest != null}
                     onPositionPicked={handlePositionPicked}
                     onPositionPickCancel={handlePositionPickCancel}
