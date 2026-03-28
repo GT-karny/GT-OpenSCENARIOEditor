@@ -174,7 +174,13 @@ interface RoadEditingLayerProps {
   /** Callback to update ghost preview position */
   onSignalGhostUpdate?: (ghost: SignalPlaceGhostData | null) => void;
   /** Callback when a signal is moved via drag */
-  onSignalMove?: (roadId: string, signalId: string, newS: number, newT: number) => void;
+  onSignalMove?: (
+    roadId: string,
+    signalId: string,
+    newS: number,
+    newT: number,
+    armInfo?: { armLength: number; armAngle: number },
+  ) => void;
 }
 
 export function RoadEditingLayer({

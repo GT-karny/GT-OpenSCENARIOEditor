@@ -7,7 +7,7 @@
 import { useCallback, useRef, useState } from 'react';
 import * as THREE from 'three';
 import type { OpenDriveDocument, OdrSignal } from '@osce/shared';
-import { worldToRoad, computeSignalSnapT } from '@osce/opendrive';
+import { worldToRoad, computeSignalSnapT, computeArmPlacement } from '@osce/opendrive';
 
 interface SignalMoveInteractionProps {
   /** Whether signal move mode is active */
@@ -17,7 +17,13 @@ interface SignalMoveInteractionProps {
   /** t-snap mode */
   tSnapMode: 'lane-above' | 'road-edge';
   /** Callback when a signal has been dragged to a new position */
-  onSignalMove?: (roadId: string, signalId: string, newS: number, newT: number) => void;
+  onSignalMove?: (
+    roadId: string,
+    signalId: string,
+    newS: number,
+    newT: number,
+    armInfo?: { armLength: number; armAngle: number },
+  ) => void;
   /** Ref to orbit controls (to disable during drag) */
   orbitControlsRef?: React.RefObject<{ enabled: boolean } | null>;
 }
@@ -113,8 +119,19 @@ export function SignalMoveInteraction({
         const road = openDriveDocument.roads.find((r) => r.id === result.roadId);
         if (road) {
           const side = result.t < 0 ? 'right' : 'left';
-          const snappedT = computeSignalSnapT(road, result.s, tSnapMode, side);
-          onSignalMove?.(dragging.roadId, dragging.signalId, result.s, snappedT);
+
+          if (tSnapMode === 'lane-above') {
+            // Arm-mounted: recompute full arm placement (headT + poleT + armLength)
+            const arm = computeArmPlacement(road, result.s, side, result.t);
+            // Pass arm info; armAngle is computed by the app layer from world coords
+            onSignalMove?.(dragging.roadId, dragging.signalId, result.s, arm.headT, {
+              armLength: arm.armLength,
+              armAngle: 0,
+            });
+          } else {
+            const snappedT = computeSignalSnapT(road, result.s, 'road-edge', side);
+            onSignalMove?.(dragging.roadId, dragging.signalId, result.s, snappedT);
+          }
         }
       }
 

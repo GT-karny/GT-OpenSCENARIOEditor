@@ -404,7 +404,7 @@ export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
   setSignalPlacePreset: (presetId) =>
     set((state) => ({ signalPlace: { ...state.signalPlace, selectedPresetId: presetId } })),
   setSignalPlaceTSnapMode: (mode) =>
-    set((state) => ({ signalPlace: { ...state.signalPlace, tSnapMode: mode } })),
+    set((state) => ({ signalPlace: { ...state.signalPlace, tSnapMode: mode, ghostPreview: null } })),
   setSignalPlaceGhost: (ghost) =>
     set((state) => ({ signalPlace: { ...state.signalPlace, ghostPreview: ghost } })),
   resetSignalPlace: () =>

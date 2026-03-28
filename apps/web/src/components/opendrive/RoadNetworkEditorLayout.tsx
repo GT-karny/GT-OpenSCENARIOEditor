@@ -16,6 +16,8 @@ import {
   getPresetById,
   presetToSignalPartial,
   createAssemblyFromPlacement,
+  findAssemblyForSignal,
+  updateAssembly,
 } from '@osce/opendrive-engine';
 import { ScenarioViewer } from '@osce/3d-viewer';
 import type { PoleAssemblyInfo } from '@osce/3d-viewer';
@@ -36,7 +38,7 @@ import { RoadNetworkToolbar } from './toolbar/RoadNetworkToolbar';
 import { RoadStylePanel } from './toolbar/RoadStylePanel';
 import { JunctionRoutingPanel } from './junction/JunctionRoutingPanel';
 import { useAutoJunctionDetection } from '../../hooks/use-auto-junction-detection';
-import { evaluateReferenceLineAtS, evaluateElevation, stToXyz } from '@osce/opendrive';
+import { evaluateReferenceLineAtS, evaluateElevation, stToXyz, computePolePlacementT } from '@osce/opendrive';
 import {
   generateConnectingRoads,
   computeRoadEndpoint,
@@ -983,7 +985,9 @@ export function RoadNetworkEditorLayout() {
   const handleSignalPlace = useCallback(
     (roadId: string, s: number, t: number, _heading: number) => {
       const store = odrStoreApi.getState();
-      const preset = getPresetById(signalPlace.selectedPresetId);
+      // Read tSnapMode directly from the store to avoid stale closure issues
+      const { tSnapMode, selectedPresetId, ghostPreview } = useOdrSidebarStore.getState().signalPlace;
+      const preset = getPresetById(selectedPresetId);
       const partial = preset ? presetToSignalPartial(preset) : {};
 
       // Determine side from t
@@ -994,20 +998,19 @@ export function RoadNetworkEditorLayout() {
       const isPedestrian = preset?.category === 'pedestrian';
       const zOffset = isPedestrian ? 2.5 : 5.0;
 
-      if (signalPlace.tSnapMode === 'lane-above') {
+      if (tSnapMode === 'lane-above') {
         // Arm-mounted: pole at road edge, head over lane
-        const ghost = signalPlace.ghostPreview;
-        const headT = ghost?.headT ?? t;
-        const armLength = ghost?.armLength ?? 3;
+        const headT = ghostPreview?.headT ?? t;
+        const armLength = ghostPreview?.armLength ?? 3;
 
         // Compute armAngle from world positions of pole and head
         let armAngle: number | undefined;
         const road = odrDocument.roads.find((r) => r.id === roadId);
-        if (ghost && road) {
+        if (ghostPreview && road) {
           const pose = evaluateReferenceLineAtS(road.planView, s);
           const z = evaluateElevation(road.elevationProfile, s);
-          const poleWorld = stToXyz(pose, ghost.poleT, z);
-          const headWorld = stToXyz(pose, ghost.headT, z);
+          const poleWorld = stToXyz(pose, ghostPreview.poleT, z);
+          const headWorld = stToXyz(pose, ghostPreview.headT, z);
           armAngle = Math.atan2(headWorld.y - poleWorld.y, headWorld.x - poleWorld.x);
         }
 
@@ -1040,7 +1043,7 @@ export function RoadNetworkEditorLayout() {
         });
       }
     },
-    [odrStoreApi, odrDocument, signalPlace.selectedPresetId, signalPlace.tSnapMode, signalPlace.ghostPreview],
+    [odrStoreApi, editorMetadataStoreApi, odrDocument],
   );
 
   const handleSignalGhostUpdate = useCallback(
@@ -1051,11 +1054,41 @@ export function RoadNetworkEditorLayout() {
   );
 
   const handleSignalMove = useCallback(
-    (roadId: string, signalId: string, newS: number, newT: number) => {
+    (
+      roadId: string,
+      signalId: string,
+      newS: number,
+      newT: number,
+      armInfo?: { armLength: number; armAngle: number },
+    ) => {
       const store = odrStoreApi.getState();
       store.updateSignal(roadId, signalId, { s: newS, t: newT });
+
+      // Update assembly metadata for arm-mounted signals
+      if (armInfo) {
+        const assembly = findAssemblyForSignal(editorMetadataStoreApi, signalId);
+        if (assembly) {
+          // Compute armAngle from world positions of pole and head
+          const road = odrDocument.roads.find((r) => r.id === roadId);
+          if (road) {
+            const pose = evaluateReferenceLineAtS(road.planView, newS);
+            const z = evaluateElevation(road.elevationProfile, newS);
+            const side: 'right' | 'left' = newT < 0 ? 'right' : 'left';
+            // Pole is at road edge; head is at newT
+            const poleT = computePolePlacementT(road, newS, side);
+            const poleWorld = stToXyz(pose, poleT, z);
+            const headWorld = stToXyz(pose, newT, z);
+            const armAngle = Math.atan2(headWorld.y - poleWorld.y, headWorld.x - poleWorld.x);
+
+            updateAssembly(editorMetadataStoreApi, assembly.assemblyId, {
+              armLength: armInfo.armLength,
+              armAngle,
+            });
+          }
+        }
+      }
     },
-    [odrStoreApi],
+    [odrStoreApi, editorMetadataStoreApi, odrDocument],
   );
 
   const handleAddRoadFromEndpoint = useCallback(

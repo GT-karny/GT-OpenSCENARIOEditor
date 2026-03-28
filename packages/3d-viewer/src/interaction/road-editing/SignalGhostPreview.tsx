@@ -20,9 +20,11 @@ interface SignalGhostPreviewProps {
 }
 
 /** Pole height (JP standard for arm-mounted vehicle signal) */
-const POLE_HEIGHT = 6.5;
-/** Signal head height (JP standard) */
-const HEAD_HEIGHT = 5.0;
+const ARM_POLE_HEIGHT = 6.5;
+/** Signal head height for arm-mounted signals (JP standard) */
+const ARM_HEAD_HEIGHT = 5.0;
+/** Signal head height for straight pole signals */
+const STRAIGHT_HEAD_HEIGHT = 5.0;
 /** Arm pipe radius */
 const ARM_RADIUS = 0.04;
 /** Pole pipe radius */
@@ -74,6 +76,13 @@ export function SignalGhostPreview({ ghost, openDriveDocument }: SignalGhostPrev
 
   if (!ghost || !positions) return null;
 
+  const isArmMode = positions.armLength > 0.1;
+
+  // Arm mode: tall pole with horizontal arm extending to head
+  // Straight mode: single pole with head on top
+  const poleHeight = isArmMode ? ARM_POLE_HEIGHT : STRAIGHT_HEAD_HEIGHT;
+  const headZ = isArmMode ? ARM_HEAD_HEIGHT : STRAIGHT_HEAD_HEIGHT;
+
   // Arm direction vector (from pole top to head)
   const dx = positions.head.x - positions.pole.x;
   const dy = positions.head.y - positions.pole.y;
@@ -83,19 +92,19 @@ export function SignalGhostPreview({ ghost, openDriveDocument }: SignalGhostPrev
 
   return (
     <group>
-      {/* Pole — vertical cylinder at road edge */}
+      {/* Pole — vertical cylinder */}
       <mesh
-        position={[positions.pole.x, positions.pole.y, positions.pole.z + POLE_HEIGHT / 2]}
+        position={[positions.pole.x, positions.pole.y, positions.pole.z + poleHeight / 2]}
         rotation={[Math.PI / 2, 0, 0]}
       >
-        <cylinderGeometry args={[POLE_RADIUS, POLE_RADIUS, POLE_HEIGHT, 8]} />
+        <cylinderGeometry args={[POLE_RADIUS, POLE_RADIUS, poleHeight, 8]} />
         <meshStandardMaterial {...ghostMaterial} />
       </mesh>
 
-      {/* Arm — horizontal cylinder from pole top to head position */}
-      {positions.armLength > 0.1 && (
+      {/* Arm — horizontal cylinder from pole top to head position (arm mode only) */}
+      {isArmMode && (
         <mesh
-          position={[armMidX, armMidY, positions.pole.z + HEAD_HEIGHT]}
+          position={[armMidX, armMidY, positions.pole.z + headZ]}
           rotation={[0, 0, armAngle + Math.PI / 2]}
         >
           <cylinderGeometry args={[ARM_RADIUS, ARM_RADIUS, positions.armLength, 8]} />
@@ -103,8 +112,12 @@ export function SignalGhostPreview({ ghost, openDriveDocument }: SignalGhostPrev
         </mesh>
       )}
 
-      {/* Signal head housing — at the arm end */}
-      <mesh position={[positions.head.x, positions.head.y, positions.head.z + HEAD_HEIGHT]}>
+      {/* Signal head housing */}
+      <mesh position={[
+        isArmMode ? positions.head.x : positions.pole.x,
+        isArmMode ? positions.head.y : positions.pole.y,
+        (isArmMode ? positions.head.z : positions.pole.z) + headZ,
+      ]}>
         <boxGeometry args={[0.3, 0.3, 0.9]} />
         <meshStandardMaterial {...headMaterial} />
       </mesh>

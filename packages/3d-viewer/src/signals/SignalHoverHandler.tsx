@@ -98,6 +98,9 @@ export function SignalHoverHandler({
             const bc = signalBulbCountMap.get(sid);
             if (bc !== pickModeBulbCount) continue;
           }
+          // Prevent RoadSelectHandler (or other canvas-level listeners) from
+          // overwriting the signal selection with a road selection.
+          e.stopImmediatePropagation();
           onSignalSelect(key);
           return;
         }

@@ -294,7 +294,13 @@ export interface ScenarioViewerProps {
   /** Callback to update ghost preview position */
   onSignalGhostUpdate?: (ghost: import('../interaction/road-editing/SignalPlaceInteraction.js').SignalPlaceGhostData | null) => void;
   /** Callback when a signal is moved via drag */
-  onSignalMove?: (roadId: string, signalId: string, newS: number, newT: number) => void;
+  onSignalMove?: (
+    roadId: string,
+    signalId: string,
+    newS: number,
+    newT: number,
+    armInfo?: { armLength: number; armAngle: number },
+  ) => void;
 
   // ---- Junction Editing ----
   /** Currently selected junction ID (renders with highlight) */
