@@ -385,6 +385,30 @@ export function IntersectionTimelinePanel() {
     [selectedController, updateTrackMeta],
   );
 
+  // Delete track
+  const handleDeleteTrack = useCallback(
+    (trackKey: string) => {
+      if (!selectedController) return;
+      const meta = trackMetaMap[selectedController.id]?.find((t) => t.trackKey === trackKey);
+      updateTrackMeta(selectedController.id, (prev) =>
+        prev.filter((t) => t.trackKey !== trackKey),
+      );
+      if (meta && meta.signalIds.length > 0) {
+        updateControllerPhases((ctrl) => ({
+          ...ctrl,
+          phases: ctrl.phases.map((phase) => ({
+            ...phase,
+            trafficSignalStates: phase.trafficSignalStates.filter(
+              (s) => !meta.signalIds.includes(s.trafficSignalId),
+            ),
+          })),
+        }));
+      }
+      setSelectedCell((prev) => (prev?.trackKey === trackKey ? null : prev));
+    },
+    [selectedController, trackMetaMap, updateTrackMeta, updateControllerPhases],
+  );
+
   // --- Cell editor info ---
 
   const cellEditorInfo = useMemo(() => {
@@ -523,6 +547,10 @@ export function IntersectionTimelinePanel() {
                 activePhaseIndex={activePhaseIndex}
                 selectedCell={selectedCell}
                 onCellClick={handleCellClick}
+                onTrackLabelChange={handleTrackLabelChange}
+                onAddSignalId={handleAddSignalId}
+                onRemoveSignalId={handleRemoveSignalId}
+                onDeleteTrack={handleDeleteTrack}
               />
             ))}
 
@@ -551,15 +579,6 @@ export function IntersectionTimelinePanel() {
           phaseName={cellEditorInfo.phaseName}
           currentState={cellEditorInfo.currentState}
           onChangeState={handleCellStateChange}
-          onChangeTrackLabel={(label) =>
-            handleTrackLabelChange(cellEditorInfo.track.trackKey, label)
-          }
-          onAddSignalId={(id) =>
-            handleAddSignalId(cellEditorInfo.track.trackKey, id)
-          }
-          onRemoveSignalId={(id) =>
-            handleRemoveSignalId(cellEditorInfo.track.trackKey, id)
-          }
           onClose={() => setSelectedCell(null)}
         />
       )}

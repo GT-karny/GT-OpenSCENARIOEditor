@@ -13,8 +13,8 @@ export function parseRoadNetwork(raw: any): RoadNetwork {
     sceneGraphFile: raw.SceneGraphFile
       ? { filepath: strAttr(raw.SceneGraphFile, 'filepath') }
       : undefined,
-    trafficSignals: raw.TrafficSignalController
-      ? ensureArray(raw.TrafficSignalController).map(parseTrafficSignalController)
+    trafficSignals: raw.TrafficSignals?.TrafficSignalController
+      ? ensureArray(raw.TrafficSignals.TrafficSignalController).map(parseTrafficSignalController)
       : undefined,
   };
 }
@@ -26,7 +26,7 @@ function parseTrafficSignalController(raw: any): TrafficSignalController {
     name: strAttr(raw, 'name'),
     delay: optNumAttr(raw, 'delay'),
     reference: optStrAttr(raw, 'reference'),
-    phases: ensureArray(raw?.TrafficSignalPhase).map(parseTrafficSignalPhase),
+    phases: ensureArray(raw?.Phase).map(parseTrafficSignalPhase),
   };
 }
 

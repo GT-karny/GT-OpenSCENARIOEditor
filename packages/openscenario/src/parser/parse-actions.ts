@@ -1175,10 +1175,9 @@ function parseTrafficSignalAction(raw: any): TrafficSignalAction {
   if (raw.TrafficSignalControllerAction) {
     const ctrl = raw.TrafficSignalControllerAction;
     result.controllerRef = strAttr(ctrl, 'trafficSignalControllerRef');
-    if (ctrl.TrafficSignalControllerCondition) {
-      result.controllerAction = {
-        phase: strAttr(ctrl.TrafficSignalControllerCondition, 'phase'),
-      };
+    const phase = optStrAttr(ctrl, 'phase');
+    if (phase) {
+      result.controllerAction = { phase };
     }
   }
 
