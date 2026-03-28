@@ -5,10 +5,11 @@
 
 import React, { useRef } from 'react';
 import type * as THREE from 'three';
-import { Outlines } from '@react-three/drei';
 import type { ScenarioEntity } from '@osce/shared';
 import { getEntityGeometry, getEntityColor } from '../utils/entity-geometry.js';
 import type { WorldCoords } from '../utils/position-resolver.js';
+// import { ApexGlassMaterial } from '../materials/ApexGlassMaterial.js';
+import { ApexEdgeGlow } from '../materials/ApexEdgeGlow.js';
 import { EntityLabel } from './EntityLabel.js';
 
 interface VehicleEntityProps {
@@ -48,12 +49,10 @@ export const VehicleEntity: React.FC<VehicleEntityProps> = React.memo(
             emissive={isHovered ? '#55CCFF' : '#000000'}
             emissiveIntensity={isHovered ? 1.2 : 0}
           />
-          {isSelected && (
-            <Outlines thickness={0.08} color="#FFFF00" />
-          )}
-          {!isSelected && isHovered && (
-            <Outlines thickness={0.15} color="#44DDFF" />
-          )}
+          <ApexEdgeGlow
+            overrideColor={isSelected ? '#FFFF00' : isHovered ? '#44DDFF' : undefined}
+            overrideThickness={isSelected ? 0.08 : isHovered ? 0.15 : undefined}
+          />
         </mesh>
 
         {/* Direction arrow (cone at front of vehicle) */}
