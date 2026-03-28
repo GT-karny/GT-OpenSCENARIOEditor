@@ -166,7 +166,7 @@ export const SIGNAL_CATALOG: ReadonlyMap<string, SignalDescriptor> = new Map<
 
   // === Universal presets ===
   ['trafficLight:3-light-vertical', desc('3-Light Vertical', [bulb('red'), bulb('yellow'), bulb('green')], 'vertical')],
-  ['trafficLight:3-light-horizontal', desc('3-Light Horizontal', [bulb('red'), bulb('yellow'), bulb('green')], 'horizontal')],
+  ['trafficLight:3-light-horizontal', desc('3-Light Horizontal', [bulb('green'), bulb('yellow'), bulb('red')], 'horizontal')],
   ['trafficLight:arrow-left', desc('Arrow Left', [bulb('green', 'arrow-left')], 'vertical')],
   ['trafficLight:arrow-right', desc('Arrow Right', [bulb('green', 'arrow-right')], 'vertical')],
   ['trafficLight:arrow-straight', desc('Arrow Straight', [bulb('green', 'arrow-up')], 'vertical')],

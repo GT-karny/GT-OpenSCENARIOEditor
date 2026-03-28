@@ -12,7 +12,10 @@ export const POLE_RADIUS = 0.06;
 export const POLE_COLOR = '#666666';
 
 /** Default signal head heights (used when OdrSignal.zOffset is not set) */
-export const DEFAULT_SIGNAL_HEIGHT = 4.0;
+export const DEFAULT_SIGNAL_HEIGHT = 5.0;
+
+/** Default pedestrian signal height (JP standard: 2.5m) */
+export const DEFAULT_PEDESTRIAN_SIGNAL_HEIGHT = 2.5;
 
 /** Traffic light housing dimensions */
 export const TRAFFIC_LIGHT = {

@@ -83,7 +83,7 @@ describe('resolveSignalPosition', () => {
 
     const result = resolveSignalPosition(signal, road);
     expect(result).not.toBeNull();
-    // Default height is 4.0
-    expect(result!.z).toBeCloseTo(4.0, 1);
+    // Default height is 5.0 (JP standard)
+    expect(result!.z).toBeCloseTo(5.0, 1);
   });
 });

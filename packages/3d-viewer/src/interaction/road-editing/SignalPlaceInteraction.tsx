@@ -8,13 +8,19 @@
 import { useCallback, useRef } from 'react';
 import * as THREE from 'three';
 import type { OpenDriveDocument } from '@osce/shared';
-import { worldToRoad, computeSignalSnapT, computeSignalHeading } from '@osce/opendrive';
+import { worldToRoad, computeSignalSnapT, computeSignalHeading, computeArmPlacement } from '@osce/opendrive';
 
 export interface SignalPlaceGhostData {
   roadId: string;
   s: number;
   t: number;
   heading: number;
+  /** Pole base t-position (road outermost area) */
+  poleT: number;
+  /** Signal head t-position (over driving lane) */
+  headT: number;
+  /** Arm length from pole to head */
+  armLength: number;
 }
 
 interface SignalPlaceInteractionProps {
@@ -65,17 +71,34 @@ export function SignalPlaceInteraction({
       if (!road) return null;
 
       // Determine side based on raw t (negative = right side, positive = left)
-      const side = result.t < 0 ? 'right' : 'left';
-
-      const snappedT = computeSignalSnapT(road, result.s, tSnapMode, side);
+      const side: 'right' | 'left' = result.t < 0 ? 'right' : 'left';
       const heading = computeSignalHeading(road, result.s, true);
 
-      return {
-        roadId: result.roadId,
-        s: result.s,
-        t: snappedT,
-        heading,
-      };
+      if (tSnapMode === 'lane-above') {
+        // Arm-mounted: pole at road edge, head over the lane nearest to cursor
+        const arm = computeArmPlacement(road, result.s, side, result.t);
+        return {
+          roadId: result.roadId,
+          s: result.s,
+          t: arm.poleT,
+          heading,
+          poleT: arm.poleT,
+          headT: arm.headT,
+          armLength: arm.armLength,
+        };
+      } else {
+        // Road-edge: straight pole at road edge, no arm
+        const snappedT = computeSignalSnapT(road, result.s, 'road-edge', side);
+        return {
+          roadId: result.roadId,
+          s: result.s,
+          t: snappedT,
+          heading,
+          poleT: snappedT,
+          headT: snappedT,
+          armLength: 0,
+        };
+      }
     },
     [openDriveDocument, tSnapMode],
   );

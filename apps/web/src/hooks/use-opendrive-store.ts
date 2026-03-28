@@ -120,6 +120,12 @@ export interface SignalPlaceGhost {
   s: number;
   t: number;
   heading: number;
+  /** Pole base t-position (road outermost area) */
+  poleT: number;
+  /** Signal head t-position (over driving lane) */
+  headT: number;
+  /** Arm length from pole to head */
+  armLength: number;
 }
 
 export interface SignalPlaceState {

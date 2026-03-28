@@ -73,6 +73,52 @@ export function createAssembly(
 }
 
 // ---------------------------------------------------------------------------
+// createAssemblyFromPlacement
+// ---------------------------------------------------------------------------
+
+/**
+ * Create a signal and wrap it in an arm-mounted assembly in one step.
+ * Used during natural signal placement where pole is at road edge and
+ * signal head hangs over the driving lane via an arm.
+ *
+ * @returns The created OdrSignal
+ */
+export function createAssemblyFromPlacement(
+  odrStore: OpenDriveStoreApi,
+  metaStore: EditorMetadataStoreApi,
+  roadId: string,
+  signalPartial: Partial<OdrSignal>,
+  presetId: string | undefined,
+  armLength: number,
+  armAngle?: number,
+): OdrSignal {
+  const store = odrStore.getState();
+  const newSignal = store.addSignal(roadId, signalPartial);
+
+  const assemblyId = uuidv4();
+  const assembly: SignalAssemblyMetadata = {
+    assemblyId,
+    roadId,
+    signalIds: [newSignal.id],
+    poleType: 'arm',
+    armLength,
+    armAngle,
+    headPositions: [
+      {
+        signalId: newSignal.id,
+        presetId,
+        position: 'top',
+      },
+    ],
+  };
+
+  const current = getAssemblies(metaStore);
+  setAssemblies(metaStore, [...current, assembly]);
+
+  return newSignal;
+}
+
+// ---------------------------------------------------------------------------
 // addHeadToAssembly
 // ---------------------------------------------------------------------------
 

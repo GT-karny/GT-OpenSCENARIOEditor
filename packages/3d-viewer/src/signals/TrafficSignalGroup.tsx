@@ -20,6 +20,7 @@ import { resolveSignalDescriptor } from '../utils/signal-catalog.js';
 import { hasFlashingBulb, suppressFlashing } from '../utils/parse-traffic-light-state.js';
 import { useFlashingClock } from '../hooks/useFlashingClock.js';
 import { InstancedPoles } from './InstancedPoles.js';
+import type { PoleAssemblyInfo } from './InstancedPoles.js';
 import { InstancedTrafficLights } from './InstancedTrafficLights.js';
 import { SignalSelectionOverlay } from './SignalSelectionOverlay.js';
 import { TrafficSignalEntity } from './TrafficSignalEntity.js';
@@ -56,10 +57,12 @@ interface TrafficSignalGroupProps {
   signalPickMode?: SignalPickModeProps | null;
   /** Callback when a signal is hovered during pick mode */
   onSignalHover?: (signalId: string | null) => void;
+  /** Map from signalId to assembly info for arm pole rendering */
+  assemblyMap?: Map<string, PoleAssemblyInfo>;
 }
 
 export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
-  ({ openDriveDocument, showLabels, selectedSignalKey, onSignalSelect, currentFrame, highlightedSignalIds, signalPickMode, onSignalHover }) => {
+  ({ openDriveDocument, showLabels, selectedSignalKey, onSignalSelect, currentFrame, highlightedSignalIds, signalPickMode, onSignalHover, assemblyMap }) => {
     const signalGroupRef = useRef<THREE.Group>(null);
 
     // Build signal ID → state string map from current simulation frame
@@ -205,13 +208,14 @@ export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
         />
 
         {/* Instanced poles for ALL signals (1 draw call) */}
-        <InstancedPoles signals={resolvedSignals} />
+        <InstancedPoles signals={resolvedSignals} assemblyMap={assemblyMap} />
 
         {/* Instanced traffic light heads (K draw calls, K = number of texture groups) */}
         <InstancedTrafficLights
           signals={trafficLightSignals}
           stateMap={signalStateMap}
           selectedKey={selectedSignalKey}
+          assemblyMap={assemblyMap}
         />
 
         {/* Selection overlay with Outlines (at most 1 signal) */}

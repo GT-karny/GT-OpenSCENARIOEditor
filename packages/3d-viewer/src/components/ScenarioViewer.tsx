@@ -132,6 +132,8 @@ export interface ScenarioViewerProps {
   } | null;
   /** Callback when a signal is hovered during pick mode */
   onSignalHover?: (signalId: string | null) => void;
+  /** Map from signalId to assembly info for arm pole rendering */
+  signalAssemblyMap?: Map<string, import('../signals/InstancedPoles.js').PoleAssemblyInfo>;
   /** Show r3f-perf overlay for performance monitoring */
   showPerf?: boolean;
   /** Whether position pick mode is active */
@@ -336,6 +338,7 @@ function ScenarioViewerScene({
   highlightedSignalIds,
   signalPickMode,
   onSignalHover,
+  signalAssemblyMap,
   positionPickActive,
   onPositionPicked,
   onPositionPickCancel,
@@ -427,6 +430,7 @@ function ScenarioViewerScene({
   highlightedSignalIds?: ReadonlySet<string>;
   signalPickMode?: ScenarioViewerProps['signalPickMode'];
   onSignalHover?: (signalId: string | null) => void;
+  signalAssemblyMap?: ScenarioViewerProps['signalAssemblyMap'];
   positionPickActive?: boolean;
   onPositionPicked?: (data: PickedPositionData) => void;
   onPositionPickCancel?: () => void;
@@ -655,6 +659,7 @@ function ScenarioViewerScene({
           highlightedSignalIds={highlightedSignalIds}
           signalPickMode={signalPickMode}
           onSignalHover={onSignalHover}
+          assemblyMap={signalAssemblyMap}
         />
       )}
 
@@ -877,6 +882,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   highlightedSignalIds,
   signalPickMode,
   onSignalHover,
+  signalAssemblyMap,
   showPerf,
   positionPickActive,
   onPositionPicked,
@@ -1194,6 +1200,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           highlightedSignalIds={highlightedSignalIds}
           signalPickMode={signalPickMode}
           onSignalHover={onSignalHover}
+          signalAssemblyMap={signalAssemblyMap}
           positionPickActive={positionPickActive}
           onPositionPicked={onPositionPicked}
           onPositionPickCancel={onPositionPickCancel}
