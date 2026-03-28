@@ -17,6 +17,8 @@ import { DEFAULT_SIGNAL_HEIGHT } from '../utils/signal-geometry.js';
 import { classifySignal } from '../utils/signal-geometry.js';
 import { resolveSignalPosition } from '../utils/signal-position-resolver.js';
 import { resolveSignalDescriptor } from '../utils/signal-catalog.js';
+import { hasFlashingBulb, suppressFlashing } from '../utils/parse-traffic-light-state.js';
+import { useFlashingClock } from '../hooks/useFlashingClock.js';
 import { InstancedPoles } from './InstancedPoles.js';
 import { InstancedTrafficLights } from './InstancedTrafficLights.js';
 import { SignalSelectionOverlay } from './SignalSelectionOverlay.js';
@@ -101,6 +103,15 @@ export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
     const overlaySignal = selectedSignalKey ? signalByKey.get(selectedSignalKey) : undefined;
     const showOverlay = overlaySignal?.category === 'trafficLight';
 
+    // Flashing clock for SelectionOverlay (InstancedTrafficLights has its own)
+    const anyFlashing = useMemo(() => {
+      for (const [, state] of signalStateMap) {
+        if (hasFlashingBulb(state)) return true;
+      }
+      return false;
+    }, [signalStateMap]);
+    const flashOn = useFlashingClock(anyFlashing);
+
     if (resolvedSignals.length === 0) return null;
 
     return (
@@ -125,7 +136,10 @@ export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
         {showOverlay && overlaySignal && (
           <SignalSelectionOverlay
             signal={overlaySignal}
-            activeState={signalStateMap.get(overlaySignal.signal.id)}
+            activeState={(() => {
+              const s = signalStateMap.get(overlaySignal.signal.id);
+              return s && !flashOn ? suppressFlashing(s) : s;
+            })()}
             isSelected
           />
         )}

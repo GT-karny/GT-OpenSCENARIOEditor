@@ -76,3 +76,11 @@ export function isBulbActiveByIndex(
   const mode = getBulbMode(stateStr, index, bulbColor);
   return mode === 'on' || mode === 'flashing';
 }
+
+/**
+ * Replace all "flashing" tokens with "off" in a state string.
+ * Used during the off-phase of the flashing animation cycle.
+ */
+export function suppressFlashing(stateStr: string): string {
+  return stateStr.replace(/flashing/gi, 'off');
+}

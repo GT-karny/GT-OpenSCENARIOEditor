@@ -182,24 +182,6 @@ export function getSignalTexture(
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.fill();
 
-    // Flashing hatching overlay
-    if (mode === 'flashing') {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.clip();
-      ctx.globalAlpha = 0.3;
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
-      for (let offset = -r * 2; offset < r * 2; offset += 8) {
-        ctx.beginPath();
-        ctx.moveTo(cx + offset, cy - r);
-        ctx.lineTo(cx + offset + r, cy + r);
-        ctx.stroke();
-      }
-      ctx.restore();
-    }
-
     // Shape overlay (arrow / pedestrian silhouette)
     drawBulbOverlay(ctx, bulb.shape, isActive, cx, cy, r);
   }

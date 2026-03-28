@@ -3,6 +3,8 @@ import {
   isBulbActive,
   isBulbActiveByIndex,
   getBulbMode,
+  suppressFlashing,
+  hasFlashingBulb,
 } from '../../utils/parse-traffic-light-state.js';
 
 describe('isBulbActive', () => {
@@ -191,5 +193,46 @@ describe('getBulbMode', () => {
       expect(getBulbMode('Flashing;Off;Off', 0, 'red')).toBe('flashing');
       expect(getBulbMode('OFF;FLASHING;OFF', 1, 'yellow')).toBe('flashing');
     });
+  });
+});
+
+describe('suppressFlashing', () => {
+  it('replaces flashing with off', () => {
+    expect(suppressFlashing('flashing;off;off')).toBe('off;off;off');
+  });
+
+  it('replaces multiple flashing tokens', () => {
+    expect(suppressFlashing('flashing;flashing;off')).toBe('off;off;off');
+  });
+
+  it('is case insensitive', () => {
+    expect(suppressFlashing('Flashing;Off;Off')).toBe('off;Off;Off');
+    expect(suppressFlashing('FLASHING;off;off')).toBe('off;off;off');
+  });
+
+  it('preserves non-flashing tokens', () => {
+    expect(suppressFlashing('on;off;on')).toBe('on;off;on');
+  });
+
+  it('handles single token', () => {
+    expect(suppressFlashing('flashing')).toBe('off');
+  });
+});
+
+describe('hasFlashingBulb', () => {
+  it('returns true when flashing is present', () => {
+    expect(hasFlashingBulb('flashing;off;off')).toBe(true);
+    expect(hasFlashingBulb('off;flashing;off')).toBe(true);
+    expect(hasFlashingBulb('off;off;flashing')).toBe(true);
+  });
+
+  it('returns false when no flashing', () => {
+    expect(hasFlashingBulb('on;off;off')).toBe(false);
+    expect(hasFlashingBulb('off;off;off')).toBe(false);
+  });
+
+  it('is case insensitive', () => {
+    expect(hasFlashingBulb('FLASHING;off;off')).toBe(true);
+    expect(hasFlashingBulb('Flashing')).toBe(true);
   });
 });

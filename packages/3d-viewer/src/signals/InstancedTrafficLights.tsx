@@ -14,6 +14,8 @@ import { DEFAULT_SIGNAL_HEIGHT } from '../utils/signal-geometry.js';
 import { resolveSignalDescriptor } from '../utils/signal-catalog.js';
 import { getSharedBox } from '../utils/shared-geometries.js';
 import { buildCacheKey, getSignalMaterials } from '../utils/signal-texture.js';
+import { hasFlashingBulb, suppressFlashing } from '../utils/parse-traffic-light-state.js';
+import { useFlashingClock } from '../hooks/useFlashingClock.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -44,17 +46,32 @@ interface TextureGroup {
 
 export const InstancedTrafficLights: React.FC<InstancedTrafficLightsProps> = React.memo(
   ({ signals, stateMap }) => {
+    // Detect whether any signal has a flashing bulb to enable the clock
+    const anyFlashing = useMemo(() => {
+      for (const [, state] of stateMap) {
+        if (hasFlashingBulb(state)) return true;
+      }
+      return false;
+    }, [stateMap]);
+
+    // Flashing clock: toggles at 1 Hz (only ticks when flashing signals exist)
+    const flashOn = useFlashingClock(anyFlashing);
+
     // Build entries with resolved descriptors
     const entries = useMemo(() => {
       const result: TrafficLightEntry[] = [];
       for (const rs of signals) {
         const descriptor = resolveSignalDescriptor(rs.signal);
         if (!descriptor) continue;
-        const activeState = stateMap.get(rs.signal.id);
+        let activeState = stateMap.get(rs.signal.id);
+        // During off-phase, replace "flashing" → "off" so the bulb goes dark
+        if (activeState && !flashOn) {
+          activeState = suppressFlashing(activeState);
+        }
         result.push({ rs, descriptor, activeState });
       }
       return result;
-    }, [signals, stateMap]);
+    }, [signals, stateMap, flashOn]);
 
     // Group entries by texture cache key
     const groups = useMemo(() => {
