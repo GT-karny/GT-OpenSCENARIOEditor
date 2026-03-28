@@ -122,6 +122,8 @@ export interface ScenarioViewerProps {
   selectedSignalKey?: string | null;
   /** Callback when user clicks a traffic signal in the viewer */
   onSignalSelect?: (key: string) => void;
+  /** Signal IDs to highlight in the viewer (e.g. signals belonging to selected controller) */
+  highlightedSignalIds?: ReadonlySet<string>;
   /** Show r3f-perf overlay for performance monitoring */
   showPerf?: boolean;
   /** Whether position pick mode is active */
@@ -323,6 +325,7 @@ function ScenarioViewerScene({
   routePreviewData,
   selectedSignalKey,
   onSignalSelect,
+  highlightedSignalIds,
   positionPickActive,
   onPositionPicked,
   onPositionPickCancel,
@@ -411,6 +414,7 @@ function ScenarioViewerScene({
   routePreviewData?: RoutePreviewData[];
   selectedSignalKey?: string | null;
   onSignalSelect?: (key: string) => void;
+  highlightedSignalIds?: ReadonlySet<string>;
   positionPickActive?: boolean;
   onPositionPicked?: (data: PickedPositionData) => void;
   onPositionPickCancel?: () => void;
@@ -636,6 +640,7 @@ function ScenarioViewerScene({
           selectedSignalKey={selectedSignalKey}
           onSignalSelect={onSignalSelect}
           currentFrame={currentFrame}
+          highlightedSignalIds={highlightedSignalIds}
         />
       )}
 
@@ -855,6 +860,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   routePreviewData,
   selectedSignalKey,
   onSignalSelect,
+  highlightedSignalIds,
   showPerf,
   positionPickActive,
   onPositionPicked,
@@ -1169,6 +1175,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           routePreviewData={routePreviewData}
           selectedSignalKey={selectedSignalKey}
           onSignalSelect={onSignalSelect}
+          highlightedSignalIds={highlightedSignalIds}
           positionPickActive={positionPickActive}
           onPositionPicked={onPositionPicked}
           onPositionPickCancel={onPositionPickCancel}

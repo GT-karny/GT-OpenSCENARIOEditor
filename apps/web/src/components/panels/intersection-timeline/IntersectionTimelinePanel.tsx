@@ -8,7 +8,7 @@
 
 import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { Plus, Trash2, Settings2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import type { TrafficSignalController } from '@osce/shared';
 import { SIGNAL_CATALOG } from '@osce/3d-viewer';
 import type { SignalDescriptor } from '@osce/3d-viewer';
@@ -25,13 +25,6 @@ import {
   getActivePhase,
 } from '../../../hooks/use-signal-timeline';
 import type { PlaybackSpeed } from '../../../hooks/use-signal-timeline';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../ui/select';
 
 // ---------------------------------------------------------------------------
 // Signal type presets for the "Add Track" menu
@@ -76,12 +69,20 @@ export function IntersectionTimelinePanel() {
     useShallow((s) => (s.document.roadNetwork?.trafficSignals ?? []) as TrafficSignalController[]),
   );
 
-  // Selected controller
-  const [selectedControllerId, setSelectedControllerId] = useState<string>('');
+  // Selected controller (shared with Properties panel via editor store)
+  const selectedControllerId = useEditorStore((s) => s.selectedControllerId);
+  const setSelectedControllerId = useEditorStore((s) => s.setSelectedControllerId);
   const selectedController = useMemo(
     () => controllers.find((c) => c.id === selectedControllerId) ?? controllers[0] ?? null,
     [controllers, selectedControllerId],
   );
+
+  // Sync: auto-select first controller when none is selected
+  useEffect(() => {
+    if (!selectedControllerId && controllers.length > 0) {
+      setSelectedControllerId(controllers[0].id);
+    }
+  }, [selectedControllerId, controllers, setSelectedControllerId]);
 
   const cycleDuration = selectedController
     ? getControllerCycleDuration(selectedController)
@@ -102,6 +103,12 @@ export function IntersectionTimelinePanel() {
 
   // Auto-generate tracks for a controller that has phase data but no track metadata yet.
   // This runs as an effect (not inside useMemo) to avoid setState-during-render.
+  //
+  // Two key behaviors:
+  //   1. Infer signal type (catalogKey) from the bulb count in the state string
+  //      (e.g. "on;off;off" → 3 bulbs → '1000001', "on;off" → 2 → '1000002')
+  //   2. Group signal IDs that share the same inferred type AND identical states
+  //      across all phases into a single track.
   const autoGenRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (!selectedController) return;
@@ -110,21 +117,83 @@ export function IntersectionTimelinePanel() {
     if (autoGenRef.current.has(cid)) return;
     setTrackMetaMap((prev) => {
       if (prev[cid] && prev[cid].length > 0) return prev;
-      const seen = new Map<string, TrackMeta>();
+
+      // Collect all unique signal IDs
+      const allIds = new Set<string>();
       for (const phase of selectedController.phases) {
         for (const st of phase.trafficSignalStates) {
-          if (!seen.has(st.trafficSignalId)) {
-            const key = `track_${++trackCounter}`;
-            seen.set(st.trafficSignalId, {
-              trackKey: key,
-              label: `Signal ${st.trafficSignalId}`,
-              catalogKey: '1000001',
-              signalIds: [st.trafficSignalId],
-            });
-          }
+          allIds.add(st.trafficSignalId);
         }
       }
-      const generated = Array.from(seen.values());
+      if (allIds.size === 0) return prev;
+
+      // For each signal ID, build a fingerprint: "catalogKey|state0|state1|..."
+      // This groups signals with same type AND same cell values across all phases.
+      const fingerprintMap = new Map<string, { catalogKey: string; label: string; ids: string[] }>();
+
+      for (const signalId of allIds) {
+        // Collect state strings for this signal across all phases
+        const statePerPhase: string[] = [];
+        let bulbCount = 3; // default
+        for (const phase of selectedController.phases) {
+          const st = phase.trafficSignalStates.find((s) => s.trafficSignalId === signalId);
+          const stateStr = st?.state ?? '';
+          statePerPhase.push(stateStr);
+          // Infer bulb count from the first non-empty state
+          if (stateStr && bulbCount === 3) {
+            const parts = stateStr.split(';');
+            if (parts.length > 1) {
+              bulbCount = parts.length;
+            } else if (stateStr !== 'off') {
+              // Single value like "red", "green", "flashing" → 1-bulb signal
+              bulbCount = 1;
+            }
+          }
+        }
+
+        // Infer catalogKey from bulb count
+        let catalogKey: string;
+        let typeLabel: string;
+        if (bulbCount >= 3) {
+          catalogKey = '1000001';
+          typeLabel = '3-color';
+        } else if (bulbCount === 2) {
+          catalogKey = '1000002';
+          typeLabel = '2-color';
+        } else {
+          catalogKey = 'trafficLight:arrow-straight';
+          typeLabel = '1-bulb';
+        }
+
+        const fingerprint = `${catalogKey}|${statePerPhase.join('|')}`;
+
+        const existing = fingerprintMap.get(fingerprint);
+        if (existing) {
+          // Same type and same states → merge into one track
+          existing.ids.push(signalId);
+        } else {
+          fingerprintMap.set(fingerprint, {
+            catalogKey,
+            label: typeLabel,
+            ids: [signalId],
+          });
+        }
+      }
+
+      // Convert grouped entries to TrackMeta
+      const generated: TrackMeta[] = [];
+      let labelCounter = 0;
+      for (const group of fingerprintMap.values()) {
+        labelCounter++;
+        const key = `track_${++trackCounter}`;
+        generated.push({
+          trackKey: key,
+          label: `${group.label} #${labelCounter}`,
+          catalogKey: group.catalogKey,
+          signalIds: group.ids,
+        });
+      }
+
       if (generated.length === 0) return prev;
       autoGenRef.current.add(cid);
       return { ...prev, [cid]: generated };
@@ -145,6 +214,37 @@ export function IntersectionTimelinePanel() {
       pendingStates: meta.pendingStates,
     }));
   }, [selectedController, trackMetaMap]);
+
+  // Selected track (for 3D viewer highlighting)
+  const [selectedTrackKey, setSelectedTrackKey] = useState<string | null>(null);
+  const setHighlightedSignalIds = useEditorStore((s) => s.setHighlightedSignalIds);
+
+  const handleTrackSelect = useCallback(
+    (trackKey: string) => {
+      setSelectedTrackKey((prev) => {
+        const next = prev === trackKey ? null : trackKey;
+        // Update 3D viewer highlighting
+        if (next) {
+          const track = tracks.find((t) => t.trackKey === next);
+          if (track && track.signalIds.length > 0) {
+            setHighlightedSignalIds(new Set(track.signalIds));
+          } else {
+            setHighlightedSignalIds(null);
+          }
+        } else {
+          setHighlightedSignalIds(null);
+        }
+        return next;
+      });
+    },
+    [tracks, setHighlightedSignalIds],
+  );
+
+  // Clear track selection when controller changes
+  useEffect(() => {
+    setSelectedTrackKey(null);
+    setHighlightedSignalIds(null);
+  }, [selectedControllerId, setHighlightedSignalIds]);
 
   // Selected cell for editing
   const [selectedCell, setSelectedCell] = useState<{
@@ -178,48 +278,6 @@ export function IntersectionTimelinePanel() {
       if (!signals) return;
       const newSignals = signals.map((c) =>
         c.id === selectedController.id ? updater(c) : c,
-      );
-      storeApi.getState().updateRoadNetwork({ trafficSignals: newSignals });
-    },
-    [storeApi, selectedController],
-  );
-
-  // --- Controller CRUD ---
-
-  const handleAddController = useCallback(() => {
-    const doc = storeApi.getState().document;
-    const signals = (doc.roadNetwork?.trafficSignals ?? []) as TrafficSignalController[];
-    const id = crypto.randomUUID();
-    const newController: TrafficSignalController = {
-      id,
-      name: `Controller_${signals.length + 1}`,
-      phases: [],
-    };
-    storeApi.getState().updateRoadNetwork({ trafficSignals: [...signals, newController] });
-    setSelectedControllerId(id);
-  }, [storeApi]);
-
-  const handleDeleteController = useCallback(() => {
-    if (!selectedController) return;
-    const doc = storeApi.getState().document;
-    const signals = (doc.roadNetwork?.trafficSignals ?? []) as TrafficSignalController[];
-    const newSignals = signals.filter((c) => c.id !== selectedController.id);
-    storeApi.getState().updateRoadNetwork({ trafficSignals: newSignals });
-    setSelectedControllerId('');
-    setTrackMetaMap((prev) => {
-      const next = { ...prev };
-      delete next[selectedController.id];
-      return next;
-    });
-  }, [storeApi, selectedController]);
-
-  const handleUpdateControllerProps = useCallback(
-    (updates: Partial<Pick<TrafficSignalController, 'name' | 'delay' | 'reference'>>) => {
-      if (!selectedController) return;
-      const doc = storeApi.getState().document;
-      const signals = (doc.roadNetwork?.trafficSignals ?? []) as TrafficSignalController[];
-      const newSignals = signals.map((c) =>
-        c.id === selectedController.id ? { ...c, ...updates } : c,
       );
       storeApi.getState().updateRoadNetwork({ trafficSignals: newSignals });
     },
@@ -489,158 +547,124 @@ export function IntersectionTimelinePanel() {
         onReset={reset}
         onClose={handleClose}
       >
-        <div className="flex items-center gap-1">
-          {controllers.length > 0 && (
-            <Select
-              value={selectedController?.id ?? ''}
-              onValueChange={setSelectedControllerId}
-            >
-              <SelectTrigger className="h-6 w-40 text-[10px] rounded-none">
-                <SelectValue placeholder="Select controller" />
-              </SelectTrigger>
-              <SelectContent>
-                {controllers.map((c) => (
-                  <SelectItem key={c.id} value={c.id} className="text-xs">
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-
-          {/* Add controller */}
-          <button
-            type="button"
-            onClick={handleAddController}
-            title="Add controller"
-            className="flex items-center justify-center size-6 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-glass-hover)] transition-colors"
-          >
-            <Plus className="size-3" />
-          </button>
-
-          {/* Controller settings */}
-          {selectedController && (
-            <ControllerSettingsMenu
-              controller={selectedController}
-              onUpdate={handleUpdateControllerProps}
-              onDelete={handleDeleteController}
-            />
-          )}
-        </div>
+        {selectedController && (
+          <span className="text-[10px] text-[var(--color-text-secondary)] truncate max-w-[160px]">
+            {selectedController.name}
+          </span>
+        )}
       </TimelineToolbar>
 
       {/* Matrix viewport */}
       <div className="flex-1 overflow-auto">
         {selectedController ? (
-          <div className="relative min-w-0">
-            {/* Phase header row */}
-            <div className="flex items-stretch min-h-[28px] border-b border-[var(--color-glass-edge)] sticky top-0 z-10 bg-[var(--color-bg-deep)]">
-              {/* Track add button */}
-              <div className="w-[140px] shrink-0 px-2 flex items-center border-r border-[var(--color-glass-edge)] relative">
-                <button
-                  type="button"
-                  onClick={() => setShowTrackMenu(!showTrackMenu)}
-                  className="flex items-center gap-0.5 text-[9px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
-                >
-                  <Plus className="size-2.5" /> Track
-                </button>
-                {/* Track type dropdown */}
-                {showTrackMenu && (
-                  <div className="absolute top-full left-0 z-20 w-48 bg-[var(--color-bg-deep)] border border-[var(--color-glass-edge)] shadow-lg">
-                    {SIGNAL_TYPE_PRESETS.map((preset) => (
-                      <button
-                        key={preset.key}
-                        type="button"
-                        className="flex items-center gap-2 w-full px-2 py-1.5 text-[10px] text-[var(--color-text-primary)] hover:bg-[var(--color-glass-hover)] transition-colors"
-                        onClick={() => {
-                          handleAddTrack(preset);
-                          setShowTrackMenu(false);
-                        }}
-                      >
-                        <SignalIcon2DInline descriptor={preset.descriptor} />
-                        {preset.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
+          <div className="relative min-w-0 flex">
+            {/* Main content (header + tracks) */}
+            <div className="flex-1 min-w-0">
+              {/* Phase header row */}
+              <div className="flex items-stretch min-h-[28px] border-b border-[var(--color-glass-edge)] sticky top-0 z-10 bg-[var(--color-bg-deep)]">
+                {/* Track add button */}
+                <div className="w-[140px] shrink-0 px-2 flex items-center border-r border-[var(--color-glass-edge)] relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowTrackMenu(!showTrackMenu)}
+                    className="flex items-center gap-0.5 text-[9px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+                  >
+                    <Plus className="size-2.5" /> Track
+                  </button>
+                  {/* Track type dropdown */}
+                  {showTrackMenu && (
+                    <div className="absolute top-full left-0 z-20 w-48 bg-[var(--color-bg-deep)] border border-[var(--color-glass-edge)] shadow-lg">
+                      {SIGNAL_TYPE_PRESETS.map((preset) => (
+                        <button
+                          key={preset.key}
+                          type="button"
+                          className="flex items-center gap-2 w-full px-2 py-1.5 text-[10px] text-[var(--color-text-primary)] hover:bg-[var(--color-glass-hover)] transition-colors"
+                          onClick={() => {
+                            handleAddTrack(preset);
+                            setShowTrackMenu(false);
+                          }}
+                        >
+                          <SignalIcon2DInline descriptor={preset.descriptor} />
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Phase columns */}
+                <div className="flex-1 flex items-stretch relative">
+                  {selectedController.phases.map((phase, pi) => {
+                    const widthPercent =
+                      cycleDuration > 0 ? (phase.duration / cycleDuration) * 100 : 0;
+                    return (
+                      <PhaseHeader
+                        key={pi}
+                        name={phase.name}
+                        duration={phase.duration}
+                        widthPercent={widthPercent}
+                        onNameChange={(name) => handlePhaseNameChange(pi, name)}
+                        onDurationChange={(dur) => handlePhaseDurationChange(pi, dur)}
+                        onDelete={() => handleDeletePhase(pi)}
+                      />
+                    );
+                  })}
+                  <TimelinePlayhead
+                    currentTime={currentTime}
+                    totalDuration={cycleDuration}
+                    onSeek={setCurrentTime}
+                  />
+                </div>
               </div>
 
-              {/* Phase columns */}
-              <div className="flex-1 flex items-stretch relative">
-                {selectedController.phases.map((phase, pi) => {
-                  const widthPercent =
-                    cycleDuration > 0 ? (phase.duration / cycleDuration) * 100 : 0;
-                  return (
-                    <PhaseHeader
-                      key={pi}
-                      name={phase.name}
-                      duration={phase.duration}
-                      widthPercent={widthPercent}
-                      onNameChange={(name) => handlePhaseNameChange(pi, name)}
-                      onDurationChange={(dur) => handlePhaseDurationChange(pi, dur)}
-                      onDelete={() => handleDeletePhase(pi)}
-                    />
-                  );
-                })}
-                <TimelinePlayhead
-                  currentTime={currentTime}
+              {/* Signal tracks */}
+              {tracks.map((track) => (
+                <SignalTrack
+                  key={track.trackKey}
+                  track={track}
+                  phases={selectedController.phases}
                   totalDuration={cycleDuration}
-                  onSeek={setCurrentTime}
+                  activePhaseIndex={activePhaseIndex}
+                  selectedCell={selectedCell}
+                  isSelected={selectedTrackKey === track.trackKey}
+                  onCellClick={handleCellClick}
+                  onTrackSelect={handleTrackSelect}
+                  onTrackLabelChange={handleTrackLabelChange}
+                  onAddSignalId={handleAddSignalId}
+                  onRemoveSignalId={handleRemoveSignalId}
+                  onDeleteTrack={handleDeleteTrack}
                 />
-              </div>
-              <div className="w-8 shrink-0 flex items-center justify-center">
-                <button
-                  type="button"
-                  onClick={handleAddPhase}
-                  className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
-                  title="Add Phase"
-                >
-                  <Plus className="size-3" />
-                </button>
-              </div>
+              ))}
+
+              {tracks.length === 0 && selectedController.phases.length > 0 && (
+                <div className="flex items-center justify-center h-16 text-xs text-[var(--color-text-secondary)]">
+                  Click "+ Track" to add a signal type
+                </div>
+              )}
+              {selectedController.phases.length === 0 && (
+                <div className="flex items-center justify-center h-16 text-xs text-[var(--color-text-secondary)]">
+                  Click + to add a phase
+                </div>
+              )}
             </div>
 
-            {/* Signal tracks */}
-            {tracks.map((track) => (
-              <SignalTrack
-                key={track.trackKey}
-                track={track}
-                phases={selectedController.phases}
-                totalDuration={cycleDuration}
-                activePhaseIndex={activePhaseIndex}
-                selectedCell={selectedCell}
-                onCellClick={handleCellClick}
-                onTrackLabelChange={handleTrackLabelChange}
-                onAddSignalId={handleAddSignalId}
-                onRemoveSignalId={handleRemoveSignalId}
-                onDeleteTrack={handleDeleteTrack}
-              />
-            ))}
-
-            {tracks.length === 0 && selectedController.phases.length > 0 && (
-              <div className="flex items-center justify-center h-16 text-xs text-[var(--color-text-secondary)]">
-                Click "+ Track" to add a signal type
-              </div>
-            )}
-            {selectedController.phases.length === 0 && (
-              <div className="flex items-center justify-center h-16 text-xs text-[var(--color-text-secondary)]">
-                Click + to add a phase
-              </div>
-            )}
+            {/* Add Phase column — spans full height, vertically centered */}
+            <div className="w-10 shrink-0 border-l border-[var(--color-glass-edge)] flex items-center justify-center">
+              <button
+                type="button"
+                onClick={handleAddPhase}
+                className="flex items-center justify-center size-7 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-glass-hover)] transition-colors"
+                title="Add Phase"
+              >
+                <Plus className="size-4" />
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-full gap-3">
+          <div className="flex items-center justify-center h-full">
             <p className="text-xs text-[var(--color-text-secondary)]">
-              No traffic signal controllers
+              Add a controller from the Properties panel
             </p>
-            <button
-              type="button"
-              onClick={handleAddController}
-              className="flex items-center gap-1.5 h-7 px-3 text-xs text-[var(--color-text-primary)] border border-[var(--color-glass-edge)] hover:bg-[var(--color-glass-hover)] rounded-none transition-colors"
-            >
-              <Plus className="size-3" />
-              Create Controller
-            </button>
           </div>
         )}
       </div>
@@ -720,109 +744,3 @@ function SignalIcon2DInline({ descriptor }: { descriptor: SignalDescriptor }) {
   return <SignalIcon2D descriptor={descriptor} activeState="" width={12} height={28} />;
 }
 
-// ---------------------------------------------------------------------------
-// Controller settings dropdown (name, delay, reference, delete)
-// ---------------------------------------------------------------------------
-
-function ControllerSettingsMenu({
-  controller,
-  onUpdate,
-  onDelete,
-}: {
-  controller: TrafficSignalController;
-  onUpdate: (updates: Partial<Pick<TrafficSignalController, 'name' | 'delay' | 'reference'>>) => void;
-  onDelete: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as HTMLElement)) {
-        setOpen(false);
-      }
-    };
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    const timer = setTimeout(() => {
-      window.addEventListener('mousedown', handleClickOutside);
-      window.addEventListener('keydown', handleEscape);
-    }, 0);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('mousedown', handleClickOutside);
-      window.removeEventListener('keydown', handleEscape);
-    };
-  }, [open]);
-
-  return (
-    <div className="relative" ref={panelRef}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        title="Controller settings"
-        className="flex items-center justify-center size-6 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-glass-hover)] transition-colors"
-      >
-        <Settings2 className="size-3" />
-      </button>
-
-      {open && (
-        <div className="absolute top-full right-0 z-30 w-56 bg-[var(--color-bg-deep)] border border-[var(--color-glass-edge)] shadow-lg p-2.5 space-y-2">
-          {/* Name */}
-          <div className="space-y-0.5">
-            <label className="text-[9px] text-[var(--color-text-secondary)]">Name</label>
-            <input
-              type="text"
-              value={controller.name}
-              onChange={(e) => onUpdate({ name: e.target.value })}
-              className="h-6 w-full px-1.5 text-xs bg-[var(--color-glass-2)] border border-[var(--color-glass-edge)] rounded-none text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)]"
-            />
-          </div>
-
-          {/* Delay + Reference */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-0.5">
-              <label className="text-[9px] text-[var(--color-text-secondary)]">Delay (s)</label>
-              <input
-                type="number"
-                value={controller.delay ?? ''}
-                placeholder="--"
-                onChange={(e) => {
-                  const v = parseFloat(e.target.value);
-                  onUpdate({ delay: isNaN(v) ? undefined : v });
-                }}
-                className="h-6 w-full px-1.5 text-xs bg-[var(--color-glass-2)] border border-[var(--color-glass-edge)] rounded-none text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)]"
-                step={1}
-                min={0}
-              />
-            </div>
-            <div className="space-y-0.5">
-              <label className="text-[9px] text-[var(--color-text-secondary)]">Reference</label>
-              <input
-                type="text"
-                value={controller.reference ?? ''}
-                placeholder="--"
-                onChange={(e) => onUpdate({ reference: e.target.value || undefined })}
-                className="h-6 w-full px-1.5 text-xs bg-[var(--color-glass-2)] border border-[var(--color-glass-edge)] rounded-none text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)]"
-              />
-            </div>
-          </div>
-
-          {/* Delete */}
-          <div className="pt-1 border-t border-[var(--color-glass-edge)]">
-            <button
-              type="button"
-              onClick={() => { onDelete(); setOpen(false); }}
-              className="flex items-center gap-1 text-[10px] text-[var(--color-status-error)] hover:text-[var(--color-status-error)]/80 transition-colors"
-            >
-              <Trash2 className="size-3" />
-              Delete controller
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}

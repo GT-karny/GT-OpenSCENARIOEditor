@@ -125,6 +125,14 @@ export interface EditorState {
   toggleIntersectionTimeline: () => void;
   setShowIntersectionTimeline: (show: boolean) => void;
 
+  // Selected TrafficSignalController (shared between timeline & properties)
+  selectedControllerId: string | null;
+  setSelectedControllerId: (id: string | null) => void;
+
+  // Signal IDs to highlight in 3D viewer (set by timeline track selection)
+  highlightedSignalIds: ReadonlySet<string> | null;
+  setHighlightedSignalIds: (ids: ReadonlySet<string> | null) => void;
+
   // Reset transient state (preserves preferences, panelVisibility, file state)
   resetTransientState: () => void;
 
@@ -289,6 +297,14 @@ export const useEditorStore = create<EditorState>()(
         set((state) => ({ showIntersectionTimeline: !state.showIntersectionTimeline })),
       setShowIntersectionTimeline: (show) => set({ showIntersectionTimeline: show }),
 
+      // Selected controller
+      selectedControllerId: null,
+      setSelectedControllerId: (id) => set({ selectedControllerId: id, highlightedSignalIds: null }),
+
+      // Highlighted signal IDs
+      highlightedSignalIds: null,
+      setHighlightedSignalIds: (ids) => set({ highlightedSignalIds: ids }),
+
       // Reset transient state (preserves preferences, panelVisibility, file state)
       resetTransientState: () =>
         set({
@@ -302,6 +318,8 @@ export const useEditorStore = create<EditorState>()(
           pickedPosition: null,
           showSaveAs: false,
           saveAsFileType: 'xosc' as const,
+          selectedControllerId: null,
+          highlightedSignalIds: null,
         }),
 
       // Reset file-related state (for project close / new file)

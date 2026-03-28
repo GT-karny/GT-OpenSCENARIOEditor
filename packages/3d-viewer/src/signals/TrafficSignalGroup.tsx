@@ -9,7 +9,7 @@
  */
 
 import React, { useMemo, useRef } from 'react';
-import type * as THREE from 'three';
+import * as THREE from 'three';
 import type { OpenDriveDocument, OdrSignal, OdrRoad, SimulationFrame } from '@osce/shared';
 import type { WorldCoords } from '../utils/position-resolver.js';
 import type { SignalCategory } from '../utils/signal-geometry.js';
@@ -40,10 +40,12 @@ interface TrafficSignalGroupProps {
   selectedSignalKey?: string | null;
   onSignalSelect?: (key: string) => void;
   currentFrame?: SimulationFrame | null;
+  /** Signal IDs to highlight (e.g. signals belonging to the selected controller) */
+  highlightedSignalIds?: ReadonlySet<string>;
 }
 
 export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
-  ({ openDriveDocument, showLabels, selectedSignalKey, onSignalSelect, currentFrame }) => {
+  ({ openDriveDocument, showLabels, selectedSignalKey, onSignalSelect, currentFrame, highlightedSignalIds }) => {
     const signalGroupRef = useRef<THREE.Group>(null);
 
     // Build signal ID → state string map from current simulation frame
@@ -144,6 +146,14 @@ export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
           />
         )}
 
+        {/* Highlight overlays for signals belonging to selected controller/track */}
+        {highlightedSignalIds &&
+          trafficLightSignals
+            .filter((rs) => highlightedSignalIds.has(rs.signal.id) && rs.key !== selectedSignalKey)
+            .map((rs) => (
+              <SignalHighlightOverlay key={`hl-${rs.key}`} signal={rs} />
+            ))}
+
         {/* Non-traffic-light signals: rendered individually (usually few) */}
         {otherSignals.map((rs) => (
           <TrafficSignalEntity
@@ -166,6 +176,7 @@ export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
             const descriptor =
               rs.category === 'trafficLight' ? resolveSignalDescriptor(rs.signal) : null;
             const headHeight = descriptor ? descriptor.housing.height : 0;
+            const isHighlighted = highlightedSignalIds?.has(rs.signal.id) ?? false;
             return (
               <group
                 key={`label-${rs.key}`}
@@ -173,8 +184,9 @@ export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
                 rotation={[rs.position.pitch ?? 0, rs.position.roll ?? 0, rs.position.h]}
               >
                 <SignalLabel
-                  name={rs.signal.name ?? rs.signal.id}
+                  name={rs.signal.id}
                   position={[0, 0, poleHeight + headHeight + 0.5]}
+                  highlighted={isHighlighted}
                 />
               </group>
             );
@@ -185,3 +197,56 @@ export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
 );
 
 TrafficSignalGroup.displayName = 'TrafficSignalGroup';
+
+// ---------------------------------------------------------------------------
+// Highlight glow overlay — wraps the housing in emissive color
+// ---------------------------------------------------------------------------
+
+import { getSharedBox } from '../utils/shared-geometries.js';
+
+const GLOW_MATERIAL = new THREE.MeshBasicMaterial({
+  color: new THREE.Color(2.5, 1.8, 0.2), // HDR orange-yellow — blooms with post-processing
+  transparent: true,
+  opacity: 0.55,
+  side: THREE.DoubleSide,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+});
+
+const SignalHighlightOverlay: React.FC<{ signal: ResolvedSignal }> = React.memo(
+  ({ signal: rs }) => {
+    const { signal, position } = rs;
+    const signalHeight = signal.zOffset ?? DEFAULT_SIGNAL_HEIGHT;
+    const poleHeight = signalHeight;
+    const descriptor = resolveSignalDescriptor(signal);
+    if (!descriptor) return null;
+
+    const { housing } = descriptor;
+    const headHeight = housing.height;
+    const isHorizontal = descriptor.orientation === 'horizontal';
+    const rotation: [number, number, number] = isHorizontal
+      ? [0, Math.PI / 2, Math.PI / 2]
+      : [0, Math.PI / 2, 0];
+
+    // Slightly larger than actual housing for glow effect
+    const pad = 0.06;
+    const boxGeo = getSharedBox(housing.height + pad, housing.width + pad, housing.depth + pad);
+
+    return (
+      <group
+        position={[position.x, position.y, position.z - signalHeight]}
+        rotation={[position.pitch ?? 0, position.roll ?? 0, position.h]}
+      >
+        {/* Glow box covering the housing */}
+        <mesh
+          position={[0, 0, poleHeight + headHeight / 2]}
+          rotation={rotation}
+          geometry={boxGeo}
+          material={GLOW_MATERIAL}
+        />
+      </group>
+    );
+  },
+);
+
+SignalHighlightOverlay.displayName = 'SignalHighlightOverlay';

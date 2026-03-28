@@ -5,7 +5,7 @@
  */
 
 import { memo, useMemo, useState, useCallback } from 'react';
-import { Plus, X, Trash2 } from 'lucide-react';
+import { Plus, X, Trash2, Settings2 } from 'lucide-react';
 import type { TrafficSignalPhase } from '@osce/shared';
 import type { SignalDescriptor, BulbColor } from '@osce/3d-viewer';
 import { SignalIcon2D } from './SignalIcon2D';
@@ -31,7 +31,9 @@ interface SignalTrackProps {
   totalDuration: number;
   activePhaseIndex: number | null;
   selectedCell: { phaseIndex: number; trackKey: string } | null;
+  isSelected?: boolean;
   onCellClick: (phaseIndex: number, trackKey: string) => void;
+  onTrackSelect: (trackKey: string) => void;
   onTrackLabelChange: (trackKey: string, label: string) => void;
   onAddSignalId: (trackKey: string, signalId: string) => void;
   onRemoveSignalId: (trackKey: string, signalId: string) => void;
@@ -149,7 +151,9 @@ export const SignalTrack = memo(function SignalTrack({
   totalDuration,
   activePhaseIndex,
   selectedCell,
+  isSelected,
   onCellClick,
+  onTrackSelect,
   onTrackLabelChange,
   onAddSignalId,
   onRemoveSignalId,
@@ -177,27 +181,43 @@ export const SignalTrack = memo(function SignalTrack({
   }, [newIdInput, onAddSignalId, track.trackKey]);
 
   return (
-    <div className="flex items-stretch h-10 border-b border-[var(--color-glass-edge)]">
-      {/* Track label + signal icon (clickable) */}
-      <button
-        type="button"
-        onClick={() => setShowPopover((v) => !v)}
-        className="flex items-center gap-1.5 w-[140px] shrink-0 px-2 border-r border-[var(--color-glass-edge)] hover:bg-[var(--color-glass-hover)] transition-colors relative text-left"
-      >
-        <SignalIcon2D
-          descriptor={track.descriptor}
-          activeState={currentState}
-          width={16}
-          height={36}
-        />
-        <div className="flex flex-col min-w-0">
-          <span className="text-[10px] text-[var(--color-text-primary)] truncate font-medium leading-tight">
-            {track.label}
-          </span>
-          <span className={`text-[9px] truncate leading-tight ${track.signalIds.length > 0 ? 'text-[var(--color-text-secondary)]' : 'text-[var(--color-status-warning)]'}`}>
-            {idsDisplay}
-          </span>
-        </div>
+    <div className="group/track flex items-stretch h-10 border-b border-[var(--color-glass-edge)]">
+      {/* Track label + signal icon — click to select, settings button for popover */}
+      <div className="relative w-[140px] shrink-0 border-r border-[var(--color-glass-edge)]">
+        <button
+          type="button"
+          onClick={() => onTrackSelect(track.trackKey)}
+          className={`flex items-center gap-1.5 w-full h-full px-2 transition-colors text-left ${
+            isSelected
+              ? 'bg-[var(--color-accent)]/15 border-l-2 border-l-[var(--color-accent)]'
+              : 'hover:bg-[var(--color-glass-hover)]'
+          }`}
+        >
+          <SignalIcon2D
+            descriptor={track.descriptor}
+            activeState={currentState}
+            width={16}
+            height={36}
+          />
+          <div className="flex flex-col min-w-0 flex-1">
+            <span className="text-[10px] text-[var(--color-text-primary)] truncate font-medium leading-tight">
+              {track.label}
+            </span>
+            <span className={`text-[9px] truncate leading-tight ${track.signalIds.length > 0 ? 'text-[var(--color-text-secondary)]' : 'text-[var(--color-status-warning)]'}`}>
+              {idsDisplay}
+            </span>
+          </div>
+        </button>
+
+        {/* Settings gear */}
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setShowPopover((v) => !v); }}
+          className="absolute top-0.5 right-0.5 p-0.5 opacity-0 hover:!opacity-100 group-hover/track:opacity-60 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-opacity"
+          style={{ opacity: showPopover ? 1 : undefined }}
+        >
+          <Settings2 className="size-2.5" />
+        </button>
 
         {/* Track settings popover */}
         {showPopover && (
@@ -267,7 +287,7 @@ export const SignalTrack = memo(function SignalTrack({
             </button>
           </div>
         )}
-      </button>
+      </div>
 
       {/* Phase cells */}
       <div className="flex-1 flex items-stretch">

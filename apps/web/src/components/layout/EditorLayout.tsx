@@ -94,6 +94,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   routePreviewData?: import('@osce/3d-viewer').RoutePreviewData[];
   selectedSignalKey?: string | null;
   onSignalSelect?: (key: string) => void;
+  highlightedSignalIds?: ReadonlySet<string>;
   positionPickActive?: boolean;
   onPositionPicked?: (data: PickedPositionData) => void;
   onPositionPickCancel?: () => void;
@@ -156,6 +157,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       routePreviewData={props.routePreviewData}
       selectedSignalKey={props.selectedSignalKey}
       onSignalSelect={props.onSignalSelect}
+      highlightedSignalIds={props.highlightedSignalIds}
       positionPickActive={props.positionPickActive}
       onPositionPicked={props.onPositionPicked}
       onPositionPickCancel={props.onPositionPickCancel}
@@ -264,7 +266,33 @@ export function EditorLayout() {
   }, []);
 
   const selectedSignalKey = useEditorStore((s) => s.selectedSignalKey);
+  const selectedControllerId = useEditorStore((s) => s.selectedControllerId);
   const positionPickRequest = useEditorStore((s) => s.positionPickRequest);
+
+  // Signal IDs to highlight in 3D viewer (set by timeline track selection, or all controller signals)
+  const storeHighlightedSignalIds = useEditorStore((s) => s.highlightedSignalIds);
+  const trafficSignals = useStore(
+    scenarioStoreApi,
+    useShallow((s) => s.document.roadNetwork?.trafficSignals),
+  );
+  const highlightedSignalIds = useMemo(() => {
+    if (!showIntersectionTimeline) return undefined;
+    // Track-level selection takes priority
+    if (storeHighlightedSignalIds && storeHighlightedSignalIds.size > 0) {
+      return storeHighlightedSignalIds;
+    }
+    // Fallback: highlight all signals in the selected controller
+    if (!selectedControllerId || !trafficSignals) return undefined;
+    const ctrl = trafficSignals.find((c) => c.id === selectedControllerId);
+    if (!ctrl) return undefined;
+    const ids = new Set<string>();
+    for (const phase of ctrl.phases) {
+      for (const st of phase.trafficSignalStates) {
+        ids.add(st.trafficSignalId);
+      }
+    }
+    return ids.size > 0 ? ids : undefined;
+  }, [showIntersectionTimeline, storeHighlightedSignalIds, selectedControllerId, trafficSignals]);
 
   const handleSignalSelect = useCallback((key: string) => {
     useEditorStore.getState().setSelectedSignalKey(key);
@@ -623,6 +651,7 @@ export function EditorLayout() {
                     routePreviewData={routePreviewData}
                     selectedSignalKey={selectedSignalKey}
                     onSignalSelect={handleSignalSelect}
+                    highlightedSignalIds={highlightedSignalIds}
                     positionPickActive={positionPickRequest != null}
                     onPositionPicked={handlePositionPicked}
                     onPositionPickCancel={handlePositionPickCancel}
