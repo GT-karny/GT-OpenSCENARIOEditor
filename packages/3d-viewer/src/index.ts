@@ -67,7 +67,8 @@ export type {
   BulbFaceShape,
 } from './utils/signal-catalog.js';
 export { SIGNAL_CATALOG, resolveSignalDescriptor } from './utils/signal-catalog.js';
-export { isBulbActiveByIndex } from './utils/parse-traffic-light-state.js';
+export { isBulbActiveByIndex, getBulbMode, hasFlashingBulb } from './utils/parse-traffic-light-state.js';
+export type { BulbMode } from './utils/parse-traffic-light-state.js';
 
 // Road editing gizmos
 export { RoadEditingLayer } from './interaction/road-editing/index.js';

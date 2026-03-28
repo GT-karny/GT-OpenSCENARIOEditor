@@ -13,7 +13,7 @@
 import * as THREE from 'three';
 import type { SignalDescriptor, BulbColor, BulbFaceShape } from './signal-catalog.js';
 import { TRAFFIC_LIGHT } from './signal-geometry.js';
-import { isBulbActiveByIndex } from './parse-traffic-light-state.js';
+import { getBulbMode } from './parse-traffic-light-state.js';
 import { getShape } from './signal-shapes.js';
 
 // ---------------------------------------------------------------------------
@@ -148,7 +148,8 @@ export function getSignalTexture(
 
   for (let i = 0; i < bulbs.length; i++) {
     const bulb = bulbs[i];
-    const isActive = activeState ? isBulbActiveByIndex(activeState, i, bulb.color) : false;
+    const mode = activeState ? getBulbMode(activeState, i, bulb.color) : 'off';
+    const isActive = mode === 'on' || mode === 'flashing';
     const color = isActive ? BULB_COLORS[bulb.color] : OFF_BULB_COLORS[bulb.color];
 
     let cx: number, cy: number;
@@ -180,6 +181,24 @@ export function getSignalTexture(
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.fill();
+
+    // Flashing hatching overlay
+    if (mode === 'flashing') {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.globalAlpha = 0.3;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      for (let offset = -r * 2; offset < r * 2; offset += 8) {
+        ctx.beginPath();
+        ctx.moveTo(cx + offset, cy - r);
+        ctx.lineTo(cx + offset + r, cy + r);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
 
     // Shape overlay (arrow / pedestrian silhouette)
     drawBulbOverlay(ctx, bulb.shape, isActive, cx, cy, r);
