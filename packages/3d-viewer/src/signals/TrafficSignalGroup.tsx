@@ -227,6 +227,7 @@ export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
               return s && !flashOn ? suppressFlashing(s) : s;
             })()}
             isSelected
+            assemblyMap={assemblyMap}
           />
         )}
 
