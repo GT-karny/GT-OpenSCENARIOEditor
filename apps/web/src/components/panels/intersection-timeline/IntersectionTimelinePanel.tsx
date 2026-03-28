@@ -8,7 +8,7 @@
 
 import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Settings2 } from 'lucide-react';
 import type { TrafficSignalController } from '@osce/shared';
 import { SIGNAL_CATALOG } from '@osce/3d-viewer';
 import type { SignalDescriptor } from '@osce/3d-viewer';
@@ -178,6 +178,48 @@ export function IntersectionTimelinePanel() {
       if (!signals) return;
       const newSignals = signals.map((c) =>
         c.id === selectedController.id ? updater(c) : c,
+      );
+      storeApi.getState().updateRoadNetwork({ trafficSignals: newSignals });
+    },
+    [storeApi, selectedController],
+  );
+
+  // --- Controller CRUD ---
+
+  const handleAddController = useCallback(() => {
+    const doc = storeApi.getState().document;
+    const signals = (doc.roadNetwork?.trafficSignals ?? []) as TrafficSignalController[];
+    const id = crypto.randomUUID();
+    const newController: TrafficSignalController = {
+      id,
+      name: `Controller_${signals.length + 1}`,
+      phases: [],
+    };
+    storeApi.getState().updateRoadNetwork({ trafficSignals: [...signals, newController] });
+    setSelectedControllerId(id);
+  }, [storeApi]);
+
+  const handleDeleteController = useCallback(() => {
+    if (!selectedController) return;
+    const doc = storeApi.getState().document;
+    const signals = (doc.roadNetwork?.trafficSignals ?? []) as TrafficSignalController[];
+    const newSignals = signals.filter((c) => c.id !== selectedController.id);
+    storeApi.getState().updateRoadNetwork({ trafficSignals: newSignals });
+    setSelectedControllerId('');
+    setTrackMetaMap((prev) => {
+      const next = { ...prev };
+      delete next[selectedController.id];
+      return next;
+    });
+  }, [storeApi, selectedController]);
+
+  const handleUpdateControllerProps = useCallback(
+    (updates: Partial<Pick<TrafficSignalController, 'name' | 'delay' | 'reference'>>) => {
+      if (!selectedController) return;
+      const doc = storeApi.getState().document;
+      const signals = (doc.roadNetwork?.trafficSignals ?? []) as TrafficSignalController[];
+      const newSignals = signals.map((c) =>
+        c.id === selectedController.id ? { ...c, ...updates } : c,
       );
       storeApi.getState().updateRoadNetwork({ trafficSignals: newSignals });
     },
@@ -447,23 +489,44 @@ export function IntersectionTimelinePanel() {
         onReset={reset}
         onClose={handleClose}
       >
-        {controllers.length > 0 && (
-          <Select
-            value={selectedController?.id ?? ''}
-            onValueChange={setSelectedControllerId}
+        <div className="flex items-center gap-1">
+          {controllers.length > 0 && (
+            <Select
+              value={selectedController?.id ?? ''}
+              onValueChange={setSelectedControllerId}
+            >
+              <SelectTrigger className="h-6 w-40 text-[10px] rounded-none">
+                <SelectValue placeholder="Select controller" />
+              </SelectTrigger>
+              <SelectContent>
+                {controllers.map((c) => (
+                  <SelectItem key={c.id} value={c.id} className="text-xs">
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          {/* Add controller */}
+          <button
+            type="button"
+            onClick={handleAddController}
+            title="Add controller"
+            className="flex items-center justify-center size-6 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-glass-hover)] transition-colors"
           >
-            <SelectTrigger className="h-6 w-40 text-[10px] rounded-none">
-              <SelectValue placeholder="Select controller" />
-            </SelectTrigger>
-            <SelectContent>
-              {controllers.map((c) => (
-                <SelectItem key={c.id} value={c.id} className="text-xs">
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+            <Plus className="size-3" />
+          </button>
+
+          {/* Controller settings */}
+          {selectedController && (
+            <ControllerSettingsMenu
+              controller={selectedController}
+              onUpdate={handleUpdateControllerProps}
+              onDelete={handleDeleteController}
+            />
+          )}
+        </div>
       </TimelineToolbar>
 
       {/* Matrix viewport */}
@@ -566,8 +629,18 @@ export function IntersectionTimelinePanel() {
             )}
           </div>
         ) : (
-          <div className="flex items-center justify-center h-full text-xs text-[var(--color-text-secondary)]">
-            No traffic signal controllers defined
+          <div className="flex flex-col items-center justify-center h-full gap-3">
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              No traffic signal controllers
+            </p>
+            <button
+              type="button"
+              onClick={handleAddController}
+              className="flex items-center gap-1.5 h-7 px-3 text-xs text-[var(--color-text-primary)] border border-[var(--color-glass-edge)] hover:bg-[var(--color-glass-hover)] rounded-none transition-colors"
+            >
+              <Plus className="size-3" />
+              Create Controller
+            </button>
           </div>
         )}
       </div>
@@ -645,4 +718,111 @@ function PhaseHeader({
 // Tiny inline signal icon for the track type menu
 function SignalIcon2DInline({ descriptor }: { descriptor: SignalDescriptor }) {
   return <SignalIcon2D descriptor={descriptor} activeState="" width={12} height={28} />;
+}
+
+// ---------------------------------------------------------------------------
+// Controller settings dropdown (name, delay, reference, delete)
+// ---------------------------------------------------------------------------
+
+function ControllerSettingsMenu({
+  controller,
+  onUpdate,
+  onDelete,
+}: {
+  controller: TrafficSignalController;
+  onUpdate: (updates: Partial<Pick<TrafficSignalController, 'name' | 'delay' | 'reference'>>) => void;
+  onDelete: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as HTMLElement)) {
+        setOpen(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    const timer = setTimeout(() => {
+      window.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('keydown', handleEscape);
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [open]);
+
+  return (
+    <div className="relative" ref={panelRef}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        title="Controller settings"
+        className="flex items-center justify-center size-6 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-glass-hover)] transition-colors"
+      >
+        <Settings2 className="size-3" />
+      </button>
+
+      {open && (
+        <div className="absolute top-full right-0 z-30 w-56 bg-[var(--color-bg-deep)] border border-[var(--color-glass-edge)] shadow-lg p-2.5 space-y-2">
+          {/* Name */}
+          <div className="space-y-0.5">
+            <label className="text-[9px] text-[var(--color-text-secondary)]">Name</label>
+            <input
+              type="text"
+              value={controller.name}
+              onChange={(e) => onUpdate({ name: e.target.value })}
+              className="h-6 w-full px-1.5 text-xs bg-[var(--color-glass-2)] border border-[var(--color-glass-edge)] rounded-none text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)]"
+            />
+          </div>
+
+          {/* Delay + Reference */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-0.5">
+              <label className="text-[9px] text-[var(--color-text-secondary)]">Delay (s)</label>
+              <input
+                type="number"
+                value={controller.delay ?? ''}
+                placeholder="--"
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value);
+                  onUpdate({ delay: isNaN(v) ? undefined : v });
+                }}
+                className="h-6 w-full px-1.5 text-xs bg-[var(--color-glass-2)] border border-[var(--color-glass-edge)] rounded-none text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)]"
+                step={1}
+                min={0}
+              />
+            </div>
+            <div className="space-y-0.5">
+              <label className="text-[9px] text-[var(--color-text-secondary)]">Reference</label>
+              <input
+                type="text"
+                value={controller.reference ?? ''}
+                placeholder="--"
+                onChange={(e) => onUpdate({ reference: e.target.value || undefined })}
+                className="h-6 w-full px-1.5 text-xs bg-[var(--color-glass-2)] border border-[var(--color-glass-edge)] rounded-none text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)]"
+              />
+            </div>
+          </div>
+
+          {/* Delete */}
+          <div className="pt-1 border-t border-[var(--color-glass-edge)]">
+            <button
+              type="button"
+              onClick={() => { onDelete(); setOpen(false); }}
+              className="flex items-center gap-1 text-[10px] text-[var(--color-status-error)] hover:text-[var(--color-status-error)]/80 transition-colors"
+            >
+              <Trash2 className="size-3" />
+              Delete controller
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

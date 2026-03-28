@@ -123,6 +123,7 @@ export interface EditorState {
   // Intersection Timeline panel visibility
   showIntersectionTimeline: boolean;
   toggleIntersectionTimeline: () => void;
+  setShowIntersectionTimeline: (show: boolean) => void;
 
   // Reset transient state (preserves preferences, panelVisibility, file state)
   resetTransientState: () => void;
@@ -286,6 +287,7 @@ export const useEditorStore = create<EditorState>()(
       showIntersectionTimeline: false,
       toggleIntersectionTimeline: () =>
         set((state) => ({ showIntersectionTimeline: !state.showIntersectionTimeline })),
+      setShowIntersectionTimeline: (show) => set({ showIntersectionTimeline: show }),
 
       // Reset transient state (preserves preferences, panelVisibility, file state)
       resetTransientState: () =>
