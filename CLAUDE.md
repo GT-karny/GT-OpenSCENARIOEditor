@@ -3,6 +3,13 @@
 > Project instructions for Claude Code sessions.
 > This file is automatically loaded at the start of every session.
 
+## Core Principles
+
+1. **UI must always follow the APEX design system.** No exceptions — use APEX tokens, classes, and patterns.
+2. **UI must be instantly understandable.** Every element should be self-explanatory at first glance.
+3. **Follow OpenDRIVE/OpenSCENARIO specs strictly.** Always reference the XSD schema; never guess or approximate.
+4. **Minimal code, maximum impact.** Prefer deleting lines over adding. Find root causes, not band-aids.
+
 ## Language
 
 - Always respond in Japanese (日本語) unless explicitly asked to use another language.
@@ -24,25 +31,7 @@ Competing with IPG CarMaker and MathWorks RoadRunner — aiming for more modern 
 
 ## Architecture
 
-```
-apps/
-  web/          — React frontend (port 5173)
-  server/       — Fastify backend (port 3001)
-  desktop/      — Electron desktop app
-packages/
-  shared/       — Type definitions (IMMUTABLE CONTRACT — do not modify without coordination)
-  openscenario/ — .xosc XML parser/serializer
-  opendrive/    — .xodr parser, road shape computation
-  opendrive-engine/ — OpenDRIVE editing engine (Zustand store, Command pattern)
-  scenario-engine/ — Core business logic (Zustand store, Command pattern)
-  node-editor/  — React Flow node editor + timeline UI
-  3d-viewer/    — Three.js visualization
-  esmini/       — GT_Sim API client (REST + gRPC); WASM variant in apps/web/
-  theme-apex/   — APEX design system (glass, cursor light, tokens)
-  mcp-server/   — MCP protocol for AI agent integration
-  templates/    — Use case templates and action components
-  i18n/         — English/Japanese translations
-```
+Monorepo: `apps/` (web, server, desktop) + `packages/` (shared, openscenario, opendrive, opendrive-engine, scenario-engine, node-editor, 3d-viewer, esmini, theme-apex, mcp-server, templates, i18n). Run `ls` for details.
 
 ### Critical Rule: `@osce/shared` is immutable
 
@@ -108,28 +97,12 @@ This project uses Claude Code worktrees for parallel development. When assigning
 - Scopes: package or area name (e.g., `property`, `3d-viewer`, `ui`, `shared`)
 - Example: `feat(property): add TransitionDynamics editor with shape icons`
 
-### APEX Styling Rules (see `docs/STYLE_GUIDE.md` for full guide)
-- **Corner radius**: Always `rounded-none` (0px). Never use `rounded-sm`, `rounded-md`, `rounded-lg`. Exception: `rounded-full` for badges/pills only.
-- **Colors**: Always use CSS variable tokens (`bg-[var(--color-glass-1)]`, `text-[var(--color-text-primary)]`). Never use raw hex (`bg-[#9B84E8]`) or shadcn tokens (`bg-muted`, `hover:bg-accent`) outside of `components/ui/`.
-- **Hover**: Use `hover:bg-[var(--color-glass-hover)]`. Never use `hover:bg-muted` or `hover:bg-accent/50`.
-- **Shadows**: Use `glow-sm` / `glow-md` / `glow-lg` utilities. Never use manual `box-shadow` with inline styles.
-- **Panels**: Use `.glass` class (28px blur built-in). Header/statusbar use `backdrop-blur-[40px]`.
-- **List items**: Use `.glass-item` class with `selected` modifier for selection state.
-- **Animations**: Use `enter` / `enter-l` / `enter-r` with delay classes `d1`–`d6` for appearing elements.
-- **Tabs**: All tab bars must use Radix UI `<Tabs>` + `<TabsTrigger className="apex-tab">`. Never build custom tab buttons with inline styles.
-- **Dividers**: Never use plain `border-b` or `border-t` without a color. Never use white/bright divider lines (`border-white`, `bg-white`). Panel headers use `<div className="divider-glow" />`. Section separators use `border-[var(--color-glass-edge)]`. List items use `border-[var(--color-glass-edge)]` or spacing (`space-y-0.5`).
+### APEX Styling
+- Full rules in `apps/web/CLAUDE.md` and `docs/STYLE_GUIDE.md`
+- Key rule: `rounded-none` always, APEX CSS variable tokens only, no shadcn tokens outside `components/ui/`
 
 ### Formatting
 - Prettier: single quotes, 100 char width, trailing commas, LF line endings
-
-### File Organization
-- Components: `apps/web/src/components/`
-- Hooks: `apps/web/src/hooks/`
-- Stores: `apps/web/src/stores/`
-- WASM simulation: `apps/web/src/lib/wasm/`
-- Types: `packages/shared/src/types/`
-- Parser modules: `packages/openscenario/src/parser/parse-*.ts`
-- Serializer modules: `packages/openscenario/src/serializer/build-*.ts`
 
 ### Testing
 - Unit tests: colocated `__tests__/` directories
@@ -138,30 +111,13 @@ This project uses Claude Code worktrees for parallel development. When assigning
 - Use `cross-env` for Windows-compatible test scripts
 - Set `USE_GT_SIM=true` to enable E2E tests requiring GT_Sim server
 
-## Key Reference Files
+## Key References
 
-| File | When to reference |
-|------|-------------------|
-| `docs/ARCHITECTURE.md` | Understanding system design or planning cross-package changes |
-| `docs/FEATURES.md` | Checking feature priority, roadmap, or XSD coverage gaps |
-| `docs/DEVELOPMENT.md` | Setup, startup modes, troubleshooting dev environment |
-| `docs/maturity/` | Evaluating or updating capability matrix |
-| `packages/theme-apex/README.md` | Applying APEX design tokens, CSS classes, or components |
-| `Thirdparty/openscenario-v1.3.1/ASAM_OpenSCENARIO_v1.3.1_Schema/OpenSCENARIO.xsd` | Adding or validating OpenSCENARIO element support (primary) |
-| `Thirdparty/openscenario-v1.2.0/Schema/OpenSCENARIO.xsd` | Legacy v1.2 schema reference (backward compatibility) |
-| `Thirdparty/esmini-demo_Windows/esmini-demo/resources/xosc/` | Testing with sample .xosc scenarios |
-| `docs/LANE_TOOL_MANUAL.md` | Lane editing tool usage and operational guide |
-| `docs/proposals/` | Feature proposals and design documents |
-
-## Environment Variables
-
-| Variable | Purpose | Default |
-|----------|---------|---------|
-| `PORT` | Backend HTTP/WS port | 3001 |
-| `GT_SIM_URL` | GT_Sim REST API URL | (unset = mock mode) |
-| `GT_SIM_GRPC` | GT_Sim gRPC host | 127.0.0.1:50051 |
-| `VITE_WS_URL` | Frontend WebSocket URL | ws://localhost:3001/ws |
-| `USE_GT_SIM` | Enable GT_Sim E2E tests | (unset = skip) |
+- Specs: `Thirdparty/openscenario-v1.3.1/.../OpenSCENARIO.xsd` (primary), `openscenario-v1.2.0` (legacy)
+- Design: `docs/ARCHITECTURE.md`, `docs/FEATURES.md`, `docs/proposals/`
+- APEX tokens: `packages/theme-apex/README.md`, `docs/STYLE_GUIDE.md`
+- Sample scenarios: `Thirdparty/esmini-demo_Windows/esmini-demo/resources/xosc/`
+- Environment: see `.env` files and `docs/DEVELOPMENT.md`
 
 ## Quality Gates
 
