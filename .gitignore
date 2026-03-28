@@ -48,12 +48,8 @@ apps/desktop/src-tauri/target/
 *.tmp
 *.log
 
-# Claude Code auto-generated (skills, plugins, worktrees)
-.claude/skills/
-.claude/spec/
-.claude/template/
-.claude/worktrees/
-.claude/settings.local.json
+# Claude Code (local settings, skills, worktrees, etc.)
+.claude/
 .claude-plugin/
 
 # Electron release output
