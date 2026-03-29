@@ -62,6 +62,14 @@ interface TrackMeta {
   pendingStates?: Record<number, string>;
 }
 
+/** Build a default "all off" state string matching the bulb count for a signal. */
+function defaultOffState(signalId: string, tracks: readonly TrackMeta[]): string {
+  const track = tracks.find((t) => t.signalIds.includes(signalId));
+  const catalogKey = track?.catalogKey;
+  const bulbCount = catalogKey ? (SIGNAL_CATALOG.get(catalogKey)?.bulbs.length ?? 3) : 3;
+  return Array(bulbCount).fill('off').join(';');
+}
+
 let trackCounter = 0;
 
 export function IntersectionTimelinePanel() {
@@ -387,7 +395,7 @@ export function IntersectionTimelinePanel() {
     const allIds = tracks.flatMap((t) => t.signalIds);
     const newStates = allIds.map((id) => ({
       trafficSignalId: id,
-      state: 'off;off;off',
+      state: defaultOffState(id, tracks),
     }));
     updateControllerPhases((ctrl) => ({
       ...ctrl,
@@ -478,13 +486,13 @@ export function IntersectionTimelinePanel() {
             ...phase,
             trafficSignalStates: [
               ...phase.trafficSignalStates,
-              { trafficSignalId: signalId, state: pending[pi] ?? 'off;off;off' },
+              { trafficSignalId: signalId, state: pending[pi] ?? defaultOffState(signalId, tracks) },
             ],
           };
         }),
       }));
     },
-    [selectedController, updateControllerPhases],
+    [selectedController, tracks, updateControllerPhases],
   );
 
   // Remove signal ID from track
@@ -630,7 +638,7 @@ export function IntersectionTimelinePanel() {
             ...phase,
             trafficSignalStates: [
               ...phase.trafficSignalStates,
-              { trafficSignalId: signalId, state: pending[pi] ?? 'off;off;off' },
+              { trafficSignalId: signalId, state: pending[pi] ?? defaultOffState(signalId, newMetas) },
             ],
           };
         }),
