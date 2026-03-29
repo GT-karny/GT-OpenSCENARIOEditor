@@ -17,7 +17,9 @@ import {
   presetToSignalPartial,
   createAssemblyFromPlacement,
   findAssemblyForSignal,
+  addHeadToAssembly,
   updateAssembly,
+  getAssemblyPresetById,
 } from '@osce/opendrive-engine';
 import { ScenarioViewer } from '@osce/3d-viewer';
 import type { PoleAssemblyInfo } from '@osce/3d-viewer';
@@ -36,6 +38,7 @@ import { OdrLaneSectionPropertyEditor } from './property/OdrLaneSectionPropertyE
 import { LaneLinkEditor } from './lane-link/LaneLinkEditor';
 import { RoadNetworkToolbar } from './toolbar/RoadNetworkToolbar';
 import { RoadStylePanel } from './toolbar/RoadStylePanel';
+import { SignalPlaceToolPanel } from './toolbar/SignalPlaceToolPanel';
 import { JunctionRoutingPanel } from './junction/JunctionRoutingPanel';
 import { useAutoJunctionDetection } from '../../hooks/use-auto-junction-detection';
 import { evaluateReferenceLineAtS, evaluateElevation, stToXyz, computePolePlacementT } from '@osce/opendrive';
@@ -1003,17 +1006,36 @@ export function RoadNetworkEditorLayout() {
   const handleSignalPlace = useCallback(
     (roadId: string, s: number, t: number, _heading: number) => {
       const store = odrStoreApi.getState();
-      // Read tSnapMode directly from the store to avoid stale closure issues
-      const { tSnapMode, selectedPresetId, ghostPreview } = useOdrSidebarStore.getState().signalPlace;
-      const preset = getPresetById(selectedPresetId);
-      const partial = preset ? presetToSignalPartial(preset) : {};
+      // Read state directly from the store to avoid stale closure issues
+      const { tSnapMode, selectionType, selectedPresetId, ghostPreview } =
+        useOdrSidebarStore.getState().signalPlace;
 
       // Determine side from t
       const side: 'right' | 'left' = t < 0 ? 'right' : 'left';
       const orientation: '+' | '-' = side === 'right' ? '+' : '-';
 
-      // Determine zOffset based on preset category (JP standard)
-      const isPedestrian = preset?.category === 'pedestrian';
+      // Helper: compute arm angle from world positions
+      const computeArmAngle = (poleT: number, headT: number): number | undefined => {
+        const road = odrDocument.roads.find((r) => r.id === roadId);
+        if (!ghostPreview || !road) return undefined;
+        const pose = evaluateReferenceLineAtS(road.planView, s);
+        const z = evaluateElevation(road.elevationProfile, s);
+        const poleWorld = stToXyz(pose, poleT, z);
+        const headWorld = stToXyz(pose, headT, z);
+        return Math.atan2(headWorld.y - poleWorld.y, headWorld.x - poleWorld.x);
+      };
+
+      // Resolve head presets: single head or assembly (list of heads)
+      const assemblyPreset =
+        selectionType === 'assembly' ? getAssemblyPresetById(selectedPresetId) : undefined;
+      const headPresetIds =
+        assemblyPreset && assemblyPreset.heads.length > 0
+          ? assemblyPreset.heads.map((h) => h.presetId)
+          : [selectedPresetId];
+
+      const firstHeadPreset = getPresetById(headPresetIds[0]);
+      const firstPartial = firstHeadPreset ? presetToSignalPartial(firstHeadPreset) : {};
+      const isPedestrian = firstHeadPreset?.category === 'pedestrian';
       const zOffset = isPedestrian ? 2.5 : 5.0;
 
       if (tSnapMode === 'lane-above') {
@@ -1021,46 +1043,71 @@ export function RoadNetworkEditorLayout() {
         const headT = ghostPreview?.headT ?? t;
         const poleT = ghostPreview?.poleT ?? t;
         const armLength = ghostPreview?.armLength ?? 3;
+        const armAngle = computeArmAngle(poleT, headT);
 
-        // Compute armAngle from world positions of pole and head
-        let armAngle: number | undefined;
-        const road = odrDocument.roads.find((r) => r.id === roadId);
-        if (ghostPreview && road) {
-          const pose = evaluateReferenceLineAtS(road.planView, s);
-          const z = evaluateElevation(road.elevationProfile, s);
-          const poleWorld = stToXyz(pose, poleT, z);
-          const headWorld = stToXyz(pose, headT, z);
-          armAngle = Math.atan2(headWorld.y - poleWorld.y, headWorld.x - poleWorld.x);
-        }
-
-        // Signal t = headT (housing renders at lane position)
-        createAssemblyFromPlacement(
+        const signal = createAssemblyFromPlacement(
           odrStoreApi,
           editorMetadataStoreApi,
           roadId,
-          {
-            ...partial,
-            s,
-            t: headT,
-            orientation,
-            hOffset: 0,
-            zOffset,
-          },
-          preset?.id,
+          { ...firstPartial, s, t: headT, orientation, hOffset: 0, zOffset },
+          headPresetIds[0],
           armLength,
           poleT,
           armAngle,
         );
+
+        // Add remaining heads (assembly case)
+        if (headPresetIds.length > 1) {
+          const assembly = findAssemblyForSignal(editorMetadataStoreApi, signal.id);
+          if (assembly) {
+            for (let i = 1; i < headPresetIds.length; i++) {
+              addHeadToAssembly(
+                odrStoreApi,
+                editorMetadataStoreApi,
+                assembly.assemblyId,
+                headPresetIds[i],
+                'lower',
+              );
+            }
+          }
+        }
       } else {
-        // Road-edge: straight pole, no assembly
-        store.addSignal(roadId, {
-          ...partial,
-          s,
-          t,
-          orientation,
-          hOffset: 0,
-          zOffset,
-        });
+        // Road-edge: straight pole
+        if (headPresetIds.length === 1) {
+          // Single signal, no assembly
+          store.addSignal(roadId, {
+            ...firstPartial,
+            s,
+            t,
+            orientation,
+            hOffset: 0,
+            zOffset,
+          });
+        } else {
+          // Assembly on straight pole
+          const signal = createAssemblyFromPlacement(
+            odrStoreApi,
+            editorMetadataStoreApi,
+            roadId,
+            { ...firstPartial, s, t, orientation, hOffset: 0, zOffset },
+            headPresetIds[0],
+            0,
+            t,
+            undefined,
+          );
+          const assembly = findAssemblyForSignal(editorMetadataStoreApi, signal.id);
+          if (assembly) {
+            for (let i = 1; i < headPresetIds.length; i++) {
+              addHeadToAssembly(
+                odrStoreApi,
+                editorMetadataStoreApi,
+                assembly.assemblyId,
+                headPresetIds[i],
+                'lower',
+              );
+            }
+          }
+        }
       }
     },
     [odrStoreApi, editorMetadataStoreApi, odrDocument],
@@ -1690,6 +1737,8 @@ export function RoadNetworkEditorLayout() {
                 <JunctionRoutingPanel endpoints={junctionEndpoints} />
               ) : roadCreationMode ? (
                 <RoadStylePanel />
+              ) : signalPlaceMode ? (
+                <SignalPlaceToolPanel />
               ) : laneEditMode && laneEdit.activeRoadId ? (
                 (() => {
                   const laneRoad = odrDocument.roads.find((r) => r.id === laneEdit.activeRoadId);

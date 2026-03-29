@@ -7,13 +7,16 @@
 
 import type { SignalAssemblyMetadata } from '../store/editor-metadata-types.js';
 
-/** A saved assembly preset (template for creating new assemblies). */
+/**
+ * A housing assembly preset — defines which signal heads are grouped together.
+ * Pole/arm configuration is determined by the placement mode (tSnapMode),
+ * not by the preset itself.
+ */
 export interface AssemblyPreset {
   id: string;
   name: string;
-  poleType: 'straight' | 'arm';
-  armLength?: number;
-  heads: { presetId: string; position: 'top' | 'arm' | 'lower'; offsetY?: number }[];
+  /** Ordered list of signal heads (top-to-bottom on the pole). */
+  heads: { presetId: string }[];
 }
 
 /** Built-in assembly presets. */
@@ -21,27 +24,17 @@ export const BUILT_IN_ASSEMBLY_PRESETS: AssemblyPreset[] = [
   {
     id: 'standard-intersection',
     name: 'Standard Intersection',
-    poleType: 'straight',
-    heads: [
-      { presetId: '3-light-vertical', position: 'top' },
-      { presetId: 'arrow-left', position: 'lower' },
-    ],
+    heads: [{ presetId: '3-light-vertical' }, { presetId: 'arrow-left' }],
   },
   {
-    id: 'arm-mounted',
-    name: 'Arm-Mounted Signal',
-    poleType: 'arm',
-    armLength: 3,
-    heads: [{ presetId: '3-light-vertical', position: 'arm' }],
+    id: 'vehicle-pedestrian',
+    name: 'Vehicle + Pedestrian',
+    heads: [{ presetId: '3-light-vertical' }, { presetId: 'pedestrian-2' }],
   },
   {
-    id: 'pedestrian-crossing',
-    name: 'Pedestrian Crossing',
-    poleType: 'straight',
-    heads: [
-      { presetId: '3-light-vertical', position: 'top' },
-      { presetId: 'pedestrian-2', position: 'lower' },
-    ],
+    id: 'vehicle-arrow-right',
+    name: 'Vehicle + Arrow Right',
+    heads: [{ presetId: '3-light-vertical' }, { presetId: 'arrow-right' }],
   },
 ];
 
@@ -55,12 +48,8 @@ export function assemblyToPreset(
   return {
     id: `custom-${Date.now()}`,
     name,
-    poleType: assembly.poleType,
-    armLength: assembly.armLength,
     heads: assembly.headPositions.map((hp) => ({
       presetId: hp.presetId ?? '3-light-vertical',
-      position: hp.position as 'top' | 'arm' | 'lower',
-      offsetY: hp.offsetY,
     })),
   };
 }
