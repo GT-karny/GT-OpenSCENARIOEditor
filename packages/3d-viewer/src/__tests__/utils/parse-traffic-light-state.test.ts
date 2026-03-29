@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { isBulbActive, isBulbActiveByIndex } from '../../utils/parse-traffic-light-state.js';
+import {
+  isBulbActive,
+  isBulbActiveByIndex,
+  getBulbMode,
+  suppressFlashing,
+  hasFlashingBulb,
+  defaultOffState,
+} from '../../utils/parse-traffic-light-state.js';
 
 describe('isBulbActive', () => {
   describe('esmini positional format (semicolon-separated)', () => {
@@ -41,6 +48,13 @@ describe('isBulbActive', () => {
     it('handles whitespace around values', () => {
       expect(isBulbActive('on ; off ; off', 'red')).toBe(true);
       expect(isBulbActive('on ; off ; off', 'yellow')).toBe(false);
+    });
+
+    it('treats flashing as active', () => {
+      expect(isBulbActive('flashing;off;off', 'red')).toBe(true);
+      expect(isBulbActive('flashing;off;off', 'yellow')).toBe(false);
+      expect(isBulbActive('off;flashing;off', 'yellow')).toBe(true);
+      expect(isBulbActive('off;off;flashing', 'green')).toBe(true);
     });
 
     it('handles 2-bulb pedestrian signal (only red;green positions)', () => {
@@ -120,5 +134,120 @@ describe('isBulbActiveByIndex', () => {
       expect(isBulbActiveByIndex(' on ; off ', 0, 'red')).toBe(true);
       expect(isBulbActiveByIndex(' on ; off ', 1, 'green')).toBe(false);
     });
+  });
+
+  describe('flashing mode', () => {
+    it('treats flashing as active', () => {
+      expect(isBulbActiveByIndex('flashing;off;off', 0, 'red')).toBe(true);
+      expect(isBulbActiveByIndex('flashing;off;off', 1, 'yellow')).toBe(false);
+      expect(isBulbActiveByIndex('off;flashing;off', 1, 'yellow')).toBe(true);
+      expect(isBulbActiveByIndex('off;off;flashing', 2, 'green')).toBe(true);
+    });
+
+    it('handles single-bulb flashing', () => {
+      expect(isBulbActiveByIndex('flashing', 0, 'green')).toBe(true);
+      expect(isBulbActiveByIndex('flashing', 1, 'green')).toBe(false);
+    });
+  });
+});
+
+describe('getBulbMode', () => {
+  describe('3-bulb positional', () => {
+    it('returns correct mode for on/off/flashing', () => {
+      expect(getBulbMode('on;off;off', 0, 'red')).toBe('on');
+      expect(getBulbMode('on;off;off', 1, 'yellow')).toBe('off');
+      expect(getBulbMode('flashing;off;off', 0, 'red')).toBe('flashing');
+      expect(getBulbMode('off;flashing;off', 1, 'yellow')).toBe('flashing');
+      expect(getBulbMode('off;off;flashing', 2, 'green')).toBe('flashing');
+    });
+
+    it('returns off for out-of-bounds index', () => {
+      expect(getBulbMode('on;off', 2, 'green')).toBe('off');
+    });
+  });
+
+  describe('single token', () => {
+    it('returns mode for index 0', () => {
+      expect(getBulbMode('on', 0, 'red')).toBe('on');
+      expect(getBulbMode('off', 0, 'red')).toBe('off');
+      expect(getBulbMode('flashing', 0, 'green')).toBe('flashing');
+    });
+
+    it('returns off for index > 0', () => {
+      expect(getBulbMode('flashing', 1, 'yellow')).toBe('off');
+    });
+  });
+
+  describe('color name fallback', () => {
+    it('returns on when color matches', () => {
+      expect(getBulbMode('red', 0, 'red')).toBe('on');
+      expect(getBulbMode('green', 0, 'green')).toBe('on');
+    });
+
+    it('returns off when color does not match', () => {
+      expect(getBulbMode('red', 0, 'green')).toBe('off');
+    });
+  });
+
+  describe('case insensitivity', () => {
+    it('handles mixed case', () => {
+      expect(getBulbMode('Flashing;Off;Off', 0, 'red')).toBe('flashing');
+      expect(getBulbMode('OFF;FLASHING;OFF', 1, 'yellow')).toBe('flashing');
+    });
+  });
+});
+
+describe('suppressFlashing', () => {
+  it('replaces flashing with off', () => {
+    expect(suppressFlashing('flashing;off;off')).toBe('off;off;off');
+  });
+
+  it('replaces multiple flashing tokens', () => {
+    expect(suppressFlashing('flashing;flashing;off')).toBe('off;off;off');
+  });
+
+  it('is case insensitive', () => {
+    expect(suppressFlashing('Flashing;Off;Off')).toBe('off;Off;Off');
+    expect(suppressFlashing('FLASHING;off;off')).toBe('off;off;off');
+  });
+
+  it('preserves non-flashing tokens', () => {
+    expect(suppressFlashing('on;off;on')).toBe('on;off;on');
+  });
+
+  it('handles single token', () => {
+    expect(suppressFlashing('flashing')).toBe('off');
+  });
+});
+
+describe('hasFlashingBulb', () => {
+  it('returns true when flashing is present', () => {
+    expect(hasFlashingBulb('flashing;off;off')).toBe(true);
+    expect(hasFlashingBulb('off;flashing;off')).toBe(true);
+    expect(hasFlashingBulb('off;off;flashing')).toBe(true);
+  });
+
+  it('returns false when no flashing', () => {
+    expect(hasFlashingBulb('on;off;off')).toBe(false);
+    expect(hasFlashingBulb('off;off;off')).toBe(false);
+  });
+
+  it('is case insensitive', () => {
+    expect(hasFlashingBulb('FLASHING;off;off')).toBe(true);
+    expect(hasFlashingBulb('Flashing')).toBe(true);
+  });
+});
+
+describe('defaultOffState', () => {
+  it('returns "off" for 1 bulb', () => {
+    expect(defaultOffState(1)).toBe('off');
+  });
+
+  it('returns "off;off" for 2 bulbs', () => {
+    expect(defaultOffState(2)).toBe('off;off');
+  });
+
+  it('returns "off;off;off" for 3 bulbs', () => {
+    expect(defaultOffState(3)).toBe('off;off;off');
   });
 });

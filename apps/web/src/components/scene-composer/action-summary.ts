@@ -1,38 +1,45 @@
 import type { ScenarioAction } from '@osce/shared';
+import { resolveBindingDisplay } from '../../lib/expression-utils';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type TranslateFunc = (...args: any[]) => string;
 
+type Bindings = Record<string, Record<string, string>>;
+
 /** Returns a short human-readable label for an Action. */
-export function getActionSummary(action: ScenarioAction): string {
+export function getActionSummary(action: ScenarioAction, bindings?: Bindings): string {
   const a = action.action;
+  const eb = bindings?.[action.id];
+  const v = (val: number | string | undefined | null, field: string) =>
+    resolveBindingDisplay(val, field, eb);
+
   switch (a.type) {
     // --- Private: Longitudinal ---
     case 'speedAction': {
       const t = a.target;
-      if (t.kind === 'absolute') return `Speed → ${t.value} m/s`;
-      return `Speed → ${t.value > 0 ? '+' : ''}${t.value} (rel ${t.entityRef})`;
+      if (t.kind === 'absolute') return `Speed → ${v(t.value, 'action.target.value')} m/s`;
+      return `Speed → ${v(t.value, 'action.target.value')} (rel ${t.entityRef})`;
     }
     case 'speedProfileAction':
       return `SpeedProfile (${a.entries.length} pts)`;
     case 'longitudinalDistanceAction':
-      if (a.timeGap != null) return `Follow ${a.entityRef} (${a.timeGap}s gap)`;
-      if (a.distance != null) return `Follow ${a.entityRef} (${a.distance}m)`;
+      if (a.timeGap != null) return `Follow ${a.entityRef} (${v(a.timeGap, 'action.timeGap')}s gap)`;
+      if (a.distance != null) return `Follow ${a.entityRef} (${v(a.distance, 'action.distance')}m)`;
       return `Follow ${a.entityRef}`;
 
     // --- Private: Lateral ---
     case 'laneChangeAction': {
       const t = a.target;
-      if (t.kind === 'absolute') return `LaneChange → ${t.value}`;
-      return `LaneChange ${t.value > 0 ? '+' : ''}${t.value} (rel ${t.entityRef})`;
+      if (t.kind === 'absolute') return `LaneChange → ${v(t.value, 'action.target.value')}`;
+      return `LaneChange ${v(t.value, 'action.target.value')} (rel ${t.entityRef})`;
     }
     case 'laneOffsetAction': {
       const t = a.target;
-      if (t.kind === 'absolute') return `LaneOffset → ${t.value}m`;
-      return `LaneOffset ${t.value > 0 ? '+' : ''}${t.value}m (rel ${t.entityRef})`;
+      if (t.kind === 'absolute') return `LaneOffset → ${v(t.value, 'action.target.value')}m`;
+      return `LaneOffset ${v(t.value, 'action.target.value')}m (rel ${t.entityRef})`;
     }
     case 'lateralDistanceAction':
-      return `LatDist → ${a.entityRef}${a.distance != null ? ` ${a.distance}m` : ''}`;
+      return `LatDist → ${a.entityRef}${a.distance != null ? ` ${v(a.distance, 'action.distance')}m` : ''}`;
 
     // --- Private: Position ---
     case 'teleportAction':
@@ -78,9 +85,9 @@ export function getActionSummary(action: ScenarioAction): string {
     case 'entityAction':
       return `${a.actionType === 'addEntity' ? 'Add' : 'Delete'} ${a.entityRef}`;
     case 'parameterAction':
-      return `Param ${a.parameterRef} = ${a.value ?? a.modifyValue}`;
+      return `Param ${a.parameterRef} = ${v(a.value ?? a.modifyValue, 'action.value')}`;
     case 'variableAction':
-      return `Var ${a.variableRef} = ${a.value ?? a.modifyValue}`;
+      return `Var ${a.variableRef} = ${v(a.value ?? a.modifyValue, 'action.value')}`;
     case 'infrastructureAction':
       return `Traffic signal`;
     case 'trafficAction':

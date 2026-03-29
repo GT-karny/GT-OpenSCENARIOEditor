@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import type { ManeuverGroup } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
@@ -10,7 +11,7 @@ interface BasicTabProps {
 
 export function BasicTab({ group }: BasicTabProps) {
   const storeApi = useScenarioStoreApi();
-  const entities = useScenarioStore((s) => s.document.entities);
+  const entities = useScenarioStore(useShallow((s) => s.document.entities));
 
   // Name editing
   const [editingName, setEditingName] = useState(false);

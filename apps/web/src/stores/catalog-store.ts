@@ -54,6 +54,9 @@ export interface CatalogState {
   resolveReference: (ref: CatalogReference) => ResolvedCatalogEntry | null;
   getCatalogNames: () => string[];
   getEntryNames: (catalogName: string) => string[];
+
+  // --- Reset ---
+  resetAll: () => void;
 }
 
 export const useCatalogStore = create<CatalogState>((set, get) => ({
@@ -205,4 +208,13 @@ export const useCatalogStore = create<CatalogState>((set, get) => ({
     if (!doc) return [];
     return doc.entries.map((e) => e.definition.name);
   },
+
+  resetAll: () =>
+    set({
+      catalogs: new Map(),
+      rawXmls: new Map(),
+      editorOpen: false,
+      selectedCatalogName: null,
+      selectedEntryIndex: null,
+    }),
 }));

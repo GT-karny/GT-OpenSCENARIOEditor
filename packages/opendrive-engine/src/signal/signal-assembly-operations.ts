@@ -5,12 +5,13 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import type { OdrSignal } from '@osce/shared';
+import type { OdrSignal, OpenDriveDocument } from '@osce/shared';
 import type { StoreApi } from 'zustand/vanilla';
 import type { OpenDriveStore } from '../store/opendrive-store.js';
 import type { EditorMetadataStore } from '../store/editor-metadata-store.js';
 import type { SignalAssemblyMetadata } from '../store/editor-metadata-types.js';
-import { signalToPresetId } from './preset-to-signal.js';
+import { presetToSignalPartial, signalToPresetId } from './preset-to-signal.js';
+import { getPresetById } from './signal-presets.js';
 
 export type OpenDriveStoreApi = StoreApi<OpenDriveStore>;
 export type EditorMetadataStoreApi = StoreApi<EditorMetadataStore>;
@@ -73,13 +74,123 @@ export function createAssembly(
 }
 
 // ---------------------------------------------------------------------------
+// createAssemblyFromPlacement
+// ---------------------------------------------------------------------------
+
+/** Default pole radius for signal poles (meters). */
+const POLE_RADIUS = 0.08;
+/** Default arm radius (meters). */
+const ARM_RADIUS = 0.06;
+
+/**
+ * Create a signal and wrap it in an arm-mounted assembly in one step.
+ * Creates three OpenDRIVE elements:
+ *   1. <signal> at headT (housing over lane)
+ *   2. <object type="pole"> at poleT (vertical pole at road edge)
+ *   3. <object type="pole"> for horizontal arm connecting pole to housing
+ *
+ * The signal references both objects via <reference>.
+ *
+ * @param firstHeadOffsetX  Configurator X offset of the first head (stored in metadata)
+ * @param firstHeadOffsetY  Configurator Y offset of the first head (stored in metadata)
+ * @returns The created OdrSignal
+ */
+export function createAssemblyFromPlacement(
+  odrStore: OpenDriveStoreApi,
+  metaStore: EditorMetadataStoreApi,
+  roadId: string,
+  signalPartial: Partial<OdrSignal>,
+  presetId: string | undefined,
+  armLength: number,
+  poleT: number,
+  armAngle?: number,
+  firstHeadOffsetX = 0,
+  firstHeadOffsetY = 0,
+): OdrSignal {
+  const store = odrStore.getState();
+  const s = signalPartial.s ?? 0;
+  const zOffset = signalPartial.zOffset ?? 5.0;
+  const orientation = signalPartial.orientation ?? '+';
+
+  // 1. Create vertical pole object at road edge
+  const poleObj = store.addObject(roadId, {
+    type: 'pole',
+    name: 'signal-pole',
+    s,
+    t: poleT,
+    zOffset: 0,
+    height: zOffset,
+    radius: POLE_RADIUS,
+    orientation,
+  });
+
+  // 2. Create horizontal arm object from pole top toward signal head
+  const headT = signalPartial.t ?? 0;
+  const armMidT = (poleT + headT) / 2;
+  // hdg for the arm: direction from pole to head in road-local frame
+  // In road coordinates, t-axis is perpendicular to s-axis.
+  // Arm goes from poleT to headT along t, so hdg = π/2 (left) or -π/2 (right)
+  const armHdg = headT > poleT ? Math.PI / 2 : -Math.PI / 2;
+  const armObj = store.addObject(roadId, {
+    type: 'pole',
+    name: 'signal-arm',
+    s,
+    t: armMidT,
+    zOffset,
+    length: armLength,
+    radius: ARM_RADIUS,
+    hdg: armHdg,
+    orientation,
+  });
+
+  // 3. Create signal with references to pole and arm objects
+  const newSignal = store.addSignal(roadId, {
+    ...signalPartial,
+    reference: [
+      ...(signalPartial.reference ?? []),
+      { elementType: 'object', elementId: poleObj.id },
+      { elementType: 'object', elementId: armObj.id },
+    ],
+  });
+
+  const assemblyId = uuidv4();
+  const assembly: SignalAssemblyMetadata = {
+    assemblyId,
+    roadId,
+    signalIds: [newSignal.id],
+    poleType: 'arm',
+    armLength,
+    armAngle,
+    poleObjectId: poleObj.id,
+    armObjectId: armObj.id,
+    headPositions: [
+      {
+        signalId: newSignal.id,
+        presetId,
+        position: 'top',
+        x: firstHeadOffsetX,
+        y: firstHeadOffsetY,
+      },
+    ],
+  };
+
+  const current = getAssemblies(metaStore);
+  setAssemblies(metaStore, [...current, assembly]);
+
+  return newSignal;
+}
+
+// ---------------------------------------------------------------------------
 // addHeadToAssembly
 // ---------------------------------------------------------------------------
 
 /**
  * Add a new signal head to an existing assembly.
- * Creates a new OdrSignal at the same s/t as the first existing head.
- * Returns the new signal ID.
+ * Creates a new OdrSignal with position offset from the first head.
+ *
+ * @param offsetX  Configurator X offset in metres (positive = right → added to t)
+ * @param offsetY  Configurator Y offset in metres (positive = down → subtracted from zOffset)
+ * @returns The new signal ID, or null on failure.
  */
 export function addHeadToAssembly(
   odrStore: OpenDriveStoreApi,
@@ -87,6 +198,8 @@ export function addHeadToAssembly(
   assemblyId: string,
   presetId: string,
   position: 'top' | 'arm' | 'lower',
+  offsetX = 0,
+  offsetY = 0,
 ): string | null {
   const assemblies = getAssemblies(metaStore);
   const assembly = assemblies.find((a) => a.assemblyId === assemblyId);
@@ -97,22 +210,50 @@ export function addHeadToAssembly(
   const road = doc.roads.find((r) => r.id === assembly.roadId);
   if (!road) return null;
 
-  // Find a reference signal to copy s/t from
+  // Find the first head (reference) signal to derive position from
   const refSignal = road.signals.find((s) => assembly.signalIds.includes(s.id));
   if (!refSignal) return null;
 
+  // First head's configurator offset (from metadata)
+  const refHead = assembly.headPositions[0];
+  const refOffsetX = refHead?.x ?? 0;
+  const refOffsetY = refHead?.y ?? 0;
+
+  // Compute delta from the reference head's configurator position
+  const deltaX = offsetX - refOffsetX;
+  const deltaY = offsetY - refOffsetY;
+
+  // Map configurator offsets to OpenDRIVE coordinates:
+  //   deltaX (lateral) → added to t
+  //   deltaY (downward) → subtracted from zOffset
+  const newT = refSignal.t + deltaX;
+  const newZOffset = Math.max(0, (refSignal.zOffset ?? 5.0) - deltaY);
+
+  // Build reference list: reuse the assembly's pole/arm objects so the 3D viewer
+  // groups all heads on the same pole (avoids duplicate poles being rendered).
+  const references: OdrSignal['reference'] = [];
+  if (assembly.poleObjectId) {
+    references.push({ elementType: 'object', elementId: assembly.poleObjectId });
+  }
+  if (assembly.armObjectId) {
+    references.push({ elementType: 'object', elementId: assembly.armObjectId });
+  }
+
   // Create the signal via the store's addSignal method
+  const preset = getPresetById(presetId);
+  const presetFields = preset
+    ? presetToSignalPartial(preset)
+    : { dynamic: 'yes' as const, type: '-1', subtype: '-1', country: 'OpenDRIVE' };
   const newSignal = store.addSignal(assembly.roadId, {
     s: refSignal.s,
-    t: refSignal.t,
-    zOffset: refSignal.zOffset,
+    t: newT,
+    zOffset: newZOffset,
     orientation: refSignal.orientation,
-    dynamic: 'yes',
-    type: 'trafficLight',
-    subtype: presetId,
+    ...presetFields,
+    ...(references.length > 0 ? { reference: references } : {}),
   });
 
-  // Update assembly metadata
+  // Update assembly metadata (store x/y for future editing)
   const updated = assemblies.map((a) =>
     a.assemblyId === assemblyId
       ? {
@@ -120,7 +261,7 @@ export function addHeadToAssembly(
           signalIds: [...a.signalIds, newSignal.id],
           headPositions: [
             ...a.headPositions,
-            { signalId: newSignal.id, presetId, position },
+            { signalId: newSignal.id, presetId, position, x: offsetX, y: offsetY },
           ],
         }
       : a,
@@ -212,4 +353,101 @@ export function updateAssembly(
     a.assemblyId === assemblyId ? { ...a, ...updates } : a,
   );
   setAssemblies(metaStore, updated);
+}
+
+// ---------------------------------------------------------------------------
+// buildAssembliesFromDocument
+// ---------------------------------------------------------------------------
+
+/**
+ * Scan an OpenDRIVE document for signals that reference pole/arm objects
+ * and build SignalAssemblyMetadata entries.
+ *
+ * Used after importing a .xodr file to reconstruct assembly metadata
+ * from the standard OpenDRIVE elements (signal references → objects).
+ */
+export function buildAssembliesFromDocument(
+  doc: OpenDriveDocument,
+): SignalAssemblyMetadata[] {
+  const assemblies: SignalAssemblyMetadata[] = [];
+
+  for (const road of doc.roads) {
+    const objectMap = new Map(road.objects.map((o) => [o.id, o]));
+
+    // Group signals by their shared poleObjectId so that signals
+    // referencing the same pole end up in a single assembly.
+    const poleGroupMap = new Map<
+      string,
+      {
+        poleObjectId: string;
+        armObjectId: string | undefined;
+        signals: { signal: (typeof road.signals)[number]; presetId: string | undefined }[];
+      }
+    >();
+
+    for (const signal of road.signals) {
+      if (!signal.reference || signal.reference.length === 0) continue;
+
+      // Find pole and arm references by object geometry:
+      // - Vertical pole: has height, zOffset ≈ 0
+      // - Horizontal arm: has length, zOffset > 0
+      let poleObjectId: string | undefined;
+      let armObjectId: string | undefined;
+
+      for (const ref of signal.reference) {
+        if (ref.elementType !== 'object') continue;
+        const obj = objectMap.get(ref.elementId);
+        if (!obj || obj.type !== 'pole') continue;
+
+        if (obj.height && (!obj.zOffset || obj.zOffset === 0)) {
+          poleObjectId = ref.elementId;
+        } else if (obj.length && obj.zOffset && obj.zOffset > 0) {
+          armObjectId = ref.elementId;
+        }
+      }
+
+      if (!poleObjectId) continue;
+
+      const presetId = signalToPresetId(signal) ?? undefined;
+
+      let group = poleGroupMap.get(poleObjectId);
+      if (!group) {
+        group = { poleObjectId, armObjectId, signals: [] };
+        poleGroupMap.set(poleObjectId, group);
+      }
+      // Keep armObjectId if the first signal didn't have one but a later one does
+      if (!group.armObjectId && armObjectId) {
+        group.armObjectId = armObjectId;
+      }
+      group.signals.push({ signal, presetId });
+    }
+
+    // Create one assembly per pole group
+    for (const group of poleGroupMap.values()) {
+      const poleObj = objectMap.get(group.poleObjectId);
+      if (!poleObj) continue;
+
+      const armLength = group.armObjectId
+        ? (objectMap.get(group.armObjectId)?.length ??
+            Math.abs(group.signals[0].signal.t - poleObj.t))
+        : Math.abs(group.signals[0].signal.t - poleObj.t);
+
+      assemblies.push({
+        assemblyId: uuidv4(),
+        roadId: road.id,
+        signalIds: group.signals.map((s) => s.signal.id),
+        poleType: 'arm',
+        armLength,
+        poleObjectId: group.poleObjectId,
+        armObjectId: group.armObjectId,
+        headPositions: group.signals.map((s, i) => ({
+          signalId: s.signal.id,
+          presetId: s.presetId,
+          position: i === 0 ? ('top' as const) : ('bottom' as const),
+        })),
+      });
+    }
+  }
+
+  return assemblies;
 }

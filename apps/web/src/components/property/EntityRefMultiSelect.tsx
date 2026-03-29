@@ -1,10 +1,12 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import type { EntityType } from '@osce/shared';
 import { Plus, X, Check } from 'lucide-react';
 import { useScenarioStore } from '../../stores/use-scenario-store';
 import { EntityIcon } from '../entity/EntityIcon';
 import { ENTITY_DND_TYPE } from '../entity/EntityListItem';
 import { PARAMETER_DND_TYPE } from '../parameter/ParameterListItem';
+import { VARIABLE_DND_TYPE } from '../variable/VariableListItem';
 import { cn } from '@/lib/utils';
 
 interface EntityRefMultiSelectProps {
@@ -22,8 +24,9 @@ const TYPE_LABELS: Record<EntityType, string> = {
 const TYPE_ORDER: EntityType[] = ['vehicle', 'pedestrian', 'miscObject'];
 
 export function EntityRefMultiSelect({ value, onValueChange, className }: EntityRefMultiSelectProps) {
-  const entities = useScenarioStore((s) => s.document.entities);
+  const entities = useScenarioStore(useShallow((s) => s.document.entities));
   const parameters = useScenarioStore((s) => s.document.parameterDeclarations);
+  const variables = useScenarioStore((s) => s.document.variableDeclarations);
 
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -71,18 +74,35 @@ export function EntityRefMultiSelect({ value, onValueChange, className }: Entity
     return stringParams.filter((p) => p.name.toLowerCase().includes(lower));
   }, [parameterMode, search, parameters]);
 
+  // Filtered string variables (same logic as parameters)
+  const filteredVars = useMemo(() => {
+    if (parameterMode) {
+      const fragment = search.substring(1).toLowerCase();
+      return variables.filter((v) => {
+        if (v.variableType !== 'string') return false;
+        return v.name.toLowerCase().startsWith(fragment);
+      });
+    }
+    const stringVars = variables.filter((v) => v.variableType === 'string');
+    if (!search) return stringVars;
+    const lower = search.toLowerCase();
+    return stringVars.filter((v) => v.name.toLowerCase().includes(lower));
+  }, [parameterMode, search, variables]);
+
   const flatItems = useMemo(() => {
-    const items: { type: 'entity' | 'param'; name: string }[] = [];
+    const items: { type: 'entity' | 'param' | 'var'; name: string }[] = [];
     if (!parameterMode) {
       for (const g of grouped) {
         for (const e of g.items) items.push({ type: 'entity', name: e.name });
       }
       for (const p of filteredParams) items.push({ type: 'param', name: p.name });
+      for (const v of filteredVars) items.push({ type: 'var', name: v.name });
     } else {
       for (const p of filteredParams) items.push({ type: 'param', name: p.name });
+      for (const v of filteredVars) items.push({ type: 'var', name: v.name });
     }
     return items;
-  }, [parameterMode, grouped, filteredParams]);
+  }, [parameterMode, grouped, filteredParams, filteredVars]);
 
   useEffect(() => {
     setSelectedIndex(0);
@@ -99,6 +119,7 @@ export function EntityRefMultiSelect({ value, onValueChange, className }: Entity
   const handleDragOver = useCallback((e: React.DragEvent) => {
     if (
       e.dataTransfer.types.includes(PARAMETER_DND_TYPE) ||
+      e.dataTransfer.types.includes(VARIABLE_DND_TYPE) ||
       e.dataTransfer.types.includes(ENTITY_DND_TYPE)
     ) {
       e.preventDefault();
@@ -115,7 +136,7 @@ export function EntityRefMultiSelect({ value, onValueChange, className }: Entity
     (e: React.DragEvent) => {
       e.preventDefault();
       setIsDragOver(false);
-      const paramName = e.dataTransfer.getData(PARAMETER_DND_TYPE);
+      const paramName = e.dataTransfer.getData(PARAMETER_DND_TYPE) || e.dataTransfer.getData(VARIABLE_DND_TYPE);
       if (paramName) {
         const ref = `$${paramName}`;
         if (!value.includes(ref)) {
@@ -177,7 +198,7 @@ export function EntityRefMultiSelect({ value, onValueChange, className }: Entity
         const item = flatItems[selectedIndex];
         if (!item) return;
         if (item.type === 'entity') handleToggle(item.name);
-        else if (item.type === 'param') handleAdd(`$${item.name}`);
+        else if (item.type === 'param' || item.type === 'var') handleAdd(`$${item.name}`);
       } else if (e.key === 'Escape') {
         e.preventDefault();
         if (parameterMode) {
@@ -266,18 +287,23 @@ export function EntityRefMultiSelect({ value, onValueChange, className }: Entity
           </div>
 
           {parameterMode ? (
-            // Parameter-only mode (triggered by typing $)
+            // Parameter/Variable mode (triggered by typing $)
             <>
               {flatItems.length === 0 ? (
                 <p className="px-2 py-2 text-[11px] text-muted-foreground italic">
-                  No matching parameters
+                  No matching parameters or variables
                 </p>
               ) : (
                 flatItems.map((item, i) => {
-                  const param = parameters.find((p) => p.name === item.name);
+                  const param = item.type === 'param'
+                    ? parameters.find((p) => p.name === item.name)
+                    : variables.find((v) => v.name === item.name);
+                  const typeLabel = param
+                    ? ('parameterType' in param ? param.parameterType : param.variableType)
+                    : '';
                   return (
                     <button
-                      key={item.name}
+                      key={`${item.type}-${item.name}`}
                       type="button"
                       className={cn(
                         'w-full px-2 py-1 text-left text-xs flex items-center gap-2 hover:bg-[var(--color-glass-1)]',
@@ -289,10 +315,13 @@ export function EntityRefMultiSelect({ value, onValueChange, className }: Entity
                       }}
                     >
                       <span className="font-medium text-[var(--color-accent-1)]">${item.name}</span>
+                      <span className="text-[var(--color-text-tertiary)] text-[10px]">
+                        {item.type === 'var' ? 'var' : 'param'}
+                      </span>
                       {param && (
                         <>
                           <span className="text-[var(--color-text-tertiary)] text-[10px]">
-                            {param.parameterType}
+                            {typeLabel}
                           </span>
                           <span className="text-[var(--color-text-tertiary)] text-[10px] ml-auto">
                             = {param.value}
@@ -307,9 +336,9 @@ export function EntityRefMultiSelect({ value, onValueChange, className }: Entity
           ) : (
             // Entity list + inline parameters
             <>
-              {grouped.length === 0 && filteredParams.length === 0 ? (
+              {grouped.length === 0 && filteredParams.length === 0 && filteredVars.length === 0 ? (
                 <p className="px-2 py-2 text-[11px] text-muted-foreground italic">
-                  {search ? 'No matching entities or parameters' : 'No entities defined'}
+                  {search ? 'No matching entities, parameters, or variables' : 'No entities defined'}
                 </p>
               ) : (
                 <>
@@ -374,6 +403,42 @@ export function EntityRefMultiSelect({ value, onValueChange, className }: Entity
                             </span>
                             <span className="text-[var(--color-text-tertiary)] text-[10px] ml-auto">
                               = {param.value}
+                            </span>
+                            {selected && <Check className="h-3 w-3 shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Inline variable section */}
+                  {filteredVars.length > 0 && (
+                    <div className={cn((grouped.length > 0 || filteredParams.length > 0) && 'border-t border-[var(--color-glass-edge)]')}>
+                      <div className="px-2 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                        Variables
+                      </div>
+                      {filteredVars.map((v) => {
+                        const idx = flatIdx++;
+                        const selected = value.includes(`$${v.name}`);
+                        return (
+                          <button
+                            key={v.id}
+                            type="button"
+                            className={cn(
+                              'w-full px-2 py-1 text-left text-xs flex items-center gap-2 hover:bg-[var(--color-glass-1)]',
+                              idx === selectedIndex && 'bg-[var(--color-glass-1)]',
+                            )}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              handleAdd(`$${v.name}`);
+                            }}
+                          >
+                            <span className="font-medium text-[var(--color-accent-1)]">${v.name}</span>
+                            <span className="text-[var(--color-text-tertiary)] text-[10px]">
+                              {v.variableType}
+                            </span>
+                            <span className="text-[var(--color-text-tertiary)] text-[10px] ml-auto">
+                              = {v.value}
                             </span>
                             {selected && <Check className="h-3 w-3 shrink-0" />}
                           </button>

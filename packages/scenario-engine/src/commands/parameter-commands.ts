@@ -7,7 +7,11 @@ import type { ScenarioDocument, ParameterDeclaration } from '@osce/shared';
 import { BaseCommand } from './base-command.js';
 import { createParameterFromPartial } from '../store/defaults.js';
 import { findParameterById, findParameterIndex } from '../operations/parameter-operations.js';
-import { deepReplaceParamRef, replaceInBindings } from '../operations/parameter-rename-utils.js';
+import {
+  deepReplaceParamRef,
+  deepReplaceDirectRef,
+  replaceInBindings,
+} from '../operations/parameter-rename-utils.js';
 
 export type GetDoc = () => ScenarioDocument;
 export type SetDoc = (doc: ScenarioDocument) => void;
@@ -143,8 +147,11 @@ export class RenameParameterCommand extends BaseCommand {
       // 2. Update all bindings values
       replaceInBindings(draft._editor.parameterBindings, oldName, this.newName);
 
-      // 3. Deep-replace in all string values throughout the document
+      // 3. Deep-replace $ParamName in all string values throughout the document
       deepReplaceParamRef(draft, oldName, this.newName);
+
+      // 4. Replace direct parameterRef fields (e.g., ParameterAction, ParameterCondition)
+      deepReplaceDirectRef(draft, 'parameterRef', oldName, this.newName);
     }));
   }
 

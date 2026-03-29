@@ -1,7 +1,10 @@
 /**
  * Renders a single arm-type signal pole: a vertical pole with a horizontal arm.
  * Used for signals in assemblies with poleType === 'arm'.
- * Cannot be instanced since each arm has different geometry.
+ *
+ * The signal position is at the HEAD (over the lane) where the housing renders.
+ * The pole base is offset from the signal position by armLength in the opposite
+ * direction of armAngle.
  */
 
 import React, { useMemo } from 'react';
@@ -44,31 +47,35 @@ export const ArmPole: React.FC<ArmPoleProps> = React.memo(
       [armLength],
     );
 
-    // Signal-level euler for orientation
+    // Signal position is at the HEAD (lane center). Pole base is offset by -armLength.
     const { position } = signal;
 
+    // Pole base in world XY: offset from head position opposite to armAngle
+    const poleBaseX = position.x - armLength * Math.cos(armAngle);
+    const poleBaseY = position.y - armLength * Math.sin(armAngle);
+    const poleBaseZ = position.z - signalHeight;
+
+    // Arm midpoint (halfway between pole top and head)
+    const armMidX = (poleBaseX + position.x) / 2;
+    const armMidY = (poleBaseY + position.y) / 2;
+
     return (
-      <group
-        position={[position.x, position.y, position.z - signalHeight]}
-        rotation={[position.pitch ?? 0, position.roll ?? 0, position.h]}
-      >
-        {/* Vertical pole: center at half height, rotated to align with Z axis */}
+      <group>
+        {/* Vertical pole at pole base, CylinderGeometry is Y-aligned → rotate to Z-up */}
         <mesh
           geometry={verticalGeo}
           material={material}
-          position={[0, 0, poleHeight / 2]}
+          position={[poleBaseX, poleBaseY, poleBaseZ + poleHeight / 2]}
           rotation={[Math.PI / 2, 0, 0]}
         />
 
-        {/* Horizontal arm at top of pole, extending at armAngle */}
-        <group position={[0, 0, poleHeight]} rotation={[0, 0, armAngle]}>
-          <mesh
-            geometry={armGeo}
-            material={material}
-            position={[armLength / 2, 0, 0]}
-            rotation={[0, 0, Math.PI / 2]}
-          />
-        </group>
+        {/* Horizontal arm from pole top to head position */}
+        <mesh
+          geometry={armGeo}
+          material={material}
+          position={[armMidX, armMidY, position.z]}
+          rotation={[0, 0, armAngle + Math.PI / 2]}
+        />
       </group>
     );
   },

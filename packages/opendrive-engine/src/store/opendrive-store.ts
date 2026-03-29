@@ -14,6 +14,7 @@ import type {
   OdrLane,
   OdrHeader,
   OdrSignal,
+  OdrRoadObject,
   OdrController,
   OdrJunction,
   OdrJunctionConnection,
@@ -68,6 +69,10 @@ export interface OpenDriveStore extends OpenDriveState {
     junctionId: string,
     partial: Partial<OdrJunctionConnection>,
   ): OdrJunctionConnection;
+
+  // Object operations
+  addObject(roadId: string, partial: Partial<OdrRoadObject>): OdrRoadObject;
+  removeObject(roadId: string, objectId: string): void;
 
   // Signal operations
   addSignal(roadId: string, partial: Partial<OdrSignal>): OdrSignal;
@@ -470,6 +475,64 @@ export function createOpenDriveStore() {
         });
         syncUndoRedo();
         return connection;
+      },
+
+      // --- Object operations ---
+      addObject: (roadId: string, partial: Partial<OdrRoadObject>): OdrRoadObject => {
+        const allObjectIds = getDoc().roads.flatMap((r) => r.objects.map((o) => o.id));
+        const objectId = partial.id ?? nextNumericId(allObjectIds);
+        const obj: OdrRoadObject = {
+          s: 0,
+          t: 0,
+          ...partial,
+          id: objectId,
+        };
+
+        const prevDoc = structuredClone(getDoc());
+        setDoc(
+          produce(getDoc(), (draft) => {
+            const roadIdx = findRoadIndex(draft, roadId);
+            if (roadIdx !== -1) draft.roads[roadIdx].objects.push(obj);
+          }),
+        );
+        markDirtyRoad(roadId);
+
+        commandHistory.execute({
+          id: uuidv4(),
+          description: `Add object ${obj.id} to road ${roadId}`,
+          execute: () => { /* already executed */ },
+          undo: () => {
+            setDoc(prevDoc);
+            markDirtyRoad(roadId);
+          },
+        });
+        syncUndoRedo();
+        return obj;
+      },
+
+      removeObject: (roadId: string, objectId: string): void => {
+        const prevDoc = structuredClone(getDoc());
+        setDoc(
+          produce(getDoc(), (draft) => {
+            const roadIdx = findRoadIndex(draft, roadId);
+            if (roadIdx !== -1) {
+              const idx = draft.roads[roadIdx].objects.findIndex((o) => o.id === objectId);
+              if (idx !== -1) draft.roads[roadIdx].objects.splice(idx, 1);
+            }
+          }),
+        );
+        markDirtyRoad(roadId);
+
+        commandHistory.execute({
+          id: uuidv4(),
+          description: `Remove object ${objectId} from road ${roadId}`,
+          execute: () => { /* already executed */ },
+          undo: () => {
+            setDoc(prevDoc);
+            markDirtyRoad(roadId);
+          },
+        });
+        syncUndoRedo();
       },
 
       // --- Signal operations ---

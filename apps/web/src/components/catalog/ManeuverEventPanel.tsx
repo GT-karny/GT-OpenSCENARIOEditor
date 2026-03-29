@@ -27,6 +27,7 @@ import {
   reorderEventActions,
 } from '../../lib/maneuver-helpers';
 import { createConditionFromPartial, createDefaultConditionGroup } from '@osce/scenario-engine';
+import { useScenarioStore } from '../../stores/use-scenario-store';
 
 interface ManeuverEventPanelProps {
   maneuver: Maneuver;
@@ -48,6 +49,7 @@ export function ManeuverEventPanel({
   onSelectAction,
 }: ManeuverEventPanelProps) {
   const { t } = useTranslation('common');
+  const bindings = useScenarioStore((s) => s.document._editor.parameterBindings);
   const [selectedConditionId, setSelectedConditionId] = useState<string | null>(null);
 
   const event =
@@ -310,7 +312,7 @@ export function ManeuverEventPanel({
                     >
                       <Icon className="h-3 w-3 shrink-0 text-[var(--color-accent-1)]" />
                       <span className="text-[11px] text-[var(--color-text-primary)] truncate flex-1">
-                        {getActionSummary(action)}
+                        {getActionSummary(action, bindings)}
                       </span>
                       <div className="flex items-center gap-0.5 opacity-0 group-hover/action:opacity-100 transition-opacity shrink-0">
                         <button

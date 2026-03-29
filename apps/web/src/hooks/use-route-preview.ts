@@ -10,6 +10,7 @@
 
 import { useMemo, useEffect, useState } from 'react';
 import { useStore } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
 import type {
   OpenDriveDocument,
   ScenarioDocument,
@@ -145,7 +146,7 @@ export function useRoutePreview(
   const doc = useStore(scenarioStoreApi, (s) => s.document);
   const entities = doc.entities;
 
-  const selectedElementIds = useEditorStore((s) => s.selection.selectedElementIds);
+  const selectedElementIds = useEditorStore(useShallow((s) => s.selection.selectedElementIds));
   const selectedId = selectedElementIds.length === 1 ? selectedElementIds[0] : null;
 
   // Find routes associated with the selection

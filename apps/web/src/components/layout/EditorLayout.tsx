@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo, useRef, useEffect, memo } from 'react';
 import { useStore } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
 import { SceneComposerView } from '../scene-composer/SceneComposerView';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import type { ImperativePanelHandle, ImperativePanelGroupHandle } from 'react-resizable-panels';
@@ -13,10 +14,11 @@ import { worldToLane } from '@osce/opendrive';
 import { HeaderToolbar } from './HeaderToolbar';
 import { StatusBar } from './StatusBar';
 import { EntityListPanel } from '../panels/EntityListPanel';
-import { ParameterListPanel } from '../panels/ParameterListPanel';
+import { VariablesPanel } from '../panels/VariablesPanel';
 import { PropertyPanel } from '../panels/PropertyPanel';
 import { ValidationPanel } from '../panels/ValidationPanel';
 import { SimulationTimeline } from '../panels/SimulationTimeline';
+import { IntersectionTimelinePanel } from '../panels/intersection-timeline';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { NodeEditorContextMenu } from '../node-editor/NodeEditorContextMenu';
 import { WaypointContextMenu } from '../route/WaypointContextMenu';
@@ -45,6 +47,9 @@ import { useFileOperations } from '../../hooks/use-file-operations';
 import { useProjectFileOperations } from '../../hooks/use-project-file-operations';
 import { buildFullPathToIdMap } from '../../lib/fullpath-mapping';
 import { buildCatalogLocationsFromProject } from '../../lib/catalog-location-utils';
+import { editorMetadataStoreApi } from '../../stores/editor-metadata-store-instance';
+import { evaluateReferenceLineAtS, evaluateElevation, stToXyz } from '@osce/opendrive';
+import type { PoleAssemblyInfo } from '@osce/3d-viewer';
 import { RoadNetworkEditorLayout } from '../opendrive/RoadNetworkEditorLayout';
 
 function ResizeHandle() {
@@ -92,13 +97,17 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   routePreviewData?: import('@osce/3d-viewer').RoutePreviewData[];
   selectedSignalKey?: string | null;
   onSignalSelect?: (key: string) => void;
+  highlightedSignalIds?: ReadonlySet<string>;
+  signalPickMode?: import('@osce/3d-viewer').ScenarioViewerProps['signalPickMode'];
+  onSignalHover?: (signalId: string | null) => void;
+  signalAssemblyMap?: import('@osce/3d-viewer').ScenarioViewerProps['signalAssemblyMap'];
   positionPickActive?: boolean;
   onPositionPicked?: (data: PickedPositionData) => void;
   onPositionPickCancel?: () => void;
   highlightedPositionElementIds?: string[];
 }) {
   const simStatus = useSimulationStore((s) => s.status);
-  const simFrames = useSimulationStore((s) => s.frames);
+  const simFrames = useSimulationStore(useShallow((s) => s.frames));
   const currentFrameIndex = useSimulationStore((s) => s.currentFrameIndex);
 
   // Compute display frame based on simulation state:
@@ -154,6 +163,10 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       routePreviewData={props.routePreviewData}
       selectedSignalKey={props.selectedSignalKey}
       onSignalSelect={props.onSignalSelect}
+      highlightedSignalIds={props.highlightedSignalIds}
+      signalPickMode={props.signalPickMode}
+      onSignalHover={props.onSignalHover}
+      signalAssemblyMap={props.signalAssemblyMap}
       positionPickActive={props.positionPickActive}
       onPositionPicked={props.onPositionPicked}
       onPositionPickCancel={props.onPositionPickCancel}
@@ -216,12 +229,46 @@ export function EditorLayout() {
   }, [currentProject, autoLoadProjectCatalogs, scenarioStoreApi]);
 
   // --- Selection sync ---
-  const selectedElementIds = useEditorStore((s) => s.selection.selectedElementIds);
+  const selectedElementIds = useEditorStore(useShallow((s) => s.selection.selectedElementIds));
   const hoveredElementId = useEditorStore((s) => s.selection.hoveredElementId);
   const roadNetwork = useEditorStore((s) => s.roadNetwork);
+  const signalAssemblies = useStore(editorMetadataStoreApi, (s) => s.metadata.signalAssemblies);
+  const signalAssemblyMap = useMemo(() => {
+    if (!signalAssemblies || signalAssemblies.length === 0 || !roadNetwork) return undefined;
+    const map = new Map<string, PoleAssemblyInfo>();
+    for (const asm of signalAssemblies) {
+      let armAngle = asm.armAngle;
+      if (armAngle == null && asm.poleType === 'arm' && asm.poleObjectId) {
+        const road = roadNetwork.roads.find((r) => r.id === asm.roadId);
+        if (road) {
+          const poleObj = road.objects.find((o) => o.id === asm.poleObjectId);
+          const signal = road.signals.find((s) => asm.signalIds.includes(s.id));
+          if (poleObj && signal) {
+            const pose = evaluateReferenceLineAtS(road.planView, signal.s);
+            const z = evaluateElevation(road.elevationProfile, signal.s);
+            const poleWorld = stToXyz(pose, poleObj.t, z);
+            const headWorld = stToXyz(pose, signal.t, z);
+            armAngle = Math.atan2(headWorld.y - poleWorld.y, headWorld.x - poleWorld.x);
+          }
+        }
+      }
+      const info: PoleAssemblyInfo = {
+        assemblyId: asm.assemblyId,
+        poleType: asm.poleType,
+        armLength: asm.armLength,
+        armAngle,
+        signalIds: asm.signalIds,
+      };
+      for (const sid of asm.signalIds) {
+        map.set(sid, info);
+      }
+    }
+    return map;
+  }, [signalAssemblies, roadNetwork]);
   const preferences = useEditorStore((s) => s.preferences);
   const focusNodeId = useEditorStore((s) => s.focusNodeId);
   const focusEntityId = useEditorStore((s) => s.focusEntityId);
+  const showIntersectionTimeline = useEditorStore((s) => s.showIntersectionTimeline);
   const selectedEntityId = selectedElementIds.length === 1 ? selectedElementIds[0] : null;
 
   // Resolve ManeuverGroup selection → first actor entity ID for 3D highlighting
@@ -263,8 +310,31 @@ export function EditorLayout() {
   const selectedSignalKey = useEditorStore((s) => s.selectedSignalKey);
   const positionPickRequest = useEditorStore((s) => s.positionPickRequest);
 
+  // Signal IDs to highlight in 3D viewer (set by timeline track selection, or all controller signals)
+  const storeHighlightedSignalIds = useEditorStore((s) => s.highlightedSignalIds);
+  const highlightedSignalIds = useMemo(() => {
+    if (!showIntersectionTimeline) return undefined;
+    // Only highlight when a specific track is selected
+    if (storeHighlightedSignalIds && storeHighlightedSignalIds.size > 0) {
+      return storeHighlightedSignalIds;
+    }
+    return undefined;
+  }, [showIntersectionTimeline, storeHighlightedSignalIds]);
+
+  const signalPickMode = useEditorStore((s) => s.signalPickMode);
+
   const handleSignalSelect = useCallback((key: string) => {
-    useEditorStore.getState().setSelectedSignalKey(key);
+    const state = useEditorStore.getState();
+    if (state.signalPickMode) {
+      // Pick mode: delegate to IntersectionTimelinePanel via pendingSignalPick
+      state.submitSignalPick(key);
+      return;
+    }
+    state.setSelectedSignalKey(key);
+  }, []);
+
+  const handleSignalHover = useCallback((signalId: string | null) => {
+    useEditorStore.getState().setPickModeHoveredSignalId(signalId);
   }, []);
 
   const handlePositionPicked = useCallback((data: PickedPositionData) => {
@@ -311,11 +381,26 @@ export function EditorLayout() {
 
   // --- Simulation state ---
   const [viewerMode, setViewerMode] = useState<ViewerMode>('edit');
+  const handleViewerModeChange = useCallback(
+    (mode: ViewerMode) => {
+      if (mode === 'edit') {
+        useSimulationStore.getState().pause();
+      }
+      setViewerMode(mode);
+    },
+    [],
+  );
+
+  // Reset viewerMode to 'edit' when switching editor modes (scenario ↔ roadNetwork)
+  useEffect(() => {
+    setViewerMode('edit');
+  }, [editorMode]);
+
   const simStatus = useSimulationStore((s) => s.status);
   // NOTE: Do NOT subscribe to s.frames here — it changes 30x/sec and would
   // re-render the entire EditorLayout. Frames are subscribed in
   // SimulationViewerBridge below, which only re-renders the 3D viewer.
-  const activeElements = useSimulationStore((s) => s.activeElements);
+  const activeElements = useSimulationStore(useShallow((s) => s.activeElements));
 
   const activeNodeIds = useMemo(() => {
     if (activeElements.length === 0) return [];
@@ -560,13 +645,66 @@ export function EditorLayout() {
         </>
       ) : (
       <>
-      <PanelGroup direction="horizontal" className="flex-1">
+      <PanelGroup direction="vertical" className="flex-1">
+        <Panel defaultSize={showIntersectionTimeline ? 70 : 100} minSize={30}>
+      <PanelGroup direction="horizontal" className="h-full">
         {/* Left section: 3D Viewer (top) + Editing area (bottom) */}
         <Panel defaultSize={75} minSize={40}>
           <PanelGroup direction="vertical">
             {/* 3D Viewer (top) */}
             <Panel defaultSize={30} minSize={10}>
-              <div data-testid="viewer-3d-panel" className="h-full bg-[var(--color-bg-deep)] enter d5">
+              <div
+                data-testid="viewer-3d-panel"
+                className="h-full bg-[var(--color-bg-deep)] enter d5 relative"
+                style={signalPickMode ? { cursor: 'crosshair' } : undefined}
+              >
+                {signalPickMode && (
+                  <>
+                    {/* Bright cyan border overlay — clearly distinct from default accent */}
+                    <div
+                      className="absolute inset-0 z-10 pointer-events-none"
+                      style={{
+                        boxShadow: 'inset 0 0 0 3px #00e5ff, inset 0 0 20px 0 rgba(0,229,255,0.2)',
+                      }}
+                    />
+                    {/* Bottom bar (RouteEditOverlay style) */}
+                    <div
+                      className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2.5 px-4 py-2"
+                      style={{
+                        backgroundColor: 'rgba(10, 25, 35, 0.94)',
+                        border: '1px solid rgba(0, 229, 255, 0.5)',
+                        backdropFilter: 'blur(8px)',
+                        whiteSpace: 'nowrap',
+                        pointerEvents: 'auto',
+                      }}
+                    >
+                      <span className="inline-block size-2 rounded-full animate-pulse" style={{ backgroundColor: '#00e5ff' }} />
+                      <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#00e5ff' }}>
+                        Signal Pick
+                      </span>
+                      <span style={{ color: 'rgba(0,229,255,0.3)' }}>|</span>
+                      <span className="text-[11px] text-[var(--color-text-secondary)]">
+                        Click signals to add / remove
+                      </span>
+                      <span style={{ color: 'rgba(0,229,255,0.3)' }}>|</span>
+                      <button
+                        type="button"
+                        className="px-3 py-1 text-[11px] font-medium text-white transition-opacity hover:opacity-80"
+                        style={{ backgroundColor: '#00b8d4' }}
+                        onClick={() => useEditorStore.getState().exitSignalPickMode()}
+                      >
+                        Done
+                      </button>
+                      <button
+                        type="button"
+                        className="px-3 py-1 text-[11px] font-medium text-[var(--color-text-secondary)] bg-[var(--color-glass-2)] hover:bg-[var(--color-glass-hover)] transition-colors"
+                        onClick={() => useEditorStore.getState().exitSignalPickMode()}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </>
+                )}
                 <ErrorBoundary fallbackTitle="3D Viewer Error">
                   <SimulationViewerBridge
                     scenarioStore={scenarioStoreApi}
@@ -579,7 +717,7 @@ export function EditorLayout() {
                       useEditorStore.getState().setFocusEntityId(null);
                     }}
                     onEntityPositionChange={handleEntityPositionChange}
-                    onViewerModeChange={setViewerMode}
+                    onViewerModeChange={handleViewerModeChange}
                     preferences={{
                       showGrid3D: preferences.showGrid3D,
                       showLaneIds: preferences.showLaneIds,
@@ -603,6 +741,14 @@ export function EditorLayout() {
                     routePreviewData={routePreviewData}
                     selectedSignalKey={selectedSignalKey}
                     onSignalSelect={handleSignalSelect}
+                    highlightedSignalIds={signalPickMode ? undefined : highlightedSignalIds}
+                    signalPickMode={signalPickMode ? {
+                      bulbCount: signalPickMode.bulbCount,
+                      trackSignalIds: signalPickMode.trackSignalIds,
+                      allTrackSignalMap: signalPickMode.allTrackSignalMap,
+                    } : undefined}
+                    onSignalHover={handleSignalHover}
+                    signalAssemblyMap={signalAssemblyMap}
                     positionPickActive={positionPickRequest != null}
                     onPositionPicked={handlePositionPicked}
                     onPositionPickCancel={handlePositionPickCancel}
@@ -685,15 +831,15 @@ export function EditorLayout() {
                         <TabsTrigger value="entities" className="apex-tab flex-1">
                           {t('panels.entityList')}
                         </TabsTrigger>
-                        <TabsTrigger value="parameters" className="apex-tab flex-1">
-                          {t('panels.parameters')}
+                        <TabsTrigger value="variables" className="apex-tab flex-1">
+                          {t('panels.variables')}
                         </TabsTrigger>
                       </TabsList>
                       <TabsContent value="entities" className="flex-1 overflow-hidden mt-0">
                         <EntityListPanel />
                       </TabsContent>
-                      <TabsContent value="parameters" className="flex-1 overflow-hidden mt-0">
-                        <ParameterListPanel />
+                      <TabsContent value="variables" className="flex-1 overflow-hidden mt-0">
+                        <VariablesPanel />
                       </TabsContent>
                     </Tabs>
                   </div>
@@ -780,6 +926,20 @@ export function EditorLayout() {
           </div>
         </Panel>
       </PanelGroup>
+        </Panel>
+
+        {/* Intersection timeline (signal controller phase visualization) */}
+        {showIntersectionTimeline && (
+          <>
+            <ResizeHandleH />
+            <Panel defaultSize={30} minSize={10} maxSize={60}>
+              <div className="h-full border-t border-[var(--color-glass-edge-mid)]">
+                <IntersectionTimelinePanel />
+              </div>
+            </Panel>
+          </>
+        )}
+      </PanelGroup>
 
       {/* Simulation timeline (visible during/after simulation in play mode) */}
       {simStatus !== 'idle' && viewerMode === 'play' && (
@@ -815,7 +975,8 @@ export function EditorLayout() {
       <SaveAsDialog
         open={showSaveAs}
         onOpenChange={setShowSaveAs}
-        onSave={handleSaveAs}
+        onSave={saveAsFileType === 'xodr' ? handleSaveAsXodr : handleSaveAs}
+        fileType={saveAsFileType}
       />
 
       {/* Delete Confirmation Dialog */}

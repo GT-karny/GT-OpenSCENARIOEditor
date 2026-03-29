@@ -2,6 +2,7 @@ import type { BrowserWindow } from 'electron';
 import { ipcMain, dialog } from 'electron';
 import fs from 'node:fs/promises';
 import { getRecentFiles, addRecentFile, clearRecentFiles } from './recent-files.js';
+import { getAssemblyPresets, saveAssemblyPresets } from './assembly-presets.js';
 
 export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   // File dialogs
@@ -65,6 +66,10 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle('recent:get', () => getRecentFiles());
   ipcMain.on('recent:add', (_event, filePath: string) => addRecentFile(filePath));
   ipcMain.on('recent:clear', () => clearRecentFiles());
+
+  // Assembly presets (editor-wide)
+  ipcMain.handle('presets:get', () => getAssemblyPresets());
+  ipcMain.on('presets:save', (_event, presets: unknown[]) => saveAssemblyPresets(presets));
 }
 
 export function unregisterIpcHandlers(): void {
@@ -74,6 +79,8 @@ export function unregisterIpcHandlers(): void {
   ipcMain.removeHandler('fs:writeFile');
   ipcMain.removeHandler('fs:readDir');
   ipcMain.removeHandler('recent:get');
+  ipcMain.removeHandler('presets:get');
+  ipcMain.removeAllListeners('presets:save');
   ipcMain.removeAllListeners('window:setTitle');
   ipcMain.removeAllListeners('window:minimize');
   ipcMain.removeAllListeners('window:maximize');

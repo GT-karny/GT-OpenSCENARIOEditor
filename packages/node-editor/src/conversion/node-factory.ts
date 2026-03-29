@@ -178,10 +178,13 @@ export function createManeuverNode(
   };
 }
 
+type Bindings = Record<string, Record<string, string>>;
+
 export function createEventNode(
   event: ScenarioEvent,
   position: { x: number; y: number },
   collapsed: boolean,
+  bindings?: Bindings,
 ): Node<EventNodeData> {
   return {
     id: event.id,
@@ -192,7 +195,7 @@ export function createEventNode(
       name: event.name,
       priority: event.priority,
       actionCount: event.actions.length,
-      triggerSummary: getTriggerSummary(event.startTrigger),
+      triggerSummary: getTriggerSummary(event.startTrigger, bindings),
       collapsed,
     },
   };
@@ -201,6 +204,7 @@ export function createEventNode(
 export function createActionNode(
   action: ScenarioAction,
   position: { x: number; y: number },
+  bindings?: Bindings,
 ): Node<ActionNodeData> {
   const innerAction = action.action;
   return {
@@ -211,7 +215,7 @@ export function createActionNode(
       osceType: 'action',
       name: action.name,
       actionType: innerAction.type,
-      summary: getActionSummary(innerAction as PrivateAction | GlobalAction | { type: 'userDefinedAction'; customCommandAction: string }),
+      summary: getActionSummary(innerAction as PrivateAction | GlobalAction | { type: 'userDefinedAction'; customCommandAction: string }, bindings?.[action.id]),
     },
   };
 }
@@ -220,6 +224,7 @@ export function createTriggerNode(
   trigger: Trigger,
   triggerKind: 'start' | 'stop',
   position: { x: number; y: number },
+  bindings?: Bindings,
 ): Node<TriggerNodeData> {
   return {
     id: trigger.id,
@@ -229,7 +234,7 @@ export function createTriggerNode(
       osceType: 'trigger',
       triggerKind,
       conditionGroupCount: trigger.conditionGroups.length,
-      summary: getTriggerSummary(trigger),
+      summary: getTriggerSummary(trigger, bindings),
     },
   };
 }
@@ -237,6 +242,7 @@ export function createTriggerNode(
 export function createConditionNode(
   condition: Condition,
   position: { x: number; y: number },
+  bindings?: Bindings,
 ): Node<ConditionNodeData> {
   const inner = condition.condition;
   let condType: string;
@@ -253,7 +259,7 @@ export function createConditionNode(
       osceType: 'condition',
       name: condition.name,
       conditionType: getConditionTypeLabel(condType),
-      summary: getConditionSummary(condition),
+      summary: getConditionSummary(condition, bindings),
       delay: condition.delay,
       edge: condition.conditionEdge,
     },

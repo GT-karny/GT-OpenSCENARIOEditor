@@ -48,9 +48,17 @@ apps/desktop/src-tauri/target/
 *.tmp
 *.log
 
-# Claude Code auto-generated (skills, plugins, worktrees)
-.claude/skills/
-.claude/spec/
-.claude/template/
-.claude/worktrees/
+# Claude Code (local settings, skills, worktrees, etc.)
+.claude/
 .claude-plugin/
+
+# Electron release output
+apps/desktop/release/
+
+# Feature interaction graph (generated artifacts, not yet finalized)
+docs/feature-graph.yaml
+docs/feature-interaction-graph-method.md
+docs/feature-interactions.md
+
+# Performance screenshots
+perf-*.png

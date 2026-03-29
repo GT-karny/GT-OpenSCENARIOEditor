@@ -8,19 +8,7 @@ import React, { useMemo, useRef, useState, useCallback } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { OdrGeometry } from '@osce/shared';
-
-interface ArcCurvatureHandleProps {
-  /** Arc geometry segment */
-  geometry: OdrGeometry;
-  /** Index in the road's planView array */
-  index: number;
-  /** Whether this geometry segment is selected */
-  selected: boolean;
-  /** Callback when curvature changes via drag */
-  onCurvatureChange?: (index: number, newCurvature: number) => void;
-  /** Ref to OrbitControls (to disable during drag) */
-  orbitControlsRef?: React.RefObject<{ enabled: boolean } | null>;
-}
+import { useDragWithDeadZone } from '../primitives/useDragWithDeadZone.js';
 
 /** Evaluate arc at distance ds from start (same as packages/opendrive/src/geometry/arc.ts) */
 function evaluateArcLocal(ds: number, geom: OdrGeometry): { x: number; y: number } {
@@ -48,6 +36,14 @@ function evaluateArcLocal(ds: number, geom: OdrGeometry): { x: number; y: number
 /** Maximum curvature magnitude (minimum radius = 1m) */
 const MAX_CURVATURE = 1.0;
 
+interface ArcCurvatureHandleProps {
+  geometry: OdrGeometry;
+  index: number;
+  selected: boolean;
+  onCurvatureChange?: (index: number, newCurvature: number) => void;
+  orbitControlsRef?: React.RefObject<{ enabled: boolean } | null>;
+}
+
 export function ArcCurvatureHandle({
   geometry,
   index,
@@ -55,136 +51,94 @@ export function ArcCurvatureHandle({
   onCurvatureChange,
   orbitControlsRef,
 }: ArcCurvatureHandleProps) {
-  const { gl, camera } = useThree();
+  const { gl } = useThree();
   const sphereRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
-  const isDragging = useRef(false);
 
-  // Compute midpoint of the arc
   const midpoint = useMemo(() => {
     const ds = geometry.length / 2;
     return evaluateArcLocal(ds, geometry);
   }, [geometry]);
 
-  // Drag handler: move perpendicular to heading to change curvature
+  const propsRef = useRef({ geometry, index, onCurvatureChange });
+  propsRef.current = { geometry, index, onCurvatureChange };
+
+  const createPlane = useCallback(() => {
+    const worldPos = new THREE.Vector3(midpoint.x, midpoint.y, 0);
+    sphereRef.current?.localToWorld(worldPos);
+    return new THREE.Plane(new THREE.Vector3(0, 1, 0), -worldPos.y);
+  }, [midpoint]);
+
+  const worldToLocal = useCallback((intersection: THREE.Vector3) => {
+    if (sphereRef.current?.parent) {
+      sphereRef.current.parent.worldToLocal(intersection);
+    }
+  }, []);
+
+  const onDragMove = useCallback((intersection: THREE.Vector3) => {
+    const { geometry: geo } = propsRef.current;
+    const originX = geo.x;
+    const originY = geo.y;
+    const hdg = geo.hdg;
+    const len = geo.length;
+
+    const baselineMidX = originX + Math.cos(hdg) * (len / 2);
+    const baselineMidY = originY + Math.sin(hdg) * (len / 2);
+    const perpX = -Math.sin(hdg);
+    const perpY = Math.cos(hdg);
+    const offsetX = intersection.x - baselineMidX;
+    const offsetY = intersection.y - baselineMidY;
+    const perpDist = offsetX * perpX + offsetY * perpY;
+
+    let newCurvature = Math.abs(perpDist) < 1e-6 ? 0 : (8 * perpDist) / (len * len);
+    newCurvature = Math.max(-MAX_CURVATURE, Math.min(MAX_CURVATURE, newCurvature));
+
+    const previewMid = evaluateArcLocal(len / 2, { ...geo, curvature: newCurvature });
+    if (sphereRef.current) {
+      sphereRef.current.position.set(previewMid.x, previewMid.y, 0);
+    }
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    const { geometry: geo, index: idx, onCurvatureChange: onChange } = propsRef.current;
+    if (!sphereRef.current) return;
+
+    const finalX = sphereRef.current.position.x;
+    const finalY = sphereRef.current.position.y;
+    const hdg = geo.hdg;
+    const len = geo.length;
+
+    const baselineMidX = geo.x + Math.cos(hdg) * (len / 2);
+    const baselineMidY = geo.y + Math.sin(hdg) * (len / 2);
+    const perpX = -Math.sin(hdg);
+    const perpY = Math.cos(hdg);
+    const offsetX = finalX - baselineMidX;
+    const offsetY = finalY - baselineMidY;
+    const perpDist = offsetX * perpX + offsetY * perpY;
+
+    let finalCurvature = Math.abs(perpDist) < 1e-6 ? 0 : (8 * perpDist) / (len * len);
+    finalCurvature = Math.max(-MAX_CURVATURE, Math.min(MAX_CURVATURE, finalCurvature));
+
+    onChange?.(idx, finalCurvature);
+  }, []);
+
+  const { startDrag } = useDragWithDeadZone({
+    orbitControlsRef,
+    createPlane,
+    worldToLocal,
+    onDragMove,
+    onDragEnd: handleDragEnd,
+  });
+
   const handlePointerDown = useCallback(
     (e: THREE.Event & { stopPropagation: () => void; nativeEvent: PointerEvent }) => {
       e.stopPropagation();
       if (!onCurvatureChange) return;
-
-      isDragging.current = false;
-
-      const startClientX = e.nativeEvent.clientX;
-      const startClientY = e.nativeEvent.clientY;
-
-      // Create horizontal plane at sphere elevation
-      const worldPos = new THREE.Vector3(midpoint.x, midpoint.y, 0);
-      sphereRef.current?.localToWorld(worldPos);
-      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -worldPos.y);
-
-      const raycaster = new THREE.Raycaster();
-      const mouse = new THREE.Vector2();
-
-      const originX = geometry.x;
-      const originY = geometry.y;
-      const hdg = geometry.hdg;
-      const len = geometry.length;
-
-      const handleMove = (ev: PointerEvent) => {
-        const dx = ev.clientX - startClientX;
-        const dy = ev.clientY - startClientY;
-        if (!isDragging.current && dx * dx + dy * dy > 9) {
-          isDragging.current = true;
-          if (orbitControlsRef?.current) orbitControlsRef.current.enabled = false;
-        }
-
-        if (!isDragging.current) return;
-
-        const rect = gl.domElement.getBoundingClientRect();
-        mouse.set(
-          ((ev.clientX - rect.left) / rect.width) * 2 - 1,
-          -((ev.clientY - rect.top) / rect.height) * 2 + 1,
-        );
-        raycaster.setFromCamera(mouse, camera);
-        const intersection = new THREE.Vector3();
-        if (raycaster.ray.intersectPlane(plane, intersection)) {
-          if (sphereRef.current?.parent) {
-            sphereRef.current.parent.worldToLocal(intersection);
-          }
-
-          // Compute perpendicular offset from the baseline (straight line from start to midpoint-along-heading)
-          const baselineMidX = originX + Math.cos(hdg) * (len / 2);
-          const baselineMidY = originY + Math.sin(hdg) * (len / 2);
-
-          // Perpendicular direction (left of heading)
-          const perpX = -Math.sin(hdg);
-          const perpY = Math.cos(hdg);
-
-          // Project intersection point offset onto perpendicular
-          const offsetX = intersection.x - baselineMidX;
-          const offsetY = intersection.y - baselineMidY;
-          const perpDist = offsetX * perpX + offsetY * perpY;
-
-          // Approximate curvature from perpendicular deflection at midpoint:
-          // For a circular arc, the sag (perpendicular deflection at midpoint) is:
-          // sag = (1 - cos(k*L/2)) / k ≈ k*L²/8 for small curvature
-          // So k ≈ 8*sag / L²
-          let newCurvature: number;
-          if (Math.abs(perpDist) < 1e-6) {
-            newCurvature = 0;
-          } else {
-            newCurvature = (8 * perpDist) / (len * len);
-          }
-
-          // Clamp curvature
-          newCurvature = Math.max(-MAX_CURVATURE, Math.min(MAX_CURVATURE, newCurvature));
-
-          // Preview: update sphere position to the new arc midpoint
-          const previewMid = evaluateArcLocal(len / 2, {
-            ...geometry,
-            curvature: newCurvature,
-          });
-          if (sphereRef.current) {
-            sphereRef.current.position.set(previewMid.x, previewMid.y, 0);
-          }
-        }
-      };
-
-      const handleUp = (_ev: PointerEvent) => {
-        gl.domElement.removeEventListener('pointermove', handleMove);
-        gl.domElement.removeEventListener('pointerup', handleUp);
-
-        if (orbitControlsRef?.current) orbitControlsRef.current.enabled = true;
-
-        if (isDragging.current && sphereRef.current) {
-          // Recompute curvature from final sphere position
-          const finalX = sphereRef.current.position.x;
-          const finalY = sphereRef.current.position.y;
-
-          const baselineMidX = originX + Math.cos(hdg) * (len / 2);
-          const baselineMidY = originY + Math.sin(hdg) * (len / 2);
-          const perpX = -Math.sin(hdg);
-          const perpY = Math.cos(hdg);
-          const offsetX = finalX - baselineMidX;
-          const offsetY = finalY - baselineMidY;
-          const perpDist = offsetX * perpX + offsetY * perpY;
-
-          let finalCurvature = Math.abs(perpDist) < 1e-6 ? 0 : (8 * perpDist) / (len * len);
-          finalCurvature = Math.max(-MAX_CURVATURE, Math.min(MAX_CURVATURE, finalCurvature));
-
-          onCurvatureChange(index, finalCurvature);
-        }
-
-        isDragging.current = false;
-      };
-
-      gl.domElement.addEventListener('pointermove', handleMove);
-      gl.domElement.addEventListener('pointerup', handleUp);
+      startDrag(e.nativeEvent.clientX, e.nativeEvent.clientY);
     },
-    [geometry, midpoint, index, onCurvatureChange, orbitControlsRef, gl, camera],
+    [onCurvatureChange, startDrag],
   );
 
-  // Only show for selected arc segments
   if (!selected || geometry.type !== 'arc') return null;
 
   return (

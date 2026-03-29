@@ -5,11 +5,13 @@
 
 import React, { useRef } from 'react';
 import type * as THREE from 'three';
-import { Outlines } from '@react-three/drei';
 import type { ScenarioEntity } from '@osce/shared';
 import { getEntityGeometry, getEntityColor } from '../utils/entity-geometry.js';
 import type { WorldCoords } from '../utils/position-resolver.js';
+// import { ApexGlassMaterial } from '../materials/ApexGlassMaterial.js';
 import { EntityLabel } from './EntityLabel.js';
+import { HOVER_MATERIAL } from '../constants/selection-theme.js';
+import { SelectionFeedback } from '../interaction/primitives/SelectionFeedback.js';
 
 interface VehicleEntityProps {
   entity: ScenarioEntity;
@@ -42,18 +44,13 @@ export const VehicleEntity: React.FC<VehicleEntityProps> = React.memo(
         >
           <boxGeometry args={[geom.length, geom.width, geom.height]} />
           <meshStandardMaterial
-            color={isHovered ? '#66BBFF' : color}
+            color={isHovered ? HOVER_MATERIAL.color : color}
             transparent={isSelected || !!isHovered}
-            opacity={isSelected ? 0.9 : isHovered ? 0.8 : 1}
-            emissive={isHovered ? '#55CCFF' : '#000000'}
-            emissiveIntensity={isHovered ? 1.2 : 0}
+            opacity={isSelected ? 0.9 : isHovered ? HOVER_MATERIAL.opacity : 1}
+            emissive={isHovered ? HOVER_MATERIAL.emissive : '#000000'}
+            emissiveIntensity={isHovered ? HOVER_MATERIAL.emissiveIntensity : 0}
           />
-          {isSelected && (
-            <Outlines thickness={0.08} color="#FFFF00" />
-          )}
-          {!isSelected && isHovered && (
-            <Outlines thickness={0.15} color="#44DDFF" />
-          )}
+          <SelectionFeedback state={isSelected ? 'selected' : isHovered ? 'hovered' : null} />
         </mesh>
 
         {/* Direction arrow (cone at front of vehicle) */}

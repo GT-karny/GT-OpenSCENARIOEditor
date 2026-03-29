@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { XoscParser } from '@osce/openscenario';
 import { XodrParser } from '@osce/opendrive';
+import { buildAssembliesFromDocument } from '@osce/opendrive-engine';
 import { useTranslation } from '@osce/i18n';
 import { toast } from 'sonner';
 import { useScenarioStoreApi } from '../stores/use-scenario-store';
@@ -8,6 +9,8 @@ import { useEditorStore } from '../stores/editor-store';
 import { useProjectStore } from '../stores/project-store';
 import { useCatalogStore } from '../stores/catalog-store';
 import { buildCatalogLocationsFromProject } from '../lib/catalog-location-utils';
+import { editorMetadataStoreApi } from '../stores/editor-metadata-store-instance';
+import { useAppLifecycle } from './use-app-lifecycle';
 import * as api from '../lib/project-api';
 
 /**
@@ -39,6 +42,7 @@ function isCatalogPath(path: string): boolean {
 export function useProjectFileOperations() {
   const { t } = useTranslation('common');
   const scenarioStoreApi = useScenarioStoreApi();
+  const { resetForNewFile, resetForNewRoadNetwork } = useAppLifecycle();
 
   const openXodrFromProject = useCallback(
     async (relativePath: string) => {
@@ -48,13 +52,23 @@ export function useProjectFileOperations() {
         const content = await api.readProjectFile(project.meta.id, relativePath);
         const parser = new XodrParser();
         const doc = parser.parse(content);
+        resetForNewRoadNetwork();
         useEditorStore.getState().setRoadNetwork(doc, content);
         useProjectStore.setState({ currentXodrPath: relativePath });
+        // Reconstruct signal assemblies from signal→object references
+        const assemblies = buildAssembliesFromDocument(doc);
+        if (assemblies.length > 0) {
+          const meta = editorMetadataStoreApi.getState().getMetadata();
+          editorMetadataStoreApi.getState().loadMetadata({
+            ...meta,
+            signalAssemblies: assemblies,
+          });
+        }
       } catch {
         toast.warning(t('warnings.xodrLoadFailed', { path: relativePath }));
       }
     },
-    [t],
+    [resetForNewRoadNetwork, t],
   );
 
   const autoLoadXodr = useCallback(
@@ -105,6 +119,15 @@ export function useProjectFileOperations() {
             const doc = parser.parse(content);
             useEditorStore.getState().setRoadNetwork(doc, content);
             useProjectStore.setState({ currentXodrPath: candidate });
+            // Reconstruct signal assemblies from signal→object references
+            const assemblies = buildAssembliesFromDocument(doc);
+            if (assemblies.length > 0) {
+              const meta = editorMetadataStoreApi.getState().getMetadata();
+              editorMetadataStoreApi.getState().loadMetadata({
+                ...meta,
+                signalAssemblies: assemblies,
+              });
+            }
             return;
           } catch {
             toast.warning(t('warnings.xodrLoadFailed', { path: candidate }));
@@ -126,6 +149,7 @@ export function useProjectFileOperations() {
       const project = useProjectStore.getState().currentProject;
       if (!project) return;
       try {
+        resetForNewFile();
         const content = await api.readProjectFile(project.meta.id, relativePath);
         const parser = new XoscParser();
         const doc = parser.parse(content);
@@ -164,7 +188,7 @@ export function useProjectFileOperations() {
         toast.error(`Failed to open scenario: ${relativePath}`);
       }
     },
-    [scenarioStoreApi, autoLoadXodr],
+    [resetForNewFile, scenarioStoreApi, autoLoadXodr],
   );
 
   const openCatalogFromProject = useCallback(

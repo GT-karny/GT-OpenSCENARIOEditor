@@ -1,17 +1,15 @@
 /**
  * Universal signal head presets — country-independent.
  */
-import type { BulbFaceShape } from './signal-preset-types.js';
+import type { BulbDefinition, BulbFaceShape, SignalHeadOrientation } from './signal-preset-types.js';
 
-export type SignalHeadOrientation = 'vertical' | 'horizontal';
 export type SignalHeadCategory = 'vehicle' | 'pedestrian' | 'arrow';
-export type BulbColor = 'red' | 'yellow' | 'green';
 
 export interface SignalHeadPreset {
   id: string;
   label: string;
   orientation: SignalHeadOrientation;
-  bulbs: { color: BulbColor; shape: BulbFaceShape }[];
+  bulbs: BulbDefinition[];
   category: SignalHeadCategory;
 }
 
@@ -42,21 +40,21 @@ export const BUILT_IN_PRESETS: SignalHeadPreset[] = [
     id: 'arrow-left',
     label: 'Arrow Left',
     orientation: 'vertical',
-    bulbs: [{ color: 'green', shape: 'arrow-left' }],
+    bulbs: [{ color: 'green', shape: 'arrow-left' as BulbFaceShape }],
     category: 'arrow',
   },
   {
     id: 'arrow-right',
     label: 'Arrow Right',
     orientation: 'vertical',
-    bulbs: [{ color: 'green', shape: 'arrow-right' }],
+    bulbs: [{ color: 'green', shape: 'arrow-right' as BulbFaceShape }],
     category: 'arrow',
   },
   {
     id: 'arrow-straight',
     label: 'Arrow Straight',
     orientation: 'vertical',
-    bulbs: [{ color: 'green', shape: 'arrow-up' }],
+    bulbs: [{ color: 'green', shape: 'arrow-up' as BulbFaceShape }],
     category: 'arrow',
   },
   {
@@ -64,8 +62,8 @@ export const BUILT_IN_PRESETS: SignalHeadPreset[] = [
     label: 'Pedestrian 2-Light',
     orientation: 'vertical',
     bulbs: [
-      { color: 'red', shape: 'pedestrian-stop' },
-      { color: 'green', shape: 'pedestrian-go' },
+      { color: 'red', shape: 'pedestrian-stop' as BulbFaceShape },
+      { color: 'green', shape: 'pedestrian-go' as BulbFaceShape },
     ],
     category: 'pedestrian',
   },

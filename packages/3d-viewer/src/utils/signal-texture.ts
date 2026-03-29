@@ -11,93 +11,18 @@
  */
 
 import * as THREE from 'three';
-import type { SignalDescriptor, BulbColor, BulbFaceShape } from './signal-catalog.js';
-import { TRAFFIC_LIGHT } from './signal-geometry.js';
-import { isBulbActiveByIndex } from './parse-traffic-light-state.js';
-import { getShape } from './signal-shapes.js';
-
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-/** Pixels per metre – controls texture sharpness vs VRAM usage. */
-const PX_PER_UNIT = 256;
-
-const BULB_SPACING = 0.33;
-
-const BULB_COLORS: Record<BulbColor, string> = {
-  red: TRAFFIC_LIGHT.bulbColors.red,
-  yellow: TRAFFIC_LIGHT.bulbColors.yellow,
-  green: TRAFFIC_LIGHT.bulbColors.green,
-};
-
-const OFF_BULB_COLORS: Record<BulbColor, string> = {
-  red: TRAFFIC_LIGHT.offBulbColors.red,
-  yellow: TRAFFIC_LIGHT.offBulbColors.yellow,
-  green: TRAFFIC_LIGHT.offBulbColors.green,
-};
-
-const HOUSING_COLOR = TRAFFIC_LIGHT.housingColor;
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function hexToRgba(hex: string, alpha: number): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r},${g},${b},${alpha})`;
-}
-
-function computeBulbOffsets(count: number): number[] {
-  const offsets: number[] = [];
-  for (let i = 0; i < count; i++) {
-    offsets.push(((count - 1) / 2 - i) * BULB_SPACING);
-  }
-  return offsets;
-}
-
-/** Draw a rounded rectangle path (does NOT fill/stroke). */
-function roundRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-): void {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-}
-
-/** Rasterise a cached THREE.Shape onto a Canvas2D context. */
-function drawShapeOnCanvas(
-  ctx: CanvasRenderingContext2D,
-  shape: THREE.Shape,
-  cx: number,
-  cy: number,
-  scale: number,
-): void {
-  const points = shape.getPoints(24);
-  if (points.length === 0) return;
-  ctx.beginPath();
-  ctx.moveTo(cx + points[0].x * scale, cy - points[0].y * scale);
-  for (let i = 1; i < points.length; i++) {
-    ctx.lineTo(cx + points[i].x * scale, cy - points[i].y * scale);
-  }
-  ctx.closePath();
-  ctx.fill();
-}
+import type { SignalDescriptor } from './signal-catalog.js';
+import {
+  PX_PER_UNIT,
+  BULB_COLORS,
+  OFF_BULB_COLORS,
+  HOUSING_COLOR,
+  hexToRgba,
+  computeBulbOffsets,
+  roundRect,
+  drawBulbOverlay,
+} from '@osce/opendrive-engine';
+import { getBulbMode } from './parse-traffic-light-state.js';
 
 // ---------------------------------------------------------------------------
 // Cache
@@ -148,7 +73,8 @@ export function getSignalTexture(
 
   for (let i = 0; i < bulbs.length; i++) {
     const bulb = bulbs[i];
-    const isActive = activeState ? isBulbActiveByIndex(activeState, i, bulb.color) : false;
+    const mode = activeState ? getBulbMode(activeState, i, bulb.color) : 'off';
+    const isActive = mode === 'on' || mode === 'flashing';
     const color = isActive ? BULB_COLORS[bulb.color] : OFF_BULB_COLORS[bulb.color];
 
     let cx: number, cy: number;
@@ -233,34 +159,4 @@ export function getSignalMaterials(
   const materials = [h, h, h, h, frontMat, h];
   materialArrayCache.set(key, materials);
   return materials;
-}
-
-// ---------------------------------------------------------------------------
-// Internal: overlay drawing
-// ---------------------------------------------------------------------------
-
-function drawBulbOverlay(
-  ctx: CanvasRenderingContext2D,
-  faceShape: BulbFaceShape,
-  isActive: boolean,
-  cx: number,
-  cy: number,
-  bulbRadiusPx: number,
-): void {
-  if (faceShape === 'circle') return;
-
-  const shape = getShape(faceShape);
-  if (!shape) return;
-
-  const overlayScale = bulbRadiusPx * 1.2;
-  ctx.fillStyle = isActive ? 'rgba(17,17,17,0.85)' : 'rgba(17,17,17,0.3)';
-
-  drawShapeOnCanvas(ctx, shape, cx, cy, overlayScale);
-
-  // Pedestrian head circle
-  if (faceShape === 'pedestrian-stop' || faceShape === 'pedestrian-go') {
-    ctx.beginPath();
-    ctx.arc(cx, cy - 0.45 * overlayScale, 0.12 * overlayScale, 0, Math.PI * 2);
-    ctx.fill();
-  }
 }

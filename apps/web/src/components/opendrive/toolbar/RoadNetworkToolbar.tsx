@@ -1,7 +1,6 @@
-import { MousePointer, Pencil, SplitSquareHorizontal, Scissors, Triangle, PlusSquare, GitMerge, Signpost, Crosshair, Move } from 'lucide-react';
+import { MousePointer, Pencil, SplitSquareHorizontal, Scissors, Triangle, PlusSquare, GitMerge, Signpost } from 'lucide-react';
 import { useOdrSidebarStore } from '../../../hooks/use-opendrive-store';
-import type { RoadToolMode, LaneEditSubMode, JunctionRoutingPreset, SignalTSnapMode } from '../../../hooks/use-opendrive-store';
-import { BUILT_IN_PRESETS } from '@osce/opendrive-engine';
+import type { RoadToolMode, LaneEditSubMode, JunctionRoutingPreset } from '../../../hooks/use-opendrive-store';
 
 // ── Shared button components ─────────────────────────────────────────────────
 
@@ -182,11 +181,6 @@ export function RoadNetworkToolbar({ cursorInfo, onJunctionConfirm, hoveredRoadN
   const setJunctionRoutingPreset = useOdrSidebarStore((s) => s.setJunctionRoutingPreset);
 
   const signalPlaceSubMode = useOdrSidebarStore((s) => s.signalPlace.subMode);
-  const setSignalPlaceSubMode = useOdrSidebarStore((s) => s.setSignalPlaceSubMode);
-  const signalPlacePresetId = useOdrSidebarStore((s) => s.signalPlace.selectedPresetId);
-  const setSignalPlacePreset = useOdrSidebarStore((s) => s.setSignalPlacePreset);
-  const signalPlaceTSnapMode = useOdrSidebarStore((s) => s.signalPlace.tSnapMode);
-  const setSignalPlaceTSnapMode = useOdrSidebarStore((s) => s.setSignalPlaceTSnapMode);
 
   const hoveredLane = useOdrSidebarStore((s) => s.laneEdit.hoveredLane);
   const showRoadCreationDisplay = activeTool === 'road-create' && creationPhase === 'startPlaced';
@@ -320,49 +314,7 @@ export function RoadNetworkToolbar({ cursorInfo, onJunctionConfirm, hoveredRoadN
         </>
       )}
 
-      {/* Signal place: sub-mode + preset + t-snap */}
-      {showSignalPlace && (
-        <>
-          <div className="w-px h-4 mx-2 bg-[var(--color-glass-edge)]" />
-          <div className="flex items-center gap-0.5">
-            <SubModeButton
-              icon={Crosshair}
-              label="Place"
-              active={signalPlaceSubMode === 'place'}
-              onClick={() => setSignalPlaceSubMode('place')}
-            />
-            <SubModeButton
-              icon={Move}
-              label="Move"
-              active={signalPlaceSubMode === 'move'}
-              onClick={() => setSignalPlaceSubMode('move')}
-            />
-          </div>
-
-          <div className="w-px h-4 mx-2 bg-[var(--color-glass-edge)]" />
-          <select
-            value={signalPlacePresetId}
-            onChange={(e) => setSignalPlacePreset(e.target.value)}
-            className="h-6 px-1.5 text-[10px] bg-[var(--color-glass-1)] text-[var(--color-text-primary)] border border-[var(--color-glass-edge)] rounded-none outline-none"
-          >
-            {BUILT_IN_PRESETS.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.label}
-              </option>
-            ))}
-          </select>
-
-          <div className="w-px h-4 mx-1.5 bg-[var(--color-glass-edge)]" />
-          <SegmentToggle<SignalTSnapMode>
-            options={[
-              { value: 'lane-above', label: 'Lane Above' },
-              { value: 'road-edge', label: 'Road Edge' },
-            ]}
-            value={signalPlaceTSnapMode}
-            onChange={setSignalPlaceTSnapMode}
-          />
-        </>
-      )}
+      {/* Signal place: controls moved to SignalPlaceToolPanel in property area */}
 
       {/* Spacer */}
       <div className="flex-1" />

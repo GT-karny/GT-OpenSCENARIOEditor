@@ -129,9 +129,10 @@ describe('resolveSignalDescriptor', () => {
 });
 
 describe('housingForBulbCount', () => {
-  it('3-bulb housing is approximately 1.04m tall', () => {
+  it('3-bulb housing is approximately 1.14m tall', () => {
     const h = housingForBulbCount(3);
-    expect(h.height).toBeCloseTo(1.04, 1);
+    // (3-1)*0.38 + 2*(0.12+0.07) = 0.76 + 0.38 = 1.14
+    expect(h.height).toBeCloseTo(1.14, 1);
   });
 
   it('2-bulb housing is shorter than 3-bulb', () => {
@@ -146,7 +147,7 @@ describe('housingForBulbCount', () => {
     for (const n of [1, 2, 3]) {
       const h = housingForBulbCount(n);
       expect(h.width).toBe(0.4);
-      expect(h.depth).toBe(0.25);
+      expect(h.depth).toBe(0.12);
     }
   });
 

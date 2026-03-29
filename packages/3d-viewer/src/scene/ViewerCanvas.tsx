@@ -5,6 +5,7 @@
 import React from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Stats } from '@react-three/drei';
+import { ACESFilmicToneMapping } from 'three';
 import { GLInfo } from './GLInfo.js';
 
 interface ViewerCanvasProps {
@@ -29,9 +30,9 @@ export const ViewerCanvas: React.FC<ViewerCanvasProps> = ({
         near: 0.1,
         far: 5000,
       }}
-      style={{ background: '#1a1a2e', ...style }}
+      style={{ background: '#0e0a1f', ...style }}
       className={className}
-      gl={{ antialias: true }}
+      gl={{ antialias: true, toneMapping: ACESFilmicToneMapping }}
       shadows
     >
       {showPerf && (

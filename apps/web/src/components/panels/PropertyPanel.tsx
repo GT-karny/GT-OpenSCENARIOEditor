@@ -1,16 +1,19 @@
 import { useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { ScrollArea } from '../ui/scroll-area';
 import { PropertyEditor } from '../property/PropertyEditor';
 import { ScenarioPropertyEditor } from '../property/ScenarioPropertyEditor';
 import { SignalPropertyEditor } from '../property/SignalPropertyEditor';
+import { SignalControllerPropertyEditor } from '../property/SignalControllerPropertyEditor';
 import { useScenarioStore } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
 
 export function PropertyPanel() {
-  const selectedIds = useEditorStore((s) => s.selection.selectedElementIds);
+  const selectedIds = useEditorStore(useShallow((s) => s.selection.selectedElementIds));
   const selectedId = selectedIds[0] ?? null;
   const selectedSignalKey = useEditorStore((s) => s.selectedSignalKey);
   const roadNetwork = useEditorStore((s) => s.roadNetwork);
+  const showIntersectionTimeline = useEditorStore((s) => s.showIntersectionTimeline);
 
   const element = useScenarioStore((s) =>
     selectedId ? s.getElementById(selectedId) : null,
@@ -33,7 +36,11 @@ export function PropertyPanel() {
   return (
     <div className="flex flex-col h-full">
       <ScrollArea className="flex-1">
-        <div className="p-3">
+        <div className="p-3 space-y-4">
+          {/* Always show controller editor when timeline is open */}
+          {showIntersectionTimeline && <SignalControllerPropertyEditor />}
+
+          {/* Context-dependent content below */}
           {signalData ? (
             <SignalPropertyEditor
               signal={signalData.signal}
@@ -42,9 +49,9 @@ export function PropertyPanel() {
             />
           ) : element ? (
             <PropertyEditor element={element} elementId={selectedId!} />
-          ) : (
+          ) : !showIntersectionTimeline ? (
             <ScenarioPropertyEditor />
-          )}
+          ) : null}
         </div>
       </ScrollArea>
     </div>

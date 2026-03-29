@@ -25,7 +25,6 @@ export async function startServer(): Promise<number> {
     await server.register(fastifyStatic.default, {
       root: webDistPath,
       prefix: '/',
-      decorateReply: false,
     });
 
     // SPA fallback: serve index.html for all non-API, non-WS routes

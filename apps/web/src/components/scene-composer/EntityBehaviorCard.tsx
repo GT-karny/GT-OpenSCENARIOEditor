@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import { useTranslation } from '@osce/i18n';
 import type { ManeuverGroup, ScenarioEvent } from '@osce/shared';
@@ -27,8 +28,8 @@ interface EntityBehaviorCardProps {
 export function EntityBehaviorCard({ group, selected, onSelect, activeSimIds, onSeekToElement }: EntityBehaviorCardProps) {
   const { t } = useTranslation('composer');
   const storeApi = useScenarioStoreApi();
-  const entities = useScenarioStore((s) => s.document.entities);
-  const selectedIds = useEditorStore((s) => s.selection.selectedElementIds);
+  const entities = useScenarioStore(useShallow((s) => s.document.entities));
+  const selectedIds = useEditorStore(useShallow((s) => s.selection.selectedElementIds));
   const [collapsed, setCollapsed] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [draftName, setDraftName] = useState(group.name);
@@ -160,7 +161,10 @@ export function EntityBehaviorCard({ group, selected, onSelect, activeSimIds, on
         selected && 'selected border-l-2 border-l-[var(--color-accent-1)]',
         isGroupRunning && !selected && 'border-l-2 border-l-emerald-400/60 shadow-[0_0_12px_rgba(52,211,153,0.2)]',
       )}
-      onClick={onSelect}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect();
+      }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >

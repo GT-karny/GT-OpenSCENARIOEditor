@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useStore } from 'zustand';
 import { createPortal } from 'react-dom';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import type { OdrRoad, OdrRoadLinkElement, OdrLane, OdrSignal, OdrJunction, OdrHeader, OpenDriveDocument } from '@osce/shared';
@@ -14,8 +15,14 @@ import {
   createTaperAtRange,
   getPresetById,
   presetToSignalPartial,
+  createAssemblyFromPlacement,
+  findAssemblyForSignal,
+  addHeadToAssembly,
+  updateAssembly,
+  getAssemblyPresetById,
 } from '@osce/opendrive-engine';
 import { ScenarioViewer } from '@osce/3d-viewer';
+import type { PoleAssemblyInfo } from '@osce/3d-viewer';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { OdrPropertyEditor } from './property/OdrPropertyEditor';
@@ -31,9 +38,10 @@ import { OdrLaneSectionPropertyEditor } from './property/OdrLaneSectionPropertyE
 import { LaneLinkEditor } from './lane-link/LaneLinkEditor';
 import { RoadNetworkToolbar } from './toolbar/RoadNetworkToolbar';
 import { RoadStylePanel } from './toolbar/RoadStylePanel';
+import { SignalPlaceToolPanel } from './toolbar/SignalPlaceToolPanel';
 import { JunctionRoutingPanel } from './junction/JunctionRoutingPanel';
 import { useAutoJunctionDetection } from '../../hooks/use-auto-junction-detection';
-import { evaluateReferenceLineAtS } from '@osce/opendrive';
+import { evaluateReferenceLineAtS, evaluateElevation, stToXyz, computePolePlacementT } from '@osce/opendrive';
 import {
   generateConnectingRoads,
   computeRoadEndpoint,
@@ -49,6 +57,7 @@ import {
   useOpenDriveStoreApi,
   useOdrSidebarStore,
 } from '../../hooks/use-opendrive-store';
+import type { SignalPlaceGhost } from '../../hooks/use-opendrive-store';
 import { editorMetadataStoreApi } from '../../stores/editor-metadata-store-instance';
 
 function ResizeHandle() {
@@ -70,30 +79,39 @@ export function RoadNetworkEditorLayout() {
   const odrDocument = useOpenDriveStore((s) => s.document);
   const preferences = useEditorStore((s) => s.preferences);
 
-  // Sync roadNetwork from editorStore → openDriveStore on mode entry
+  // Sync roadNetwork from editorStore → openDriveStore on mode entry and file changes.
+  // Reference comparison prevents infinite loops: the reverse subscription (below)
+  // sets editorStore.roadNetwork to the same object reference as odrStore.document,
+  // so subsequent renders will see document === roadNetwork and skip the load.
   useEffect(() => {
     if (roadNetwork) {
-      const store = odrStoreApi.getState();
-      store.loadDocument(roadNetwork);
+      if (odrStoreApi.getState().document !== roadNetwork) {
+        odrStoreApi.getState().loadDocument(roadNetwork);
 
-      // Ensure lane-level links exist for all direct road-to-road connections.
-      // Imported xodr files (especially from third-party tools) may omit these.
-      const allRoadIds = roadNetwork.roads.map((r) => r.id);
-      syncLaneLinksForDirectConnections(store, allRoadIds);
+        // Ensure lane-level links exist for all direct road-to-road connections.
+        // Imported xodr files (especially from third-party tools) may omit these.
+        const allRoadIds = roadNetwork.roads.map((r) => r.id);
+        syncLaneLinksForDirectConnections(odrStoreApi.getState(), allRoadIds);
+      }
     }
-  }, []); // Only on mount
+  }, [roadNetwork, odrStoreApi]);
 
   // Sync openDriveStore → editorStore.roadNetwork reactively + dirty tracking
   useEffect(() => {
+    let mounted = true;
     let prevDoc = odrStoreApi.getState().document;
     const unsub = odrStoreApi.subscribe((state: { document: OpenDriveDocument }) => {
+      if (!mounted) return;
       useEditorStore.getState().setRoadNetwork(state.document);
       if (state.document !== prevDoc) {
         prevDoc = state.document;
         useEditorStore.getState().setRoadNetworkDirty(true);
       }
     });
-    return unsub;
+    return () => {
+      mounted = false;
+      unsub();
+    };
   }, [odrStoreApi]);
 
   // --- Selection from sidebar store ---
@@ -109,6 +127,21 @@ export function RoadNetworkEditorLayout() {
     sidebarSelection.type === 'junction' ? sidebarSelection.id : null;
   const selectedSignalId =
     sidebarSelection.type === 'signal' ? sidebarSelection.id : null;
+
+  // Signal key for 3D viewer selection (roadId:signalId format)
+  const selectedSignalKey = useMemo(() => {
+    if (sidebarSelection.type !== 'signal' || !sidebarSelection.id || !sidebarSelection.roadId) return null;
+    return `${sidebarSelection.roadId}:${sidebarSelection.id}`;
+  }, [sidebarSelection]);
+
+  // Handle signal click in 3D viewer
+  const handleSignalSelect = useCallback((key: string) => {
+    const idx = key.indexOf(':');
+    if (idx < 0) return;
+    const roadId = key.slice(0, idx);
+    const signalId = key.slice(idx + 1);
+    useOdrSidebarStore.getState().setSelection({ type: 'signal', id: signalId, roadId });
+  }, []);
 
   // Lane-level selection (local state, reset when road changes)
   const [selectedLaneId, setSelectedLaneId] = useState<number | null>(null);
@@ -151,6 +184,48 @@ export function RoadNetworkEditorLayout() {
   const signalPlaceMode = activeTool === 'signal-place';
   const signalPlace = useOdrSidebarStore((s) => s.signalPlace);
   const setSignalPlaceGhost = useOdrSidebarStore((s) => s.setSignalPlaceGhost);
+
+  // Build assemblyMap for 3D arm pole rendering
+  const signalAssemblies = useStore(
+    editorMetadataStoreApi,
+    (s) => s.metadata.signalAssemblies,
+  );
+  const signalAssemblyMap = useMemo(() => {
+    const assemblies = signalAssemblies;
+    if (!assemblies || assemblies.length === 0) return undefined;
+    const map = new Map<string, PoleAssemblyInfo>();
+    for (const asm of assemblies) {
+      let armAngle = asm.armAngle;
+
+      // Compute armAngle from road geometry if not set (e.g., xodr import)
+      if (armAngle == null && asm.poleType === 'arm' && asm.poleObjectId) {
+        const road = odrDocument.roads.find((r) => r.id === asm.roadId);
+        if (road) {
+          const poleObj = road.objects.find((o) => o.id === asm.poleObjectId);
+          const signal = road.signals.find((s) => asm.signalIds.includes(s.id));
+          if (poleObj && signal) {
+            const pose = evaluateReferenceLineAtS(road.planView, signal.s);
+            const z = evaluateElevation(road.elevationProfile, signal.s);
+            const poleWorld = stToXyz(pose, poleObj.t, z);
+            const headWorld = stToXyz(pose, signal.t, z);
+            armAngle = Math.atan2(headWorld.y - poleWorld.y, headWorld.x - poleWorld.x);
+          }
+        }
+      }
+
+      const info: PoleAssemblyInfo = {
+        assemblyId: asm.assemblyId,
+        poleType: asm.poleType,
+        armLength: asm.armLength,
+        armAngle,
+        signalIds: asm.signalIds,
+      };
+      for (const sid of asm.signalIds) {
+        map.set(sid, info);
+      }
+    }
+    return map;
+  }, [signalAssemblies, odrDocument]);
 
   // Compute road endpoints for the junction routing panel
   const junctionEndpoints = useMemo(() => {
@@ -929,39 +1004,199 @@ export function RoadNetworkEditorLayout() {
 
   // --- Signal place handlers ---
   const handleSignalPlace = useCallback(
-    (roadId: string, s: number, t: number, heading: number) => {
+    (roadId: string, s: number, t: number, _heading: number) => {
       const store = odrStoreApi.getState();
-      const preset = getPresetById(signalPlace.selectedPresetId);
-      const partial = preset ? presetToSignalPartial(preset) : {};
+      // Read state directly from the store to avoid stale closure issues
+      const { tSnapMode, selectionType, selectedPresetId, signalOrientation, ghostPreview } =
+        useOdrSidebarStore.getState().signalPlace;
 
-      // Auto-compute orientation from t
-      const orientation: '+' | '-' = t < 0 ? '-' : '+';
+      // Determine orientation: all modes are lane-relative (RHT/LHT aware).
+      // In OpenDRIVE, orientation '+' = for +s traffic, '-' = for -s traffic.
+      // We convert the user's lane-relative choice to road-absolute orientation.
+      const isLeftLane = t > 0;
+      const road = odrDocument.roads.find((r) => r.id === roadId);
+      const isRHT = !road || road.rule !== 'LHT';
+      const laneAgainstRoad = isLeftLane === isRHT; // true if lane travels in -s direction
+      // User's lane-relative choice: '+' (Front) = face oncoming, '-' (Back) = face away
+      // Convert to road-absolute: flip when lane travels against road reference line
+      const orientation: '+' | '-' = laneAgainstRoad
+        ? (signalOrientation === '+' ? '-' : '+')
+        : signalOrientation;
 
-      store.addSignal(roadId, {
-        ...partial,
-        s,
-        t,
-        orientation,
-        hOffset: heading,
-        zOffset: 4.0,
-      });
+      // Helper: compute arm angle from world positions
+      const computeArmAngle = (poleT: number, headT: number): number | undefined => {
+        const road = odrDocument.roads.find((r) => r.id === roadId);
+        if (!ghostPreview || !road) return undefined;
+        const pose = evaluateReferenceLineAtS(road.planView, s);
+        const z = evaluateElevation(road.elevationProfile, s);
+        const poleWorld = stToXyz(pose, poleT, z);
+        const headWorld = stToXyz(pose, headT, z);
+        return Math.atan2(headWorld.y - poleWorld.y, headWorld.x - poleWorld.x);
+      };
+
+      // Resolve head presets: single head or assembly (list of heads with offsets)
+      // When orientation is '-', mirror X offsets so the assembly layout
+      // stays correct from the viewer's perspective.
+      const assemblyPreset =
+        selectionType === 'assembly' ? getAssemblyPresetById(selectedPresetId) : undefined;
+      const xMirror = orientation === '+' ? -1 : 1;
+      const assemblyHeads =
+        assemblyPreset && assemblyPreset.heads.length > 0
+          ? assemblyPreset.heads.map((h) => ({ ...h, x: h.x * xMirror }))
+          : [{ presetId: selectedPresetId, x: 0, y: 0 }];
+      const headPresetIds = assemblyHeads.map((h) => h.presetId);
+
+      const firstHeadPreset = getPresetById(headPresetIds[0]);
+      const firstPartial = firstHeadPreset ? presetToSignalPartial(firstHeadPreset) : {};
+      const isPedestrian = firstHeadPreset?.category === 'pedestrian';
+      const zOffset = isPedestrian ? 2.5 : 5.0;
+
+      if (tSnapMode === 'lane-above') {
+        // Arm-mounted: pole at road edge, head over lane
+        const headT = ghostPreview?.headT ?? t;
+        const poleT = ghostPreview?.poleT ?? t;
+        const armLength = ghostPreview?.armLength ?? 3;
+        const armAngle = computeArmAngle(poleT, headT);
+
+        const signal = createAssemblyFromPlacement(
+          odrStoreApi,
+          editorMetadataStoreApi,
+          roadId,
+          { ...firstPartial, s, t: headT, orientation, hOffset: 0, zOffset },
+          headPresetIds[0],
+          armLength,
+          poleT,
+          armAngle,
+          assemblyHeads[0].x,
+          assemblyHeads[0].y,
+        );
+
+        // Add remaining heads with configurator offsets
+        if (assemblyHeads.length > 1) {
+          const assembly = findAssemblyForSignal(editorMetadataStoreApi, signal.id);
+          if (assembly) {
+            for (let i = 1; i < assemblyHeads.length; i++) {
+              addHeadToAssembly(
+                odrStoreApi,
+                editorMetadataStoreApi,
+                assembly.assemblyId,
+                assemblyHeads[i].presetId,
+                'lower',
+                assemblyHeads[i].x,
+                assemblyHeads[i].y,
+              );
+            }
+          }
+        }
+      } else {
+        // Road-edge: straight pole
+        if (headPresetIds.length === 1) {
+          // Single signal, no assembly
+          store.addSignal(roadId, {
+            ...firstPartial,
+            s,
+            t,
+            orientation,
+            hOffset: 0,
+            zOffset,
+          });
+        } else {
+          // Assembly on straight pole
+          const signal = createAssemblyFromPlacement(
+            odrStoreApi,
+            editorMetadataStoreApi,
+            roadId,
+            { ...firstPartial, s, t, orientation, hOffset: 0, zOffset },
+            headPresetIds[0],
+            0,
+            t,
+            undefined,
+            assemblyHeads[0].x,
+            assemblyHeads[0].y,
+          );
+          const assembly = findAssemblyForSignal(editorMetadataStoreApi, signal.id);
+          if (assembly) {
+            for (let i = 1; i < assemblyHeads.length; i++) {
+              addHeadToAssembly(
+                odrStoreApi,
+                editorMetadataStoreApi,
+                assembly.assemblyId,
+                assemblyHeads[i].presetId,
+                'lower',
+                assemblyHeads[i].x,
+                assemblyHeads[i].y,
+              );
+            }
+          }
+        }
+      }
     },
-    [odrStoreApi, signalPlace.selectedPresetId],
+    [odrStoreApi, editorMetadataStoreApi, odrDocument],
   );
 
   const handleSignalGhostUpdate = useCallback(
-    (ghost: { roadId: string; s: number; t: number; heading: number } | null) => {
+    (ghost: SignalPlaceGhost | null) => {
       setSignalPlaceGhost(ghost);
     },
     [setSignalPlaceGhost],
   );
 
   const handleSignalMove = useCallback(
-    (roadId: string, signalId: string, newS: number, newT: number) => {
+    (
+      roadId: string,
+      signalId: string,
+      newS: number,
+      newT: number,
+      armInfo?: { armLength: number; armAngle: number },
+    ) => {
       const store = odrStoreApi.getState();
       store.updateSignal(roadId, signalId, { s: newS, t: newT });
+
+      // Update assembly metadata and pole/arm objects for arm-mounted signals
+      if (armInfo) {
+        const assembly = findAssemblyForSignal(editorMetadataStoreApi, signalId);
+        if (assembly) {
+          const road = odrDocument.roads.find((r) => r.id === roadId);
+          if (road) {
+            const pose = evaluateReferenceLineAtS(road.planView, newS);
+            const z = evaluateElevation(road.elevationProfile, newS);
+            const side: 'right' | 'left' = newT < 0 ? 'right' : 'left';
+            const poleT = computePolePlacementT(road, newS, side);
+            const poleWorld = stToXyz(pose, poleT, z);
+            const headWorld = stToXyz(pose, newT, z);
+            const armAngle = Math.atan2(headWorld.y - poleWorld.y, headWorld.x - poleWorld.x);
+
+            updateAssembly(editorMetadataStoreApi, assembly.assemblyId, {
+              armLength: armInfo.armLength,
+              armAngle,
+            });
+
+            // Sync pole and arm objects
+            const signal = road.signals.find((s) => s.id === signalId);
+            const zOffset = signal?.zOffset ?? 5.0;
+            if (assembly.poleObjectId) {
+              store.updateRoad(roadId, {
+                objects: road.objects.map((o) =>
+                  o.id === assembly.poleObjectId
+                    ? { ...o, s: newS, t: poleT, height: zOffset }
+                    : o.id === assembly.armObjectId
+                      ? {
+                          ...o,
+                          s: newS,
+                          t: (poleT + newT) / 2,
+                          zOffset,
+                          length: armInfo.armLength,
+                          hdg: newT > poleT ? Math.PI / 2 : -Math.PI / 2,
+                        }
+                      : o,
+                ),
+              });
+            }
+          }
+        }
+      }
     },
-    [odrStoreApi],
+    [odrStoreApi, editorMetadataStoreApi, odrDocument],
   );
 
   const handleAddRoadFromEndpoint = useCallback(
@@ -1325,6 +1560,9 @@ export function RoadNetworkEditorLayout() {
                   junctionCreateHoveredEndpoint={junctionCreate.hoveredEndpoint}
                   onJunctionEndpointClick={handleJunctionEndpointClick}
                   onJunctionEndpointHover={handleJunctionEndpointHover}
+                  selectedSignalKey={selectedSignalKey}
+                  onSignalSelect={handleSignalSelect}
+                  signalAssemblyMap={signalAssemblyMap}
                   signalPlaceActive={signalPlaceMode}
                   signalPlaceSubMode={signalPlace.subMode}
                   signalPlaceTSnapMode={signalPlace.tSnapMode}
@@ -1520,6 +1758,8 @@ export function RoadNetworkEditorLayout() {
                 <JunctionRoutingPanel endpoints={junctionEndpoints} />
               ) : roadCreationMode ? (
                 <RoadStylePanel />
+              ) : signalPlaceMode ? (
+                <SignalPlaceToolPanel />
               ) : laneEditMode && laneEdit.activeRoadId ? (
                 (() => {
                   const laneRoad = odrDocument.roads.find((r) => r.id === laneEdit.activeRoadId);

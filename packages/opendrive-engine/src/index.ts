@@ -192,6 +192,15 @@ export * from './signal/signal-presets.js';
 export * from './signal/signal-preset-types.js';
 export * from './signal/preset-to-signal.js';
 
+// Signal catalog and classification
+export * from './signal/signal-catalog.js';
+
+// Signal rendering (Canvas2D, no THREE.js)
+export * from './signal/signal-render-constants.js';
+export * from './signal/signal-shape-paths.js';
+export * from './signal/signal-head-renderer.js';
+export * from './signal/signal-preset-persistence.js';
+
 // Signal assembly
 export * from './signal/signal-assembly.js';
 export * from './signal/signal-assembly-operations.js';

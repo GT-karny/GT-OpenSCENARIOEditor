@@ -122,6 +122,18 @@ export interface ScenarioViewerProps {
   selectedSignalKey?: string | null;
   /** Callback when user clicks a traffic signal in the viewer */
   onSignalSelect?: (key: string) => void;
+  /** Signal IDs to highlight in the viewer (e.g. signals belonging to selected controller) */
+  highlightedSignalIds?: ReadonlySet<string>;
+  /** Signal pick mode configuration (null = not in pick mode) */
+  signalPickMode?: {
+    bulbCount: number;
+    trackSignalIds: ReadonlySet<string>;
+    allTrackSignalMap: ReadonlyMap<string, ReadonlySet<string>>;
+  } | null;
+  /** Callback when a signal is hovered during pick mode */
+  onSignalHover?: (signalId: string | null) => void;
+  /** Map from signalId to assembly info for arm pole rendering */
+  signalAssemblyMap?: Map<string, import('../signals/InstancedPoles.js').PoleAssemblyInfo>;
   /** Show r3f-perf overlay for performance monitoring */
   showPerf?: boolean;
   /** Whether position pick mode is active */
@@ -282,7 +294,13 @@ export interface ScenarioViewerProps {
   /** Callback to update ghost preview position */
   onSignalGhostUpdate?: (ghost: import('../interaction/road-editing/SignalPlaceInteraction.js').SignalPlaceGhostData | null) => void;
   /** Callback when a signal is moved via drag */
-  onSignalMove?: (roadId: string, signalId: string, newS: number, newT: number) => void;
+  onSignalMove?: (
+    roadId: string,
+    signalId: string,
+    newS: number,
+    newT: number,
+    armInfo?: { armLength: number; armAngle: number },
+  ) => void;
 
   // ---- Junction Editing ----
   /** Currently selected junction ID (renders with highlight) */
@@ -323,6 +341,10 @@ function ScenarioViewerScene({
   routePreviewData,
   selectedSignalKey,
   onSignalSelect,
+  highlightedSignalIds,
+  signalPickMode,
+  onSignalHover,
+  signalAssemblyMap,
   positionPickActive,
   onPositionPicked,
   onPositionPickCancel,
@@ -411,6 +433,10 @@ function ScenarioViewerScene({
   routePreviewData?: RoutePreviewData[];
   selectedSignalKey?: string | null;
   onSignalSelect?: (key: string) => void;
+  highlightedSignalIds?: ReadonlySet<string>;
+  signalPickMode?: ScenarioViewerProps['signalPickMode'];
+  onSignalHover?: (signalId: string | null) => void;
+  signalAssemblyMap?: ScenarioViewerProps['signalAssemblyMap'];
   positionPickActive?: boolean;
   onPositionPicked?: (data: PickedPositionData) => void;
   onPositionPickCancel?: () => void;
@@ -636,6 +662,10 @@ function ScenarioViewerScene({
           selectedSignalKey={selectedSignalKey}
           onSignalSelect={onSignalSelect}
           currentFrame={currentFrame}
+          highlightedSignalIds={highlightedSignalIds}
+          signalPickMode={signalPickMode}
+          onSignalHover={onSignalHover}
+          assemblyMap={signalAssemblyMap}
         />
       )}
 
@@ -793,6 +823,7 @@ function ScenarioViewerScene({
             onSignalPlace={onSignalPlace}
             onSignalGhostUpdate={onSignalGhostUpdate}
             onSignalMove={onSignalMove}
+            selectedSignalKey={selectedSignalKey}
           />
         </group>
       )}
@@ -855,6 +886,10 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   routePreviewData,
   selectedSignalKey,
   onSignalSelect,
+  highlightedSignalIds,
+  signalPickMode,
+  onSignalHover,
+  signalAssemblyMap,
   showPerf,
   positionPickActive,
   onPositionPicked,
@@ -1169,6 +1204,10 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           routePreviewData={routePreviewData}
           selectedSignalKey={selectedSignalKey}
           onSignalSelect={onSignalSelect}
+          highlightedSignalIds={highlightedSignalIds}
+          signalPickMode={signalPickMode}
+          onSignalHover={onSignalHover}
+          signalAssemblyMap={signalAssemblyMap}
           positionPickActive={positionPickActive}
           onPositionPicked={onPositionPicked}
           onPositionPickCancel={onPositionPickCancel}

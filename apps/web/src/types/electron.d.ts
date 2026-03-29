@@ -40,6 +40,8 @@ interface ElectronAPI {
   getRecentFiles: () => Promise<string[]>;
   addRecentFile: (filePath: string) => void;
   clearRecentFiles: () => void;
+  getAssemblyPresets: () => Promise<unknown[]>;
+  saveAssemblyPresets: (presets: unknown[]) => void;
   platform: string;
   isElectron: boolean;
 }

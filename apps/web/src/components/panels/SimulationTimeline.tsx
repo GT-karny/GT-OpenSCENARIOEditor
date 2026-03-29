@@ -1,4 +1,5 @@
 import { useMemo, useCallback, useState, useRef } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useTranslation } from '@osce/i18n';
 import { Timer, Play, Pause, SkipBack, SkipForward } from 'lucide-react';
 import type { StoryBoardEvent, StoryBoardElementType } from '@osce/shared';
@@ -55,7 +56,7 @@ function IdleView() {
 function RunningView() {
   const { t } = useTranslation('common');
   const frameCount = useSimulationStore((s) => s.frames.length);
-  const frames = useSimulationStore((s) => s.frames);
+  const frames = useSimulationStore(useShallow((s) => s.frames));
   const currentTime = frames.length > 0 ? frames[frames.length - 1].time : 0;
 
   return (
@@ -217,13 +218,13 @@ function EventMarkerLane({
 function PlaybackControls() {
   const isPlaying = useSimulationStore((s) => s.isPlaying);
   const currentFrameIndex = useSimulationStore((s) => s.currentFrameIndex);
-  const frames = useSimulationStore((s) => s.frames);
+  const frames = useSimulationStore(useShallow((s) => s.frames));
   const playbackSpeed = useSimulationStore((s) => s.playbackSpeed);
   const storyBoardEvents = useSimulationStore((s) => s.storyBoardEvents);
   const { play, pause, seekTo, setSpeed } = useSimulationStore.getState();
 
   // Editor selection state for reverse-lookup interval lines
-  const selectedElementIds = useEditorStore((s) => s.selection.selectedElementIds);
+  const selectedElementIds = useEditorStore(useShallow((s) => s.selection.selectedElementIds));
   const scenarioStoreApi = useScenarioStoreApi();
 
   const totalFrames = frames.length;

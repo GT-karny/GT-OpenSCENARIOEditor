@@ -14,6 +14,7 @@ import type {
   ScenarioEntity,
 } from '@osce/shared';
 import type { ScenarioStore } from '@osce/scenario-engine';
+import { useShallow } from 'zustand/react/shallow';
 import { useEditorStore } from '../hooks/use-editor-store.js';
 import { ScenarioStoreContext } from './NodeEditorProvider.js';
 import { detectElementType } from '../utils/detect-element-type.js';
@@ -30,7 +31,7 @@ export interface PropertyPanelProps {
 }
 
 export function PropertyPanel({ className }: PropertyPanelProps) {
-  const selectedIds = useEditorStore((s) => s.selectedElementIds);
+  const selectedIds = useEditorStore(useShallow((s) => s.selectedElementIds));
   const scenarioStore = useContext(ScenarioStoreContext) as StoreApi<ScenarioStore> | null;
 
   const selectedElement = useMemo(() => {

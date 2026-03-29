@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from '@osce/i18n';
 import type { Maneuver } from '@osce/shared';
@@ -42,7 +43,7 @@ export function ManeuverSection({
 }: ManeuverSectionProps) {
   const { t } = useTranslation('composer');
   const storeApi = useScenarioStoreApi();
-  const selectedIds = useEditorStore((s) => s.selection.selectedElementIds);
+  const selectedIds = useEditorStore(useShallow((s) => s.selection.selectedElementIds));
 
   const [collapsed, setCollapsed] = useState(false);
   const [editingName, setEditingName] = useState(false);

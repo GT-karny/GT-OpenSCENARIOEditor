@@ -34,7 +34,7 @@ export { worldToRoad, worldToLane } from './geometry/inverse-lookup.js';
 export type { RoadLookupResult, LaneLookupResult } from './geometry/inverse-lookup.js';
 
 // Signal snap utilities
-export { computeSignalSnapT, computeSignalHeading } from './geometry/signal-snap.js';
+export { computeSignalSnapT, computeSignalHeading, computePolePlacementT, computeArmPlacement } from './geometry/signal-snap.js';
 
 // Individual geometry evaluators
 export { evaluateLine } from './geometry/line.js';

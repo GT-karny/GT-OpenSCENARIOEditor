@@ -53,11 +53,22 @@ export type { PickedPositionData } from './interaction/RoadClickHandler.js';
 
 // Traffic signal rendering
 export { TrafficSignalGroup } from './signals/TrafficSignalGroup.js';
-export type { ResolvedSignal } from './signals/TrafficSignalGroup.js';
+export type { ResolvedSignal, SignalPickModeProps, PickCategory } from './signals/TrafficSignalGroup.js';
 export type { PoleAssemblyInfo } from './signals/InstancedPoles.js';
 export { classifySignal } from './utils/signal-geometry.js';
 export type { SignalCategory } from './utils/signal-geometry.js';
 export { resolveSignalPosition } from './utils/signal-position-resolver.js';
+
+// Signal catalog (types, data, and state parsing for 2D consumers)
+export type {
+  SignalDescriptor,
+  BulbDefinition,
+  BulbColor,
+  BulbFaceShape,
+} from './utils/signal-catalog.js';
+export { SIGNAL_CATALOG, resolveSignalDescriptor } from './utils/signal-catalog.js';
+export { isBulbActiveByIndex, getBulbMode, hasFlashingBulb, defaultOffState } from './utils/parse-traffic-light-state.js';
+export type { BulbMode } from './utils/parse-traffic-light-state.js';
 
 // Road editing gizmos
 export { RoadEditingLayer } from './interaction/road-editing/index.js';

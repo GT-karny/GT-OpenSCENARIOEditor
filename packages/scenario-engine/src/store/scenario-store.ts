@@ -8,6 +8,7 @@ import type {
   ScenarioDocument,
   ScenarioEntity,
   ParameterDeclaration,
+  VariableDeclaration,
   FileHeader,
   RoadNetwork,
   CatalogLocations,
@@ -27,11 +28,20 @@ import type {
 import type { ScenarioState } from './store-types.js';
 import { createDefaultDocument } from './defaults.js';
 import { CommandHistory } from '../commands/command-history.js';
-import { AddEntityCommand, RemoveEntityCommand, UpdateEntityCommand } from '../commands/entity-commands.js';
+import {
+  AddEntityCommand,
+  RemoveEntityCommand,
+  UpdateEntityCommand,
+} from '../commands/entity-commands.js';
+import type { EntityCleanupOption } from '../commands/entity-commands.js';
 import {
   AddParameterCommand, RemoveParameterCommand, UpdateParameterCommand,
   RenameParameterCommand, SetParameterBindingCommand, RemoveParameterBindingCommand,
 } from '../commands/parameter-commands.js';
+import {
+  AddVariableCommand, RemoveVariableCommand, UpdateVariableCommand,
+  RenameVariableCommand,
+} from '../commands/variable-commands.js';
 import { AddStoryCommand, RemoveStoryCommand } from '../commands/story-commands.js';
 import { AddActCommand, RemoveActCommand } from '../commands/act-commands.js';
 import { AddManeuverGroupCommand, RemoveManeuverGroupCommand } from '../commands/maneuver-group-commands.js';
@@ -71,6 +81,9 @@ import { getElementById as _getElementById, getParentOf as _getParentOf } from '
 export interface ScenarioStore extends ScenarioState, IScenarioService {
   getCommandHistory(): CommandHistory;
 
+  // Override to accept optional cleanup option
+  removeEntity(entityId: string, cleanupOption?: EntityCleanupOption): void;
+
   // Update operations (beyond IScenarioService)
   updateStory(storyId: string, updates: Partial<Story>): void;
   updateAct(actId: string, updates: Partial<Act>): void;
@@ -88,6 +101,9 @@ export interface ScenarioStore extends ScenarioState, IScenarioService {
   updateRoadNetwork(updates: Partial<RoadNetwork>): void;
   updateCatalogLocations(updates: Partial<CatalogLocations>): void;
 }
+
+// Guard against concurrent parameter/variable rename operations
+let _renameInProgress = false;
 
 export function createScenarioStore() {
   const commandHistory = new CommandHistory();
@@ -148,9 +164,47 @@ export function createScenarioStore() {
       },
 
       renameParameter: (paramId: string, newName: string): void => {
-        const cmd = new RenameParameterCommand(paramId, newName, getDoc, setDoc);
+        if (_renameInProgress) return;
+        _renameInProgress = true;
+        try {
+          const cmd = new RenameParameterCommand(paramId, newName, getDoc, setDoc);
+          commandHistory.execute(cmd);
+          syncUndoRedo();
+        } finally {
+          _renameInProgress = false;
+        }
+      },
+
+      // --- Variable operations ---
+      addVariable: (partial: Partial<VariableDeclaration>): VariableDeclaration => {
+        const cmd = new AddVariableCommand(partial, getDoc, setDoc);
         commandHistory.execute(cmd);
         syncUndoRedo();
+        return cmd.getCreatedVariable();
+      },
+
+      removeVariable: (varId: string): void => {
+        const cmd = new RemoveVariableCommand(varId, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
+      updateVariable: (varId: string, updates: Partial<VariableDeclaration>): void => {
+        const cmd = new UpdateVariableCommand(varId, updates, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
+      renameVariable: (varId: string, newName: string): void => {
+        if (_renameInProgress) return;
+        _renameInProgress = true;
+        try {
+          const cmd = new RenameVariableCommand(varId, newName, getDoc, setDoc);
+          commandHistory.execute(cmd);
+          syncUndoRedo();
+        } finally {
+          _renameInProgress = false;
+        }
       },
 
       // --- Parameter binding operations ---
@@ -174,8 +228,8 @@ export function createScenarioStore() {
         return cmd.getCreatedEntity();
       },
 
-      removeEntity: (entityId: string): void => {
-        const cmd = new RemoveEntityCommand(entityId, getDoc, setDoc);
+      removeEntity: (entityId: string, cleanupOption?: EntityCleanupOption): void => {
+        const cmd = new RemoveEntityCommand(entityId, getDoc, setDoc, cleanupOption);
         commandHistory.execute(cmd);
         syncUndoRedo();
       },

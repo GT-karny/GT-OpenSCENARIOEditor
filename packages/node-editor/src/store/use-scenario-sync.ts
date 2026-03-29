@@ -24,6 +24,7 @@ export function useScenarioSync(
         collapsedNodes: editorState.collapsedNodes,
         savedPositions: doc._editor?.nodePositions ?? {},
         selectedIds: editorState.selectedElementIds,
+        parameterBindings: doc._editor?.parameterBindings,
       });
 
       // Apply dagre layout for nodes without saved positions
@@ -72,6 +73,7 @@ export function useScenarioSync(
           collapsedNodes: state.collapsedNodes,
           savedPositions: doc._editor?.nodePositions ?? {},
           selectedIds: state.selectedElementIds,
+          parameterBindings: doc._editor?.parameterBindings,
         });
 
         const layoutedNodes = applyDagreLayout(result.nodes, result.edges);

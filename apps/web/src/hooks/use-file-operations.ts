@@ -6,6 +6,7 @@ import {
   serializeOsceJson,
   parseOsceJson,
   isOsceJsonFormat,
+  buildAssembliesFromDocument,
 } from '@osce/opendrive-engine';
 import type { CatalogLocations } from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
@@ -19,6 +20,7 @@ import {
   computeRelativeFilePath,
 } from '../lib/catalog-location-utils';
 import { editorMetadataStoreApi } from '../stores/editor-metadata-store-instance';
+import { useAppLifecycle } from './use-app-lifecycle';
 import * as api from '../lib/project-api';
 
 // File picker type definitions for File System Access API
@@ -245,6 +247,7 @@ async function autoLoadCatalogs(
 export function useFileOperations() {
   const storeApi = useScenarioStoreApi();
   const { t } = useTranslation('common');
+  const { resetForNewFile, resetForNewRoadNetwork } = useAppLifecycle();
   const setCurrentFileName = useEditorStore((s) => s.setCurrentFileName);
   const setDirty = useEditorStore((s) => s.setDirty);
   const setValidationResult = useEditorStore((s) => s.setValidationResult);
@@ -252,6 +255,7 @@ export function useFileOperations() {
   const setShowSaveAs = useEditorStore((s) => s.setShowSaveAs);
 
   const newScenario = useCallback(() => {
+    resetForNewFile();
     storeApi.getState().createScenario();
 
     // Auto-populate CatalogLocations in project mode
@@ -274,7 +278,7 @@ export function useFileOperations() {
     setRoadNetwork(null, null);
     useEditorStore.getState().setXoscFileHandle(null);
     useEditorStore.getState().setXoscFilePath(null);
-  }, [storeApi, setCurrentFileName, setDirty, setValidationResult, setRoadNetwork]);
+  }, [storeApi, resetForNewFile, setCurrentFileName, setDirty, setValidationResult, setRoadNetwork]);
 
   const openXosc = useCallback(async () => {
     try {
@@ -282,7 +286,8 @@ export function useFileOperations() {
       const parser = new XoscParser();
       const doc = parser.parse(text);
 
-      // Reset store and load parsed document
+      // Reset all transient state and load parsed document
+      resetForNewFile();
       storeApi.getState().createScenario();
       storeApi.setState({ document: doc });
       setCurrentFileName(name);
@@ -300,7 +305,7 @@ export function useFileOperations() {
     } catch {
       // User cancelled the file picker
     }
-  }, [storeApi, setCurrentFileName, setDirty, setValidationResult]);
+  }, [storeApi, resetForNewFile, setCurrentFileName, setDirty, setValidationResult]);
 
   const saveXosc = useCallback(async () => {
     const currentProject = useProjectStore.getState().currentProject;
@@ -420,28 +425,39 @@ export function useFileOperations() {
   // ---- OpenDRIVE (.xodr) operations ----
 
   const newOpenDrive = useCallback(() => {
+    resetForNewRoadNetwork();
     const doc = createDefaultDocument();
     setRoadNetwork(doc, null);
     useEditorStore.getState().setRoadNetworkFileName(null);
     useEditorStore.getState().setRoadNetworkDirty(false);
     useEditorStore.getState().setXodrFileHandle(null);
     useEditorStore.getState().setXodrFilePath(null);
-  }, [setRoadNetwork]);
+  }, [resetForNewRoadNetwork, setRoadNetwork]);
 
   const loadXodr = useCallback(async () => {
     try {
       const { text, name, filePath, handle } = await readFileFromDisk('OpenDRIVE', ['.xodr']);
       const parser = new XodrParser();
       const doc = parser.parse(text);
+      resetForNewRoadNetwork();
       setRoadNetwork(doc, text);
       useEditorStore.getState().setRoadNetworkFileName(name);
       useEditorStore.getState().setRoadNetworkDirty(false);
       useEditorStore.getState().setXodrFileHandle(handle ?? null);
       useEditorStore.getState().setXodrFilePath(filePath ?? null);
+      // Reconstruct signal assemblies from signal→object references
+      const assemblies = buildAssembliesFromDocument(doc);
+      if (assemblies.length > 0) {
+        const meta = editorMetadataStoreApi.getState().getMetadata();
+        editorMetadataStoreApi.getState().loadMetadata({
+          ...meta,
+          signalAssemblies: assemblies,
+        });
+      }
     } catch {
       // User cancelled the file picker
     }
-  }, [setRoadNetwork]);
+  }, [resetForNewRoadNetwork, setRoadNetwork]);
 
   const saveXodr = useCallback(async () => {
     const roadNetwork = useEditorStore.getState().roadNetwork;
@@ -572,6 +588,8 @@ export function useFileOperations() {
         ['.xodr', '.osce.json'],
       );
 
+      resetForNewRoadNetwork();
+
       if (name.endsWith('.osce.json') || isOsceJsonFormat(text)) {
         // .osce.json format
         const result = parseOsceJson(text);
@@ -596,11 +614,20 @@ export function useFileOperations() {
         // Clear osce handles since we loaded xodr
         useEditorStore.getState().setOsceFileHandle(null);
         useEditorStore.getState().setOsceFilePath(null);
+        // Reconstruct signal assemblies from signal→object references
+        const assemblies = buildAssembliesFromDocument(doc);
+        if (assemblies.length > 0) {
+          const meta = editorMetadataStoreApi.getState().getMetadata();
+          editorMetadataStoreApi.getState().loadMetadata({
+            ...meta,
+            signalAssemblies: assemblies,
+          });
+        }
       }
     } catch {
       // User cancelled the file picker
     }
-  }, [setRoadNetwork]);
+  }, [resetForNewRoadNetwork, setRoadNetwork]);
 
   /** Save as .osce.json (editor format, preserves metadata) */
   const saveOsce = useCallback(async () => {

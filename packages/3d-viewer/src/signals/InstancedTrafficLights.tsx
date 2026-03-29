@@ -9,11 +9,14 @@
 import React, { useRef, useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import type { ResolvedSignal } from './TrafficSignalGroup.js';
+import type { PoleAssemblyInfo } from './InstancedPoles.js';
 import type { SignalDescriptor } from '../utils/signal-catalog.js';
 import { DEFAULT_SIGNAL_HEIGHT } from '../utils/signal-geometry.js';
 import { resolveSignalDescriptor } from '../utils/signal-catalog.js';
 import { getSharedBox } from '../utils/shared-geometries.js';
 import { buildCacheKey, getSignalMaterials } from '../utils/signal-texture.js';
+import { hasFlashingBulb, suppressFlashing } from '../utils/parse-traffic-light-state.js';
+import { useFlashingClock } from '../hooks/useFlashingClock.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -23,6 +26,7 @@ interface InstancedTrafficLightsProps {
   signals: ResolvedSignal[];
   stateMap: Map<string, string>;
   selectedKey?: string | null;
+  assemblyMap?: Map<string, PoleAssemblyInfo>;
 }
 
 interface TrafficLightEntry {
@@ -43,18 +47,33 @@ interface TextureGroup {
 // ---------------------------------------------------------------------------
 
 export const InstancedTrafficLights: React.FC<InstancedTrafficLightsProps> = React.memo(
-  ({ signals, stateMap }) => {
+  ({ signals, stateMap, assemblyMap }) => {
+    // Detect whether any signal has a flashing bulb to enable the clock
+    const anyFlashing = useMemo(() => {
+      for (const [, state] of stateMap) {
+        if (hasFlashingBulb(state)) return true;
+      }
+      return false;
+    }, [stateMap]);
+
+    // Flashing clock: toggles at 1 Hz (only ticks when flashing signals exist)
+    const flashOn = useFlashingClock(anyFlashing);
+
     // Build entries with resolved descriptors
     const entries = useMemo(() => {
       const result: TrafficLightEntry[] = [];
       for (const rs of signals) {
         const descriptor = resolveSignalDescriptor(rs.signal);
         if (!descriptor) continue;
-        const activeState = stateMap.get(rs.signal.id);
+        let activeState = stateMap.get(rs.signal.id);
+        // During off-phase, replace "flashing" → "off" so the bulb goes dark
+        if (activeState && !flashOn) {
+          activeState = suppressFlashing(activeState);
+        }
         result.push({ rs, descriptor, activeState });
       }
       return result;
-    }, [signals, stateMap]);
+    }, [signals, stateMap, flashOn]);
 
     // Group entries by texture cache key
     const groups = useMemo(() => {
@@ -79,7 +98,7 @@ export const InstancedTrafficLights: React.FC<InstancedTrafficLightsProps> = Rea
     return (
       <>
         {groups.map((group) => (
-          <TrafficLightGroup key={group.key} group={group} />
+          <TrafficLightGroup key={group.key} group={group} assemblyMap={assemblyMap} />
         ))}
       </>
     );
@@ -94,6 +113,7 @@ InstancedTrafficLights.displayName = 'InstancedTrafficLights';
 
 interface TrafficLightGroupProps {
   group: TextureGroup;
+  assemblyMap?: Map<string, PoleAssemblyInfo>;
 }
 
 // Reusable objects for matrix computation
@@ -102,21 +122,31 @@ const _qHeadRot = new THREE.Quaternion().setFromAxisAngle(
   new THREE.Vector3(0, 1, 0),
   Math.PI / 2,
 );
-/** Additional 90° rotation around local Z-axis to lay housing sideways for horizontal signals */
+/** Additional -90° rotation around local Z-axis to lay housing sideways for horizontal signals.
+ *  Negative direction so that red is on the left (Japanese standard) when viewed from the front. */
 const _qHoriz = new THREE.Quaternion().setFromAxisAngle(
   new THREE.Vector3(0, 0, 1),
-  Math.PI / 2,
+  -Math.PI / 2,
 );
 
 const TrafficLightGroup: React.FC<TrafficLightGroupProps> = React.memo(
-  ({ group }) => {
+  ({ group, assemblyMap }) => {
     const meshRef = useRef<THREE.InstancedMesh>(null);
     const { descriptor, activeState, entries } = group;
     const { housing } = descriptor;
 
+    // For horizontal signals, the housing dimensions have width/height swapped
+    // relative to vertical (width=span, height=narrow). But the BoxGeometry must
+    // always have the bulb-stack axis as the first arg (Three.js X), because
+    // _qHoriz rotates X↔Y to lay it sideways. Using swapped dims + rotation
+    // would double-swap and cancel out.
+    const isHoriz = descriptor.orientation === 'horizontal';
     const boxGeo = useMemo(
-      () => getSharedBox(housing.height, housing.width, housing.depth),
-      [housing.width, housing.height, housing.depth],
+      () =>
+        isHoriz
+          ? getSharedBox(housing.width, housing.height, housing.depth)
+          : getSharedBox(housing.height, housing.width, housing.depth),
+      [housing.width, housing.height, housing.depth, isHoriz],
     );
 
     const materials = useMemo(
@@ -148,8 +178,11 @@ const TrafficLightGroup: React.FC<TrafficLightGroupProps> = React.memo(
         euler.set(position.pitch ?? 0, position.roll ?? 0, position.h);
         _qSignal.setFromEuler(euler);
 
-        // Local offset in signal frame: [0, 0, poleHeight + headHeight/2]
-        const localOffset = new THREE.Vector3(0, 0, poleHeight + headHeight / 2);
+        // For arm-mounted signals, center the housing on the arm (no headHeight/2 offset).
+        // For straight poles, the housing bottom sits on top of the pole.
+        const isArm = assemblyMap?.get(signal.id)?.poleType === 'arm';
+        const zHead = isArm ? poleHeight : poleHeight + headHeight / 2;
+        const localOffset = new THREE.Vector3(0, 0, zHead);
         localOffset.applyQuaternion(_qSignal);
 
         dummy.position.set(
@@ -174,7 +207,7 @@ const TrafficLightGroup: React.FC<TrafficLightGroupProps> = React.memo(
 
       // Store signal keys in userData for manual raycast lookup by SignalHoverHandler
       mesh.userData.signalKeys = entries.map((e) => e.rs.key);
-    }, [entries, descriptor]);
+    }, [entries, descriptor, assemblyMap]);
 
     if (entries.length === 0) return null;
 

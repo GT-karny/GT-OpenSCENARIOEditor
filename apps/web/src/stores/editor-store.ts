@@ -28,6 +28,22 @@ export interface PickedPositionData {
   roadT: number;
 }
 
+/** Signal pick mode — click signals in 3D viewer to add/remove from a track */
+export interface SignalPickMode {
+  /** Target track key in the timeline panel */
+  trackKey: string;
+  /** Controller ID that owns the target track */
+  controllerId: string;
+  /** Catalog key of the target track (e.g. "1000001") */
+  catalogKey: string;
+  /** Bulb count derived from catalogKey (for type matching) */
+  bulbCount: number;
+  /** Signal IDs currently assigned to the target track */
+  trackSignalIds: ReadonlySet<string>;
+  /** Map of trackKey → Set<signalId> for all tracks in the controller */
+  allTrackSignalMap: ReadonlyMap<string, ReadonlySet<string>>;
+}
+
 export type EditorMode = 'scenario' | 'roadNetwork';
 
 export interface EditorState {
@@ -119,6 +135,37 @@ export interface EditorState {
   requestPositionPick: (req: PositionPickRequest) => void;
   resolvePositionPick: (data: Omit<PickedPositionData, 'requestId'>) => void;
   cancelPositionPick: () => void;
+
+  // Intersection Timeline panel visibility
+  showIntersectionTimeline: boolean;
+  toggleIntersectionTimeline: () => void;
+  setShowIntersectionTimeline: (show: boolean) => void;
+
+  // Selected TrafficSignalController (shared between timeline & properties)
+  selectedControllerId: string | null;
+  setSelectedControllerId: (id: string | null) => void;
+
+  // Signal IDs to highlight in 3D viewer (set by timeline track selection)
+  highlightedSignalIds: ReadonlySet<string> | null;
+  setHighlightedSignalIds: (ids: ReadonlySet<string> | null) => void;
+
+  // Signal pick mode (click signals in 3D viewer to add/remove from a track)
+  signalPickMode: SignalPickMode | null;
+  enterSignalPickMode: (mode: SignalPickMode) => void;
+  exitSignalPickMode: () => void;
+  /** Signal key submitted from 3D viewer click during pick mode */
+  pendingSignalPick: string | null;
+  submitSignalPick: (signalKey: string) => void;
+  clearPendingSignalPick: () => void;
+  /** Hovered signal key during pick mode (for preview feedback) */
+  pickModeHoveredSignalId: string | null;
+  setPickModeHoveredSignalId: (id: string | null) => void;
+
+  // Reset transient state (preserves preferences, panelVisibility, file state)
+  resetTransientState: () => void;
+
+  // Reset file-related state (handles, paths, names, dirty flags, road network)
+  resetFileState: () => void;
 }
 
 const defaultPreferences: EditorPreferences = {
@@ -271,6 +318,69 @@ export const useEditorStore = create<EditorState>()(
           positionPickRequest: null,
         })),
       cancelPositionPick: () => set({ positionPickRequest: null, pickedPosition: null }),
+
+      // Intersection Timeline
+      showIntersectionTimeline: false,
+      toggleIntersectionTimeline: () =>
+        set((state) => ({ showIntersectionTimeline: !state.showIntersectionTimeline })),
+      setShowIntersectionTimeline: (show) => set({ showIntersectionTimeline: show }),
+
+      // Selected controller
+      selectedControllerId: null,
+      setSelectedControllerId: (id) => set({ selectedControllerId: id, highlightedSignalIds: null }),
+
+      // Highlighted signal IDs
+      highlightedSignalIds: null,
+      setHighlightedSignalIds: (ids) => set({ highlightedSignalIds: ids }),
+
+      // Signal pick mode
+      signalPickMode: null,
+      enterSignalPickMode: (mode) =>
+        set({ signalPickMode: mode, selectedSignalKey: null, pendingSignalPick: null, highlightedSignalIds: null }),
+      exitSignalPickMode: () =>
+        set({ signalPickMode: null, pendingSignalPick: null, pickModeHoveredSignalId: null, highlightedSignalIds: null }),
+      pendingSignalPick: null,
+      submitSignalPick: (signalKey) => set({ pendingSignalPick: signalKey }),
+      clearPendingSignalPick: () => set({ pendingSignalPick: null }),
+      pickModeHoveredSignalId: null,
+      setPickModeHoveredSignalId: (id) => set({ pickModeHoveredSignalId: id }),
+
+      // Reset transient state (preserves preferences, panelVisibility, file state)
+      resetTransientState: () =>
+        set({
+          selection: { selectedElementIds: [], hoveredElementId: null, focusedPanelId: null },
+          validationResult: null,
+          focusNodeId: null,
+          focusEntityId: null,
+          selectedSignalKey: null,
+          activeActId: null,
+          positionPickRequest: null,
+          pickedPosition: null,
+          showSaveAs: false,
+          saveAsFileType: 'xosc' as const,
+          selectedControllerId: null,
+          highlightedSignalIds: null,
+          signalPickMode: null,
+          pendingSignalPick: null,
+          pickModeHoveredSignalId: null,
+        }),
+
+      // Reset file-related state (for project close / new file)
+      resetFileState: () =>
+        set({
+          xoscFileHandle: null,
+          xodrFileHandle: null,
+          osceFileHandle: null,
+          xoscFilePath: null,
+          xodrFilePath: null,
+          osceFilePath: null,
+          currentFileName: null,
+          roadNetworkFileName: null,
+          isDirty: false,
+          isRoadNetworkDirty: false,
+          roadNetwork: null,
+          roadNetworkXml: null,
+        }),
     }),
     {
       name: 'osce-editor-preferences',
@@ -278,6 +388,7 @@ export const useEditorStore = create<EditorState>()(
         preferences: state.preferences,
         panelVisibility: state.panelVisibility,
         entityPropertyTab: state.entityPropertyTab,
+        showIntersectionTimeline: state.showIntersectionTimeline,
       }),
       merge: (persisted, current) => {
         const p = persisted as Partial<EditorState>;

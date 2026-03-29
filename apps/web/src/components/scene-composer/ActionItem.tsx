@@ -20,7 +20,9 @@ import {
 import type { ScenarioAction } from '@osce/shared';
 import { cn } from '../../lib/utils';
 import { useFlashState } from '../../hooks/use-flash-state';
+import { useScenarioStore } from '../../stores/use-scenario-store';
 import { getActionSummary } from './action-summary';
+import { isCustomName } from './name-utils';
 
 interface ActionItemProps {
   action: ScenarioAction;
@@ -64,8 +66,9 @@ export const actionIcons: Record<string, React.ComponentType<{ className?: strin
  * A single action row within an EventRow, shown indented under the trigger.
  */
 export function ActionItem({ action, selected, running, onSelect, onRemove }: ActionItemProps) {
+  const bindings = useScenarioStore((s) => s.document._editor.parameterBindings);
   const Icon = actionIcons[action.action.type] ?? Settings;
-  const summary = getActionSummary(action);
+  const summary = getActionSummary(action, bindings);
   const flash = useFlashState(running ?? false);
 
   return (
@@ -88,6 +91,9 @@ export function ActionItem({ action, selected, running, onSelect, onRemove }: Ac
     >
       <Icon className={cn('h-3 w-3 shrink-0', flash !== 'idle' ? 'text-emerald-400' : 'text-[var(--color-accent-1)]')} />
       <span className="text-[11px] text-[var(--color-text-primary)] truncate flex-1">
+        {isCustomName(action.name, 'action') && (
+          <span className="font-semibold text-[var(--color-accent-1)]">{action.name}: </span>
+        )}
         {summary}
       </span>
       <button

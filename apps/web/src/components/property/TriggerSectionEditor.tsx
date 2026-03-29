@@ -3,6 +3,7 @@ import { useTranslation } from '@osce/i18n';
 import { Plus, X, Zap } from 'lucide-react';
 import type { Trigger, Condition, ConditionGroup } from '@osce/shared';
 import { cn } from '../../lib/utils';
+import { useScenarioStore } from '../../stores/use-scenario-store';
 import { getConditionShortSummary } from '../scene-composer/trigger-summary';
 import { ConditionItem } from './ConditionPropertyEditor';
 
@@ -148,6 +149,7 @@ function ConditionGroupSection({
   onRemoveGroup,
   t,
 }: ConditionGroupSectionProps) {
+  const bindings = useScenarioStore((s) => s.document._editor.parameterBindings);
   return (
     <div className="group/grp relative rounded border border-[var(--color-glass-edge)] bg-[var(--color-glass-2)]/20 p-1 space-y-0.5">
       {/* Group delete button — top-right corner */}
@@ -176,7 +178,7 @@ function ConditionGroupSection({
                   &amp;
                 </span>
               )}
-              {getConditionShortSummary(condition)}
+              {getConditionShortSummary(condition, bindings)}
             </span>
             <button
               type="button"

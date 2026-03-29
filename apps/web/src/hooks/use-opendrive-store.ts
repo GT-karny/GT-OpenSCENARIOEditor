@@ -120,19 +120,33 @@ export interface SignalPlaceGhost {
   s: number;
   t: number;
   heading: number;
+  /** Pole base t-position (road outermost area) */
+  poleT: number;
+  /** Signal head t-position (over driving lane) */
+  headT: number;
+  /** Arm length from pole to head */
+  armLength: number;
 }
+
+export type SignalPlaceSelectionType = 'head' | 'assembly';
+
+export type SignalOrientationMode = '+' | '-';
 
 export interface SignalPlaceState {
   subMode: SignalPlaceSubMode;
+  selectionType: SignalPlaceSelectionType;
   selectedPresetId: string;
   tSnapMode: SignalTSnapMode;
+  signalOrientation: SignalOrientationMode;
   ghostPreview: SignalPlaceGhost | null;
 }
 
 const DEFAULT_SIGNAL_PLACE: SignalPlaceState = {
   subMode: 'place',
+  selectionType: 'head',
   selectedPresetId: '3-light-vertical',
   tSnapMode: 'lane-above',
+  signalOrientation: '+',
   ghostPreview: null,
 };
 
@@ -230,9 +244,14 @@ interface OpenDriveSidebarState {
   signalPlace: SignalPlaceState;
   setSignalPlaceSubMode: (mode: SignalPlaceSubMode) => void;
   setSignalPlacePreset: (presetId: string) => void;
+  setSignalPlaceSelection: (type: SignalPlaceSelectionType, presetId: string) => void;
   setSignalPlaceTSnapMode: (mode: SignalTSnapMode) => void;
+  setSignalPlaceOrientation: (mode: SignalOrientationMode) => void;
   setSignalPlaceGhost: (ghost: SignalPlaceGhost | null) => void;
   resetSignalPlace: () => void;
+
+  // Global reset (for file/mode transitions)
+  resetAll: () => void;
 }
 
 export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
@@ -393,15 +412,30 @@ export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
   setSignalPlaceSubMode: (mode) =>
     set((state) => ({ signalPlace: { ...state.signalPlace, subMode: mode } })),
   setSignalPlacePreset: (presetId) =>
-    set((state) => ({ signalPlace: { ...state.signalPlace, selectedPresetId: presetId } })),
+    set((state) => ({ signalPlace: { ...state.signalPlace, selectionType: 'head', selectedPresetId: presetId } })),
+  setSignalPlaceSelection: (type, presetId) =>
+    set((state) => ({ signalPlace: { ...state.signalPlace, selectionType: type, selectedPresetId: presetId } })),
   setSignalPlaceTSnapMode: (mode) =>
-    set((state) => ({ signalPlace: { ...state.signalPlace, tSnapMode: mode } })),
+    set((state) => ({ signalPlace: { ...state.signalPlace, tSnapMode: mode, ghostPreview: null } })),
+  setSignalPlaceOrientation: (mode) =>
+    set((state) => ({ signalPlace: { ...state.signalPlace, signalOrientation: mode } })),
   setSignalPlaceGhost: (ghost) =>
     set((state) => ({ signalPlace: { ...state.signalPlace, ghostPreview: ghost } })),
   resetSignalPlace: () =>
     set((state) => ({
       signalPlace: { ...DEFAULT_SIGNAL_PLACE, selectedPresetId: state.signalPlace.selectedPresetId },
     })),
+
+  resetAll: () =>
+    set({
+      selection: { type: null, id: null },
+      searchQuery: '',
+      activeTool: 'select' as RoadToolMode,
+      roadCreation: DEFAULT_ROAD_CREATION,
+      laneEdit: DEFAULT_LANE_EDIT,
+      junctionCreate: DEFAULT_JUNCTION_CREATE,
+      signalPlace: DEFAULT_SIGNAL_PLACE,
+    }),
 }));
 
 // ---- Derived Data Selectors ----

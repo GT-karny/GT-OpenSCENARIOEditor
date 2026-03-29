@@ -12,19 +12,21 @@ export function buildRoadNetwork(rn: RoadNetwork): any {
     result.SceneGraphFile = buildAttrs({ filepath: rn.sceneGraphFile.filepath });
   }
   if (rn.trafficSignals && rn.trafficSignals.length > 0) {
-    result.TrafficSignalController = rn.trafficSignals.map((tsc) => ({
-      ...buildAttrs({
-        name: tsc.name,
-        delay: tsc.delay,
-        reference: tsc.reference,
-      }),
-      Phase: tsc.phases.map((phase) => ({
-        ...buildAttrs({ name: phase.name, duration: phase.duration }),
-        TrafficSignalState: phase.trafficSignalStates.map((tss) =>
-          buildAttrs({ trafficSignalId: tss.trafficSignalId, state: tss.state }),
-        ),
+    result.TrafficSignals = {
+      TrafficSignalController: rn.trafficSignals.map((tsc) => ({
+        ...buildAttrs({
+          name: tsc.name,
+          delay: tsc.delay,
+          reference: tsc.reference,
+        }),
+        Phase: tsc.phases.map((phase) => ({
+          ...buildAttrs({ name: phase.name, duration: phase.duration }),
+          TrafficSignalState: phase.trafficSignalStates.map((tss) =>
+            buildAttrs({ trafficSignalId: tss.trafficSignalId, state: tss.state }),
+          ),
+        })),
       })),
-    }));
+    };
   }
   return result;
 }

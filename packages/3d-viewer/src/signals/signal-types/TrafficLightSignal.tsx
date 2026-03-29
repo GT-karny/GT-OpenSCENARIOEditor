@@ -34,9 +34,13 @@ export const TrafficLightSignal: React.FC<TrafficLightSignalProps> = React.memo(
   ({ descriptor, activeState }) => {
     const { housing } = descriptor;
 
+    const isHoriz = descriptor.orientation === 'horizontal';
     const boxGeo = useMemo(
-      () => getSharedBox(housing.height, housing.width, housing.depth),
-      [housing.width, housing.height, housing.depth],
+      () =>
+        isHoriz
+          ? getSharedBox(housing.width, housing.height, housing.depth)
+          : getSharedBox(housing.height, housing.width, housing.depth),
+      [housing.width, housing.height, housing.depth, isHoriz],
     );
 
     // BoxGeometry material groups: 0=+X, 1=-X, 2=+Y, 3=-Y, 4=+Z(front), 5=-Z(back)
@@ -47,10 +51,10 @@ export const TrafficLightSignal: React.FC<TrafficLightSignalProps> = React.memo(
       return [h, h, h, h, frontMat, h];
     }, [descriptor, activeState]);
 
-    const isHorizontal = descriptor.orientation === 'horizontal';
-    // Vertical: PI/2 around Y; Horizontal: additionally PI/2 around Z
+    const isHorizontal = isHoriz;
+    // Vertical: PI/2 around Y; Horizontal: additionally -PI/2 around Z (red on left)
     const rotation: [number, number, number] = isHorizontal
-      ? [0, Math.PI / 2, Math.PI / 2]
+      ? [0, Math.PI / 2, -Math.PI / 2]
       : [0, Math.PI / 2, 0];
 
     return (

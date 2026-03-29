@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from '@osce/i18n';
-import { Navigation, Home } from 'lucide-react';
+import { Navigation, Home, TrafficCone } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { Button } from '../ui/button';
 import { FileMenu } from '../toolbar/FileMenu';
@@ -13,15 +13,22 @@ import { CatalogButton } from '../toolbar/CatalogButton';
 import { useProjectStore } from '../../stores/project-store';
 import { useEditorStore } from '../../stores/editor-store';
 import type { EditorMode } from '../../stores/editor-store';
+import { useAppLifecycle } from '../../hooks/use-app-lifecycle';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { WindowControls } from './WindowControls';
 
 export function HeaderToolbar() {
   const { t } = useTranslation('common');
   const currentProject = useProjectStore((s) => s.currentProject);
-  const closeProject = useProjectStore((s) => s.closeProject);
+  const closeProjectStore = useProjectStore((s) => s.closeProject);
   const editorMode = useEditorStore((s) => s.editorMode);
-  const setEditorMode = useEditorStore((s) => s.setEditorMode);
+  const { switchEditorMode, resetForNewFile, resetForNewRoadNetwork } = useAppLifecycle();
+
+  const handleCloseProject = useCallback(() => {
+    resetForNewFile();
+    resetForNewRoadNetwork();
+    closeProjectStore();
+  }, [resetForNewFile, resetForNewRoadNetwork, closeProjectStore]);
 
   const headerRef = useRef<HTMLDivElement>(null);
   const [compact, setCompact] = useState(false);
@@ -50,7 +57,7 @@ export function HeaderToolbar() {
               variant="ghost"
               size="icon"
               className="h-8 w-8 shrink-0 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-              onClick={closeProject}
+              onClick={handleCloseProject}
             >
               <Home size={16} />
             </Button>
@@ -102,7 +109,7 @@ export function HeaderToolbar() {
           <button
             key={mode}
             type="button"
-            onClick={() => setEditorMode(mode)}
+            onClick={() => switchEditorMode(mode)}
             className={`px-3 py-1 text-xs font-medium rounded transition-all whitespace-nowrap ${
               editorMode === mode
                 ? 'bg-[var(--color-accent-1)] text-white shadow-sm'
@@ -134,6 +141,8 @@ export function HeaderToolbar() {
       <ValidateButton compact={compact} />
       <Separator orientation="vertical" className="h-5 shrink-0 bg-[var(--color-glass-edge-bright)]" />
       <SimulationButtons compact={compact} />
+      <Separator orientation="vertical" className="h-5 shrink-0 bg-[var(--color-glass-edge-bright)]" />
+      <SignalTimelineToggle compact={compact} />
 
       {/* Spacer — reserves space for the absolute-positioned right controls */}
       <div className="flex-1 min-w-[180px] h-full" />
@@ -144,5 +153,29 @@ export function HeaderToolbar() {
         <WindowControls />
       </div>
     </div>
+  );
+}
+
+function SignalTimelineToggle({ compact }: { compact: boolean }) {
+  const show = useEditorStore((s) => s.showIntersectionTimeline);
+  const toggle = useEditorStore((s) => s.toggleIntersectionTimeline);
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggle}
+            className={`h-7 gap-1.5 px-2 text-xs font-medium ${show ? 'text-[var(--color-accent)]' : ''}`}
+          >
+            <TrafficCone className="size-3.5" />
+            {!compact && 'Signals'}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Signal Timeline</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
