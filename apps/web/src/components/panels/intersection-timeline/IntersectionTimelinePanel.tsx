@@ -39,12 +39,9 @@ interface SignalTypePreset {
 }
 
 const SIGNAL_TYPE_PRESETS: SignalTypePreset[] = [
-  { key: '1000001', label: '3-color vertical', descriptor: SIGNAL_CATALOG.get('1000001')!, defaultState: 'off;off;off' },
-  { key: 'trafficLight:3-light-horizontal', label: '3-color horizontal', descriptor: SIGNAL_CATALOG.get('trafficLight:3-light-horizontal')!, defaultState: 'off;off;off' },
-  { key: '1000002', label: 'Pedestrian 2-light', descriptor: SIGNAL_CATALOG.get('1000002')!, defaultState: 'off;off' },
-  { key: 'trafficLight:arrow-left', label: 'Arrow left', descriptor: SIGNAL_CATALOG.get('trafficLight:arrow-left')!, defaultState: 'off' },
-  { key: 'trafficLight:arrow-right', label: 'Arrow right', descriptor: SIGNAL_CATALOG.get('trafficLight:arrow-right')!, defaultState: 'off' },
-  { key: 'trafficLight:arrow-straight', label: 'Arrow straight', descriptor: SIGNAL_CATALOG.get('trafficLight:arrow-straight')!, defaultState: 'off' },
+  { key: '1000001', label: '3-color', descriptor: SIGNAL_CATALOG.get('1000001')!, defaultState: 'off;off;off' },
+  { key: '1000002', label: '2-color', descriptor: SIGNAL_CATALOG.get('1000002')!, defaultState: 'off;off' },
+  { key: '1000012', label: '1-light', descriptor: SIGNAL_CATALOG.get('1000012')!, defaultState: 'off' },
 ];
 
 const DEFAULT_DESCRIPTOR: SignalDescriptor = SIGNAL_CATALOG.get('1000001')!;
@@ -170,8 +167,8 @@ export function IntersectionTimelinePanel() {
           catalogKey = '1000002';
           typeLabel = '2-color';
         } else {
-          catalogKey = 'trafficLight:arrow-straight';
-          typeLabel = '1-bulb';
+          catalogKey = '1000012';
+          typeLabel = '1-light';
         }
 
         const fingerprint = `${catalogKey}|${statePerPhase.join('|')}`;
