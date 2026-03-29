@@ -177,17 +177,12 @@ export function SignalPlaceToolPanel() {
         </div>
         <div className="flex gap-1">
           <SnapButton
-            label="Auto"
-            active={signalOrientation === 'auto'}
-            onClick={() => setSignalPlaceOrientation('auto')}
-          />
-          <SnapButton
-            label="+ (→)"
+            label="Front"
             active={signalOrientation === '+'}
             onClick={() => setSignalPlaceOrientation('+')}
           />
           <SnapButton
-            label="− (←)"
+            label="Back"
             active={signalOrientation === '-'}
             onClick={() => setSignalPlaceOrientation('-')}
           />

@@ -130,7 +130,7 @@ export interface SignalPlaceGhost {
 
 export type SignalPlaceSelectionType = 'head' | 'assembly';
 
-export type SignalOrientationMode = '+' | '-' | 'auto';
+export type SignalOrientationMode = '+' | '-';
 
 export interface SignalPlaceState {
   subMode: SignalPlaceSubMode;
@@ -146,7 +146,7 @@ const DEFAULT_SIGNAL_PLACE: SignalPlaceState = {
   selectionType: 'head',
   selectedPresetId: '3-light-vertical',
   tSnapMode: 'lane-above',
-  signalOrientation: 'auto',
+  signalOrientation: '+',
   ghostPreview: null,
 };
 

@@ -1010,12 +1010,18 @@ export function RoadNetworkEditorLayout() {
       const { tSnapMode, selectionType, selectedPresetId, signalOrientation, ghostPreview } =
         useOdrSidebarStore.getState().signalPlace;
 
-      // Determine orientation: manual or auto (based on road side)
-      const side: 'right' | 'left' = t < 0 ? 'right' : 'left';
-      const orientation: '+' | '-' =
-        signalOrientation === 'auto'
-          ? (side === 'right' ? '+' : '-')
-          : signalOrientation;
+      // Determine orientation: all modes are lane-relative (RHT/LHT aware).
+      // In OpenDRIVE, orientation '+' = for +s traffic, '-' = for -s traffic.
+      // We convert the user's lane-relative choice to road-absolute orientation.
+      const isLeftLane = t > 0;
+      const road = odrDocument.roads.find((r) => r.id === roadId);
+      const isRHT = !road || road.rule !== 'LHT';
+      const laneAgainstRoad = isLeftLane === isRHT; // true if lane travels in -s direction
+      // User's lane-relative choice: '+' (Front) = face oncoming, '-' (Back) = face away
+      // Convert to road-absolute: flip when lane travels against road reference line
+      const orientation: '+' | '-' = laneAgainstRoad
+        ? (signalOrientation === '+' ? '-' : '+')
+        : signalOrientation;
 
       // Helper: compute arm angle from world positions
       const computeArmAngle = (poleT: number, headT: number): number | undefined => {
