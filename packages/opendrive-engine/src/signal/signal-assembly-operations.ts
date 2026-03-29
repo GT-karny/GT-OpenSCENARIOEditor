@@ -374,6 +374,17 @@ export function buildAssembliesFromDocument(
   for (const road of doc.roads) {
     const objectMap = new Map(road.objects.map((o) => [o.id, o]));
 
+    // Group signals by their shared poleObjectId so that signals
+    // referencing the same pole end up in a single assembly.
+    const poleGroupMap = new Map<
+      string,
+      {
+        poleObjectId: string;
+        armObjectId: string | undefined;
+        signals: { signal: (typeof road.signals)[number]; presetId: string | undefined }[];
+      }
+    >();
+
     for (const signal of road.signals) {
       if (!signal.reference || signal.reference.length === 0) continue;
 
@@ -397,27 +408,43 @@ export function buildAssembliesFromDocument(
 
       if (!poleObjectId) continue;
 
-      const poleObj = objectMap.get(poleObjectId);
+      const presetId = signalToPresetId(signal) ?? undefined;
+
+      let group = poleGroupMap.get(poleObjectId);
+      if (!group) {
+        group = { poleObjectId, armObjectId, signals: [] };
+        poleGroupMap.set(poleObjectId, group);
+      }
+      // Keep armObjectId if the first signal didn't have one but a later one does
+      if (!group.armObjectId && armObjectId) {
+        group.armObjectId = armObjectId;
+      }
+      group.signals.push({ signal, presetId });
+    }
+
+    // Create one assembly per pole group
+    for (const group of poleGroupMap.values()) {
+      const poleObj = objectMap.get(group.poleObjectId);
       if (!poleObj) continue;
 
-      // Compute arm length from signal t (head) and pole t
-      const armLength = armObjectId
-        ? (objectMap.get(armObjectId)?.length ?? Math.abs(signal.t - poleObj.t))
-        : Math.abs(signal.t - poleObj.t);
-
-      const presetId = signalToPresetId(signal) ?? undefined;
+      const armLength = group.armObjectId
+        ? (objectMap.get(group.armObjectId)?.length ??
+            Math.abs(group.signals[0].signal.t - poleObj.t))
+        : Math.abs(group.signals[0].signal.t - poleObj.t);
 
       assemblies.push({
         assemblyId: uuidv4(),
         roadId: road.id,
-        signalIds: [signal.id],
+        signalIds: group.signals.map((s) => s.signal.id),
         poleType: 'arm',
         armLength,
-        poleObjectId,
-        armObjectId,
-        headPositions: [
-          { signalId: signal.id, presetId, position: 'top' },
-        ],
+        poleObjectId: group.poleObjectId,
+        armObjectId: group.armObjectId,
+        headPositions: group.signals.map((s, i) => ({
+          signalId: s.signal.id,
+          presetId: s.presetId,
+          position: i === 0 ? ('top' as const) : ('bottom' as const),
+        })),
       });
     }
   }
