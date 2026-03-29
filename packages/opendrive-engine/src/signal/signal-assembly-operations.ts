@@ -5,7 +5,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import type { OdrSignal } from '@osce/shared';
+import type { OdrSignal, OpenDriveDocument } from '@osce/shared';
 import type { StoreApi } from 'zustand/vanilla';
 import type { OpenDriveStore } from '../store/opendrive-store.js';
 import type { EditorMetadataStore } from '../store/editor-metadata-store.js';
@@ -76,10 +76,19 @@ export function createAssembly(
 // createAssemblyFromPlacement
 // ---------------------------------------------------------------------------
 
+/** Default pole radius for signal poles (meters). */
+const POLE_RADIUS = 0.08;
+/** Default arm radius (meters). */
+const ARM_RADIUS = 0.06;
+
 /**
  * Create a signal and wrap it in an arm-mounted assembly in one step.
- * Used during natural signal placement where pole is at road edge and
- * signal head hangs over the driving lane via an arm.
+ * Creates three OpenDRIVE elements:
+ *   1. <signal> at headT (housing over lane)
+ *   2. <object type="pole"> at poleT (vertical pole at road edge)
+ *   3. <object type="pole"> for horizontal arm connecting pole to housing
+ *
+ * The signal references both objects via <reference>.
  *
  * @returns The created OdrSignal
  */
@@ -90,10 +99,54 @@ export function createAssemblyFromPlacement(
   signalPartial: Partial<OdrSignal>,
   presetId: string | undefined,
   armLength: number,
+  poleT: number,
   armAngle?: number,
 ): OdrSignal {
   const store = odrStore.getState();
-  const newSignal = store.addSignal(roadId, signalPartial);
+  const s = signalPartial.s ?? 0;
+  const zOffset = signalPartial.zOffset ?? 5.0;
+  const orientation = signalPartial.orientation ?? '+';
+
+  // 1. Create vertical pole object at road edge
+  const poleObj = store.addObject(roadId, {
+    type: 'pole',
+    name: 'signal-pole',
+    s,
+    t: poleT,
+    zOffset: 0,
+    height: zOffset,
+    radius: POLE_RADIUS,
+    orientation,
+  });
+
+  // 2. Create horizontal arm object from pole top toward signal head
+  const headT = signalPartial.t ?? 0;
+  const armMidT = (poleT + headT) / 2;
+  // hdg for the arm: direction from pole to head in road-local frame
+  // In road coordinates, t-axis is perpendicular to s-axis.
+  // Arm goes from poleT to headT along t, so hdg = π/2 (left) or -π/2 (right)
+  const armHdg = headT > poleT ? Math.PI / 2 : -Math.PI / 2;
+  const armObj = store.addObject(roadId, {
+    type: 'pole',
+    name: 'signal-arm',
+    s,
+    t: armMidT,
+    zOffset,
+    length: armLength,
+    radius: ARM_RADIUS,
+    hdg: armHdg,
+    orientation,
+  });
+
+  // 3. Create signal with references to pole and arm objects
+  const newSignal = store.addSignal(roadId, {
+    ...signalPartial,
+    reference: [
+      ...(signalPartial.reference ?? []),
+      { elementType: 'object', elementId: poleObj.id },
+      { elementType: 'object', elementId: armObj.id },
+    ],
+  });
 
   const assemblyId = uuidv4();
   const assembly: SignalAssemblyMetadata = {
@@ -103,6 +156,8 @@ export function createAssemblyFromPlacement(
     poleType: 'arm',
     armLength,
     armAngle,
+    poleObjectId: poleObj.id,
+    armObjectId: armObj.id,
     headPositions: [
       {
         signalId: newSignal.id,
@@ -258,4 +313,74 @@ export function updateAssembly(
     a.assemblyId === assemblyId ? { ...a, ...updates } : a,
   );
   setAssemblies(metaStore, updated);
+}
+
+// ---------------------------------------------------------------------------
+// buildAssembliesFromDocument
+// ---------------------------------------------------------------------------
+
+/**
+ * Scan an OpenDRIVE document for signals that reference pole/arm objects
+ * and build SignalAssemblyMetadata entries.
+ *
+ * Used after importing a .xodr file to reconstruct assembly metadata
+ * from the standard OpenDRIVE elements (signal references → objects).
+ */
+export function buildAssembliesFromDocument(
+  doc: OpenDriveDocument,
+): SignalAssemblyMetadata[] {
+  const assemblies: SignalAssemblyMetadata[] = [];
+
+  for (const road of doc.roads) {
+    const objectMap = new Map(road.objects.map((o) => [o.id, o]));
+
+    for (const signal of road.signals) {
+      if (!signal.reference || signal.reference.length === 0) continue;
+
+      // Find pole and arm references by object geometry:
+      // - Vertical pole: has height, zOffset ≈ 0
+      // - Horizontal arm: has length, zOffset > 0
+      let poleObjectId: string | undefined;
+      let armObjectId: string | undefined;
+
+      for (const ref of signal.reference) {
+        if (ref.elementType !== 'object') continue;
+        const obj = objectMap.get(ref.elementId);
+        if (!obj || obj.type !== 'pole') continue;
+
+        if (obj.height && (!obj.zOffset || obj.zOffset === 0)) {
+          poleObjectId = ref.elementId;
+        } else if (obj.length && obj.zOffset && obj.zOffset > 0) {
+          armObjectId = ref.elementId;
+        }
+      }
+
+      if (!poleObjectId) continue;
+
+      const poleObj = objectMap.get(poleObjectId);
+      if (!poleObj) continue;
+
+      // Compute arm length from signal t (head) and pole t
+      const armLength = armObjectId
+        ? (objectMap.get(armObjectId)?.length ?? Math.abs(signal.t - poleObj.t))
+        : Math.abs(signal.t - poleObj.t);
+
+      const presetId = signalToPresetId(signal) ?? undefined;
+
+      assemblies.push({
+        assemblyId: uuidv4(),
+        roadId: road.id,
+        signalIds: [signal.id],
+        poleType: 'arm',
+        armLength,
+        poleObjectId,
+        armObjectId,
+        headPositions: [
+          { signalId: signal.id, presetId, position: 'top' },
+        ],
+      });
+    }
+  }
+
+  return assemblies;
 }

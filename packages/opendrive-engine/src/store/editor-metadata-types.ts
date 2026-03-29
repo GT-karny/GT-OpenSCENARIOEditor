@@ -90,6 +90,10 @@ export interface SignalAssemblyMetadata {
   poleType: 'straight' | 'arm';
   armLength?: number;
   armAngle?: number;
+  /** OpenDRIVE object ID for the vertical pole (type="pole"). */
+  poleObjectId?: string;
+  /** OpenDRIVE object ID for the horizontal arm (type="pole"). */
+  armObjectId?: string;
   headPositions: { signalId: string; presetId?: string; position: string; offsetY?: number }[];
 }
 

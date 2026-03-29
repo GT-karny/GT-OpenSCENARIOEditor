@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { XoscParser } from '@osce/openscenario';
 import { XodrParser } from '@osce/opendrive';
+import { buildAssembliesFromDocument } from '@osce/opendrive-engine';
 import { useTranslation } from '@osce/i18n';
 import { toast } from 'sonner';
 import { useScenarioStoreApi } from '../stores/use-scenario-store';
@@ -8,6 +9,7 @@ import { useEditorStore } from '../stores/editor-store';
 import { useProjectStore } from '../stores/project-store';
 import { useCatalogStore } from '../stores/catalog-store';
 import { buildCatalogLocationsFromProject } from '../lib/catalog-location-utils';
+import { editorMetadataStoreApi } from '../stores/editor-metadata-store-instance';
 import { useAppLifecycle } from './use-app-lifecycle';
 import * as api from '../lib/project-api';
 
@@ -53,6 +55,15 @@ export function useProjectFileOperations() {
         resetForNewRoadNetwork();
         useEditorStore.getState().setRoadNetwork(doc, content);
         useProjectStore.setState({ currentXodrPath: relativePath });
+        // Reconstruct signal assemblies from signal→object references
+        const assemblies = buildAssembliesFromDocument(doc);
+        if (assemblies.length > 0) {
+          const meta = editorMetadataStoreApi.getState().getMetadata();
+          editorMetadataStoreApi.getState().loadMetadata({
+            ...meta,
+            signalAssemblies: assemblies,
+          });
+        }
       } catch {
         toast.warning(t('warnings.xodrLoadFailed', { path: relativePath }));
       }
@@ -108,6 +119,15 @@ export function useProjectFileOperations() {
             const doc = parser.parse(content);
             useEditorStore.getState().setRoadNetwork(doc, content);
             useProjectStore.setState({ currentXodrPath: candidate });
+            // Reconstruct signal assemblies from signal→object references
+            const assemblies = buildAssembliesFromDocument(doc);
+            if (assemblies.length > 0) {
+              const meta = editorMetadataStoreApi.getState().getMetadata();
+              editorMetadataStoreApi.getState().loadMetadata({
+                ...meta,
+                signalAssemblies: assemblies,
+              });
+            }
             return;
           } catch {
             toast.warning(t('warnings.xodrLoadFailed', { path: candidate }));

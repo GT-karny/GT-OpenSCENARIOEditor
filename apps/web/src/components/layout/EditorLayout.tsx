@@ -47,6 +47,9 @@ import { useFileOperations } from '../../hooks/use-file-operations';
 import { useProjectFileOperations } from '../../hooks/use-project-file-operations';
 import { buildFullPathToIdMap } from '../../lib/fullpath-mapping';
 import { buildCatalogLocationsFromProject } from '../../lib/catalog-location-utils';
+import { editorMetadataStoreApi } from '../../stores/editor-metadata-store-instance';
+import { evaluateReferenceLineAtS, evaluateElevation, stToXyz } from '@osce/opendrive';
+import type { PoleAssemblyInfo } from '@osce/3d-viewer';
 import { RoadNetworkEditorLayout } from '../opendrive/RoadNetworkEditorLayout';
 
 function ResizeHandle() {
@@ -97,6 +100,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   highlightedSignalIds?: ReadonlySet<string>;
   signalPickMode?: import('@osce/3d-viewer').ScenarioViewerProps['signalPickMode'];
   onSignalHover?: (signalId: string | null) => void;
+  signalAssemblyMap?: import('@osce/3d-viewer').ScenarioViewerProps['signalAssemblyMap'];
   positionPickActive?: boolean;
   onPositionPicked?: (data: PickedPositionData) => void;
   onPositionPickCancel?: () => void;
@@ -162,6 +166,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       highlightedSignalIds={props.highlightedSignalIds}
       signalPickMode={props.signalPickMode}
       onSignalHover={props.onSignalHover}
+      signalAssemblyMap={props.signalAssemblyMap}
       positionPickActive={props.positionPickActive}
       onPositionPicked={props.onPositionPicked}
       onPositionPickCancel={props.onPositionPickCancel}
@@ -227,6 +232,39 @@ export function EditorLayout() {
   const selectedElementIds = useEditorStore(useShallow((s) => s.selection.selectedElementIds));
   const hoveredElementId = useEditorStore((s) => s.selection.hoveredElementId);
   const roadNetwork = useEditorStore((s) => s.roadNetwork);
+  const signalAssemblies = useStore(editorMetadataStoreApi, (s) => s.metadata.signalAssemblies);
+  const signalAssemblyMap = useMemo(() => {
+    if (!signalAssemblies || signalAssemblies.length === 0 || !roadNetwork) return undefined;
+    const map = new Map<string, PoleAssemblyInfo>();
+    for (const asm of signalAssemblies) {
+      let armAngle = asm.armAngle;
+      if (armAngle == null && asm.poleType === 'arm' && asm.poleObjectId) {
+        const road = roadNetwork.roads.find((r) => r.id === asm.roadId);
+        if (road) {
+          const poleObj = road.objects.find((o) => o.id === asm.poleObjectId);
+          const signal = road.signals.find((s) => asm.signalIds.includes(s.id));
+          if (poleObj && signal) {
+            const pose = evaluateReferenceLineAtS(road.planView, signal.s);
+            const z = evaluateElevation(road.elevationProfile, signal.s);
+            const poleWorld = stToXyz(pose, poleObj.t, z);
+            const headWorld = stToXyz(pose, signal.t, z);
+            armAngle = Math.atan2(headWorld.y - poleWorld.y, headWorld.x - poleWorld.x);
+          }
+        }
+      }
+      const info: PoleAssemblyInfo = {
+        assemblyId: asm.assemblyId,
+        poleType: asm.poleType,
+        armLength: asm.armLength,
+        armAngle,
+        signalIds: asm.signalIds,
+      };
+      for (const sid of asm.signalIds) {
+        map.set(sid, info);
+      }
+    }
+    return map;
+  }, [signalAssemblies, roadNetwork]);
   const preferences = useEditorStore((s) => s.preferences);
   const focusNodeId = useEditorStore((s) => s.focusNodeId);
   const focusEntityId = useEditorStore((s) => s.focusEntityId);
@@ -710,6 +748,7 @@ export function EditorLayout() {
                       allTrackSignalMap: signalPickMode.allTrackSignalMap,
                     } : undefined}
                     onSignalHover={handleSignalHover}
+                    signalAssemblyMap={signalAssemblyMap}
                     positionPickActive={positionPickRequest != null}
                     onPositionPicked={handlePositionPicked}
                     onPositionPickCancel={handlePositionPickCancel}

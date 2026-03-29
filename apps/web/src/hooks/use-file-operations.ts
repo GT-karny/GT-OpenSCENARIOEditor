@@ -6,6 +6,7 @@ import {
   serializeOsceJson,
   parseOsceJson,
   isOsceJsonFormat,
+  buildAssembliesFromDocument,
 } from '@osce/opendrive-engine';
 import type { CatalogLocations } from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
@@ -444,6 +445,15 @@ export function useFileOperations() {
       useEditorStore.getState().setRoadNetworkDirty(false);
       useEditorStore.getState().setXodrFileHandle(handle ?? null);
       useEditorStore.getState().setXodrFilePath(filePath ?? null);
+      // Reconstruct signal assemblies from signal→object references
+      const assemblies = buildAssembliesFromDocument(doc);
+      if (assemblies.length > 0) {
+        const meta = editorMetadataStoreApi.getState().getMetadata();
+        editorMetadataStoreApi.getState().loadMetadata({
+          ...meta,
+          signalAssemblies: assemblies,
+        });
+      }
     } catch {
       // User cancelled the file picker
     }
@@ -604,6 +614,15 @@ export function useFileOperations() {
         // Clear osce handles since we loaded xodr
         useEditorStore.getState().setOsceFileHandle(null);
         useEditorStore.getState().setOsceFilePath(null);
+        // Reconstruct signal assemblies from signal→object references
+        const assemblies = buildAssembliesFromDocument(doc);
+        if (assemblies.length > 0) {
+          const meta = editorMetadataStoreApi.getState().getMetadata();
+          editorMetadataStoreApi.getState().loadMetadata({
+            ...meta,
+            signalAssemblies: assemblies,
+          });
+        }
       }
     } catch {
       // User cancelled the file picker

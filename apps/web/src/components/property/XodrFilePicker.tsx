@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useTranslation } from '@osce/i18n';
 import { XodrParser } from '@osce/opendrive';
+import { buildAssembliesFromDocument } from '@osce/opendrive-engine';
 import { FolderOpen } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -8,6 +9,7 @@ import { Button } from '../ui/button';
 import { EnumSelect } from './EnumSelect';
 import { useProjectStore } from '../../stores/project-store';
 import { useEditorStore } from '../../stores/editor-store';
+import { editorMetadataStoreApi } from '../../stores/editor-metadata-store-instance';
 import { useProjectFileOperations } from '../../hooks/use-project-file-operations';
 
 interface XodrFilePickerProps {
@@ -49,6 +51,15 @@ export function XodrFilePicker({ currentPath, onPathChange }: XodrFilePickerProp
         const parser = new XodrParser();
         const doc = parser.parse(text);
         useEditorStore.getState().setRoadNetwork(doc);
+        // Reconstruct signal assemblies from signal→object references
+        const assemblies = buildAssembliesFromDocument(doc);
+        if (assemblies.length > 0) {
+          const meta = editorMetadataStoreApi.getState().getMetadata();
+          editorMetadataStoreApi.getState().loadMetadata({
+            ...meta,
+            signalAssemblies: assemblies,
+          });
+        }
         onPathChange(file.name);
       }
     } catch {

@@ -192,11 +192,29 @@ export function RoadNetworkEditorLayout() {
     if (!assemblies || assemblies.length === 0) return undefined;
     const map = new Map<string, PoleAssemblyInfo>();
     for (const asm of assemblies) {
+      let armAngle = asm.armAngle;
+
+      // Compute armAngle from road geometry if not set (e.g., xodr import)
+      if (armAngle == null && asm.poleType === 'arm' && asm.poleObjectId) {
+        const road = odrDocument.roads.find((r) => r.id === asm.roadId);
+        if (road) {
+          const poleObj = road.objects.find((o) => o.id === asm.poleObjectId);
+          const signal = road.signals.find((s) => asm.signalIds.includes(s.id));
+          if (poleObj && signal) {
+            const pose = evaluateReferenceLineAtS(road.planView, signal.s);
+            const z = evaluateElevation(road.elevationProfile, signal.s);
+            const poleWorld = stToXyz(pose, poleObj.t, z);
+            const headWorld = stToXyz(pose, signal.t, z);
+            armAngle = Math.atan2(headWorld.y - poleWorld.y, headWorld.x - poleWorld.x);
+          }
+        }
+      }
+
       const info: PoleAssemblyInfo = {
         assemblyId: asm.assemblyId,
         poleType: asm.poleType,
         armLength: asm.armLength,
-        armAngle: asm.armAngle,
+        armAngle,
         signalIds: asm.signalIds,
       };
       for (const sid of asm.signalIds) {
@@ -204,7 +222,7 @@ export function RoadNetworkEditorLayout() {
       }
     }
     return map;
-  }, [signalAssemblies]);
+  }, [signalAssemblies, odrDocument]);
 
   // Compute road endpoints for the junction routing panel
   const junctionEndpoints = useMemo(() => {
@@ -1001,6 +1019,7 @@ export function RoadNetworkEditorLayout() {
       if (tSnapMode === 'lane-above') {
         // Arm-mounted: pole at road edge, head over lane
         const headT = ghostPreview?.headT ?? t;
+        const poleT = ghostPreview?.poleT ?? t;
         const armLength = ghostPreview?.armLength ?? 3;
 
         // Compute armAngle from world positions of pole and head
@@ -1009,8 +1028,8 @@ export function RoadNetworkEditorLayout() {
         if (ghostPreview && road) {
           const pose = evaluateReferenceLineAtS(road.planView, s);
           const z = evaluateElevation(road.elevationProfile, s);
-          const poleWorld = stToXyz(pose, ghostPreview.poleT, z);
-          const headWorld = stToXyz(pose, ghostPreview.headT, z);
+          const poleWorld = stToXyz(pose, poleT, z);
+          const headWorld = stToXyz(pose, headT, z);
           armAngle = Math.atan2(headWorld.y - poleWorld.y, headWorld.x - poleWorld.x);
         }
 
@@ -1029,6 +1048,7 @@ export function RoadNetworkEditorLayout() {
           },
           preset?.id,
           armLength,
+          poleT,
           armAngle,
         );
       } else {
@@ -1064,17 +1084,15 @@ export function RoadNetworkEditorLayout() {
       const store = odrStoreApi.getState();
       store.updateSignal(roadId, signalId, { s: newS, t: newT });
 
-      // Update assembly metadata for arm-mounted signals
+      // Update assembly metadata and pole/arm objects for arm-mounted signals
       if (armInfo) {
         const assembly = findAssemblyForSignal(editorMetadataStoreApi, signalId);
         if (assembly) {
-          // Compute armAngle from world positions of pole and head
           const road = odrDocument.roads.find((r) => r.id === roadId);
           if (road) {
             const pose = evaluateReferenceLineAtS(road.planView, newS);
             const z = evaluateElevation(road.elevationProfile, newS);
             const side: 'right' | 'left' = newT < 0 ? 'right' : 'left';
-            // Pole is at road edge; head is at newT
             const poleT = computePolePlacementT(road, newS, side);
             const poleWorld = stToXyz(pose, poleT, z);
             const headWorld = stToXyz(pose, newT, z);
@@ -1084,6 +1102,28 @@ export function RoadNetworkEditorLayout() {
               armLength: armInfo.armLength,
               armAngle,
             });
+
+            // Sync pole and arm objects
+            const signal = road.signals.find((s) => s.id === signalId);
+            const zOffset = signal?.zOffset ?? 5.0;
+            if (assembly.poleObjectId) {
+              store.updateRoad(roadId, {
+                objects: road.objects.map((o) =>
+                  o.id === assembly.poleObjectId
+                    ? { ...o, s: newS, t: poleT, height: zOffset }
+                    : o.id === assembly.armObjectId
+                      ? {
+                          ...o,
+                          s: newS,
+                          t: (poleT + newT) / 2,
+                          zOffset,
+                          length: armInfo.armLength,
+                          hdg: newT > poleT ? Math.PI / 2 : -Math.PI / 2,
+                        }
+                      : o,
+                ),
+              });
+            }
           }
         }
       }
