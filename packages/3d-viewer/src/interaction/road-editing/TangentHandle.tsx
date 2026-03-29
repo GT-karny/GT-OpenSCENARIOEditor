@@ -4,23 +4,18 @@
  * Dragging the endpoint sphere rotates the heading of the geometry segment.
  */
 
-import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useCallback } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { OdrGeometry } from '@osce/shared';
+import { useDragWithDeadZone } from '../primitives/useDragWithDeadZone.js';
 
 interface TangentHandleProps {
-  /** Geometry segment data */
   geometry: OdrGeometry;
-  /** Index in the road's planView array */
   index: number;
-  /** Whether the parent control point is selected */
   selected: boolean;
-  /** Handle length in meters */
   handleLength?: number;
-  /** Callback when heading is changed via drag */
   onHeadingChange?: (index: number, newHdg: number) => void;
-  /** Ref to OrbitControls (to disable during drag) */
   orbitControlsRef?: React.RefObject<{ enabled: boolean } | null>;
 }
 
@@ -32,140 +27,87 @@ export function TangentHandle({
   onHeadingChange,
   orbitControlsRef,
 }: TangentHandleProps) {
-  const { gl, camera } = useThree();
+  const { gl } = useThree();
   const sphereRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
-  const isDragging = useRef(false);
-  const activeMoveRef = useRef<((e: PointerEvent) => void) | null>(null);
-  const activeUpRef = useRef<((e: PointerEvent) => void) | null>(null);
 
-  // Compute tangent endpoint in OpenDRIVE coords
   const { endPos, linePoints } = useMemo(() => {
     const sx = geometry.x;
     const sy = geometry.y;
     const hdg = geometry.hdg;
-
-    // Tangent direction: heading angle from x-axis
     const ex = sx + Math.cos(hdg) * handleLength;
     const ey = sy + Math.sin(hdg) * handleLength;
-
     const start = new THREE.Vector3(sx, sy, 0);
     const end = new THREE.Vector3(ex, ey, 0);
-
-    return {
-      startPos: start,
-      endPos: end,
-      linePoints: [start, end],
-    };
+    return { endPos: end, linePoints: [start, end] };
   }, [geometry.x, geometry.y, geometry.hdg, handleLength]);
 
   const lineGeometry = useMemo(() => {
-    const geo = new THREE.BufferGeometry().setFromPoints(linePoints);
-    return geo;
+    return new THREE.BufferGeometry().setFromPoints(linePoints);
   }, [linePoints]);
 
-  // Drag handler for heading rotation (same pattern as ControlPointGizmo)
+  const propsRef = useRef({ geometry, index, handleLength, onHeadingChange });
+  propsRef.current = { geometry, index, handleLength, onHeadingChange };
+
+  const createPlane = useCallback(() => {
+    const worldPos = new THREE.Vector3(endPos.x, endPos.y, endPos.z);
+    sphereRef.current?.localToWorld(worldPos);
+    return new THREE.Plane(new THREE.Vector3(0, 1, 0), -worldPos.y);
+  }, [endPos]);
+
+  const worldToLocal = useCallback((intersection: THREE.Vector3) => {
+    if (sphereRef.current?.parent) {
+      sphereRef.current.parent.worldToLocal(intersection);
+    }
+  }, []);
+
+  const onDragMove = useCallback((intersection: THREE.Vector3) => {
+    const { geometry: geo, handleLength: hLen } = propsRef.current;
+    const originX = geo.x;
+    const originY = geo.y;
+    const newHdg = Math.atan2(intersection.y - originY, intersection.x - originX);
+    const previewX = originX + Math.cos(newHdg) * hLen;
+    const previewY = originY + Math.sin(newHdg) * hLen;
+    if (sphereRef.current) {
+      sphereRef.current.position.set(previewX, previewY, 0);
+    }
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    const { geometry: geo, index: idx, onHeadingChange: onChange } = propsRef.current;
+    if (sphereRef.current) {
+      const finalX = sphereRef.current.position.x;
+      const finalY = sphereRef.current.position.y;
+      const finalHdg = Math.atan2(finalY - geo.y, finalX - geo.x);
+      onChange?.(idx, finalHdg);
+    }
+  }, []);
+
+  const { startDrag } = useDragWithDeadZone({
+    orbitControlsRef,
+    createPlane,
+    worldToLocal,
+    onDragMove,
+    onDragEnd: handleDragEnd,
+  });
+
   const handlePointerDown = useCallback(
     (e: THREE.Event & { stopPropagation: () => void; nativeEvent: PointerEvent }) => {
       e.stopPropagation();
       if (!onHeadingChange) return;
-
-      isDragging.current = false;
-
-      const startX = e.nativeEvent.clientX;
-      const startY = e.nativeEvent.clientY;
-
-      // Create horizontal plane at the sphere's elevation
-      const worldPos = new THREE.Vector3(endPos.x, endPos.y, endPos.z);
-      sphereRef.current?.localToWorld(worldPos);
-      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -worldPos.y);
-
-      const raycaster = new THREE.Raycaster();
-      const mouse = new THREE.Vector2();
-
-      // Geometry origin in OpenDRIVE coords
-      const originX = geometry.x;
-      const originY = geometry.y;
-
-      const handleMove = (ev: PointerEvent) => {
-        const dx = ev.clientX - startX;
-        const dy = ev.clientY - startY;
-        if (!isDragging.current && dx * dx + dy * dy > 9) {
-          isDragging.current = true;
-          if (orbitControlsRef?.current) orbitControlsRef.current.enabled = false;
-        }
-
-        if (!isDragging.current) return;
-
-        const rect = gl.domElement.getBoundingClientRect();
-        mouse.set(
-          ((ev.clientX - rect.left) / rect.width) * 2 - 1,
-          -((ev.clientY - rect.top) / rect.height) * 2 + 1,
-        );
-        raycaster.setFromCamera(mouse, camera);
-        const intersection = new THREE.Vector3();
-        if (raycaster.ray.intersectPlane(plane, intersection)) {
-          // Convert world coords back to OpenDRIVE local coords
-          if (sphereRef.current?.parent) {
-            sphereRef.current.parent.worldToLocal(intersection);
-          }
-          // Compute new heading from origin to intersection point
-          const newHdg = Math.atan2(intersection.y - originY, intersection.x - originX);
-
-          // Update sphere position preview during drag
-          const previewX = originX + Math.cos(newHdg) * handleLength;
-          const previewY = originY + Math.sin(newHdg) * handleLength;
-          if (sphereRef.current) {
-            sphereRef.current.position.set(previewX, previewY, 0);
-          }
-        }
-      };
-
-      const handleUp = (_ev: PointerEvent) => {
-        gl.domElement.removeEventListener('pointermove', handleMove);
-        gl.domElement.removeEventListener('pointerup', handleUp);
-
-        if (orbitControlsRef?.current) orbitControlsRef.current.enabled = true;
-
-        if (isDragging.current && sphereRef.current) {
-          // Compute final heading from the sphere's current position
-          const finalX = sphereRef.current.position.x;
-          const finalY = sphereRef.current.position.y;
-          const finalHdg = Math.atan2(finalY - originY, finalX - originX);
-          onHeadingChange(index, finalHdg);
-        }
-
-        isDragging.current = false;
-      };
-
-      activeMoveRef.current = handleMove;
-      activeUpRef.current = handleUp;
-      gl.domElement.addEventListener('pointermove', handleMove);
-      gl.domElement.addEventListener('pointerup', handleUp);
+      startDrag(e.nativeEvent.clientX, e.nativeEvent.clientY);
     },
-    [geometry.x, geometry.y, endPos, index, handleLength, onHeadingChange, orbitControlsRef, gl, camera],
+    [onHeadingChange, startDrag],
   );
-
-  // Cleanup listeners on unmount to prevent leaks during mid-drag unmount
-  useEffect(() => {
-    return () => {
-      if (activeMoveRef.current) gl.domElement.removeEventListener('pointermove', activeMoveRef.current);
-      if (activeUpRef.current) gl.domElement.removeEventListener('pointerup', activeUpRef.current);
-      if (orbitControlsRef?.current) orbitControlsRef.current.enabled = true;
-    };
-  }, [gl, orbitControlsRef]);
 
   if (!selected) return null;
 
   return (
     <group>
-      {/* Tangent line */}
       <line>
         <bufferGeometry attach="geometry" {...lineGeometry} />
         <lineBasicMaterial color="#9b84e8" opacity={0.6} transparent linewidth={1} />
       </line>
-
-      {/* Endpoint sphere (draggable for heading rotation) */}
       <mesh
         ref={sphereRef}
         position={[endPos.x, endPos.y, endPos.z]}
