@@ -73,24 +73,8 @@ function stackHeadsVertically(presetIds: string[]): AssemblyHeadPlacement[] {
 // Built-in assembly presets
 // ---------------------------------------------------------------------------
 
-/** Built-in assembly presets with default stacked layout. */
-export const BUILT_IN_ASSEMBLY_PRESETS: AssemblyPreset[] = [
-  {
-    id: 'standard-intersection',
-    name: 'Standard Intersection',
-    heads: stackHeadsVertically(['3-light-vertical', 'arrow-left']),
-  },
-  {
-    id: 'vehicle-pedestrian',
-    name: 'Vehicle + Pedestrian',
-    heads: stackHeadsVertically(['3-light-vertical', 'pedestrian-2']),
-  },
-  {
-    id: 'vehicle-arrow-right',
-    name: 'Vehicle + Arrow Right',
-    heads: stackHeadsVertically(['3-light-vertical', 'arrow-right']),
-  },
-];
+/** Built-in assembly presets (none — users create custom presets as needed). */
+export const BUILT_IN_ASSEMBLY_PRESETS: AssemblyPreset[] = [];
 
 // ---------------------------------------------------------------------------
 // Convert assembly metadata to preset

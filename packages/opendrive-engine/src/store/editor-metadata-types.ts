@@ -82,20 +82,39 @@ export interface JunctionSettings {
 /**
  * Metadata for a signal assembly — groups multiple signal heads on one pole.
  * This is editor-internal and NOT part of the OpenDRIVE standard.
+ *
+ * ## Derived vs. Proprietary fields
+ *
+ * **Proprietary (UI-only, not in OpenDRIVE):**
+ * - `assemblyId`, `roadId`, `signalIds` — assembly grouping
+ * - `headPositions[].position`, `.x`, `.y` — configurator layout coordinates
+ *
+ * **Derived from OpenDRIVE (populated by `buildAssembliesFromDocument`):**
+ * - `poleType` — inferred from arm object existence
+ * - `armLength`, `armAngle` — from arm `<object>` attributes
+ * - `poleObjectId`, `armObjectId` — from signal `<reference>` elements
+ * - `headPositions[].presetId` — from signal type/subtype via `signalToPresetId()`
+ *
+ * Derived fields are reconstructed on document load and should not be
+ * independently persisted. They exist in the interface for convenience.
  */
 export interface SignalAssemblyMetadata {
   assemblyId: string;
   roadId: string;
   signalIds: string[];
+  /** @derived Inferred from arm object existence. */
   poleType: 'straight' | 'arm';
+  /** @derived From arm `<object>` length attribute. */
   armLength?: number;
+  /** @derived Computed from pole/arm geometry. */
   armAngle?: number;
-  /** OpenDRIVE object ID for the vertical pole (type="pole"). */
+  /** @derived From signal `<reference elementType="object">`. */
   poleObjectId?: string;
-  /** OpenDRIVE object ID for the horizontal arm (type="pole"). */
+  /** @derived From signal `<reference elementType="object">`. */
   armObjectId?: string;
   headPositions: {
     signalId: string;
+    /** @derived From signal type/subtype via signalToPresetId(). */
     presetId?: string;
     position: string;
     offsetY?: number;

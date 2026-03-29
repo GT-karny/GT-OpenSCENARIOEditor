@@ -1,11 +1,22 @@
 /**
- * Signal type classification and geometry constants for 3D traffic signal rendering.
+ * 3D-specific signal rendering constants and geometry.
+ *
+ * classifySignal and SignalCategory are re-exported from @osce/opendrive-engine
+ * where the canonical signal catalog lives.
  */
 
-import type { OdrSignal } from '@osce/shared';
+import {
+  BULB_RADIUS,
+  BULB_SPACING,
+  BULB_COLORS,
+  OFF_BULB_COLORS,
+  HOUSING_COLOR,
+  HOUSING_WIDTH,
+} from '@osce/opendrive-engine';
 
-/** Visual category for rendering dispatch */
-export type SignalCategory = 'trafficLight' | 'stopSign' | 'speedLimit' | 'generic';
+// Re-export classification from canonical source
+export { classifySignal } from '@osce/opendrive-engine';
+export type { SignalCategory } from '@osce/opendrive-engine';
 
 /** Default pole dimensions */
 export const POLE_RADIUS = 0.06;
@@ -17,26 +28,22 @@ export const DEFAULT_SIGNAL_HEIGHT = 5.0;
 /** Default pedestrian signal height (JP standard: 2.5m) */
 export const DEFAULT_PEDESTRIAN_SIGNAL_HEIGHT = 2.5;
 
-/** Traffic light housing dimensions */
+/**
+ * 3D-specific housing depth (visual box depth, thicker than spec HOUSING_DEPTH
+ * for better visibility in 3D rendering).
+ */
+export const HOUSING_3D_DEPTH = 0.25;
+
+/** Traffic light 3D rendering constants (derived from shared constants) */
 export const TRAFFIC_LIGHT = {
-  housingWidth: 0.4,
-  housingDepth: 0.25,
+  housingWidth: HOUSING_WIDTH,
+  housingDepth: HOUSING_3D_DEPTH,
   housingHeight: 1.0,
-  bulbRadius: 0.12,
-  /** Vertical offsets for each bulb relative to housing center */
-  bulbOffsets: [0.33, 0, -0.33] as const, // red (top), yellow (mid), green (bottom)
-  bulbColors: {
-    red: '#FF0000',
-    yellow: '#FFAA00',
-    green: '#00CC44',
-  },
-  /** Desaturated bulb colors used for the off state */
-  offBulbColors: {
-    red: '#4A1010',
-    yellow: '#3A2808',
-    green: '#0A3A0A',
-  },
-  housingColor: '#222222',
+  bulbRadius: BULB_RADIUS,
+  bulbSpacing: BULB_SPACING,
+  bulbColors: BULB_COLORS,
+  offBulbColors: OFF_BULB_COLORS,
+  housingColor: HOUSING_COLOR,
   offEmissiveIntensity: 0.02,
   onEmissiveIntensity: 1.2,
 };
@@ -65,30 +72,3 @@ export const GENERIC_SIGNAL = {
   faceColor: '#CC9900',
   borderColor: '#333333',
 };
-
-/**
- * Classify an OpenDRIVE signal into a visual category.
- *
- * Uses the `type`, `subtype`, and `dynamic` fields from OdrSignal.
- * Supports German StVO type codes and esmini conventions.
- */
-export function classifySignal(signal: OdrSignal): SignalCategory {
-  const type = signal.type ?? '';
-  const dynamic = signal.dynamic ?? 'no';
-
-  // Dynamic signals are generally traffic lights
-  if (dynamic === 'yes') return 'trafficLight';
-
-  // Universal preset type
-  if (type === 'trafficLight') return 'trafficLight';
-
-  // ASAM OpenDRIVE Signal Catalog: all 100xxxx types are traffic signals
-  // Covers 1000001 (standard), 1000002 (pedestrian), 1000008-1000023, etc.
-  if (/^100\d{4}$/.test(type)) return 'trafficLight';
-
-  // German StVO type codes
-  if (type === '206') return 'stopSign';
-  if (type === '274' || type === '278') return 'speedLimit';
-
-  return 'generic';
-}

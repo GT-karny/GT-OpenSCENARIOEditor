@@ -5,6 +5,7 @@ import {
   getBulbMode,
   suppressFlashing,
   hasFlashingBulb,
+  defaultOffState,
 } from '../../utils/parse-traffic-light-state.js';
 
 describe('isBulbActive', () => {
@@ -234,5 +235,19 @@ describe('hasFlashingBulb', () => {
   it('is case insensitive', () => {
     expect(hasFlashingBulb('FLASHING;off;off')).toBe(true);
     expect(hasFlashingBulb('Flashing')).toBe(true);
+  });
+});
+
+describe('defaultOffState', () => {
+  it('returns "off" for 1 bulb', () => {
+    expect(defaultOffState(1)).toBe('off');
+  });
+
+  it('returns "off;off" for 2 bulbs', () => {
+    expect(defaultOffState(2)).toBe('off;off');
+  });
+
+  it('returns "off;off;off" for 3 bulbs', () => {
+    expect(defaultOffState(3)).toBe('off;off;off');
   });
 });

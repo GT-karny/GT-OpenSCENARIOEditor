@@ -27,7 +27,7 @@ import {
 // Housing geometry (mirrors signal-catalog.ts logic)
 // ---------------------------------------------------------------------------
 
-function computeHousingDimensions(
+export function computeHousingDimensions(
   bulbCount: number,
   orientation: 'vertical' | 'horizontal',
 ): { width: number; height: number } {
@@ -42,14 +42,14 @@ function computeHousingDimensions(
 // Canvas helpers
 // ---------------------------------------------------------------------------
 
-function hexToRgba(hex: string, alpha: number): string {
+export function hexToRgba(hex: string, alpha: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-function computeBulbOffsets(count: number): number[] {
+export function computeBulbOffsets(count: number): number[] {
   const offsets: number[] = [];
   for (let i = 0; i < count; i++) {
     offsets.push(((count - 1) / 2 - i) * BULB_SPACING);
@@ -57,7 +57,7 @@ function computeBulbOffsets(count: number): number[] {
   return offsets;
 }
 
-function roundRect(
+export function roundRect(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
@@ -78,7 +78,7 @@ function roundRect(
   ctx.closePath();
 }
 
-function drawPathOnCanvas(
+export function drawPathOnCanvas(
   ctx: CanvasRenderingContext2D,
   path: [number, number][],
   cx: number,
@@ -95,7 +95,7 @@ function drawPathOnCanvas(
   ctx.fill();
 }
 
-function drawBulbOverlay(
+export function drawBulbOverlay(
   ctx: CanvasRenderingContext2D,
   faceShape: BulbFaceShape,
   isActive: boolean,

@@ -269,6 +269,9 @@ importers:
       '@osce/opendrive':
         specifier: workspace:*
         version: link:../opendrive
+      '@osce/opendrive-engine':
+        specifier: workspace:*
+        version: link:../opendrive-engine
       '@osce/scenario-engine':
         specifier: workspace:*
         version: link:../scenario-engine

@@ -48,7 +48,10 @@ export function getBulbMode(stateStr: string, index: number, bulbColor: BulbColo
   return 'off';
 }
 
-/** Legacy 3-bulb state check (backwards compatible). */
+/**
+ * Legacy 3-bulb state check (backwards compatible).
+ * @deprecated Use `isBulbActiveByIndex()` or `getBulbMode()` for variable bulb counts.
+ */
 export function isBulbActive(stateStr: string, bulb: 'red' | 'yellow' | 'green'): boolean {
   if (stateStr.includes(';')) {
     const parts = stateStr.split(';');
@@ -83,4 +86,12 @@ export function isBulbActiveByIndex(
  */
 export function suppressFlashing(stateStr: string): string {
   return stateStr.replace(/flashing/gi, 'off');
+}
+
+/**
+ * Generate the default "all off" state string for a given bulb count.
+ * Use this instead of hardcoding 'off;off;off' to support variable bulb counts.
+ */
+export function defaultOffState(bulbCount: number): string {
+  return Array(bulbCount).fill('off').join(';');
 }

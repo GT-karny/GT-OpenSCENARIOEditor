@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@osce/opendrive": "workspace:*",
+    "@osce/opendrive-engine": "workspace:*",
     "@osce/scenario-engine": "workspace:*",
     "@osce/shared": "workspace:*",
     "@react-three/drei": "^9.0.0",

@@ -10,7 +10,7 @@ import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { Plus, Trash2 } from 'lucide-react';
 import type { TrafficSignalController } from '@osce/shared';
-import { SIGNAL_CATALOG } from '@osce/3d-viewer';
+import { SIGNAL_CATALOG, defaultOffState as offStateForCount } from '@osce/3d-viewer';
 import type { SignalDescriptor } from '@osce/3d-viewer';
 import { useScenarioStore, useScenarioStoreApi } from '../../../stores/use-scenario-store';
 import { useEditorStore } from '../../../stores/editor-store';
@@ -39,9 +39,9 @@ interface SignalTypePreset {
 }
 
 const SIGNAL_TYPE_PRESETS: SignalTypePreset[] = [
-  { key: '1000001', label: '3-color', descriptor: SIGNAL_CATALOG.get('1000001')!, defaultState: 'off;off;off' },
-  { key: '1000002', label: '2-color', descriptor: SIGNAL_CATALOG.get('1000002')!, defaultState: 'off;off' },
-  { key: '1000012', label: '1-light', descriptor: SIGNAL_CATALOG.get('1000012')!, defaultState: 'off' },
+  { key: '1000001', label: '3-color', descriptor: SIGNAL_CATALOG.get('1000001')!, defaultState: offStateForCount(3) },
+  { key: '1000002', label: '2-color', descriptor: SIGNAL_CATALOG.get('1000002')!, defaultState: offStateForCount(2) },
+  { key: '1000012', label: '1-light', descriptor: SIGNAL_CATALOG.get('1000012')!, defaultState: offStateForCount(1) },
 ];
 
 const DEFAULT_DESCRIPTOR: SignalDescriptor = SIGNAL_CATALOG.get('1000001')!;
