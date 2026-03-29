@@ -167,7 +167,7 @@ export const SIGNAL_CATALOG: ReadonlyMap<string, SignalDescriptor> = new Map<
   // === Legacy compatibility: non-standard preset-based keys (type="trafficLight") ===
   // Kept for backward compat with files saved before ASAM-compliant mapping was added.
   ['trafficLight:3-light-vertical', desc('3-Light Vertical', [bulb('red'), bulb('yellow'), bulb('green')], 'vertical')],
-  ['trafficLight:3-light-horizontal', desc('3-Light Horizontal', [bulb('green'), bulb('yellow'), bulb('red')], 'horizontal')],
+  ['trafficLight:3-light-horizontal', desc('3-Light Horizontal', [bulb('red'), bulb('yellow'), bulb('green')], 'horizontal')],
   ['trafficLight:arrow-left', desc('Arrow Left', [bulb('green', 'arrow-left')], 'vertical')],
   ['trafficLight:arrow-right', desc('Arrow Right', [bulb('green', 'arrow-right')], 'vertical')],
   ['trafficLight:arrow-straight', desc('Arrow Straight', [bulb('green', 'arrow-up')], 'vertical')],
@@ -183,21 +183,38 @@ function makeCatalogKey(type: string, subtype?: string): string {
   return `${type}:${subtype}`;
 }
 
+/** Name prefix used by preset-to-signal.ts to store preset ID in signal.name. */
+const NAME_PREFIX = 'signal:';
+
 /**
  * Resolve a SignalDescriptor for the given OpenDRIVE signal.
  * Returns null if the signal type is not a traffic light in the catalog.
+ *
+ * Resolution order:
+ *  1. Name hint → legacy catalog key (e.g., "signal:3-light-horizontal" → "trafficLight:3-light-horizontal")
+ *     This distinguishes variants with the same ASAM type (vertical vs horizontal).
+ *  2. ASAM type:subtype → catalog lookup
+ *  3. ASAM type-only → catalog lookup
+ *  4. Dynamic fallback → standard 3-light vertical
  */
 export function resolveSignalDescriptor(signal: OdrSignal): SignalDescriptor | null {
+  // 1. Name hint — resolves orientation-specific variants (horizontal vs vertical)
+  if (signal.name?.startsWith(NAME_PREFIX)) {
+    const presetId = signal.name.slice(NAME_PREFIX.length);
+    const byLegacyKey = SIGNAL_CATALOG.get(`trafficLight:${presetId}`);
+    if (byLegacyKey) return byLegacyKey;
+  }
+
   const type = signal.type ?? '';
   const subtype = signal.subtype;
 
-  // Try specific type:subtype, then type-only
+  // 2. Try specific type:subtype, then type-only
   const specificKey = makeCatalogKey(type, subtype);
   const descriptor = SIGNAL_CATALOG.get(specificKey) ?? SIGNAL_CATALOG.get(type);
 
   if (descriptor) return descriptor;
 
-  // Fallback: dynamic signals default to standard 3-light (vertical)
+  // 3. Fallback: dynamic signals default to standard 3-light (vertical)
   if (signal.dynamic === 'yes') {
     return SIGNAL_CATALOG.get('1000001') ?? SIGNAL_CATALOG.get('trafficLight:3-light-vertical')!;
   }

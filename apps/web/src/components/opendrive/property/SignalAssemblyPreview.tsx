@@ -1,11 +1,18 @@
 /**
- * SVG front-view preview of a signal assembly.
- * Shows the pole, optional arm, and all signal heads.
+ * Assembly preview for the signal property editor.
+ * Uses Canvas2D rendering for realistic head previews.
  * Interactive: click a head to select it, buttons to add/remove.
  */
 
+import { useEffect, useState, useMemo } from 'react';
 import type { OdrSignal } from '@osce/shared';
 import type { SignalAssemblyMetadata } from '@osce/opendrive-engine';
+import {
+  getPresetById,
+  computeHeadWidth,
+  computeHeadHeight,
+  renderSignalHeadToCanvas,
+} from '@osce/opendrive-engine';
 import { Button } from '../../ui/button';
 
 interface SignalAssemblyPreviewProps {
@@ -21,19 +28,10 @@ interface SignalAssemblyPreviewProps {
 // Layout constants for the SVG preview
 const SVG_WIDTH = 200;
 const SVG_HEIGHT = 250;
-const POLE_X = 100;
-const POLE_TOP = 30;
-const POLE_BOTTOM = 210;
-const HEAD_WIDTH = 24;
-const HEAD_HEIGHT = 40;
+const ORIGIN_X = 100;
+const ORIGIN_Y = 40;
+const SCALE = 120; // pixels per metre
 const ARM_LENGTH_PX = 60;
-
-/** Color mapping for head positions. */
-const POSITION_COLORS: Record<string, string> = {
-  top: 'var(--color-accent)',
-  arm: 'var(--color-info)',
-  lower: 'var(--color-warning)',
-};
 
 export function SignalAssemblyPreview({
   assembly,
@@ -46,32 +44,19 @@ export function SignalAssemblyPreview({
 }: SignalAssemblyPreviewProps) {
   const isArm = assembly.poleType === 'arm';
 
-  // Map signal IDs to head positions for rendering
-  const heads = assembly.headPositions.map((hp) => {
-    const signal = signals.find((s) => s.id === hp.signalId);
-    return { ...hp, signal };
-  });
-
-  // Compute Y positions for heads
-  const getHeadY = (position: string, index: number): number => {
-    switch (position) {
-      case 'top':
-        return POLE_TOP + 10;
-      case 'arm':
-        return POLE_TOP + 10;
-      case 'lower':
-        return POLE_TOP + 60 + index * 50;
-      default:
-        return POLE_TOP + 30 + index * 50;
-    }
-  };
-
-  const getHeadX = (position: string): number => {
-    if (position === 'arm' && isArm) {
-      return POLE_X + ARM_LENGTH_PX;
-    }
-    return POLE_X;
-  };
+  const heads = useMemo(
+    () =>
+      assembly.headPositions.map((hp) => {
+        const signal = signals.find((s) => s.id === hp.signalId);
+        const preset = hp.presetId ? getPresetById(hp.presetId) : null;
+        const bulbCount = preset?.bulbs.length ?? 3;
+        const orientation = preset?.orientation ?? 'vertical';
+        const w = computeHeadWidth(bulbCount, orientation);
+        const h = computeHeadHeight(bulbCount, orientation);
+        return { ...hp, signal, w, h, presetId: hp.presetId ?? '3-light-vertical' };
+      }),
+    [assembly.headPositions, signals],
+  );
 
   return (
     <div className="space-y-2">
@@ -97,20 +82,20 @@ export function SignalAssemblyPreview({
       >
         {/* Ground line */}
         <line
-          x1={POLE_X - 30}
-          y1={POLE_BOTTOM + 10}
-          x2={POLE_X + 30}
-          y2={POLE_BOTTOM + 10}
+          x1={ORIGIN_X - 30}
+          y1={SVG_HEIGHT - 20}
+          x2={ORIGIN_X + 30}
+          y2={SVG_HEIGHT - 20}
           stroke="var(--color-glass-edge)"
           strokeWidth={2}
         />
 
         {/* Vertical pole */}
         <line
-          x1={POLE_X}
-          y1={POLE_TOP}
-          x2={POLE_X}
-          y2={POLE_BOTTOM + 10}
+          x1={ORIGIN_X}
+          y1={ORIGIN_Y}
+          x2={ORIGIN_X}
+          y2={SVG_HEIGHT - 20}
           stroke="var(--color-text-secondary)"
           strokeWidth={3}
           strokeLinecap="round"
@@ -119,22 +104,23 @@ export function SignalAssemblyPreview({
         {/* Horizontal arm (if arm type) */}
         {isArm && (
           <line
-            x1={POLE_X}
-            y1={POLE_TOP}
-            x2={POLE_X + ARM_LENGTH_PX}
-            y2={POLE_TOP}
+            x1={ORIGIN_X}
+            y1={ORIGIN_Y}
+            x2={ORIGIN_X + ARM_LENGTH_PX}
+            y2={ORIGIN_Y}
             stroke="var(--color-text-secondary)"
             strokeWidth={3}
             strokeLinecap="round"
           />
         )}
 
-        {/* Signal heads */}
+        {/* Signal heads with Canvas2D previews */}
         {heads.map((head, i) => {
-          const hx = getHeadX(head.position);
-          const hy = getHeadY(head.position, i);
+          const px = ORIGIN_X + (head.x ?? 0) * SCALE;
+          const py = ORIGIN_Y + (head.y ?? i * 0.75) * SCALE;
+          const pw = head.w * SCALE;
+          const ph = head.h * SCALE;
           const isSelected = head.signalId === selectedHeadId;
-          const fillColor = POSITION_COLORS[head.position] ?? 'var(--color-text-secondary)';
 
           return (
             <g
@@ -142,41 +128,22 @@ export function SignalAssemblyPreview({
               onClick={() => onSelectHead(head.signalId)}
               style={{ cursor: 'pointer' }}
             >
-              {/* Selection highlight */}
               {isSelected && (
                 <rect
-                  x={hx - HEAD_WIDTH / 2 - 3}
-                  y={hy - HEAD_HEIGHT / 2 - 3}
-                  width={HEAD_WIDTH + 6}
-                  height={HEAD_HEIGHT + 6}
+                  x={px - pw / 2 - 3}
+                  y={py - ph / 2 - 3}
+                  width={pw + 6}
+                  height={ph + 6}
                   fill="none"
                   stroke="var(--color-accent)"
                   strokeWidth={2}
                   strokeDasharray="4 2"
                 />
               )}
-
-              {/* Head housing */}
-              <rect
-                x={hx - HEAD_WIDTH / 2}
-                y={hy - HEAD_HEIGHT / 2}
-                width={HEAD_WIDTH}
-                height={HEAD_HEIGHT}
-                rx={2}
-                fill="var(--color-glass-2)"
-                stroke={fillColor}
-                strokeWidth={1.5}
-              />
-
-              {/* Bulb indicators (simplified: 3 circles for standard traffic light) */}
-              <circle cx={hx} cy={hy - 12} r={4} fill="#FF4444" opacity={0.8} />
-              <circle cx={hx} cy={hy} r={4} fill="#FFAA00" opacity={0.8} />
-              <circle cx={hx} cy={hy + 12} r={4} fill="#44CC44" opacity={0.8} />
-
-              {/* Position label */}
+              <HeadImage presetId={head.presetId} x={px - pw / 2} y={py - ph / 2} w={pw} h={ph} />
               <text
-                x={hx + HEAD_WIDTH / 2 + 6}
-                y={hy + 3}
+                x={px + pw / 2 + 4}
+                y={py + 3}
                 fill="var(--color-text-secondary)"
                 fontSize={9}
                 fontFamily="monospace"
@@ -187,7 +154,6 @@ export function SignalAssemblyPreview({
           );
         })}
 
-        {/* Empty state hint */}
         {heads.length === 0 && (
           <text
             x={SVG_WIDTH / 2}
@@ -223,4 +189,30 @@ export function SignalAssemblyPreview({
       </div>
     </div>
   );
+}
+
+/** Renders a single head as an SVG <image> using Canvas2D. */
+function HeadImage({
+  presetId,
+  x,
+  y,
+  w,
+  h,
+}: {
+  presetId: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}) {
+  const [url, setUrl] = useState('');
+  useEffect(() => {
+    const canvas = renderSignalHeadToCanvas(presetId);
+    if (canvas) setUrl(canvas.toDataURL());
+  }, [presetId]);
+
+  if (!url) {
+    return <rect x={x} y={y} width={w} height={h} fill="var(--color-glass-2)" stroke="var(--color-glass-edge)" strokeWidth={1} />;
+  }
+  return <image href={url} x={x} y={y} width={w} height={h} />;
 }

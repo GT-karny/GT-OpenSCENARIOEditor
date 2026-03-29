@@ -44,6 +44,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   addRecentFile: (filePath: string) => ipcRenderer.send('recent:add', filePath),
   clearRecentFiles: () => ipcRenderer.send('recent:clear'),
 
+  // Assembly presets (editor-wide)
+  getAssemblyPresets: () => ipcRenderer.invoke('presets:get'),
+  saveAssemblyPresets: (presets: unknown[]) => ipcRenderer.send('presets:save', presets),
+
   // Platform info
   platform: process.platform,
   isElectron: true,

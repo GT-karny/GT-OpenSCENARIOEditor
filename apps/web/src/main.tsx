@@ -6,9 +6,11 @@ import { ScenarioStoreProvider } from './stores/scenario-store-context';
 import { TooltipProvider } from './components/ui/tooltip';
 import App from './App';
 import './globals.css';
+import { initPresetPersistence } from './lib/signal-preset-storage';
 
 async function bootstrap() {
   await initI18n('en');
+  initPresetPersistence();
 
   createRoot(document.getElementById('root')!).render(
     <StrictMode>

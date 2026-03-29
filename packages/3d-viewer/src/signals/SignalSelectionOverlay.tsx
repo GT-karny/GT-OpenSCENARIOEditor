@@ -29,7 +29,7 @@ const _qHeadRot = new THREE.Quaternion().setFromAxisAngle(
 );
 const _qHoriz = new THREE.Quaternion().setFromAxisAngle(
   new THREE.Vector3(0, 0, 1),
-  Math.PI / 2,
+  -Math.PI / 2,
 );
 
 interface SignalSelectionOverlayProps {
@@ -110,9 +110,13 @@ const TrafficLightOverlayMesh: React.FC<TrafficLightOverlayMeshProps> = React.me
   ({ descriptor, isSelected, worldPos, worldQuat }) => {
     const { housing } = descriptor;
 
+    const isHoriz = descriptor.orientation === 'horizontal';
     const boxGeo = useMemo(
-      () => getSharedBox(housing.height, housing.width, housing.depth),
-      [housing.width, housing.height, housing.depth],
+      () =>
+        isHoriz
+          ? getSharedBox(housing.width, housing.height, housing.depth)
+          : getSharedBox(housing.height, housing.width, housing.depth),
+      [housing.width, housing.height, housing.depth, isHoriz],
     );
 
     return (

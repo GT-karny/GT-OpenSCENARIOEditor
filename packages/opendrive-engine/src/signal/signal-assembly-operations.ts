@@ -91,6 +91,8 @@ const ARM_RADIUS = 0.06;
  *
  * The signal references both objects via <reference>.
  *
+ * @param firstHeadOffsetX  Configurator X offset of the first head (stored in metadata)
+ * @param firstHeadOffsetY  Configurator Y offset of the first head (stored in metadata)
  * @returns The created OdrSignal
  */
 export function createAssemblyFromPlacement(
@@ -102,6 +104,8 @@ export function createAssemblyFromPlacement(
   armLength: number,
   poleT: number,
   armAngle?: number,
+  firstHeadOffsetX = 0,
+  firstHeadOffsetY = 0,
 ): OdrSignal {
   const store = odrStore.getState();
   const s = signalPartial.s ?? 0;
@@ -164,6 +168,8 @@ export function createAssemblyFromPlacement(
         signalId: newSignal.id,
         presetId,
         position: 'top',
+        x: firstHeadOffsetX,
+        y: firstHeadOffsetY,
       },
     ],
   };
@@ -180,8 +186,11 @@ export function createAssemblyFromPlacement(
 
 /**
  * Add a new signal head to an existing assembly.
- * Creates a new OdrSignal at the same s/t as the first existing head.
- * Returns the new signal ID.
+ * Creates a new OdrSignal with position offset from the first head.
+ *
+ * @param offsetX  Configurator X offset in metres (positive = right → added to t)
+ * @param offsetY  Configurator Y offset in metres (positive = down → subtracted from zOffset)
+ * @returns The new signal ID, or null on failure.
  */
 export function addHeadToAssembly(
   odrStore: OpenDriveStoreApi,
@@ -189,6 +198,8 @@ export function addHeadToAssembly(
   assemblyId: string,
   presetId: string,
   position: 'top' | 'arm' | 'lower',
+  offsetX = 0,
+  offsetY = 0,
 ): string | null {
   const assemblies = getAssemblies(metaStore);
   const assembly = assemblies.find((a) => a.assemblyId === assemblyId);
@@ -199,9 +210,34 @@ export function addHeadToAssembly(
   const road = doc.roads.find((r) => r.id === assembly.roadId);
   if (!road) return null;
 
-  // Find a reference signal to copy s/t from
+  // Find the first head (reference) signal to derive position from
   const refSignal = road.signals.find((s) => assembly.signalIds.includes(s.id));
   if (!refSignal) return null;
+
+  // First head's configurator offset (from metadata)
+  const refHead = assembly.headPositions[0];
+  const refOffsetX = refHead?.x ?? 0;
+  const refOffsetY = refHead?.y ?? 0;
+
+  // Compute delta from the reference head's configurator position
+  const deltaX = offsetX - refOffsetX;
+  const deltaY = offsetY - refOffsetY;
+
+  // Map configurator offsets to OpenDRIVE coordinates:
+  //   deltaX (lateral) → added to t
+  //   deltaY (downward) → subtracted from zOffset
+  const newT = refSignal.t + deltaX;
+  const newZOffset = Math.max(0, (refSignal.zOffset ?? 5.0) - deltaY);
+
+  // Build reference list: reuse the assembly's pole/arm objects so the 3D viewer
+  // groups all heads on the same pole (avoids duplicate poles being rendered).
+  const references: OdrSignal['reference'] = [];
+  if (assembly.poleObjectId) {
+    references.push({ elementType: 'object', elementId: assembly.poleObjectId });
+  }
+  if (assembly.armObjectId) {
+    references.push({ elementType: 'object', elementId: assembly.armObjectId });
+  }
 
   // Create the signal via the store's addSignal method
   const preset = getPresetById(presetId);
@@ -210,13 +246,14 @@ export function addHeadToAssembly(
     : { dynamic: 'yes' as const, type: '-1', subtype: '-1', country: 'OpenDRIVE' };
   const newSignal = store.addSignal(assembly.roadId, {
     s: refSignal.s,
-    t: refSignal.t,
-    zOffset: refSignal.zOffset,
+    t: newT,
+    zOffset: newZOffset,
     orientation: refSignal.orientation,
     ...presetFields,
+    ...(references.length > 0 ? { reference: references } : {}),
   });
 
-  // Update assembly metadata
+  // Update assembly metadata (store x/y for future editing)
   const updated = assemblies.map((a) =>
     a.assemblyId === assemblyId
       ? {
@@ -224,7 +261,7 @@ export function addHeadToAssembly(
           signalIds: [...a.signalIds, newSignal.id],
           headPositions: [
             ...a.headPositions,
-            { signalId: newSignal.id, presetId, position },
+            { signalId: newSignal.id, presetId, position, x: offsetX, y: offsetY },
           ],
         }
       : a,

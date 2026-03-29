@@ -94,7 +94,16 @@ export interface SignalAssemblyMetadata {
   poleObjectId?: string;
   /** OpenDRIVE object ID for the horizontal arm (type="pole"). */
   armObjectId?: string;
-  headPositions: { signalId: string; presetId?: string; position: string; offsetY?: number }[];
+  headPositions: {
+    signalId: string;
+    presetId?: string;
+    position: string;
+    offsetY?: number;
+    /** Horizontal offset from pole tip in meters (configurator X). */
+    x?: number;
+    /** Vertical offset from pole tip in meters (configurator Y). */
+    y?: number;
+  }[];
 }
 
 /**

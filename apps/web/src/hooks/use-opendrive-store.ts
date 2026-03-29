@@ -130,11 +130,14 @@ export interface SignalPlaceGhost {
 
 export type SignalPlaceSelectionType = 'head' | 'assembly';
 
+export type SignalOrientationMode = '+' | '-' | 'auto';
+
 export interface SignalPlaceState {
   subMode: SignalPlaceSubMode;
   selectionType: SignalPlaceSelectionType;
   selectedPresetId: string;
   tSnapMode: SignalTSnapMode;
+  signalOrientation: SignalOrientationMode;
   ghostPreview: SignalPlaceGhost | null;
 }
 
@@ -143,6 +146,7 @@ const DEFAULT_SIGNAL_PLACE: SignalPlaceState = {
   selectionType: 'head',
   selectedPresetId: '3-light-vertical',
   tSnapMode: 'lane-above',
+  signalOrientation: 'auto',
   ghostPreview: null,
 };
 
@@ -242,6 +246,7 @@ interface OpenDriveSidebarState {
   setSignalPlacePreset: (presetId: string) => void;
   setSignalPlaceSelection: (type: SignalPlaceSelectionType, presetId: string) => void;
   setSignalPlaceTSnapMode: (mode: SignalTSnapMode) => void;
+  setSignalPlaceOrientation: (mode: SignalOrientationMode) => void;
   setSignalPlaceGhost: (ghost: SignalPlaceGhost | null) => void;
   resetSignalPlace: () => void;
 
@@ -412,6 +417,8 @@ export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
     set((state) => ({ signalPlace: { ...state.signalPlace, selectionType: type, selectedPresetId: presetId } })),
   setSignalPlaceTSnapMode: (mode) =>
     set((state) => ({ signalPlace: { ...state.signalPlace, tSnapMode: mode, ghostPreview: null } })),
+  setSignalPlaceOrientation: (mode) =>
+    set((state) => ({ signalPlace: { ...state.signalPlace, signalOrientation: mode } })),
   setSignalPlaceGhost: (ghost) =>
     set((state) => ({ signalPlace: { ...state.signalPlace, ghostPreview: ghost } })),
   resetSignalPlace: () =>

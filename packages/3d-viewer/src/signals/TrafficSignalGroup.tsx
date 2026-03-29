@@ -326,12 +326,14 @@ const SignalHighlightOverlay: React.FC<{ signal: ResolvedSignal }> = React.memo(
     const headHeight = housing.height;
     const isHorizontal = descriptor.orientation === 'horizontal';
     const rotation: [number, number, number] = isHorizontal
-      ? [0, Math.PI / 2, Math.PI / 2]
+      ? [0, Math.PI / 2, -Math.PI / 2]
       : [0, Math.PI / 2, 0];
 
     // Slightly larger than actual housing for glow effect
     const pad = 0.06;
-    const boxGeo = getSharedBox(housing.height + pad, housing.width + pad, housing.depth + pad);
+    const boxGeo = isHorizontal
+      ? getSharedBox(housing.width + pad, housing.height + pad, housing.depth + pad)
+      : getSharedBox(housing.height + pad, housing.width + pad, housing.depth + pad);
 
     return (
       <group
@@ -407,7 +409,9 @@ const SignalPickCategoryOverlay: React.FC<{
     : [0, Math.PI / 2, 0];
 
   const pad = 0.06;
-  const boxGeo = getSharedBox(housing.height + pad, housing.width + pad, housing.depth + pad);
+  const boxGeo = isHorizontal
+    ? getSharedBox(housing.width + pad, housing.height + pad, housing.depth + pad)
+    : getSharedBox(housing.height + pad, housing.width + pad, housing.depth + pad);
   const material = PICK_CATEGORY_MATERIALS[category];
 
   return (

@@ -122,10 +122,11 @@ const _qHeadRot = new THREE.Quaternion().setFromAxisAngle(
   new THREE.Vector3(0, 1, 0),
   Math.PI / 2,
 );
-/** Additional 90° rotation around local Z-axis to lay housing sideways for horizontal signals */
+/** Additional -90° rotation around local Z-axis to lay housing sideways for horizontal signals.
+ *  Negative direction so that red is on the left (Japanese standard) when viewed from the front. */
 const _qHoriz = new THREE.Quaternion().setFromAxisAngle(
   new THREE.Vector3(0, 0, 1),
-  Math.PI / 2,
+  -Math.PI / 2,
 );
 
 const TrafficLightGroup: React.FC<TrafficLightGroupProps> = React.memo(
@@ -134,9 +135,18 @@ const TrafficLightGroup: React.FC<TrafficLightGroupProps> = React.memo(
     const { descriptor, activeState, entries } = group;
     const { housing } = descriptor;
 
+    // For horizontal signals, the housing dimensions have width/height swapped
+    // relative to vertical (width=span, height=narrow). But the BoxGeometry must
+    // always have the bulb-stack axis as the first arg (Three.js X), because
+    // _qHoriz rotates X↔Y to lay it sideways. Using swapped dims + rotation
+    // would double-swap and cancel out.
+    const isHoriz = descriptor.orientation === 'horizontal';
     const boxGeo = useMemo(
-      () => getSharedBox(housing.height, housing.width, housing.depth),
-      [housing.width, housing.height, housing.depth],
+      () =>
+        isHoriz
+          ? getSharedBox(housing.width, housing.height, housing.depth)
+          : getSharedBox(housing.height, housing.width, housing.depth),
+      [housing.width, housing.height, housing.depth, isHoriz],
     );
 
     const materials = useMemo(

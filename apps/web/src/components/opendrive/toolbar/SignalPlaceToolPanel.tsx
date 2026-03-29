@@ -1,11 +1,11 @@
 /**
  * Signal place tool panel: replaces the property editor when signal-place tool is active.
- * Shows signal head presets and housing assembly presets in a selectable list.
- * Pole/arm configuration is NOT part of the assembly — it's controlled by tSnapMode.
+ * Shows signal head presets, housing assembly presets with thumbnails,
+ * and opens the visual configurator for creating/editing assemblies.
  */
 
 import { useState, useCallback, useMemo } from 'react';
-import { Crosshair, Move, Plus, Trash2, X } from 'lucide-react';
+import { Crosshair, Move, Plus, Pencil, Trash2 } from 'lucide-react';
 import {
   BUILT_IN_PRESETS,
   getAllAssemblyPresets,
@@ -17,6 +17,8 @@ import {
 import type { AssemblyPreset, SignalHeadCategory } from '@osce/opendrive-engine';
 import { useOdrSidebarStore } from '../../../hooks/use-opendrive-store';
 import { ScrollArea } from '../../ui/scroll-area';
+import { SignalAssemblyConfigurator } from '../signal-configurator/SignalAssemblyConfigurator';
+import { AssemblyThumbnail } from '../signal-configurator/AssemblyThumbnail';
 import { cn } from '@/lib/utils';
 
 // ── Bulb color CSS values ────────────────────────────────────────────────────
@@ -59,134 +61,12 @@ function BulbDots({ presetId }: { presetId: string }) {
   );
 }
 
-// ── Mini assembly preview (stacked bulb groups) ──────────────────────────────
+// ── Configurator edit mode ──────────────────────────────────────────────────
 
-function AssemblyMiniPreview({ preset }: { preset: AssemblyPreset }) {
-  return (
-    <div className="flex flex-col gap-1 shrink-0 items-center py-0.5">
-      {preset.heads.map((head, i) => (
-        <BulbDots key={i} presetId={head.presetId} />
-      ))}
-    </div>
-  );
-}
-
-// ── Inline assembly editor (housing combination only) ────────────────────────
-
-function AssemblyEditor({
-  onSave,
-  onCancel,
-}: {
-  onSave: (preset: AssemblyPreset) => void;
-  onCancel: () => void;
-}) {
-  const [name, setName] = useState('');
-  const [heads, setHeads] = useState<{ presetId: string }[]>([
-    { presetId: '3-light-vertical' },
-  ]);
-
-  const handleSave = useCallback(() => {
-    if (!name.trim() || heads.length === 0) return;
-    onSave({
-      id: `custom-${Date.now()}`,
-      name: name.trim(),
-      heads,
-    });
-  }, [name, heads, onSave]);
-
-  const updateHead = useCallback((idx: number, presetId: string) => {
-    setHeads((h) => h.map((item, i) => (i === idx ? { presetId } : item)));
-  }, []);
-
-  const removeHead = useCallback((idx: number) => {
-    setHeads((h) => h.filter((_, i) => i !== idx));
-  }, []);
-
-  const addHead = useCallback(() => {
-    setHeads((h) => [...h, { presetId: '3-light-vertical' }]);
-  }, []);
-
-  return (
-    <div className="p-3 space-y-2 border border-[var(--color-accent-vivid)] bg-[var(--color-glass-1)]">
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] font-medium text-[var(--color-accent-vivid)]">
-          New Assembly
-        </span>
-        <button
-          type="button"
-          className="p-0.5 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
-          onClick={onCancel}
-        >
-          <X className="w-3 h-3" />
-        </button>
-      </div>
-
-      {/* Name */}
-      <input
-        className="w-full h-6 px-2 text-[11px] rounded-none bg-[var(--color-glass-2)] border border-[var(--color-glass-edge)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)]"
-        placeholder="Assembly name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
-
-      {/* Heads list */}
-      <div className="space-y-1">
-        <span className="text-[10px] text-[var(--color-text-muted)]">Housings (top → bottom)</span>
-        {heads.map((head, i) => (
-          <div key={i} className="flex items-center gap-1">
-            <BulbDots presetId={head.presetId} />
-            <select
-              className="flex-1 h-5 px-1 text-[10px] rounded-none bg-[var(--color-glass-2)] border border-[var(--color-glass-edge)] text-[var(--color-text-primary)]"
-              value={head.presetId}
-              onChange={(e) => updateHead(i, e.target.value)}
-            >
-              {BUILT_IN_PRESETS.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className="p-0.5 text-[var(--color-text-muted)] hover:text-[var(--color-status-error)]"
-              onClick={() => removeHead(i)}
-              disabled={heads.length <= 1}
-            >
-              <X className="w-3 h-3" />
-            </button>
-          </div>
-        ))}
-        <button
-          type="button"
-          className="flex items-center gap-1 h-5 px-1 text-[10px] text-[var(--color-accent-vivid)] hover:text-[var(--color-text-primary)]"
-          onClick={addHead}
-        >
-          <Plus className="w-3 h-3" />
-          Add Housing
-        </button>
-      </div>
-
-      {/* Actions */}
-      <div className="flex gap-2 pt-1">
-        <button
-          type="button"
-          className="flex-1 h-6 text-[10px] rounded-none bg-[var(--color-accent-vivid)] text-[var(--color-bg-primary)] hover:opacity-90 disabled:opacity-40"
-          onClick={handleSave}
-          disabled={!name.trim() || heads.length === 0}
-        >
-          Save
-        </button>
-        <button
-          type="button"
-          className="flex-1 h-6 text-[10px] rounded-none border border-[var(--color-glass-edge)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
-          onClick={onCancel}
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
-}
+type ConfiguratorMode =
+  | { type: 'off' }
+  | { type: 'new' }
+  | { type: 'edit'; preset: AssemblyPreset };
 
 // ── Main panel ───────────────────────────────────────────────────────────────
 
@@ -195,14 +75,20 @@ export function SignalPlaceToolPanel() {
   const selectedPresetId = useOdrSidebarStore((s) => s.signalPlace.selectedPresetId);
   const subMode = useOdrSidebarStore((s) => s.signalPlace.subMode);
   const tSnapMode = useOdrSidebarStore((s) => s.signalPlace.tSnapMode);
+  const signalOrientation = useOdrSidebarStore((s) => s.signalPlace.signalOrientation);
   const setSignalPlaceSelection = useOdrSidebarStore((s) => s.setSignalPlaceSelection);
   const setSignalPlaceSubMode = useOdrSidebarStore((s) => s.setSignalPlaceSubMode);
   const setSignalPlaceTSnapMode = useOdrSidebarStore((s) => s.setSignalPlaceTSnapMode);
+  const setSignalPlaceOrientation = useOdrSidebarStore((s) => s.setSignalPlaceOrientation);
 
-  const [showEditor, setShowEditor] = useState(false);
+  const [configuratorMode, setConfiguratorMode] = useState<ConfiguratorMode>({ type: 'off' });
   const [, forceUpdate] = useState(0);
 
-  const assemblyPresets = useMemo(() => getAllAssemblyPresets(), []);
+  const assemblyPresets = useMemo(
+    () => getAllAssemblyPresets(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [configuratorMode],
+  );
 
   // Group head presets by category
   const groupedPresets = useMemo(() => {
@@ -219,7 +105,7 @@ export function SignalPlaceToolPanel() {
   const handleSaveAssembly = useCallback(
     (preset: AssemblyPreset) => {
       saveCustomPreset(preset);
-      setShowEditor(false);
+      setConfiguratorMode({ type: 'off' });
       setSignalPlaceSelection('assembly', preset.id);
       forceUpdate((n) => n + 1);
     },
@@ -242,6 +128,18 @@ export function SignalPlaceToolPanel() {
     [],
   );
 
+  // ── Visual Configurator mode ──
+  if (configuratorMode.type !== 'off') {
+    return (
+      <SignalAssemblyConfigurator
+        preset={configuratorMode.type === 'edit' ? configuratorMode.preset : null}
+        onSave={handleSaveAssembly}
+        onCancel={() => setConfiguratorMode({ type: 'off' })}
+      />
+    );
+  }
+
+  // ── Normal selection mode ──
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -275,6 +173,23 @@ export function SignalPlaceToolPanel() {
             label="Road Edge"
             active={tSnapMode === 'road-edge'}
             onClick={() => setSignalPlaceTSnapMode('road-edge')}
+          />
+        </div>
+        <div className="flex gap-1">
+          <SnapButton
+            label="Auto"
+            active={signalOrientation === 'auto'}
+            onClick={() => setSignalPlaceOrientation('auto')}
+          />
+          <SnapButton
+            label="+ (→)"
+            active={signalOrientation === '+'}
+            onClick={() => setSignalPlaceOrientation('+')}
+          />
+          <SnapButton
+            label="− (←)"
+            active={signalOrientation === '-'}
+            onClick={() => setSignalPlaceOrientation('-')}
           />
         </div>
       </div>
@@ -318,7 +233,7 @@ export function SignalPlaceToolPanel() {
 
           <div className="divider-glow" />
 
-          {/* ── Assemblies (housing combinations) ── */}
+          {/* ── Assemblies (housing combinations) with thumbnails ── */}
           <section>
             <SectionLabel>Assemblies</SectionLabel>
             <div className="space-y-0.5 mt-1.5">
@@ -333,47 +248,59 @@ export function SignalPlaceToolPanel() {
                   )}
                   onClick={() => setSignalPlaceSelection('assembly', preset.id)}
                 >
-                  <AssemblyMiniPreview preset={preset} />
+                  <AssemblyThumbnail
+                    preset={preset}
+                    width={32}
+                    height={48}
+                    className="shrink-0"
+                  />
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] truncate">{preset.name}</p>
                     <p className="text-[9px] text-[var(--color-text-tertiary)]">
-                      {preset.heads.map((h) => getPresetById(h.presetId)?.label ?? h.presetId).join(' + ')}
+                      {preset.heads
+                        .map((h) => getPresetById(h.presetId)?.label ?? h.presetId)
+                        .join(' + ')}
                     </p>
                   </div>
-                  {!isBuiltInAssembly(preset.id) && (
+                  <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       type="button"
-                      className="p-0.5 opacity-0 group-hover:opacity-100 text-[var(--color-text-muted)] hover:text-[var(--color-status-error)] transition-opacity"
+                      className="p-0.5 text-[var(--color-text-muted)] hover:text-[var(--color-accent-vivid)]"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleRemoveAssembly(preset.id);
+                        setConfiguratorMode({ type: 'edit', preset });
                       }}
+                      title="Edit assembly"
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Pencil className="w-3 h-3" />
                     </button>
-                  )}
+                    {!isBuiltInAssembly(preset.id) && (
+                      <button
+                        type="button"
+                        className="p-0.5 text-[var(--color-text-muted)] hover:text-[var(--color-status-error)]"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveAssembly(preset.id);
+                        }}
+                        title="Delete assembly"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
 
             {/* New Assembly */}
-            {showEditor ? (
-              <div className="mt-2">
-                <AssemblyEditor
-                  onSave={handleSaveAssembly}
-                  onCancel={() => setShowEditor(false)}
-                />
-              </div>
-            ) : (
-              <button
-                type="button"
-                className="flex items-center gap-1 mt-2 h-6 px-2 text-[10px] text-[var(--color-accent-vivid)] hover:text-[var(--color-text-primary)] transition-colors"
-                onClick={() => setShowEditor(true)}
-              >
-                <Plus className="w-3 h-3" />
-                New Assembly
-              </button>
-            )}
+            <button
+              type="button"
+              className="flex items-center gap-1 mt-2 h-6 px-2 text-[10px] text-[var(--color-accent-vivid)] hover:text-[var(--color-text-primary)] transition-colors"
+              onClick={() => setConfiguratorMode({ type: 'new' })}
+            >
+              <Plus className="w-3 h-3" />
+              New Assembly
+            </button>
           </section>
         </div>
       </ScrollArea>

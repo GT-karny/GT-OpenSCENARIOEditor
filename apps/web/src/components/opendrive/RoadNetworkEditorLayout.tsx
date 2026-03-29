@@ -1007,12 +1007,15 @@ export function RoadNetworkEditorLayout() {
     (roadId: string, s: number, t: number, _heading: number) => {
       const store = odrStoreApi.getState();
       // Read state directly from the store to avoid stale closure issues
-      const { tSnapMode, selectionType, selectedPresetId, ghostPreview } =
+      const { tSnapMode, selectionType, selectedPresetId, signalOrientation, ghostPreview } =
         useOdrSidebarStore.getState().signalPlace;
 
-      // Determine side from t
+      // Determine orientation: manual or auto (based on road side)
       const side: 'right' | 'left' = t < 0 ? 'right' : 'left';
-      const orientation: '+' | '-' = side === 'right' ? '+' : '-';
+      const orientation: '+' | '-' =
+        signalOrientation === 'auto'
+          ? (side === 'right' ? '+' : '-')
+          : signalOrientation;
 
       // Helper: compute arm angle from world positions
       const computeArmAngle = (poleT: number, headT: number): number | undefined => {
@@ -1025,13 +1028,17 @@ export function RoadNetworkEditorLayout() {
         return Math.atan2(headWorld.y - poleWorld.y, headWorld.x - poleWorld.x);
       };
 
-      // Resolve head presets: single head or assembly (list of heads)
+      // Resolve head presets: single head or assembly (list of heads with offsets)
+      // When orientation is '-', mirror X offsets so the assembly layout
+      // stays correct from the viewer's perspective.
       const assemblyPreset =
         selectionType === 'assembly' ? getAssemblyPresetById(selectedPresetId) : undefined;
-      const headPresetIds =
+      const xMirror = orientation === '+' ? -1 : 1;
+      const assemblyHeads =
         assemblyPreset && assemblyPreset.heads.length > 0
-          ? assemblyPreset.heads.map((h) => h.presetId)
-          : [selectedPresetId];
+          ? assemblyPreset.heads.map((h) => ({ ...h, x: h.x * xMirror }))
+          : [{ presetId: selectedPresetId, x: 0, y: 0 }];
+      const headPresetIds = assemblyHeads.map((h) => h.presetId);
 
       const firstHeadPreset = getPresetById(headPresetIds[0]);
       const firstPartial = firstHeadPreset ? presetToSignalPartial(firstHeadPreset) : {};
@@ -1054,19 +1061,23 @@ export function RoadNetworkEditorLayout() {
           armLength,
           poleT,
           armAngle,
+          assemblyHeads[0].x,
+          assemblyHeads[0].y,
         );
 
-        // Add remaining heads (assembly case)
-        if (headPresetIds.length > 1) {
+        // Add remaining heads with configurator offsets
+        if (assemblyHeads.length > 1) {
           const assembly = findAssemblyForSignal(editorMetadataStoreApi, signal.id);
           if (assembly) {
-            for (let i = 1; i < headPresetIds.length; i++) {
+            for (let i = 1; i < assemblyHeads.length; i++) {
               addHeadToAssembly(
                 odrStoreApi,
                 editorMetadataStoreApi,
                 assembly.assemblyId,
-                headPresetIds[i],
+                assemblyHeads[i].presetId,
                 'lower',
+                assemblyHeads[i].x,
+                assemblyHeads[i].y,
               );
             }
           }
@@ -1094,16 +1105,20 @@ export function RoadNetworkEditorLayout() {
             0,
             t,
             undefined,
+            assemblyHeads[0].x,
+            assemblyHeads[0].y,
           );
           const assembly = findAssemblyForSignal(editorMetadataStoreApi, signal.id);
           if (assembly) {
-            for (let i = 1; i < headPresetIds.length; i++) {
+            for (let i = 1; i < assemblyHeads.length; i++) {
               addHeadToAssembly(
                 odrStoreApi,
                 editorMetadataStoreApi,
                 assembly.assemblyId,
-                headPresetIds[i],
+                assemblyHeads[i].presetId,
                 'lower',
+                assemblyHeads[i].x,
+                assemblyHeads[i].y,
               );
             }
           }
