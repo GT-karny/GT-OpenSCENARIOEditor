@@ -975,7 +975,8 @@ export function EditorLayout() {
       <SaveAsDialog
         open={showSaveAs}
         onOpenChange={setShowSaveAs}
-        onSave={handleSaveAs}
+        onSave={saveAsFileType === 'xodr' ? handleSaveAsXodr : handleSaveAs}
+        fileType={saveAsFileType}
       />
 
       {/* Delete Confirmation Dialog */}
