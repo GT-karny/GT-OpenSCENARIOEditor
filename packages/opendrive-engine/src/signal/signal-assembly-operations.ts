@@ -10,7 +10,8 @@ import type { StoreApi } from 'zustand/vanilla';
 import type { OpenDriveStore } from '../store/opendrive-store.js';
 import type { EditorMetadataStore } from '../store/editor-metadata-store.js';
 import type { SignalAssemblyMetadata } from '../store/editor-metadata-types.js';
-import { signalToPresetId } from './preset-to-signal.js';
+import { presetToSignalPartial, signalToPresetId } from './preset-to-signal.js';
+import { getPresetById } from './signal-presets.js';
 
 export type OpenDriveStoreApi = StoreApi<OpenDriveStore>;
 export type EditorMetadataStoreApi = StoreApi<EditorMetadataStore>;
@@ -203,14 +204,16 @@ export function addHeadToAssembly(
   if (!refSignal) return null;
 
   // Create the signal via the store's addSignal method
+  const preset = getPresetById(presetId);
+  const presetFields = preset
+    ? presetToSignalPartial(preset)
+    : { dynamic: 'yes' as const, type: '-1', subtype: '-1', country: 'OpenDRIVE' };
   const newSignal = store.addSignal(assembly.roadId, {
     s: refSignal.s,
     t: refSignal.t,
     zOffset: refSignal.zOffset,
     orientation: refSignal.orientation,
-    dynamic: 'yes',
-    type: 'trafficLight',
-    subtype: presetId,
+    ...presetFields,
   });
 
   // Update assembly metadata

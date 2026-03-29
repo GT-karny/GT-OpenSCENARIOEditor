@@ -164,7 +164,8 @@ export const SIGNAL_CATALOG: ReadonlyMap<string, SignalDescriptor> = new Map<
   ...singleArrowEntries('1000008', 'yellow', 'Yellow'),
   ...singleArrowEntries('1000012', 'green', 'Green'),
 
-  // === Universal presets ===
+  // === Legacy compatibility: non-standard preset-based keys (type="trafficLight") ===
+  // Kept for backward compat with files saved before ASAM-compliant mapping was added.
   ['trafficLight:3-light-vertical', desc('3-Light Vertical', [bulb('red'), bulb('yellow'), bulb('green')], 'vertical')],
   ['trafficLight:3-light-horizontal', desc('3-Light Horizontal', [bulb('green'), bulb('yellow'), bulb('red')], 'horizontal')],
   ['trafficLight:arrow-left', desc('Arrow Left', [bulb('green', 'arrow-left')], 'vertical')],
