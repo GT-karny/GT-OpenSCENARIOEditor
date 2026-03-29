@@ -38,11 +38,12 @@ export interface AssemblyPreset {
 // Head dimension helpers
 // ---------------------------------------------------------------------------
 
-/** Bulb spacing in meters (matches 3d-viewer signal-catalog). */
-const BULB_SPACING = 0.33;
-const BULB_RADIUS = 0.12;
-const HOUSING_PADDING = 0.07;
-const HOUSING_WIDTH = 0.4;
+import {
+  BULB_SPACING,
+  BULB_RADIUS,
+  HOUSING_PADDING,
+  HOUSING_WIDTH,
+} from './signal-render-constants.js';
 
 /** Compute the housing height for a given bulb count and orientation. */
 export function computeHeadHeight(bulbCount: number, orientation: 'vertical' | 'horizontal'): number {

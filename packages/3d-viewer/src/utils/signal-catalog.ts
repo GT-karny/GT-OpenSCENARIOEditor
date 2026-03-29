@@ -47,7 +47,7 @@ export interface SignalDescriptor {
 // ---------------------------------------------------------------------------
 
 const BULB_RADIUS = 0.12;
-const BULB_SPACING = 0.33;
+const BULB_SPACING = 0.38;
 const HOUSING_PADDING = 0.07;
 const HOUSING_DEPTH = 0.12;
 const HOUSING_WIDTH = 0.4;

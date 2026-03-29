@@ -9,7 +9,7 @@
 export const PX_PER_UNIT = 256;
 
 /** Inter-bulb spacing in metres. */
-export const BULB_SPACING = 0.33;
+export const BULB_SPACING = 0.38;
 
 /** Bulb radius in metres. */
 export const BULB_RADIUS = 0.12;
