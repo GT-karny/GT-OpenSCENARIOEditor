@@ -4,6 +4,7 @@
 
 import React from 'react';
 import { Html } from '@react-three/drei';
+import { LABEL_COLORS } from '../constants/selection-theme.js';
 
 interface EntityLabelProps {
   name: string;
@@ -14,18 +15,15 @@ interface EntityLabelProps {
 
 export const EntityLabel: React.FC<EntityLabelProps> = React.memo(
   ({ name, position, isSelected, isHovered }) => {
-    const color = isSelected ? '#FFFF00' : isHovered ? '#44DDFF' : '#FFFFFF';
-    const bg = isSelected
-      ? 'rgba(60,60,0,0.8)'
+    const theme = isSelected
+      ? LABEL_COLORS.entity.selected
       : isHovered
-        ? 'rgba(0,60,90,0.9)'
-        : 'rgba(0,0,0,0.6)';
-    const border = isSelected
-      ? '1px solid #FFFF00'
-      : isHovered
-        ? '1px solid #44DDFF'
-        : '1px solid transparent';
-    const shadow = isHovered ? '0 0 8px #44DDFF, 0 0 16px rgba(68,221,255,0.4)' : 'none';
+        ? LABEL_COLORS.entity.hovered
+        : LABEL_COLORS.entity.normal;
+    const color = theme.text;
+    const bg = theme.bg;
+    const border = `1px solid ${theme.border}`;
+    const shadow = 'shadow' in theme ? theme.shadow : 'none';
 
     return (
       <Html

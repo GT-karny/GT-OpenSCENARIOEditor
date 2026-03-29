@@ -11,6 +11,7 @@ import React, { useMemo } from 'react';
 import * as THREE from 'three';
 import { Outlines } from '@react-three/drei';
 import type { ResolvedSignal } from './TrafficSignalGroup.js';
+import { SELECTION_COLORS, OUTLINE_THICKNESS } from '../constants/selection-theme.js';
 import type { PoleAssemblyInfo } from './InstancedPoles.js';
 import type { SignalDescriptor } from '../utils/signal-catalog.js';
 import { DEFAULT_SIGNAL_HEIGHT, TRAFFIC_LIGHT } from '../utils/signal-geometry.js';
@@ -122,8 +123,8 @@ const TrafficLightOverlayMesh: React.FC<TrafficLightOverlayMeshProps> = React.me
         material={invisibleMaterial}
       >
         <Outlines
-          thickness={isSelected ? 1.6 : 3.0}
-          color={isSelected ? '#FFFF00' : '#44DDFF'}
+          thickness={isSelected ? OUTLINE_THICKNESS.selected.signal : OUTLINE_THICKNESS.hovered.signal}
+          color={isSelected ? SELECTION_COLORS.selected : SELECTION_COLORS.hovered}
         />
       </mesh>
     );

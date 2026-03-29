@@ -303,11 +303,12 @@ TrafficSignalGroup.displayName = 'TrafficSignalGroup';
 // ---------------------------------------------------------------------------
 
 import { getSharedBox } from '../utils/shared-geometries.js';
+import { GLOW_COLORS, GLOW_OPACITY } from '../constants/selection-theme.js';
 
 const GLOW_MATERIAL = new THREE.MeshBasicMaterial({
-  color: new THREE.Color(2.5, 1.8, 0.2), // HDR orange-yellow — blooms with post-processing
+  color: new THREE.Color(...GLOW_COLORS.highlight),
   transparent: true,
-  opacity: 0.55,
+  opacity: GLOW_OPACITY,
   side: THREE.DoubleSide,
   depthWrite: false,
   blending: THREE.AdditiveBlending,
@@ -356,27 +357,27 @@ SignalHighlightOverlay.displayName = 'SignalHighlightOverlay';
 // ---------------------------------------------------------------------------
 
 const PICK_GLOW_CURRENT_TRACK = new THREE.MeshBasicMaterial({
-  color: new THREE.Color(0.2, 2.5, 0.5), // green
+  color: new THREE.Color(...GLOW_COLORS.pickCurrent),
   transparent: true,
-  opacity: 0.55,
+  opacity: GLOW_OPACITY,
   side: THREE.DoubleSide,
   depthWrite: false,
   blending: THREE.AdditiveBlending,
 });
 
 const PICK_GLOW_OTHER_TRACK = new THREE.MeshBasicMaterial({
-  color: new THREE.Color(2.5, 1.8, 0.2), // orange (same as highlight)
+  color: new THREE.Color(...GLOW_COLORS.pickOther),
   transparent: true,
-  opacity: 0.55,
+  opacity: GLOW_OPACITY,
   side: THREE.DoubleSide,
   depthWrite: false,
   blending: THREE.AdditiveBlending,
 });
 
 const PICK_GLOW_AVAILABLE = new THREE.MeshBasicMaterial({
-  color: new THREE.Color(0.5, 1.5, 2.5), // cyan
+  color: new THREE.Color(...GLOW_COLORS.pickAvailable),
   transparent: true,
-  opacity: 0.55,
+  opacity: GLOW_OPACITY,
   side: THREE.DoubleSide,
   depthWrite: false,
   blending: THREE.AdditiveBlending,

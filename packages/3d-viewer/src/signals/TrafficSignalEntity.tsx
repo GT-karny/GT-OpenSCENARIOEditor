@@ -10,6 +10,7 @@
 import React, { useMemo } from 'react';
 import { Outlines } from '@react-three/drei';
 import type { OdrSignal } from '@osce/shared';
+import { SELECTION_COLORS, OUTLINE_THICKNESS } from '../constants/selection-theme.js';
 import type { WorldCoords } from '../utils/position-resolver.js';
 import type { SignalCategory } from '../utils/signal-geometry.js';
 import { DEFAULT_SIGNAL_HEIGHT } from '../utils/signal-geometry.js';
@@ -45,24 +46,24 @@ export const TrafficSignalEntity: React.FC<TrafficSignalEntityProps> = React.mem
           {category === 'stopSign' && (
             <group rotation={[Math.PI / 2, 0, 0]}>
               <StopSignSignal />
-              {isSelected && <Outlines thickness={0.08} color="#FFFF00" />}
-              {!isSelected && isHovered && <Outlines thickness={0.15} color="#44DDFF" />}
+              {isSelected && <Outlines thickness={OUTLINE_THICKNESS.selected.entity} color={SELECTION_COLORS.selected} />}
+              {!isSelected && isHovered && <Outlines thickness={OUTLINE_THICKNESS.hovered.entity} color={SELECTION_COLORS.hovered} />}
             </group>
           )}
 
           {category === 'speedLimit' && (
             <group rotation={[Math.PI / 2, 0, 0]}>
               <SpeedLimitSignal value={signal.value} />
-              {isSelected && <Outlines thickness={0.08} color="#FFFF00" />}
-              {!isSelected && isHovered && <Outlines thickness={0.15} color="#44DDFF" />}
+              {isSelected && <Outlines thickness={OUTLINE_THICKNESS.selected.entity} color={SELECTION_COLORS.selected} />}
+              {!isSelected && isHovered && <Outlines thickness={OUTLINE_THICKNESS.hovered.entity} color={SELECTION_COLORS.hovered} />}
             </group>
           )}
 
           {category === 'generic' && (
             <group rotation={[Math.PI / 2, 0, 0]}>
               <GenericSignal typeLabel={signal.type} />
-              {isSelected && <Outlines thickness={0.08} color="#FFFF00" />}
-              {!isSelected && isHovered && <Outlines thickness={0.15} color="#44DDFF" />}
+              {isSelected && <Outlines thickness={OUTLINE_THICKNESS.selected.entity} color={SELECTION_COLORS.selected} />}
+              {!isSelected && isHovered && <Outlines thickness={OUTLINE_THICKNESS.hovered.entity} color={SELECTION_COLORS.hovered} />}
             </group>
           )}
         </group>

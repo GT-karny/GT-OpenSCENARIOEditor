@@ -10,6 +10,7 @@ import React, { useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Billboard, Text } from '@react-three/drei';
 import * as THREE from 'three';
+import { LABEL_COLORS } from '../constants/selection-theme.js';
 
 interface SignalLabelProps {
   name: string;
@@ -40,11 +41,11 @@ export const SignalLabel: React.FC<SignalLabelProps> = React.memo(
       <Billboard ref={groupRef} position={position}>
         <Text
           fontSize={highlighted ? 0.35 : 0.25}
-          color={highlighted ? '#FFD866' : '#BBDDFF'}
+          color={highlighted ? LABEL_COLORS.signal.highlighted.text : LABEL_COLORS.signal.normal.text}
           anchorX="center"
           anchorY="middle"
           outlineWidth={highlighted ? 0.025 : 0.018}
-          outlineColor={highlighted ? '#3D2E00' : '#001428'}
+          outlineColor={highlighted ? LABEL_COLORS.signal.highlighted.outline : LABEL_COLORS.signal.normal.outline}
           fontWeight={highlighted ? 'bold' : 'normal'}
         >
           {name}
