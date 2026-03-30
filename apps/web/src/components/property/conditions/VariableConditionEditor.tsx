@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { Condition, ByValueCondition, VariableCondition } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 import { RuleSegmentedControl } from '../RuleSegmentedControl';
 import { RefSelect } from '../RefSelect';
 import type { RefSelectItem } from '../RefSelect';
@@ -45,9 +45,10 @@ export function VariableConditionEditor({ condition, onUpdate }: VariableConditi
       <div className="grid gap-1">
         <Label className="text-[10px]">Value</Label>
         <div className="flex gap-1">
-          <Input
+          <ParameterAwareInput
             value={cond.value}
-            onChange={(e) => update({ value: e.target.value })}
+            onValueChange={(v) => update({ value: v })}
+            acceptedTypes={['string', 'double', 'int', 'boolean']}
             className="h-7 text-xs flex-1 min-w-0"
           />
           <RuleSegmentedControl

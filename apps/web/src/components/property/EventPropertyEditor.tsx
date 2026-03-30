@@ -4,6 +4,7 @@ import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { useTranslation } from '@osce/i18n';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
+import { ParameterAwareInput } from './ParameterAwareInput';
 import { EVENT_PRIORITIES } from '../../constants/osc-enum-values';
 import { TriggerSectionEditor } from './TriggerSectionEditor';
 import { cn } from '../../lib/utils';
@@ -31,9 +32,8 @@ export function EventPropertyEditor({ event }: EventPropertyEditorProps) {
     storeApi.getState().updateEvent(event.id, { priority: value });
   };
 
-  const handleMaxExecCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    const parsed = raw === '' ? undefined : parseInt(raw, 10);
+  const handleMaxExecCountChange = (v: string) => {
+    const parsed = v === '' ? undefined : parseInt(v, 10);
     storeApi.getState().updateEvent(event.id, {
       maximumExecutionCount: parsed != null && !isNaN(parsed) ? parsed : undefined,
     });
@@ -125,12 +125,13 @@ export function EventPropertyEditor({ event }: EventPropertyEditorProps) {
       {/* Maximum Execution Count */}
       <div className="grid gap-1.5">
         <Label className="text-xs">{tc('catalog.maxExecutionCount')}</Label>
-        <Input
-          type="number"
-          min={1}
-          placeholder="-"
+        <ParameterAwareInput
+          elementId={event.id}
+          fieldName="maximumExecutionCount"
           value={event.maximumExecutionCount ?? ''}
-          onChange={handleMaxExecCountChange}
+          onValueChange={handleMaxExecCountChange}
+          acceptedTypes={['unsignedInt', 'int']}
+          placeholder="-"
           className="h-8 text-sm"
         />
       </div>

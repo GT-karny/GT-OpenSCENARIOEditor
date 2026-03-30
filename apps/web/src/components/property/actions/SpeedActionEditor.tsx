@@ -38,7 +38,7 @@ export function SpeedActionEditor({ action, onUpdate }: SpeedActionEditorProps) 
           <div className="flex gap-1">
             <ParameterAwareInput
               elementId={action.id}
-              fieldName="action.target.value"
+              fieldName="target.value"
               value={inner.target.value}
               onValueChange={(v) => {
                 if (inner.target.kind === 'absolute') {

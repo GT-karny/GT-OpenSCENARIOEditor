@@ -1,6 +1,6 @@
 import type { Condition, ByValueCondition, UserDefinedValueCondition } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 import { RuleSegmentedControl } from '../RuleSegmentedControl';
 
 interface UserDefinedValueConditionEditorProps {
@@ -26,18 +26,20 @@ export function UserDefinedValueConditionEditor({
       <p className="text-xs font-medium text-muted-foreground">User Defined Value</p>
       <div className="grid gap-1">
         <Label className="text-[10px]">Name</Label>
-        <Input
+        <ParameterAwareInput
           value={cond.name}
-          onChange={(e) => update({ name: e.target.value })}
+          onValueChange={(v) => update({ name: v })}
+          acceptedTypes={['string']}
           className="h-7 text-xs"
         />
       </div>
       <div className="grid gap-1">
         <Label className="text-[10px]">Value</Label>
         <div className="flex gap-1">
-          <Input
+          <ParameterAwareInput
             value={cond.value}
-            onChange={(e) => update({ value: e.target.value })}
+            onValueChange={(v) => update({ value: v })}
+            acceptedTypes={['string']}
             className="h-7 text-xs flex-1 min-w-0"
           />
           <RuleSegmentedControl

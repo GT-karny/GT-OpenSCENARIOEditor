@@ -1,9 +1,11 @@
 import { useState, useCallback } from 'react';
 import type { VariableDeclaration, ParameterType } from '@osce/shared';
+import { isExpression, looksLikeExpression } from '@/lib/expression-utils';
 import { GripVertical, Trash2, ToggleLeft } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { EnumSelect } from '../property/EnumSelect';
+import { ParameterAwareInput } from '../property/ParameterAwareInput';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { cn } from '@/lib/utils';
 
@@ -48,8 +50,14 @@ export function VariableListItem({ variable, onDelete }: VariableListItemProps) 
   };
 
   const commitValue = () => {
-    if (tempValue !== variable.value) {
-      storeApi.getState().updateVariable(variable.id, { value: tempValue });
+    let val = tempValue;
+    // Auto-wrap bare expressions in ${...} for OpenSCENARIO compliance
+    if (val && !isExpression(val) && looksLikeExpression(val)) {
+      val = `\${${val.trim()}}`;
+      setTempValue(val);
+    }
+    if (val !== variable.value) {
+      storeApi.getState().updateVariable(variable.id, { value: val });
     }
     setEditingValue(false);
   };
@@ -100,11 +108,12 @@ export function VariableListItem({ variable, onDelete }: VariableListItemProps) 
           />
           <span className="text-[10px] text-[var(--color-text-tertiary)]">=</span>
           {editingValue ? (
-            <Input
+            <ParameterAwareInput
               value={tempValue}
-              onChange={(e) => setTempValue(e.target.value)}
+              onValueChange={(v) => setTempValue(v)}
               onBlur={commitValue}
               onKeyDown={(e) => { if (e.key === 'Enter') commitValue(); if (e.key === 'Escape') setEditingValue(false); }}
+              acceptedTypes={['string', 'double', 'int', 'boolean', 'dateTime', 'unsignedInt', 'unsignedShort']}
               className="h-5 text-[10px] flex-1 min-w-0 px-1"
               autoFocus
             />

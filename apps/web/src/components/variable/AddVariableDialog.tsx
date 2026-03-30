@@ -12,6 +12,7 @@ import {
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { ParameterAwareInput } from '../property/ParameterAwareInput';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 
@@ -81,10 +82,11 @@ export function AddVariableDialog({ open, onOpenChange }: AddVariableDialogProps
           </div>
           <div className="grid gap-2">
             <Label htmlFor="var-value">{t('labels.value')}</Label>
-            <Input
+            <ParameterAwareInput
               id="var-value"
               value={value}
-              onChange={(e) => setValue(e.target.value)}
+              onValueChange={(v) => setValue(v)}
+              acceptedTypes={['string', 'double', 'int', 'boolean', 'dateTime', 'unsignedInt', 'unsignedShort']}
               placeholder="Initial value"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleAdd();

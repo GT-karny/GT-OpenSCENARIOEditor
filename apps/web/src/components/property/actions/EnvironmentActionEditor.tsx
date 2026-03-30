@@ -94,7 +94,7 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
             <Label className="text-xs">Pressure (Pa)</Label>
             <ParameterAwareInput
               elementId={action.id}
-              fieldName="action.environment.weather.atmosphericPressure"
+              fieldName="environment.weather.atmosphericPressure"
               value={env.weather.atmosphericPressure ?? ''}
               placeholder="--"
               onValueChange={(v) => {
@@ -114,7 +114,7 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
             <Label className="text-xs">Temperature (K)</Label>
             <ParameterAwareInput
               elementId={action.id}
-              fieldName="action.environment.weather.temperature"
+              fieldName="environment.weather.temperature"
               value={env.weather.temperature ?? ''}
               placeholder="--"
               onValueChange={(v) => {
@@ -171,7 +171,7 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
           <Label className="text-xs">Fog Visual Range (m)</Label>
           <ParameterAwareInput
             elementId={action.id}
-            fieldName="action.environment.weather.fog.visualRange"
+            fieldName="environment.weather.fog.visualRange"
             value={env.weather.fog?.visualRange ?? ''}
             placeholder="--"
             onValueChange={(v) => {
@@ -205,7 +205,7 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
             <Label className="text-xs">Intensity (0–1)</Label>
             <ParameterAwareInput
               elementId={action.id}
-              fieldName="action.environment.weather.precipitation.precipitationIntensity"
+              fieldName="environment.weather.precipitation.precipitationIntensity"
               value={env.weather.precipitation?.precipitationIntensity ?? ''}
               placeholder="--"
               onValueChange={(v) => {
@@ -231,7 +231,7 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
               <Label className="text-xs">Direction (rad)</Label>
               <ParameterAwareInput
                 elementId={action.id}
-                fieldName="action.environment.weather.wind.direction"
+                fieldName="environment.weather.wind.direction"
                 value={env.weather.wind?.direction ?? ''}
                 placeholder="--"
                 onValueChange={(v) => {
@@ -251,7 +251,7 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
               <Label className="text-xs">Speed (m/s)</Label>
               <ParameterAwareInput
                 elementId={action.id}
-                fieldName="action.environment.weather.wind.speed"
+                fieldName="environment.weather.wind.speed"
                 value={env.weather.wind?.speed ?? ''}
                 placeholder="--"
                 onValueChange={(v) => {
@@ -278,7 +278,7 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
           <Label className="text-xs">Friction Scale Factor</Label>
           <ParameterAwareInput
             elementId={action.id}
-            fieldName="action.environment.roadCondition.frictionScaleFactor"
+            fieldName="environment.roadCondition.frictionScaleFactor"
             value={env.roadCondition.frictionScaleFactor}
             onValueChange={(v) =>
               updateEnv({

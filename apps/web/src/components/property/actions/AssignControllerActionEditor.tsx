@@ -1,6 +1,7 @@
 import type { ScenarioAction, AssignControllerAction, Property } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 import { SegmentedControl } from '../SegmentedControl';
 
 type SourceMode = 'inline' | 'catalog';
@@ -152,10 +153,11 @@ export function AssignControllerActionEditor({ action, onUpdate }: AssignControl
                     onChange={(e) => updateProperty(i, { name: e.target.value })}
                     className="h-7 text-xs flex-1"
                   />
-                  <Input
+                  <ParameterAwareInput
                     value={prop.value}
                     placeholder="value"
-                    onChange={(e) => updateProperty(i, { value: e.target.value })}
+                    onValueChange={(v) => updateProperty(i, { value: v })}
+                    acceptedTypes={['string']}
                     className="h-7 text-xs flex-1"
                   />
                   <button

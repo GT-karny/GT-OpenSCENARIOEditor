@@ -237,7 +237,7 @@ export function FollowTrajectoryActionEditor({
       >
         <ParameterAwareInput
           elementId={action.id}
-          fieldName="action.initialDistanceOffset"
+          fieldName="initialDistanceOffset"
           value={inner.initialDistanceOffset ?? ''}
           placeholder="--"
           onValueChange={(v) => {
@@ -284,7 +284,7 @@ export function FollowTrajectoryActionEditor({
                 <Label className="text-xs">Offset (s)</Label>
                 <ParameterAwareInput
                   elementId={action.id}
-                  fieldName="action.timeReference.timing.offset"
+                  fieldName="timeReference.timing.offset"
                   value={inner.timeReference.timing.offset}
                   onValueChange={(v) => updateTiming({ offset: parseFloat(v) || 0 })}
                   acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
@@ -295,7 +295,7 @@ export function FollowTrajectoryActionEditor({
                 <Label className="text-xs">Scale</Label>
                 <ParameterAwareInput
                   elementId={action.id}
-                  fieldName="action.timeReference.timing.scale"
+                  fieldName="timeReference.timing.scale"
                   value={inner.timeReference.timing.scale}
                   onValueChange={(v) => updateTiming({ scale: parseFloat(v) || 0 })}
                   acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
@@ -408,7 +408,7 @@ export function FollowTrajectoryActionEditor({
               <Label className="text-xs">Curvature</Label>
               <ParameterAwareInput
                 elementId={action.id}
-                fieldName="action.trajectory.shape.curvature"
+                fieldName="trajectory.shape.curvature"
                 value={clothoidShape.curvature}
                 onValueChange={(v) => updateClothoid({ curvature: parseFloat(v) || 0 })}
                 acceptedTypes={['double']}
@@ -419,7 +419,7 @@ export function FollowTrajectoryActionEditor({
               <Label className="text-xs">Curvature Dot</Label>
               <ParameterAwareInput
                 elementId={action.id}
-                fieldName="action.trajectory.shape.curvatureDot"
+                fieldName="trajectory.shape.curvatureDot"
                 value={clothoidShape.curvatureDot}
                 onValueChange={(v) => updateClothoid({ curvatureDot: parseFloat(v) || 0 })}
                 acceptedTypes={['double']}
@@ -430,7 +430,7 @@ export function FollowTrajectoryActionEditor({
               <Label className="text-xs">Length (m)</Label>
               <ParameterAwareInput
                 elementId={action.id}
-                fieldName="action.trajectory.shape.length"
+                fieldName="trajectory.shape.length"
                 value={clothoidShape.length}
                 onValueChange={(v) => updateClothoid({ length: parseFloat(v) || 0 })}
                 acceptedTypes={['double']}
@@ -442,7 +442,7 @@ export function FollowTrajectoryActionEditor({
                 <Label className="text-xs">Start Time (s)</Label>
                 <ParameterAwareInput
                   elementId={action.id}
-                  fieldName="action.trajectory.shape.startTime"
+                  fieldName="trajectory.shape.startTime"
                   value={clothoidShape.startTime ?? ''}
                   placeholder="--"
                   onValueChange={(v) => {
@@ -461,7 +461,7 @@ export function FollowTrajectoryActionEditor({
                 <Label className="text-xs">Stop Time (s)</Label>
                 <ParameterAwareInput
                   elementId={action.id}
-                  fieldName="action.trajectory.shape.stopTime"
+                  fieldName="trajectory.shape.stopTime"
                   value={clothoidShape.stopTime ?? ''}
                   placeholder="--"
                   onValueChange={(v) => {
@@ -517,7 +517,7 @@ export function FollowTrajectoryActionEditor({
               <Label className="text-xs">Order</Label>
               <ParameterAwareInput
                 elementId={action.id}
-                fieldName="action.trajectory.shape.order"
+                fieldName="trajectory.shape.order"
                 value={nurbsShape.order}
                 onValueChange={(v) => {
                   const newOrder = parseInt(v) || 3;

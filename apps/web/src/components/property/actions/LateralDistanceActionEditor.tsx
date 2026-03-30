@@ -69,7 +69,7 @@ export function LateralDistanceActionEditor({ action, onUpdate }: LateralDistanc
         <Label className="text-xs">Distance (m)</Label>
         <ParameterAwareInput
           elementId={action.id}
-          fieldName="action.distance"
+          fieldName="distance"
           value={inner.distance ?? ''}
           placeholder="—"
           onValueChange={(v) => {
@@ -161,7 +161,7 @@ export function LateralDistanceActionEditor({ action, onUpdate }: LateralDistanc
             <Label className="text-[10px]">Max Accel (m/s²)</Label>
             <ParameterAwareInput
               elementId={action.id}
-              fieldName="action.dynamics.maxAcceleration"
+              fieldName="dynamics.maxAcceleration"
               value={dynamics.maxAcceleration ?? ''}
               placeholder="—"
               onValueChange={(v) => updateDynamics('maxAcceleration', v)}
@@ -173,7 +173,7 @@ export function LateralDistanceActionEditor({ action, onUpdate }: LateralDistanc
             <Label className="text-[10px]">Max Decel (m/s²)</Label>
             <ParameterAwareInput
               elementId={action.id}
-              fieldName="action.dynamics.maxDeceleration"
+              fieldName="dynamics.maxDeceleration"
               value={dynamics.maxDeceleration ?? ''}
               placeholder="—"
               onValueChange={(v) => updateDynamics('maxDeceleration', v)}
@@ -185,7 +185,7 @@ export function LateralDistanceActionEditor({ action, onUpdate }: LateralDistanc
             <Label className="text-[10px]">Max Speed (m/s)</Label>
             <ParameterAwareInput
               elementId={action.id}
-              fieldName="action.dynamics.maxSpeed"
+              fieldName="dynamics.maxSpeed"
               value={dynamics.maxSpeed ?? ''}
               placeholder="—"
               onValueChange={(v) => updateDynamics('maxSpeed', v)}

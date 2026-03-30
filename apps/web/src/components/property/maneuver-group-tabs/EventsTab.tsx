@@ -1,7 +1,7 @@
 import type { ScenarioEvent, EventPriority } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
 import { EnumSelect } from '../EnumSelect';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 import { useScenarioStore, useScenarioStoreApi } from '../../../stores/use-scenario-store';
 import { useEditorStore } from '../../../stores/editor-store';
 import { EVENT_PRIORITIES } from '../../../constants/osc-enum-values';
@@ -70,18 +70,17 @@ export function EventsTab({ events }: EventsTabProps) {
             {/* Max Execution Count */}
             <div className="grid gap-1">
               <Label className="text-[10px]">Max Execution Count</Label>
-              <Input
-                type="number"
-                min={1}
+              <ParameterAwareInput
+                elementId={event.id}
+                fieldName="maximumExecutionCount"
                 value={event.maximumExecutionCount ?? ''}
-                placeholder="unlimited"
-                onChange={(e) =>
+                onValueChange={(v) =>
                   storeApi.getState().updateEvent(event.id, {
-                    maximumExecutionCount: e.target.value
-                      ? parseInt(e.target.value)
-                      : undefined,
+                    maximumExecutionCount: v ? parseInt(v) : undefined,
                   })
                 }
+                acceptedTypes={['unsignedInt', 'int']}
+                placeholder="unlimited"
                 className="h-7 text-xs"
               />
             </div>

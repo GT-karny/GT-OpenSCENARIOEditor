@@ -80,7 +80,7 @@ export function InitPropertyEditorContent({ entityInit }: InitPropertyEditorCont
             <Label className="text-xs">Absolute Speed (m/s)</Label>
             <ParameterAwareInput
               elementId={speedActionEntry!.id}
-              fieldName="action.target.value"
+              fieldName="target.value"
               value={currentSpeed}
               onValueChange={(v) => handleSpeedChange(v)}
               acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}

@@ -1,6 +1,6 @@
 import type { Position, TrajectoryVertex } from '@osce/shared';
 import { Trash2 } from 'lucide-react';
-import { Input } from '../../ui/input';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 
 export interface TrajectoryVertexListItemProps {
   index: number;
@@ -72,11 +72,10 @@ export function TrajectoryVertexListItem({
       </span>
 
       {/* Time input */}
-      <Input
+      <ParameterAwareInput
         value={vertex.time ?? ''}
         placeholder="--"
-        onChange={(e) => {
-          const v = e.target.value;
+        onValueChange={(v) => {
           if (v === '') {
             onTimeChange(undefined);
           } else {
@@ -84,6 +83,7 @@ export function TrajectoryVertexListItem({
             if (!isNaN(parsed)) onTimeChange(parsed);
           }
         }}
+        acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
         onClick={(e) => e.stopPropagation()}
         className="h-6 w-[56px] shrink-0 text-[10px] text-center px-1"
         title="Time (s)"

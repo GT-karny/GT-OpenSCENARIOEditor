@@ -86,7 +86,7 @@ export function LaneOffsetActionEditor({ action, onUpdate }: LaneOffsetActionEdi
             />
             <ParameterAwareInput
               elementId={action.id}
-              fieldName="action.target.value"
+              fieldName="target.value"
               value={Math.abs(inner.target.value)}
               onValueChange={(v) => {
                 const mag = Math.abs(parseFloat(v) || 0);
@@ -135,7 +135,7 @@ export function LaneOffsetActionEditor({ action, onUpdate }: LaneOffsetActionEdi
             <Label className="text-[10px]">Max Speed (m/s)</Label>
             <ParameterAwareInput
               elementId={action.id}
-              fieldName="action.dynamics.maxSpeed"
+              fieldName="dynamics.maxSpeed"
               value={dynamics.maxSpeed ?? ''}
               placeholder="—"
               onValueChange={(v) => updateDynamicsNum('maxSpeed', v)}
@@ -147,7 +147,7 @@ export function LaneOffsetActionEditor({ action, onUpdate }: LaneOffsetActionEdi
             <Label className="text-[10px]">Max Lateral Acc (m/s²)</Label>
             <ParameterAwareInput
               elementId={action.id}
-              fieldName="action.dynamics.maxLateralAcc"
+              fieldName="dynamics.maxLateralAcc"
               value={dynamics.maxLateralAcc ?? ''}
               placeholder="—"
               onValueChange={(v) => updateDynamicsNum('maxLateralAcc', v)}

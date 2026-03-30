@@ -6,7 +6,7 @@ import type {
   TrafficSignalController,
 } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 import { cn } from '@/lib/utils';
 import { RefSelect } from '../RefSelect';
 import type { RefSelectItem } from '../RefSelect';
@@ -126,10 +126,11 @@ export function InfrastructureActionEditor({
           </div>
           <div className="grid gap-1">
             <Label className="text-xs">Phase</Label>
-            <Input
+            <ParameterAwareInput
               value={tsa.controllerAction?.phase ?? ''}
               placeholder="phase name"
-              onChange={(e) => updateTsa({ controllerAction: { phase: e.target.value } })}
+              onValueChange={(v) => updateTsa({ controllerAction: { phase: v } })}
+              acceptedTypes={['string']}
               className="h-8 text-sm"
             />
           </div>
@@ -156,12 +157,13 @@ export function InfrastructureActionEditor({
           </div>
           <div className="grid gap-1">
             <Label className="text-xs">State</Label>
-            <Input
+            <ParameterAwareInput
               value={tsa.stateAction?.state ?? ''}
               placeholder="e.g. red, green, yellow"
-              onChange={(e) =>
-                updateTsa({ stateAction: { name: tsa.stateAction?.name ?? '', state: e.target.value } })
+              onValueChange={(v) =>
+                updateTsa({ stateAction: { name: tsa.stateAction?.name ?? '', state: v } })
               }
+              acceptedTypes={['string']}
               className="h-8 text-sm"
             />
           </div>
