@@ -35,6 +35,7 @@ export const PedestrianEntity: React.FC<PedestrianEntityProps> = React.memo(
         {/* Pedestrian body (cylinder) */}
         <mesh
           position={[geom.centerX, geom.centerY, geom.centerZ]}
+          rotation={[Math.PI / 2, 0, 0]}
           onClick={(e) => { e.stopPropagation(); onClick?.(); }}
           onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick?.(); }}
         >

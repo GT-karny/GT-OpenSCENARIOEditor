@@ -22,6 +22,7 @@ import {
 import { editorMetadataStoreApi } from '../stores/editor-metadata-store-instance';
 import { useAppLifecycle } from './use-app-lifecycle';
 import * as api from '../lib/project-api';
+import { resolveCatalogEntityTypes } from '../lib/resolve-catalog-entity-types';
 
 // File picker type definitions for File System Access API
 interface FilePickerOptions {
@@ -301,6 +302,7 @@ export function useFileOperations() {
       // Electron: auto-load catalogs from CatalogLocations
       if (filePath && window.electronAPI?.isElectron) {
         await autoLoadCatalogs(filePath, doc.catalogLocations);
+        resolveCatalogEntityTypes(storeApi);
       }
     } catch {
       // User cancelled the file picker

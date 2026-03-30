@@ -12,6 +12,7 @@ import { buildCatalogLocationsFromProject } from '../lib/catalog-location-utils'
 import { editorMetadataStoreApi } from '../stores/editor-metadata-store-instance';
 import { useAppLifecycle } from './use-app-lifecycle';
 import * as api from '../lib/project-api';
+import { resolveCatalogEntityTypes } from '../lib/resolve-catalog-entity-types';
 
 /**
  * Normalize a relative path by resolving `..` segments and converting backslashes.
@@ -33,6 +34,30 @@ function normalizePath(path: string): string {
 function isCatalogPath(path: string): boolean {
   const lower = path.toLowerCase();
   return lower.startsWith('catalogs/') || lower.includes('/catalogs/');
+}
+
+/** Load all catalog xosc files from the current project into the catalog store. */
+async function loadProjectCatalogs(): Promise<void> {
+  const project = useProjectStore.getState().currentProject;
+  if (!project) return;
+
+  const catalogFiles = project.files.filter(
+    (f) => f.type === 'xosc' && isCatalogPath(f.relativePath),
+  );
+  if (catalogFiles.length === 0) return;
+
+  const results = await Promise.allSettled(
+    catalogFiles.map(async (f) => {
+      const content = await api.readProjectFile(project.meta.id, f.relativePath);
+      useCatalogStore.getState().loadCatalog(content, f.relativePath);
+    }),
+  );
+
+  for (let i = 0; i < results.length; i++) {
+    if (results[i].status === 'rejected') {
+      console.warn(`[loadProjectCatalogs] Failed to load ${catalogFiles[i].relativePath}`);
+    }
+  }
 }
 
 /**
@@ -163,9 +188,15 @@ export function useProjectFileOperations() {
           );
         }
 
+        // Re-load project catalogs (resetForNewFile clears them)
+        await loadProjectCatalogs();
+
         // Load into scenario store
         scenarioStoreApi.getState().createScenario();
         scenarioStoreApi.setState({ document: doc });
+
+        // Resolve entity types from loaded catalogs
+        resolveCatalogEntityTypes(scenarioStoreApi);
 
         // Update editor state
         const filename = relativePath.split('/').pop() ?? relativePath;
@@ -209,40 +240,11 @@ export function useProjectFileOperations() {
 
   const autoLoadProjectCatalogs = useCallback(
     async () => {
-      const project = useProjectStore.getState().currentProject;
-      if (!project) return;
-
-      const catalogFiles = project.files.filter(
-        (f) => f.type === 'xosc' && isCatalogPath(f.relativePath),
-      );
-      console.warn(
-        '[autoLoadProjectCatalogs] Found catalog files:',
-        catalogFiles.map((f) => f.relativePath),
-      );
-      if (catalogFiles.length === 0) return;
-
-      const results = await Promise.allSettled(
-        catalogFiles.map(async (f) => {
-          const content = await api.readProjectFile(project.meta.id, f.relativePath);
-          const doc = useCatalogStore.getState().loadCatalog(content, f.relativePath);
-          console.warn(
-            `[autoLoadProjectCatalogs] Loaded catalog "${doc.catalogName}" from ${f.relativePath}`,
-          );
-        }),
-      );
-
-      for (let i = 0; i < results.length; i++) {
-        const r = results[i];
-        if (r.status === 'rejected') {
-          console.error(
-            `[autoLoadProjectCatalogs] Failed to load ${catalogFiles[i].relativePath}:`,
-            r.reason,
-          );
-          toast.warning(t('warnings.catalogLoadFailed', { path: catalogFiles[i].relativePath }));
-        }
-      }
+      await loadProjectCatalogs();
+      // Resolve entity types now that catalogs are loaded
+      resolveCatalogEntityTypes(scenarioStoreApi);
     },
-    [t],
+    [scenarioStoreApi],
   );
 
   return {
