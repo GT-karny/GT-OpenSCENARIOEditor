@@ -3,22 +3,59 @@ import type {
   FollowTrajectoryAction,
   Trajectory,
   TrajectoryShape,
+  TrajectoryVertex,
+  NurbsControlPoint,
   TimeReference,
+  Position,
 } from '@osce/shared';
 import type { FollowingMode } from '@osce/shared';
+import { MapPin, Plus } from 'lucide-react';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
+import { Button } from '../../ui/button';
+import { Badge } from '../../ui/badge';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { SegmentedControl } from '../SegmentedControl';
 import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
+import { PositionEditor } from '../PositionEditor';
+import { TrajectoryVertexListItem } from './TrajectoryVertexListItem';
+import { NurbsControlPointListItem } from './NurbsControlPointListItem';
+import { KnotVectorEditor } from './KnotVectorEditor';
+import { useTrajectoryEditStore } from '../../../stores/trajectory-edit-store';
+import { useRouteEditStore } from '../../../stores/route-edit-store';
 
 interface FollowTrajectoryActionEditorProps {
   action: ScenarioAction;
   onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
-export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTrajectoryActionEditorProps) {
+const DEFAULT_WORLD_POSITION: Position = { type: 'worldPosition', x: 0, y: 0 };
+
+export function FollowTrajectoryActionEditor({
+  action,
+  onUpdate,
+}: FollowTrajectoryActionEditorProps) {
   const inner = action.action as FollowTrajectoryAction;
+
+  // Trajectory edit mode state
+  const trajectoryEditActive = useTrajectoryEditStore((s) => s.active);
+  const trajectoryEditSource = useTrajectoryEditStore((s) => s.source);
+  const routeEditActive = useRouteEditStore((s) => s.active);
+
+  const isEditingThisTrajectory =
+    trajectoryEditActive &&
+    trajectoryEditSource?.type === 'action' &&
+    trajectoryEditSource.actionId === action.id;
+
+  const canEditIn3D = !trajectoryEditActive && !routeEditActive;
+
+  const handleEditIn3D = () => {
+    if (!canEditIn3D) return;
+    useTrajectoryEditStore.getState().enterTrajectoryEditMode(
+      { type: 'action', actionId: action.id },
+      inner.trajectory,
+    );
+  };
 
   const updateInner = (updates: Partial<FollowTrajectoryAction>) => {
     onUpdate({
@@ -65,7 +102,13 @@ export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTraject
         shape = { type: 'polyline', vertices: [] };
         break;
       case 'clothoid':
-        shape = { type: 'clothoid', curvature: 0, curvatureDot: 0, length: 0 };
+        shape = {
+          type: 'clothoid',
+          curvature: 0,
+          curvatureDot: 0,
+          length: 0,
+          position: { ...DEFAULT_WORLD_POSITION },
+        };
         break;
       case 'nurbs':
         shape = { type: 'nurbs', order: 3, controlPoints: [], knots: [] };
@@ -74,6 +117,82 @@ export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTraject
         return;
     }
     updateTrajectory({ shape });
+  };
+
+  // --- Polyline helpers ---
+  const polylineShape = shapeType === 'polyline'
+    ? (inner.trajectory.shape as Extract<TrajectoryShape, { type: 'polyline' }>)
+    : null;
+
+  const updatePolylineVertices = (vertices: TrajectoryVertex[]) => {
+    updateTrajectory({ shape: { type: 'polyline', vertices } });
+  };
+
+  const handleAddVertex = () => {
+    if (!polylineShape) return;
+    const newVertex: TrajectoryVertex = { position: { ...DEFAULT_WORLD_POSITION } };
+    updatePolylineVertices([...polylineShape.vertices, newVertex]);
+  };
+
+  const handleDeleteVertex = (index: number) => {
+    if (!polylineShape) return;
+    updatePolylineVertices(polylineShape.vertices.filter((_, i) => i !== index));
+  };
+
+  const handleVertexTimeChange = (index: number, time: number | undefined) => {
+    if (!polylineShape) return;
+    updatePolylineVertices(
+      polylineShape.vertices.map((v, i) => (i === index ? { ...v, time } : v)),
+    );
+  };
+
+  // --- Clothoid helpers ---
+  const clothoidShape = shapeType === 'clothoid'
+    ? (inner.trajectory.shape as Extract<TrajectoryShape, { type: 'clothoid' }>)
+    : null;
+
+  const updateClothoid = (updates: Partial<Extract<TrajectoryShape, { type: 'clothoid' }>>) => {
+    if (!clothoidShape) return;
+    updateTrajectory({ shape: { ...clothoidShape, ...updates } });
+  };
+
+  // --- NURBS helpers ---
+  const nurbsShape = shapeType === 'nurbs'
+    ? (inner.trajectory.shape as Extract<TrajectoryShape, { type: 'nurbs' }>)
+    : null;
+
+  const updateNurbs = (updates: Partial<Extract<TrajectoryShape, { type: 'nurbs' }>>) => {
+    if (!nurbsShape) return;
+    updateTrajectory({ shape: { ...nurbsShape, ...updates } });
+  };
+
+  const handleAddControlPoint = () => {
+    if (!nurbsShape) return;
+    const newCp: NurbsControlPoint = { position: { ...DEFAULT_WORLD_POSITION }, weight: 1.0 };
+    updateNurbs({ controlPoints: [...nurbsShape.controlPoints, newCp] });
+  };
+
+  const handleDeleteControlPoint = (index: number) => {
+    if (!nurbsShape) return;
+    updateNurbs({ controlPoints: nurbsShape.controlPoints.filter((_, i) => i !== index) });
+  };
+
+  const handleControlPointTimeChange = (index: number, time: number | undefined) => {
+    if (!nurbsShape) return;
+    updateNurbs({
+      controlPoints: nurbsShape.controlPoints.map((cp, i) =>
+        i === index ? { ...cp, time } : cp,
+      ),
+    });
+  };
+
+  const handleControlPointWeightChange = (index: number, weight: number | undefined) => {
+    if (!nurbsShape) return;
+    updateNurbs({
+      controlPoints: nurbsShape.controlPoints.map((cp, i) =>
+        i === index ? { ...cp, weight } : cp,
+      ),
+    });
   };
 
   return (
@@ -106,9 +225,7 @@ export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTraject
           onValueChange={(v) => {
             if (v === '') {
               const { initialDistanceOffset: _, ...rest } = inner;
-              onUpdate({
-                action: { ...rest },
-              } as Partial<ScenarioAction>);
+              onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
             } else {
               updateInner({ initialDistanceOffset: parseFloat(v) || 0 });
             }
@@ -151,9 +268,7 @@ export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTraject
                   elementId={action.id}
                   fieldName="action.timeReference.timing.offset"
                   value={inner.timeReference.timing.offset}
-                  onValueChange={(v) =>
-                    updateTiming({ offset: parseFloat(v) || 0 })
-                  }
+                  onValueChange={(v) => updateTiming({ offset: parseFloat(v) || 0 })}
                   acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
                   className="h-8 text-sm"
                 />
@@ -164,9 +279,7 @@ export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTraject
                   elementId={action.id}
                   fieldName="action.timeReference.timing.scale"
                   value={inner.timeReference.timing.scale}
-                  onValueChange={(v) =>
-                    updateTiming({ scale: parseFloat(v) || 0 })
-                  }
+                  onValueChange={(v) => updateTiming({ scale: parseFloat(v) || 0 })}
                   acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
                   className="h-8 text-sm"
                 />
@@ -206,46 +319,80 @@ export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTraject
           />
         </div>
 
-        {/* Shape-specific fields */}
-        {shapeType === 'polyline' && inner.trajectory.shape.type === 'polyline' && (
-          <div className="grid gap-1">
-            <Label className="text-xs">Vertices (JSON)</Label>
-            <textarea
-              value={JSON.stringify(inner.trajectory.shape.vertices, null, 2)}
-              onChange={(e) => {
-                try {
-                  const parsed = JSON.parse(e.target.value);
-                  if (Array.isArray(parsed)) {
-                    updateTrajectory({
-                      shape: { type: 'polyline', vertices: parsed },
-                    });
-                  }
-                } catch {
-                  // ignore invalid JSON while typing
-                }
-              }}
-              className="min-h-[80px] w-full rounded-none border border-input bg-background px-3 py-2 text-xs font-mono resize-y"
-              spellCheck={false}
-            />
+        {/* ===== Polyline ===== */}
+        {polylineShape && (
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">
+                Vertices ({polylineShape.vertices.length})
+              </Label>
+              <button
+                type="button"
+                className="p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                onClick={handleAddVertex}
+                title="Add vertex"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            {polylineShape.vertices.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic py-2">
+                No vertices defined. Use &quot;Edit in 3D&quot; to add vertices visually.
+              </p>
+            ) : (
+              <div className="space-y-0.5 max-h-[200px] overflow-y-auto">
+                {polylineShape.vertices.map((vertex, i) => (
+                  <TrajectoryVertexListItem
+                    key={i}
+                    index={i}
+                    vertex={vertex}
+                    isSelected={false}
+                    onSelect={() => {}}
+                    onDelete={() => handleDeleteVertex(i)}
+                    onTimeChange={(time) => handleVertexTimeChange(i, time)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {polylineShape.vertices.length > 0 && polylineShape.vertices.length < 2 && (
+              <p className="text-[10px] text-[var(--color-warning)] py-0.5">
+                At least 2 vertices required for a valid polyline
+              </p>
+            )}
+
+            {/* Edit in 3D / Editing badge */}
+            {isEditingThisTrajectory ? (
+              <Badge variant="secondary" className="w-full justify-center py-1.5 text-xs">
+                <MapPin className="mr-1.5 h-3 w-3" />
+                Editing in 3D...
+              </Badge>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={handleEditIn3D}
+                disabled={!canEditIn3D}
+              >
+                <MapPin className="mr-1.5 h-3.5 w-3.5" />
+                Edit in 3D
+              </Button>
+            )}
           </div>
         )}
 
-        {shapeType === 'clothoid' && inner.trajectory.shape.type === 'clothoid' && (
+        {/* ===== Clothoid ===== */}
+        {clothoidShape && (
           <div className="space-y-2">
             <div className="grid gap-1">
               <Label className="text-xs">Curvature</Label>
               <ParameterAwareInput
                 elementId={action.id}
                 fieldName="action.trajectory.shape.curvature"
-                value={inner.trajectory.shape.curvature}
-                onValueChange={(v) =>
-                  updateTrajectory({
-                    shape: {
-                      ...inner.trajectory.shape as Extract<TrajectoryShape, { type: 'clothoid' }>,
-                      curvature: parseFloat(v) || 0,
-                    },
-                  })
-                }
+                value={clothoidShape.curvature}
+                onValueChange={(v) => updateClothoid({ curvature: parseFloat(v) || 0 })}
                 acceptedTypes={['double']}
                 className="h-8 text-sm"
               />
@@ -255,15 +402,8 @@ export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTraject
               <ParameterAwareInput
                 elementId={action.id}
                 fieldName="action.trajectory.shape.curvatureDot"
-                value={inner.trajectory.shape.curvatureDot}
-                onValueChange={(v) =>
-                  updateTrajectory({
-                    shape: {
-                      ...inner.trajectory.shape as Extract<TrajectoryShape, { type: 'clothoid' }>,
-                      curvatureDot: parseFloat(v) || 0,
-                    },
-                  })
-                }
+                value={clothoidShape.curvatureDot}
+                onValueChange={(v) => updateClothoid({ curvatureDot: parseFloat(v) || 0 })}
                 acceptedTypes={['double']}
                 className="h-8 text-sm"
               />
@@ -273,36 +413,26 @@ export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTraject
               <ParameterAwareInput
                 elementId={action.id}
                 fieldName="action.trajectory.shape.length"
-                value={inner.trajectory.shape.length}
-                onValueChange={(v) =>
-                  updateTrajectory({
-                    shape: {
-                      ...inner.trajectory.shape as Extract<TrajectoryShape, { type: 'clothoid' }>,
-                      length: parseFloat(v) || 0,
-                    },
-                  })
-                }
+                value={clothoidShape.length}
+                onValueChange={(v) => updateClothoid({ length: parseFloat(v) || 0 })}
                 acceptedTypes={['double']}
                 className="h-8 text-sm"
               />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="grid gap-1">
-                <Label className="text-xs">Start Time (s) (optional)</Label>
+                <Label className="text-xs">Start Time (s)</Label>
                 <ParameterAwareInput
                   elementId={action.id}
                   fieldName="action.trajectory.shape.startTime"
-                  value={inner.trajectory.shape.startTime ?? ''}
+                  value={clothoidShape.startTime ?? ''}
                   placeholder="--"
                   onValueChange={(v) => {
-                    const clothoid = inner.trajectory.shape as Extract<TrajectoryShape, { type: 'clothoid' }>;
                     if (v === '') {
-                      const { startTime: _, ...rest } = clothoid;
+                      const { startTime: _, ...rest } = clothoidShape;
                       updateTrajectory({ shape: { ...rest, type: 'clothoid' } as TrajectoryShape });
                     } else {
-                      updateTrajectory({
-                        shape: { ...clothoid, startTime: parseFloat(v) || 0 },
-                      });
+                      updateClothoid({ startTime: parseFloat(v) || 0 });
                     }
                   }}
                   acceptedTypes={['double']}
@@ -310,21 +440,18 @@ export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTraject
                 />
               </div>
               <div className="grid gap-1">
-                <Label className="text-xs">Stop Time (s) (optional)</Label>
+                <Label className="text-xs">Stop Time (s)</Label>
                 <ParameterAwareInput
                   elementId={action.id}
                   fieldName="action.trajectory.shape.stopTime"
-                  value={inner.trajectory.shape.stopTime ?? ''}
+                  value={clothoidShape.stopTime ?? ''}
                   placeholder="--"
                   onValueChange={(v) => {
-                    const clothoid = inner.trajectory.shape as Extract<TrajectoryShape, { type: 'clothoid' }>;
                     if (v === '') {
-                      const { stopTime: _, ...rest } = clothoid;
+                      const { stopTime: _, ...rest } = clothoidShape;
                       updateTrajectory({ shape: { ...rest, type: 'clothoid' } as TrajectoryShape });
                     } else {
-                      updateTrajectory({
-                        shape: { ...clothoid, stopTime: parseFloat(v) || 0 },
-                      });
+                      updateClothoid({ stopTime: parseFloat(v) || 0 });
                     }
                   }}
                   acceptedTypes={['double']}
@@ -332,50 +459,127 @@ export function FollowTrajectoryActionEditor({ action, onUpdate }: FollowTraject
                 />
               </div>
             </div>
+
+            {/* Origin Position */}
+            <div className="space-y-1">
+              <Label className="text-xs">Origin Position</Label>
+              <PositionEditor
+                position={clothoidShape.position ?? DEFAULT_WORLD_POSITION}
+                onChange={(pos: Position) => updateClothoid({ position: pos })}
+                elementId={action.id}
+                fieldPathPrefix="action.trajectory.shape.position"
+              />
+            </div>
+
+            {/* Edit in 3D / Editing badge */}
+            {isEditingThisTrajectory ? (
+              <Badge variant="secondary" className="w-full justify-center py-1.5 text-xs">
+                <MapPin className="mr-1.5 h-3 w-3" />
+                Editing in 3D...
+              </Badge>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={handleEditIn3D}
+                disabled={!canEditIn3D}
+              >
+                <MapPin className="mr-1.5 h-3.5 w-3.5" />
+                Edit in 3D
+              </Button>
+            )}
           </div>
         )}
 
-        {shapeType === 'nurbs' && inner.trajectory.shape.type === 'nurbs' && (
+        {/* ===== NURBS ===== */}
+        {nurbsShape && (
           <div className="space-y-2">
             <div className="grid gap-1">
               <Label className="text-xs">Order</Label>
               <ParameterAwareInput
                 elementId={action.id}
                 fieldName="action.trajectory.shape.order"
-                value={inner.trajectory.shape.order}
-                onValueChange={(v) =>
-                  updateTrajectory({
-                    shape: {
-                      ...inner.trajectory.shape as Extract<TrajectoryShape, { type: 'nurbs' }>,
-                      order: parseInt(v) || 3,
-                    },
-                  })
-                }
+                value={nurbsShape.order}
+                onValueChange={(v) => updateNurbs({ order: parseInt(v) || 3 })}
                 acceptedTypes={['int', 'unsignedInt']}
                 className="h-8 text-sm"
               />
             </div>
-            <div className="grid gap-1">
-              <Label className="text-xs">Control Points (JSON)</Label>
-              <textarea
-                value={JSON.stringify(inner.trajectory.shape.controlPoints, null, 2)}
-                onChange={(e) => {
-                  try {
-                    const parsed = JSON.parse(e.target.value);
-                    if (Array.isArray(parsed)) {
-                      const nurbs = inner.trajectory.shape as Extract<TrajectoryShape, { type: 'nurbs' }>;
-                      updateTrajectory({
-                        shape: { ...nurbs, controlPoints: parsed },
-                      });
-                    }
-                  } catch {
-                    // ignore invalid JSON while typing
-                  }
-                }}
-                className="min-h-[80px] w-full rounded-none border border-input bg-background px-3 py-2 text-xs font-mono resize-y"
-                spellCheck={false}
-              />
+
+            {/* Control Points */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">
+                  Control Points ({nurbsShape.controlPoints.length})
+                </Label>
+                <button
+                  type="button"
+                  className="p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={handleAddControlPoint}
+                  title="Add control point"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              {nurbsShape.controlPoints.length === 0 ? (
+                <p className="text-xs text-muted-foreground italic py-2">
+                  No control points defined. Use &quot;Edit in 3D&quot; to add points visually.
+                </p>
+              ) : (
+                <div className="space-y-0.5 max-h-[200px] overflow-y-auto">
+                  {nurbsShape.controlPoints.map((cp, i) => (
+                    <NurbsControlPointListItem
+                      key={i}
+                      index={i}
+                      controlPoint={cp}
+                      isSelected={false}
+                      onSelect={() => {}}
+                      onDelete={() => handleDeleteControlPoint(i)}
+                      onTimeChange={(time) => handleControlPointTimeChange(i, time)}
+                      onWeightChange={(weight) => handleControlPointWeightChange(i, weight)}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {nurbsShape.controlPoints.length > 0 && nurbsShape.controlPoints.length < 2 && (
+                <p className="text-[10px] text-[var(--color-warning)] py-0.5">
+                  At least 2 control points required
+                </p>
+              )}
             </div>
+
+            {/* Knot Vector */}
+            <KnotVectorEditor
+              knots={nurbsShape.knots}
+              expectedLength={
+                nurbsShape.controlPoints.length > 0
+                  ? nurbsShape.controlPoints.length + nurbsShape.order
+                  : undefined
+              }
+              onChange={(knots) => updateNurbs({ knots })}
+            />
+
+            {/* Edit in 3D / Editing badge */}
+            {isEditingThisTrajectory ? (
+              <Badge variant="secondary" className="w-full justify-center py-1.5 text-xs">
+                <MapPin className="mr-1.5 h-3 w-3" />
+                Editing in 3D...
+              </Badge>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={handleEditIn3D}
+                disabled={!canEditIn3D}
+              >
+                <MapPin className="mr-1.5 h-3.5 w-3.5" />
+                Edit in 3D
+              </Button>
+            )}
           </div>
         )}
       </div>

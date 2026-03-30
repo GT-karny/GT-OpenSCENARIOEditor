@@ -47,6 +47,12 @@ export { RoutePreviewOverlay } from './route/RoutePreviewOverlay.js';
 export type { RoutePreviewData, RoutePreviewOverlayProps } from './route/RoutePreviewOverlay.js';
 export { RouteClickHandler } from './interaction/RouteClickHandler.js';
 
+// Trajectory visualization & interaction
+export { TrajectoryOverlay } from './trajectory/TrajectoryOverlay.js';
+export type { TrajectoryOverlayProps } from './trajectory/TrajectoryOverlay.js';
+export { TrajectoryEditOverlay } from './trajectory/TrajectoryEditOverlay.js';
+export { TrajectoryClickHandler } from './interaction/TrajectoryClickHandler.js';
+
 // Position inspector & pick mode
 export { PositionInspectorOverlay } from './interaction/PositionInspectorOverlay.js';
 export type { PickedPositionData } from './interaction/RoadClickHandler.js';
