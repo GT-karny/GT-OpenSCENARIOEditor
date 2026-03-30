@@ -21,6 +21,7 @@ import { PositionEditor } from '../PositionEditor';
 import { TrajectoryVertexListItem } from './TrajectoryVertexListItem';
 import { NurbsControlPointListItem } from './NurbsControlPointListItem';
 import { KnotVectorEditor } from './KnotVectorEditor';
+import { generateClampedUniformKnots } from '../../../lib/nurbs-knot-utils';
 import { useTrajectoryEditStore } from '../../../stores/trajectory-edit-store';
 import { useRouteEditStore } from '../../../stores/route-edit-store';
 
@@ -166,15 +167,32 @@ export function FollowTrajectoryActionEditor({
     updateTrajectory({ shape: { ...nurbsShape, ...updates } });
   };
 
+  /**
+   * Auto-regenerate knots when control point count changes (if knots match auto pattern).
+   */
+  const autoRegenerateKnots = (newCpCount: number, currentOrder: number, currentKnots: number[]) => {
+    if (newCpCount < 2) return currentKnots;
+    const expectedLen = newCpCount + currentOrder;
+    // If knots are empty or length was matching before, regenerate
+    if (currentKnots.length === 0 || currentKnots.length === expectedLen - 1 || currentKnots.length === expectedLen + 1) {
+      return generateClampedUniformKnots(newCpCount, currentOrder);
+    }
+    return currentKnots;
+  };
+
   const handleAddControlPoint = () => {
     if (!nurbsShape) return;
     const newCp: NurbsControlPoint = { position: { ...DEFAULT_WORLD_POSITION }, weight: 1.0 };
-    updateNurbs({ controlPoints: [...nurbsShape.controlPoints, newCp] });
+    const newCps = [...nurbsShape.controlPoints, newCp];
+    const knots = autoRegenerateKnots(newCps.length, nurbsShape.order, nurbsShape.knots);
+    updateNurbs({ controlPoints: newCps, knots });
   };
 
   const handleDeleteControlPoint = (index: number) => {
     if (!nurbsShape) return;
-    updateNurbs({ controlPoints: nurbsShape.controlPoints.filter((_, i) => i !== index) });
+    const newCps = nurbsShape.controlPoints.filter((_, i) => i !== index);
+    const knots = autoRegenerateKnots(newCps.length, nurbsShape.order, nurbsShape.knots);
+    updateNurbs({ controlPoints: newCps, knots });
   };
 
   const handleControlPointTimeChange = (index: number, time: number | undefined) => {
@@ -501,7 +519,13 @@ export function FollowTrajectoryActionEditor({
                 elementId={action.id}
                 fieldName="action.trajectory.shape.order"
                 value={nurbsShape.order}
-                onValueChange={(v) => updateNurbs({ order: parseInt(v) || 3 })}
+                onValueChange={(v) => {
+                  const newOrder = parseInt(v) || 3;
+                  const knots = nurbsShape.controlPoints.length >= 2
+                    ? generateClampedUniformKnots(nurbsShape.controlPoints.length, newOrder)
+                    : nurbsShape.knots;
+                  updateNurbs({ order: newOrder, knots });
+                }}
                 acceptedTypes={['int', 'unsignedInt']}
                 className="h-8 text-sm"
               />
@@ -554,11 +578,8 @@ export function FollowTrajectoryActionEditor({
             {/* Knot Vector */}
             <KnotVectorEditor
               knots={nurbsShape.knots}
-              expectedLength={
-                nurbsShape.controlPoints.length > 0
-                  ? nurbsShape.controlPoints.length + nurbsShape.order
-                  : undefined
-              }
+              order={nurbsShape.order}
+              controlPointCount={nurbsShape.controlPoints.length}
               onChange={(knots) => updateNurbs({ knots })}
             />
 

@@ -6,6 +6,7 @@ import type {
   NurbsControlPoint,
   Position,
 } from '@osce/shared';
+import { generateClampedUniformKnots } from '../lib/nurbs-knot-utils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -372,9 +373,13 @@ export const useTrajectoryEditStore = create<TrajectoryEditState & TrajectoryEdi
         const past = pushHistory(state.history.past, state.editingTrajectory);
         const shape = state.editingTrajectory.shape;
         const cp: NurbsControlPoint = { position, weight: 1.0 };
+        const newCps = [...shape.controlPoints, cp];
+        const knots = newCps.length >= 2
+          ? generateClampedUniformKnots(newCps.length, shape.order)
+          : shape.knots;
         const updated: Trajectory = {
           ...state.editingTrajectory,
-          shape: { ...shape, controlPoints: [...shape.controlPoints, cp] },
+          shape: { ...shape, controlPoints: newCps, knots },
         };
         return {
           editingTrajectory: updated,
@@ -393,9 +398,12 @@ export const useTrajectoryEditStore = create<TrajectoryEditState & TrajectoryEdi
         const shape = state.editingTrajectory.shape;
         const controlPoints = [...shape.controlPoints];
         controlPoints.splice(afterIndex + 1, 0, { position, weight: 1.0 });
+        const knots = controlPoints.length >= 2
+          ? generateClampedUniformKnots(controlPoints.length, shape.order)
+          : shape.knots;
         const updated: Trajectory = {
           ...state.editingTrajectory,
-          shape: { ...shape, controlPoints },
+          shape: { ...shape, controlPoints, knots },
         };
         return {
           editingTrajectory: updated,
@@ -414,9 +422,12 @@ export const useTrajectoryEditStore = create<TrajectoryEditState & TrajectoryEdi
         if (index < 0 || index >= shape.controlPoints.length) return state;
         const past = pushHistory(state.history.past, state.editingTrajectory);
         const controlPoints = shape.controlPoints.filter((_, i) => i !== index);
+        const knots = controlPoints.length >= 2
+          ? generateClampedUniformKnots(controlPoints.length, shape.order)
+          : [];
         const updated: Trajectory = {
           ...state.editingTrajectory,
-          shape: { ...shape, controlPoints },
+          shape: { ...shape, controlPoints, knots },
         };
         let selectedPointIndex = state.selectedPointIndex;
         if (selectedPointIndex !== null) {

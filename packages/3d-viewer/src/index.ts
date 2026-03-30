@@ -51,6 +51,8 @@ export { RouteClickHandler } from './interaction/RouteClickHandler.js';
 export { TrajectoryOverlay } from './trajectory/TrajectoryOverlay.js';
 export type { TrajectoryOverlayProps } from './trajectory/TrajectoryOverlay.js';
 export { TrajectoryEditOverlay } from './trajectory/TrajectoryEditOverlay.js';
+export { TrajectoryPreviewOverlay } from './trajectory/TrajectoryPreviewOverlay.js';
+export type { TrajectoryPreviewData, TrajectoryPreviewOverlayProps } from './trajectory/TrajectoryPreviewOverlay.js';
 export { TrajectoryClickHandler } from './interaction/TrajectoryClickHandler.js';
 
 // Position inspector & pick mode

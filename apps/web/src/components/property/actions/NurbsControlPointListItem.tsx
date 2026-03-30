@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from 'react';
 import type { NurbsControlPoint } from '@osce/shared';
 import { Trash2 } from 'lucide-react';
 import { Input } from '../../ui/input';
@@ -11,6 +12,58 @@ export interface NurbsControlPointListItemProps {
   onDelete: () => void;
   onTimeChange: (time: number | undefined) => void;
   onWeightChange: (weight: number | undefined) => void;
+}
+
+/**
+ * Decimal-safe number input that keeps local string state while editing.
+ */
+function DecimalInput({
+  value,
+  placeholder,
+  title,
+  onChange,
+}: {
+  value: number | undefined;
+  placeholder: string;
+  title: string;
+  onChange: (value: number | undefined) => void;
+}) {
+  const [localValue, setLocalValue] = useState(value != null ? String(value) : '');
+
+  useEffect(() => {
+    setLocalValue(value != null ? String(value) : '');
+  }, [value]);
+
+  const commit = useCallback(() => {
+    if (localValue === '') {
+      onChange(undefined);
+    } else {
+      const parsed = parseFloat(localValue);
+      if (!isNaN(parsed)) {
+        onChange(parsed);
+      } else {
+        setLocalValue(value != null ? String(value) : '');
+      }
+    }
+  }, [localValue, onChange, value]);
+
+  return (
+    <Input
+      value={localValue}
+      placeholder={placeholder}
+      onChange={(e) => setLocalValue(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          commit();
+          (e.target as HTMLInputElement).blur();
+        }
+      }}
+      onClick={(e) => e.stopPropagation()}
+      className="h-6 w-[44px] shrink-0 text-[10px] text-center px-1"
+      title={title}
+    />
+  );
 }
 
 export function NurbsControlPointListItem({
@@ -50,39 +103,19 @@ export function NurbsControlPointListItem({
       </span>
 
       {/* Weight input */}
-      <Input
-        value={controlPoint.weight ?? ''}
+      <DecimalInput
+        value={controlPoint.weight}
         placeholder="w"
-        onChange={(e) => {
-          const v = e.target.value;
-          if (v === '') {
-            onWeightChange(undefined);
-          } else {
-            const parsed = parseFloat(v);
-            if (!isNaN(parsed)) onWeightChange(parsed);
-          }
-        }}
-        onClick={(e) => e.stopPropagation()}
-        className="h-6 w-[44px] shrink-0 text-[10px] text-center px-1"
         title="Weight"
+        onChange={onWeightChange}
       />
 
       {/* Time input */}
-      <Input
-        value={controlPoint.time ?? ''}
+      <DecimalInput
+        value={controlPoint.time}
         placeholder="t"
-        onChange={(e) => {
-          const v = e.target.value;
-          if (v === '') {
-            onTimeChange(undefined);
-          } else {
-            const parsed = parseFloat(v);
-            if (!isNaN(parsed)) onTimeChange(parsed);
-          }
-        }}
-        onClick={(e) => e.stopPropagation()}
-        className="h-6 w-[44px] shrink-0 text-[10px] text-center px-1"
         title="Time (s)"
+        onChange={onTimeChange}
       />
 
       {/* Delete button */}

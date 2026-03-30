@@ -8,7 +8,7 @@ const ENTITY_TYPES: EntityType[] = ['vehicle', 'pedestrian', 'miscObject'];
  * by inspecting the loaded catalog contents (e.g., PedestrianCatalog → 'pedestrian').
  * Uses direct setState to avoid polluting undo history during initial file load.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export function resolveCatalogEntityTypes(storeApi: {
   getState: () => any;
   setState: (s: any) => void;

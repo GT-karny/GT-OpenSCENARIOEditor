@@ -39,6 +39,7 @@ import { useSimulationStore } from '../../stores/simulation-store';
 import { useRouteEdit } from '../../hooks/use-route-edit';
 import { useTrajectoryEdit } from '../../hooks/use-trajectory-edit';
 import { useRoutePreview } from '../../hooks/use-route-preview';
+import { useTrajectoryPreview } from '../../hooks/use-trajectory-preview';
 import { useRoadManagerClient } from '../../hooks/use-road-manager-client';
 import { useCatalogStore } from '../../stores/catalog-store';
 import { useTemplateDrop } from '../../hooks/use-template-drop';
@@ -112,6 +113,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   onTrajectoryEditCancel?: () => void;
   trajectoryWarnings?: string[];
   trajectoryPointCount?: number;
+  trajectoryPreviewData?: import('@osce/3d-viewer').TrajectoryPreviewData[];
   selectedSignalKey?: string | null;
   onSignalSelect?: (key: string) => void;
   highlightedSignalIds?: ReadonlySet<string>;
@@ -192,6 +194,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       onTrajectoryEditCancel={props.onTrajectoryEditCancel}
       trajectoryWarnings={props.trajectoryWarnings}
       trajectoryPointCount={props.trajectoryPointCount}
+      trajectoryPreviewData={props.trajectoryPreviewData}
       selectedSignalKey={props.selectedSignalKey}
       onSignalSelect={props.onSignalSelect}
       highlightedSignalIds={props.highlightedSignalIds}
@@ -450,6 +453,9 @@ export function EditorLayout() {
 
   // --- Route preview (read-only visualization for selected entity/action) ---
   const routePreviewData = useRoutePreview(scenarioStoreApi, roadNetwork, roadManagerClient);
+
+  // --- Trajectory preview (read-only visualization for selected entity/action) ---
+  const trajectoryPreviewData = useTrajectoryPreview(scenarioStoreApi, roadNetwork);
 
   const resolveCatalogRoute = useCallback(
     (ref: { catalogName: string; entryName: string }) => {
@@ -926,6 +932,7 @@ export function EditorLayout() {
                     onTrajectoryEditCancel={handleTrajectoryEditCancel}
                     trajectoryWarnings={trajectoryEdit.warnings}
                     trajectoryPointCount={trajectoryPointCount}
+                    trajectoryPreviewData={trajectoryPreviewData}
                     selectedSignalKey={selectedSignalKey}
                     onSignalSelect={handleSignalSelect}
                     highlightedSignalIds={signalPickMode ? undefined : highlightedSignalIds}
