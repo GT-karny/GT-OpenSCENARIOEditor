@@ -112,6 +112,48 @@ export class RemoveInitActionCommand extends BaseCommand {
   }
 }
 
+export class UpdateInitActionCommand extends BaseCommand {
+  private readonly actionId: string;
+  private readonly newAction: PrivateAction;
+  private previousAction: PrivateAction | null = null;
+  private readonly getDoc: GetDoc;
+  private readonly setDoc: SetDoc;
+
+  constructor(actionId: string, newAction: PrivateAction, getDoc: GetDoc, setDoc: SetDoc) {
+    super(`Update init action: ${actionId}`);
+    this.actionId = actionId;
+    this.newAction = newAction;
+    this.getDoc = getDoc;
+    this.setDoc = setDoc;
+  }
+
+  execute(): void {
+    const doc = this.getDoc();
+    const found = findInitActionById(doc, this.actionId);
+    if (found) {
+      this.previousAction = found.initAction.action;
+    }
+    this.setDoc(produce(doc, (draft) => {
+      const draftFound = findInitActionById(draft, this.actionId);
+      if (draftFound) {
+        draftFound.initAction.action = this.newAction;
+      }
+    }));
+  }
+
+  undo(): void {
+    if (!this.previousAction) return;
+    const prevAction = this.previousAction;
+    const actionId = this.actionId;
+    this.setDoc(produce(this.getDoc(), (draft) => {
+      const found = findInitActionById(draft, actionId);
+      if (found) {
+        found.initAction.action = prevAction;
+      }
+    }));
+  }
+}
+
 export class SetInitPositionCommand extends BaseCommand {
   private readonly entityName: string;
   private readonly position: Position;

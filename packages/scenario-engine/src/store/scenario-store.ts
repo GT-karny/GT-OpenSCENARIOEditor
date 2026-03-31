@@ -59,6 +59,7 @@ import {
 import {
   AddInitActionCommand,
   RemoveInitActionCommand,
+  UpdateInitActionCommand,
   SetInitPositionCommand,
   SetInitSpeedCommand,
 } from '../commands/init-commands.js';
@@ -443,6 +444,12 @@ export function createScenarioStore() {
 
       removeInitAction: (actionId: string): void => {
         const cmd = new RemoveInitActionCommand(actionId, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
+      updateInitAction: (actionId: string, newAction: PrivateAction): void => {
+        const cmd = new UpdateInitActionCommand(actionId, newAction, getDoc, setDoc);
         commandHistory.execute(cmd);
         syncUndoRedo();
       },

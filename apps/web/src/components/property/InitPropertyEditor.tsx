@@ -1,106 +1,79 @@
-import type { EntityInitActions, TeleportAction, SpeedAction, Position } from '@osce/shared';
-import { Label } from '../ui/label';
-import { Plus } from 'lucide-react';
-import { PositionEditor } from './PositionEditor';
-import { ParameterAwareInput } from './ParameterAwareInput';
+import { useState, useCallback } from 'react';
+import type { EntityInitActions, PrivateAction } from '@osce/shared';
+import { defaultActionByType } from '@osce/scenario-engine';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
-import { createDefaultPosition } from '../../constants/position-defaults';
+import { InitActionList } from './InitActionList';
+import { InitActionEditor } from './InitActionEditor';
 
 interface InitPropertyEditorContentProps {
   entityInit: EntityInitActions;
 }
 
-/** Reusable content for editing entity initial state (position + speed). */
+/** Entity initial-state editor with action list (top) and editor (bottom). */
 export function InitPropertyEditorContent({ entityInit }: InitPropertyEditorContentProps) {
   const storeApi = useScenarioStoreApi();
   const { entityRef, privateActions } = entityInit;
 
-  const teleportAction = privateActions.find(
-    (pa) => pa.action.type === 'teleportAction',
+  const [selectedActionId, setSelectedActionId] = useState<string | null>(
+    privateActions.length > 0 ? privateActions[0].id : null,
   );
-  const currentPosition = teleportAction
-    ? (teleportAction.action as TeleportAction).position
-    : null;
 
-  const speedActionEntry = privateActions.find(
-    (pa) => pa.action.type === 'speedAction',
+  // Ensure selected ID still exists in the list
+  const selectedAction = privateActions.find((pa) => pa.id === selectedActionId) ?? null;
+
+  const handleAddAction = useCallback(() => {
+    const newAction = defaultActionByType('speedAction') as PrivateAction;
+    storeApi.getState().addInitAction(entityRef, newAction);
+  }, [storeApi, entityRef]);
+
+  const handleRemoveAction = useCallback(
+    (actionId: string) => {
+      storeApi.getState().removeInitAction(actionId);
+      if (selectedActionId === actionId) {
+        // Select the first remaining action, or null
+        const remaining = privateActions.filter((pa) => pa.id !== actionId);
+        setSelectedActionId(remaining.length > 0 ? remaining[0].id : null);
+      }
+    },
+    [storeApi, selectedActionId, privateActions],
   );
-  const speedAction = speedActionEntry
-    ? (speedActionEntry.action as SpeedAction)
-    : null;
-  const currentSpeed =
-    speedAction?.target.kind === 'absolute' ? speedAction.target.value : null;
 
-  const handlePositionChange = (position: Position) => {
-    storeApi.getState().setInitPosition(entityRef, position);
-  };
+  const handleUpdateAction = useCallback(
+    (actionId: string, newAction: PrivateAction) => {
+      storeApi.getState().updateInitAction(actionId, newAction);
+    },
+    [storeApi],
+  );
 
-  const handleAddPosition = () => {
-    storeApi.getState().setInitPosition(entityRef, createDefaultPosition('lanePosition'));
-  };
-
-  const handleSpeedChange = (value: string) => {
-    const n = Number(value);
-    if (Number.isFinite(n)) {
-      storeApi.getState().setInitSpeed(entityRef, n);
-    }
-  };
-
-  const handleAddSpeed = () => {
-    storeApi.getState().setInitSpeed(entityRef, 0);
-  };
+  // Auto-select newly added action (detect when list grows)
+  const lastActionId = privateActions.length > 0 ? privateActions[privateActions.length - 1].id : null;
+  if (lastActionId && !selectedAction && privateActions.length > 0) {
+    // If nothing is selected but actions exist, select the last one
+    setSelectedActionId(lastActionId);
+  }
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* Position section */}
-      <section className="space-y-2">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          Position
-        </p>
-        {currentPosition ? (
-          <PositionEditor position={currentPosition} onChange={handlePositionChange} />
-        ) : (
-          <button
-            onClick={handleAddPosition}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-none text-xs text-[var(--color-text-muted)] hover:text-[var(--color-accent-1)] hover:bg-[var(--color-glass-2)] transition-colors"
-          >
-            <Plus className="h-3 w-3" />
-            Add Position
-          </button>
-        )}
-      </section>
+    <div className="flex flex-col gap-3">
+      {/* Upper: action list */}
+      <InitActionList
+        entityInit={entityInit}
+        selectedActionId={selectedAction?.id ?? null}
+        onSelectAction={setSelectedActionId}
+        onRemoveAction={handleRemoveAction}
+        onAddAction={handleAddAction}
+      />
 
-      {/* Speed section */}
-      <section className="space-y-2">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          Speed
-        </p>
-        {currentSpeed !== null ? (
-          <div className="grid gap-2">
-            <Label className="text-xs">Absolute Speed (m/s)</Label>
-            <ParameterAwareInput
-              elementId={speedActionEntry!.id}
-              fieldName="target.value"
-              value={currentSpeed}
-              onValueChange={(v) => handleSpeedChange(v)}
-              acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
-              className="h-8 text-sm"
-            />
-          </div>
-        ) : speedAction?.target.kind === 'relative' ? (
-          <p className="text-xs text-muted-foreground italic">
-            Relative speed target (editing not yet supported)
-          </p>
-        ) : (
-          <button
-            onClick={handleAddSpeed}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-none text-xs text-[var(--color-text-muted)] hover:text-[var(--color-accent-1)] hover:bg-[var(--color-glass-2)] transition-colors"
-          >
-            <Plus className="h-3 w-3" />
-            Add Speed
-          </button>
-        )}
-      </section>
+      {/* Divider */}
+      {selectedAction && <div className="divider-glow" />}
+
+      {/* Lower: action editor */}
+      {selectedAction && (
+        <InitActionEditor
+          key={selectedAction.id}
+          initAction={selectedAction}
+          onUpdateAction={handleUpdateAction}
+        />
+      )}
     </div>
   );
 }
