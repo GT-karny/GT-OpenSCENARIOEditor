@@ -4,6 +4,7 @@ import { Input } from '../../ui/input';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
 import { SegmentedControl } from '../SegmentedControl';
+import { useSpeedUnit } from '../../../hooks/use-speed-unit';
 
 interface EnvironmentActionEditorProps {
   action: ScenarioAction;
@@ -31,6 +32,7 @@ const WETNESS_OPTIONS = ['dry', 'moist', 'wetWithPuddles', 'lowFlooded', 'highFl
 export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionEditorProps) {
   const inner = action.action as EnvironmentAction;
   const env = inner.environment;
+  const { label: speedLabel, toDisplay, toInternal } = useSpeedUnit();
 
   const updateEnv = (updates: Partial<typeof env>) => {
     onUpdate({
@@ -248,11 +250,11 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
               />
             </div>
             <div className="grid gap-1">
-              <Label className="text-xs">Speed (m/s)</Label>
+              <Label className="text-xs">Speed ({speedLabel})</Label>
               <ParameterAwareInput
                 elementId={action.id}
                 fieldName="environment.weather.wind.speed"
-                value={env.weather.wind?.speed ?? ''}
+                value={env.weather.wind?.speed != null ? toDisplay(env.weather.wind.speed) : ''}
                 placeholder="--"
                 onValueChange={(v) => {
                   const n = parseFloat(v);
@@ -260,7 +262,7 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
                     const { wind: _, ...rest } = env.weather;
                     updateEnv({ weather: rest });
                   } else {
-                    updateWeather({ wind: { direction: env.weather.wind?.direction ?? 0, speed: n } });
+                    updateWeather({ wind: { direction: env.weather.wind?.direction ?? 0, speed: toInternal(n) } });
                   }
                 }}
                 acceptedTypes={['double']}

@@ -57,6 +57,8 @@ export function StatusBar() {
   const isXodrDirty = useEditorStore((s) => s.isRoadNetworkDirty);
   const simStatus = useSimulationStore((s) => s.status);
   const compatibilityProfile = useEditorStore((s) => s.preferences.compatibilityProfile);
+  const speedUnit = useEditorStore((s) => s.preferences.speedUnit);
+  const updatePreferences = useEditorStore((s) => s.updatePreferences);
 
   const isRoadNetwork = editorMode === 'roadNetwork';
   const displayName = isRoadNetwork ? xodrFileName : xoscFileName;
@@ -101,6 +103,24 @@ export function StatusBar() {
           {displayName ?? 'Untitled'}
           {displayDirty ? ' ●' : ''}
         </span>
+        {!isRoadNetwork && (
+          <span className="flex items-center gap-0">
+            {(['mps', 'kmph'] as const).map((unit) => (
+              <button
+                key={unit}
+                type="button"
+                onClick={() => updatePreferences({ speedUnit: unit })}
+                className={`px-1.5 py-0.5 text-[10px] transition-colors ${
+                  speedUnit === unit
+                    ? 'bg-[var(--color-glass-3)] text-[var(--color-text-primary)]'
+                    : 'text-[var(--color-text-tertiary)] hover:bg-[var(--color-glass-hover)] hover:text-[var(--color-text-secondary)]'
+                }`}
+              >
+                {unit === 'mps' ? 'm/s' : 'km/h'}
+              </button>
+            ))}
+          </span>
+        )}
         <span>
           {isRoadNetwork
             ? 'OpenDRIVE'

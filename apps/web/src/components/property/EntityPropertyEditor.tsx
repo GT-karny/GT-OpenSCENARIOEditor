@@ -24,6 +24,7 @@ import {
   PEDESTRIAN_CATEGORIES,
   MISC_OBJECT_CATEGORIES,
 } from '../../constants/osc-enum-values';
+import { useSpeedUnit } from '../../hooks/use-speed-unit';
 
 type SourceMode = 'inline' | 'catalog';
 
@@ -254,6 +255,7 @@ interface DefinitionDetailsProps {
 
 function DefinitionDetails({ definition, onDefinitionChange }: DefinitionDetailsProps) {
   const { t } = useTranslation('common');
+  const { label: speedLabel, toDisplay } = useSpeedUnit();
 
   if (definition.kind === 'vehicle') {
     return (
@@ -269,9 +271,9 @@ function DefinitionDetails({ definition, onDefinitionChange }: DefinitionDetails
         </div>
         {definition.performance && (
           <div className="grid gap-1">
-            <Label className="text-xs">Max {t('labels.speed')} (m/s)</Label>
+            <Label className="text-xs">Max {t('labels.speed')} ({speedLabel})</Label>
             <Input
-              value={String(definition.performance.maxSpeed ?? 0)}
+              value={String(toDisplay(definition.performance.maxSpeed ?? 0))}
               readOnly
               className="h-8 text-sm bg-muted"
             />

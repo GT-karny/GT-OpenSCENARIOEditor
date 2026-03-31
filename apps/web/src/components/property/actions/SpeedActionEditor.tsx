@@ -4,6 +4,7 @@ import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefSelect } from '../EntityRefSelect';
 import { SegmentedControl } from '../SegmentedControl';
 import { TransitionDynamicsEditor } from '../TransitionDynamicsEditor';
+import { useSpeedUnit } from '../../../hooks/use-speed-unit';
 
 interface SpeedActionEditorProps {
   action: ScenarioAction;
@@ -12,6 +13,7 @@ interface SpeedActionEditorProps {
 
 export function SpeedActionEditor({ action, onUpdate }: SpeedActionEditorProps) {
   const inner = action.action as SpeedAction;
+  const { label: speedLabel, toDisplay, toInternal } = useSpeedUnit();
   const relTarget =
     inner.target.kind === 'relative'
       ? (inner.target as Extract<SpeedTarget, { kind: 'relative' }>)
@@ -30,21 +32,23 @@ export function SpeedActionEditor({ action, onUpdate }: SpeedActionEditorProps) 
         <div className="grid gap-1">
           <Label className="text-xs">
             {inner.target.kind === 'absolute'
-              ? 'Speed (m/s)'
+              ? `Speed (${speedLabel})`
               : relTarget?.speedTargetValueType === 'factor'
                 ? 'Speed Factor (×)'
-                : 'Speed Delta (m/s)'}
+                : `Speed Delta (${speedLabel})`}
           </Label>
           <div className="flex gap-1">
             <ParameterAwareInput
               elementId={action.id}
               fieldName="target.value"
-              value={inner.target.value}
+              value={relTarget?.speedTargetValueType === 'factor' ? inner.target.value : toDisplay(inner.target.value)}
               onValueChange={(v) => {
+                const isFactor = relTarget?.speedTargetValueType === 'factor';
+                const parsed = isFactor ? (parseFloat(v) || 0) : toInternal(parseFloat(v) || 0);
                 if (inner.target.kind === 'absolute') {
-                  updateInner({ target: { kind: 'absolute', value: parseFloat(v) || 0 } });
+                  updateInner({ target: { kind: 'absolute', value: parsed } });
                 } else if (relTarget) {
-                  updateInner({ target: { ...relTarget, value: parseFloat(v) || 0 } });
+                  updateInner({ target: { ...relTarget, value: parsed } });
                 }
               }}
               acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}

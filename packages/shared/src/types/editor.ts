@@ -47,6 +47,9 @@ export interface FeatureGateResult {
   minVersion?: OscVersion;
 }
 
+/** Speed display unit (internal data is always m/s) */
+export type SpeedUnit = 'mps' | 'kmph';
+
 export interface EditorPreferences {
   language: 'en' | 'ja';
   theme: 'light' | 'dark' | 'system';
@@ -55,5 +58,6 @@ export interface EditorPreferences {
   showGrid3D: boolean;
   showLaneIds: boolean;
   showRoadIds: boolean;
+  speedUnit: SpeedUnit;
   compatibilityProfile: CompatibilityProfile;
 }

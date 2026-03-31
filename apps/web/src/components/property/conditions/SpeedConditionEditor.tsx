@@ -4,6 +4,7 @@ import { ParameterAwareInput } from '../ParameterAwareInput';
 import { RuleSegmentedControl } from '../RuleSegmentedControl';
 import { SegmentedControl } from '../SegmentedControl';
 import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
+import { useSpeedUnit } from '../../../hooks/use-speed-unit';
 
 const DIRECTIONAL_DIMENSIONS = ['longitudinal', 'lateral', 'vertical'] as const;
 
@@ -15,6 +16,7 @@ interface SpeedConditionEditorProps {
 export function SpeedConditionEditor({ condition, onUpdate }: SpeedConditionEditorProps) {
   const inner = condition.condition as ByEntityCondition;
   const cond = inner.entityCondition as SpeedCondition;
+  const { label: speedLabel, toDisplay, toInternal } = useSpeedUnit();
 
   const update = (updates: Partial<SpeedCondition>) => {
     onUpdate(condition.id, {
@@ -33,13 +35,13 @@ export function SpeedConditionEditor({ condition, onUpdate }: SpeedConditionEdit
     <div className="space-y-2">
       <p className="text-xs font-medium text-muted-foreground">Speed</p>
       <div className="grid gap-1">
-        <Label className="text-[10px]">Value (m/s)</Label>
+        <Label className="text-[10px]">Value ({speedLabel})</Label>
         <div className="flex gap-1">
           <ParameterAwareInput
             elementId={condition.id}
             fieldName="value"
-            value={cond.value}
-            onValueChange={(v) => update({ value: parseFloat(v) || 0 })}
+            value={toDisplay(cond.value)}
+            onValueChange={(v) => update({ value: toInternal(parseFloat(v) || 0) })}
             acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
             className="h-7 text-xs flex-1 min-w-0"
           />
