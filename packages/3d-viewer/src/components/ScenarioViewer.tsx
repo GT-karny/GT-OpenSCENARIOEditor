@@ -31,6 +31,7 @@ import { PositionInspectorOverlay } from '../interaction/PositionInspectorOverla
 import { ViewerToolbar } from './ViewerToolbar.js';
 import { useScenarioEntities } from '../scenario/useScenarioEntities.js';
 import { useEntityPositions } from '../scenario/useEntityPositions.js';
+import { useEntityLightStates } from '../scenario/useEntityLightStates.js';
 import { SimulationOverlay } from '../scenario/SimulationOverlay.js';
 import { useCameraFollow } from '../scene/useCameraFollow.js';
 import { Minimap } from './Minimap.js';
@@ -594,6 +595,7 @@ function ScenarioViewerScene({
 
   const entities = useScenarioEntities(scenarioStore);
   const entityPositions = useEntityPositions(scenarioStore, openDriveDocument, resolveOptions);
+  const entityLightStates = useEntityLightStates(scenarioStore);
   const scenarioPositions = useScenarioPositions(scenarioStore, openDriveDocument, resolveOptions);
 
   const isSimulating = currentFrame != null;
@@ -854,6 +856,7 @@ function ScenarioViewerScene({
           snapToLane={snapToLane}
           selectedEntityRoadPosition={selectedEntityRoadPosition}
           routeOpacity={routeEditActive ? 0.3 : undefined}
+          entityLightStates={entityLightStates}
         />
       )}
 

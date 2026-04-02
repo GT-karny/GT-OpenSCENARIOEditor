@@ -18,6 +18,7 @@ import type {
   WasmStoryBoardEvent,
   WasmConditionEvent,
   WasmTrafficLightState,
+  WasmVehicleLightState,
   WasmOpenScenarioConfig,
   WasmRMPositionResult,
 } from './types.js';
@@ -65,6 +66,7 @@ interface EsminiScenario {
   popStoryBoardEvents(): EsminiVector<WasmStoryBoardEvent>;
   popConditionEvents(): EsminiVector<WasmConditionEvent>;
   getTrafficLightStatesOnly(): WasmTrafficLightState[];
+  getVehicleLightStates(): WasmVehicleLightState[];
   delete(): void;
 }
 
@@ -174,6 +176,10 @@ function executeStep(dt: number) {
     ? (scenario.getTrafficLightStatesOnly() as WasmTrafficLightState[])
     : [];
 
+  const vehicleLightStates = typeof scenario.getVehicleLightStates === 'function'
+    ? (scenario.getVehicleLightStates() as WasmVehicleLightState[])
+    : [];
+
   post({
     type: 'frame',
     simulationTime,
@@ -181,6 +187,7 @@ function executeStep(dt: number) {
     storyBoardEvents,
     conditionEvents,
     trafficLightStates,
+    vehicleLightStates,
     isComplete,
   });
 
@@ -298,6 +305,7 @@ function handlePlay(speed: number, fps: number) {
     simulationTime: number;
     objects: WasmScenarioObjectState[];
     trafficLightStates: WasmTrafficLightState[];
+    vehicleLightStates: WasmVehicleLightState[];
   }> = [];
   const allStoryBoardEvents: WasmStoryBoardEvent[] = [];
   const allConditionEvents: WasmConditionEvent[] = [];
@@ -313,8 +321,11 @@ function handlePlay(speed: number, fps: number) {
     const trafficLightStates = typeof scenario.getTrafficLightStatesOnly === 'function'
       ? (scenario.getTrafficLightStatesOnly() as WasmTrafficLightState[])
       : [];
+    const vehicleLightStates = typeof scenario.getVehicleLightStates === 'function'
+      ? (scenario.getVehicleLightStates() as WasmVehicleLightState[])
+      : [];
 
-    frames.push({ simulationTime, objects, trafficLightStates });
+    frames.push({ simulationTime, objects, trafficLightStates, vehicleLightStates });
     allStoryBoardEvents.push(...storyBoardEvents);
     allConditionEvents.push(...conditionEvents);
 
