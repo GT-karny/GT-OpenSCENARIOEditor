@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, GripVertical, Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from '@osce/i18n';
 import type { Maneuver } from '@osce/shared';
 import { cn } from '../../lib/utils';
@@ -25,6 +25,11 @@ interface ManeuverSectionProps {
   onAddAction: (eventId: string) => void;
   onRemoveAction: (actionId: string) => void;
   activeSimIds?: Set<string>;
+  dragHandleProps?: {
+    draggable: boolean;
+    onDragStart: (e: React.DragEvent) => void;
+    onDragEnd: (e: React.DragEvent) => void;
+  };
 }
 
 /**
@@ -44,6 +49,7 @@ export function ManeuverSection({
   onAddAction,
   onRemoveAction,
   activeSimIds,
+  dragHandleProps,
 }: ManeuverSectionProps) {
   const { t } = useTranslation('composer');
   const storeApi = useScenarioStoreApi();
@@ -108,25 +114,30 @@ export function ManeuverSection({
     }
   };
 
-  // --- D&D handlers ---
+  // --- Event D&D handlers ---
   const handleDragStart = (eventId: string) => (e: React.DragEvent) => {
+    e.stopPropagation();
     setDragEventId(eventId);
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleDragEnd = () => {
+  const handleDragEnd = (e: React.DragEvent) => {
+    e.stopPropagation();
     setDragEventId(null);
     setDropTargetIndex(null);
   };
 
   const handleDragOver = (index: number) => (e: React.DragEvent) => {
+    if (!dragEventId) return;
     e.preventDefault();
+    e.stopPropagation();
     e.dataTransfer.dropEffect = 'move';
     setDropTargetIndex(index);
   };
 
   const handleDrop = (targetIndex: number) => (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (dragEventId) {
       storeApi.getState().reorderEvent(dragEventId, targetIndex);
     }
@@ -154,7 +165,11 @@ export function ManeuverSection({
           e.stopPropagation();
           setCtxMenu({ x: e.clientX, y: e.clientY });
         }}
+        {...dragHandleProps}
       >
+        {/* Drag handle */}
+        <GripVertical className="h-3 w-3 shrink-0 text-[var(--color-text-muted)] opacity-0 group-hover/maneuver:opacity-40 cursor-grab" />
+
         {/* Collapse chevron */}
         {collapsed ? (
           <ChevronRight className="h-3 w-3 shrink-0 text-[var(--color-text-muted)]" />

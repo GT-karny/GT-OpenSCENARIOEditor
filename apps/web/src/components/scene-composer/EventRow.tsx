@@ -6,6 +6,7 @@ import { cn } from '../../lib/utils';
 import { useFlashState } from '../../hooks/use-flash-state';
 import { useCopyPaste } from '../../hooks/use-clipboard';
 import { useClipboardStore } from '../../stores/clipboard-store';
+import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { TriggerSummaryBadges } from './TriggerSummaryBadges';
 import { ActionItem } from './ActionItem';
 import { ComposerContextMenu } from './ComposerContextMenu';
@@ -49,9 +50,44 @@ export function EventRow({
   activeSimIds,
 }: EventRowProps) {
   const { t } = useTranslation('composer');
+  const storeApi = useScenarioStoreApi();
   const [ctxMenu, setCtxMenu] = useState<ComposerMenuPosition | null>(null);
   const { copyElement, duplicateElement, pasteAtSelection, canPasteAtSelection } = useCopyPaste();
   const hasClipboard = useClipboardStore((s) => s.copiedItem !== null);
+
+  // Action D&D state
+  const [dragActionId, setDragActionId] = useState<string | null>(null);
+  const [dropTargetActionIndex, setDropTargetActionIndex] = useState<number | null>(null);
+
+  const handleActionDragStart = (actionId: string) => (e: React.DragEvent) => {
+    e.stopPropagation();
+    setDragActionId(actionId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleActionDragEnd = (e: React.DragEvent) => {
+    e.stopPropagation();
+    setDragActionId(null);
+    setDropTargetActionIndex(null);
+  };
+
+  const handleActionDragOver = (index: number) => (e: React.DragEvent) => {
+    if (!dragActionId) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    setDropTargetActionIndex(index);
+  };
+
+  const handleActionDrop = (targetIndex: number) => (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dragActionId) {
+      storeApi.getState().reorderAction(dragActionId, targetIndex);
+    }
+    setDragActionId(null);
+    setDropTargetActionIndex(null);
+  };
 
   const hasCondition =
     event.startTrigger.conditionGroups.length > 0 &&
@@ -128,15 +164,28 @@ export function EventRow({
       </div>
 
       {/* Action list (indented) */}
-      {event.actions.map((action) => (
-        <ActionItem
+      {event.actions.map((action, index) => (
+        <div
           key={action.id}
-          action={action}
-          selected={selectedActionId === action.id}
-          running={activeSimIds?.has(action.id) ?? false}
-          onSelect={() => onSelectAction(action.id)}
-          onRemove={() => onRemoveAction(action.id)}
-        />
+          onDragOver={handleActionDragOver(index)}
+          onDrop={handleActionDrop(index)}
+        >
+          {dropTargetActionIndex === index && dragActionId && (
+            <div className="h-0.5 mx-2 bg-[var(--color-accent-1)] rounded-full" />
+          )}
+          <ActionItem
+            action={action}
+            selected={selectedActionId === action.id}
+            running={activeSimIds?.has(action.id) ?? false}
+            onSelect={() => onSelectAction(action.id)}
+            onRemove={() => onRemoveAction(action.id)}
+            dragHandleProps={{
+              draggable: true,
+              onDragStart: handleActionDragStart(action.id),
+              onDragEnd: handleActionDragEnd,
+            }}
+          />
+        </div>
       ))}
 
       {/* Add action button */}

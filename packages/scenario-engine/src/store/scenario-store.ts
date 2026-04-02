@@ -44,10 +44,10 @@ import {
 } from '../commands/variable-commands.js';
 import { AddStoryCommand, RemoveStoryCommand } from '../commands/story-commands.js';
 import { AddActCommand, RemoveActCommand } from '../commands/act-commands.js';
-import { AddManeuverGroupCommand, RemoveManeuverGroupCommand } from '../commands/maneuver-group-commands.js';
-import { AddManeuverCommand, RemoveManeuverCommand } from '../commands/maneuver-commands.js';
+import { AddManeuverGroupCommand, RemoveManeuverGroupCommand, ReorderManeuverGroupCommand } from '../commands/maneuver-group-commands.js';
+import { AddManeuverCommand, RemoveManeuverCommand, ReorderManeuverCommand } from '../commands/maneuver-commands.js';
 import { AddEventCommand, RemoveEventCommand, ReorderEventCommand } from '../commands/event-commands.js';
-import { AddActionCommand, RemoveActionCommand } from '../commands/action-commands.js';
+import { AddActionCommand, RemoveActionCommand, ReorderActionCommand } from '../commands/action-commands.js';
 import {
   SetStartTriggerCommand,
   SetStopTriggerCommand,
@@ -96,6 +96,9 @@ export interface ScenarioStore extends ScenarioState, IScenarioService {
 
   // Reorder operations
   reorderEvent(eventId: string, newIndex: number): void;
+  reorderAction(actionId: string, newIndex: number): void;
+  reorderManeuver(maneuverId: string, newIndex: number): void;
+  reorderManeuverGroup(groupId: string, newIndex: number): void;
 
   // Scenario-level property updates
   updateFileHeader(updates: Partial<FileHeader>): void;
@@ -347,6 +350,24 @@ export function createScenarioStore() {
 
       reorderEvent: (eventId: string, newIndex: number): void => {
         const cmd = new ReorderEventCommand(eventId, newIndex, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
+      reorderManeuverGroup: (groupId: string, newIndex: number): void => {
+        const cmd = new ReorderManeuverGroupCommand(groupId, newIndex, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
+      reorderManeuver: (maneuverId: string, newIndex: number): void => {
+        const cmd = new ReorderManeuverCommand(maneuverId, newIndex, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
+      reorderAction: (actionId: string, newIndex: number): void => {
+        const cmd = new ReorderActionCommand(actionId, newIndex, getDoc, setDoc);
         commandHistory.execute(cmd);
         syncUndoRedo();
       },
