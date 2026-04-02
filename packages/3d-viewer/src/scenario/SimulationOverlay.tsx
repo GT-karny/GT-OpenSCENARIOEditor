@@ -6,6 +6,7 @@
 import React, { useMemo, useRef, useEffect } from 'react';
 import type { ScenarioEntity, SimulationFrame } from '@osce/shared';
 import type { WorldCoords } from '../utils/position-resolver.js';
+import type { VehicleLightState } from './useEntityLightStates.js';
 import { VehicleEntity } from '../entities/VehicleEntity.js';
 import { PedestrianEntity } from '../entities/PedestrianEntity.js';
 import { MiscObjectEntity } from '../entities/MiscObjectEntity.js';
@@ -34,6 +35,25 @@ export const SimulationOverlay: React.FC<SimulationOverlayProps> = React.memo(
       }
       return map;
     }, [currentFrame]);
+
+    // Extract vehicle light states from simulation frame
+    const simLightStates = useMemo(() => {
+      if (!currentFrame?.vehicleLightStates) return new Map<string, VehicleLightState>();
+      const map = new Map<string, VehicleLightState>();
+      for (const vl of currentFrame.vehicleLightStates) {
+        const indicatorLeft =
+          vl.indicator === 'left' || vl.indicator === 'warning' ? 'flashing' as const : null;
+        const indicatorRight =
+          vl.indicator === 'right' || vl.indicator === 'warning' ? 'flashing' as const : null;
+        const headLight = vl.headLight;
+        const highBeam = vl.highBeam;
+        const brakeLight = vl.brakeLight;
+        if (indicatorLeft || indicatorRight || headLight || highBeam || brakeLight) {
+          map.set(vl.name, { indicatorLeft, indicatorRight, headLight, highBeam, brakeLight });
+        }
+      }
+      return map;
+    }, [currentFrame?.vehicleLightStates]);
 
     // Diagnostic: log name mismatches on first frame, then position changes periodically
     const renderCountRef = useRef(0);
@@ -95,7 +115,7 @@ export const SimulationOverlay: React.FC<SimulationOverlayProps> = React.memo(
 
           switch (entity.type) {
             case 'vehicle':
-              return <VehicleEntity key={entity.id} {...commonProps} isEgo={isEgo} />;
+              return <VehicleEntity key={entity.id} {...commonProps} isEgo={isEgo} lightState={simLightStates.get(entity.name)} />;
             case 'pedestrian':
               return <PedestrianEntity key={entity.id} {...commonProps} />;
             case 'miscObject':

@@ -25,10 +25,19 @@ export interface TrafficLightFrameState {
   state: string;
 }
 
+export interface VehicleLightFrameState {
+  name: string;
+  indicator: 'off' | 'left' | 'right' | 'warning';
+  headLight: boolean;
+  highBeam: boolean;
+  brakeLight: boolean;
+}
+
 export interface SimulationFrame {
   time: number;
   objects: SimulationObjectState[];
   trafficLightStates?: TrafficLightFrameState[];
+  vehicleLightStates?: VehicleLightFrameState[];
 }
 
 export interface SimulationObjectState {

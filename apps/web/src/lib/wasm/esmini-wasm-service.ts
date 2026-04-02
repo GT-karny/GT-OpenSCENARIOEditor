@@ -134,6 +134,13 @@ export class EsminiWasmService implements IEsminiService {
             signalId: tl.id,
             state: tl.state,
           })),
+          vehicleLightStates: msg.vehicleLightStates?.map((vl) => ({
+            name: vl.name,
+            indicator: vl.indicator as 'off' | 'left' | 'right' | 'warning',
+            headLight: vl.head_light !== 'off',
+            highBeam: vl.high_beam !== 'off',
+            brakeLight: vl.brake_light !== 'off',
+          })),
         };
         this.frames.push(frame);
 
@@ -175,6 +182,13 @@ export class EsminiWasmService implements IEsminiService {
           trafficLightStates: f.trafficLightStates.map((tl) => ({
             signalId: tl.id,
             state: tl.state,
+          })),
+          vehicleLightStates: f.vehicleLightStates?.map((vl) => ({
+            name: vl.name,
+            indicator: vl.indicator as 'off' | 'left' | 'right' | 'warning',
+            headLight: vl.head_light !== 'off',
+            highBeam: vl.high_beam !== 'off',
+            brakeLight: vl.brake_light !== 'off',
           })),
         }));
         this.frames = convertedFrames;
