@@ -45,6 +45,8 @@ import { useCatalogStore } from '../../stores/catalog-store';
 import { useTemplateDrop } from '../../hooks/use-template-drop';
 import { useElementDelete } from '../../hooks/use-element-delete';
 import { useElementAdd } from '../../hooks/use-element-add';
+import { useCopyPaste } from '../../hooks/use-clipboard';
+import { useClipboardStore } from '../../stores/clipboard-store';
 import { getDirectChildCount } from '../../lib/count-descendants';
 import { useFileOperations } from '../../hooks/use-file-operations';
 import { useProjectFileOperations } from '../../hooks/use-project-file-operations';
@@ -804,6 +806,25 @@ export function EditorLayout() {
     setDeleteRequest(null);
   }, [deleteRequest, deleteElementById]);
 
+  // --- Copy / Paste / Duplicate ---
+  const { copyElement, duplicateElement, pasteInto, canPasteInto } = useCopyPaste();
+  const hasClipboardItem = useClipboardStore((s) => s.copiedItem !== null);
+
+  const handleCopyNode = useCallback(
+    (nodeId: string) => copyElement(nodeId),
+    [copyElement],
+  );
+
+  const handleDuplicateNode = useCallback(
+    (nodeId: string) => duplicateElement(nodeId),
+    [duplicateElement],
+  );
+
+  const handlePasteNode = useCallback(
+    (nodeId: string) => pasteInto(nodeId),
+    [pasteInto],
+  );
+
   return (
     <div className="relative flex flex-col h-screen overflow-hidden">
       <HeaderToolbar />
@@ -1200,6 +1221,10 @@ export function EditorLayout() {
           position={contextMenu}
           onAddChild={handleAddChild}
           onDeleteNode={handleDeleteNode}
+          onCopyNode={handleCopyNode}
+          onPasteNode={handlePasteNode}
+          onDuplicateNode={handleDuplicateNode}
+          canPaste={hasClipboardItem && contextMenu.nodeId ? canPasteInto(contextMenu.nodeId) : false}
           onClose={() => setContextMenu(null)}
         />
       )}

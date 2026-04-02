@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Gauge,
   ArrowLeftRight,
@@ -20,8 +21,11 @@ import {
 import type { ScenarioAction } from '@osce/shared';
 import { cn } from '../../lib/utils';
 import { useFlashState } from '../../hooks/use-flash-state';
+import { useCopyPaste } from '../../hooks/use-clipboard';
 import { useScenarioStore } from '../../stores/use-scenario-store';
 import { getActionSummary } from './action-summary';
+import { ComposerContextMenu } from './ComposerContextMenu';
+import type { ComposerMenuPosition } from './ComposerContextMenu';
 import { isCustomName } from './name-utils';
 
 interface ActionItemProps {
@@ -70,6 +74,8 @@ export function ActionItem({ action, selected, running, onSelect, onRemove }: Ac
   const Icon = actionIcons[action.action.type] ?? Settings;
   const summary = getActionSummary(action, bindings);
   const flash = useFlashState(running ?? false);
+  const [ctxMenu, setCtxMenu] = useState<ComposerMenuPosition | null>(null);
+  const { copyElement, duplicateElement } = useCopyPaste();
 
   return (
     <div
@@ -87,6 +93,11 @@ export function ActionItem({ action, selected, running, onSelect, onRemove }: Ac
       onClick={(e) => {
         e.stopPropagation();
         onSelect();
+      }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setCtxMenu({ x: e.clientX, y: e.clientY });
       }}
     >
       <Icon className={cn('h-3 w-3 shrink-0', flash !== 'idle' ? 'text-emerald-400' : 'text-[var(--color-accent-1)]')} />
@@ -106,6 +117,17 @@ export function ActionItem({ action, selected, running, onSelect, onRemove }: Ac
       >
         <Trash2 className="h-3 w-3" />
       </button>
+
+      {/* Context menu */}
+      {ctxMenu && (
+        <ComposerContextMenu
+          position={ctxMenu}
+          onDuplicate={() => duplicateElement(action.id)}
+          onCopy={() => copyElement(action.id)}
+          onDelete={onRemove}
+          onClose={() => setCtxMenu(null)}
+        />
+      )}
     </div>
   );
 }

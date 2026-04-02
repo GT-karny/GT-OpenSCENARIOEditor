@@ -1,10 +1,15 @@
+import { useState } from 'react';
 import { GripVertical, Clock, Zap, Plus, Trash2, ChevronRight } from 'lucide-react';
 import { useTranslation } from '@osce/i18n';
 import type { ScenarioEvent } from '@osce/shared';
 import { cn } from '../../lib/utils';
 import { useFlashState } from '../../hooks/use-flash-state';
+import { useCopyPaste } from '../../hooks/use-clipboard';
+import { useClipboardStore } from '../../stores/clipboard-store';
 import { TriggerSummaryBadges } from './TriggerSummaryBadges';
 import { ActionItem } from './ActionItem';
+import { ComposerContextMenu } from './ComposerContextMenu';
+import type { ComposerMenuPosition } from './ComposerContextMenu';
 import { isCustomName } from './name-utils';
 
 interface EventRowProps {
@@ -44,6 +49,10 @@ export function EventRow({
   activeSimIds,
 }: EventRowProps) {
   const { t } = useTranslation('composer');
+  const [ctxMenu, setCtxMenu] = useState<ComposerMenuPosition | null>(null);
+  const { copyElement, duplicateElement, pasteAtSelection, canPasteAtSelection } = useCopyPaste();
+  const hasClipboard = useClipboardStore((s) => s.copiedItem !== null);
+
   const hasCondition =
     event.startTrigger.conditionGroups.length > 0 &&
     event.startTrigger.conditionGroups.some((g) => g.conditions.length > 0);
@@ -70,6 +79,11 @@ export function EventRow({
         onClick={(e) => {
           e.stopPropagation();
           onSelectEvent(event.id);
+        }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setCtxMenu({ x: e.clientX, y: e.clientY });
         }}
         {...dragHandleProps}
       >
@@ -136,6 +150,19 @@ export function EventRow({
         <Plus className="h-2.5 w-2.5" />
         {t('card.addAction')}
       </button>
+
+      {/* Context menu */}
+      {ctxMenu && (
+        <ComposerContextMenu
+          position={ctxMenu}
+          onDuplicate={() => duplicateElement(event.id)}
+          onCopy={() => copyElement(event.id)}
+          onPaste={hasClipboard ? () => pasteAtSelection(event.id) : undefined}
+          canPaste={canPasteAtSelection(event.id)}
+          onDelete={() => onRemoveEvent(event.id)}
+          onClose={() => setCtxMenu(null)}
+        />
+      )}
     </div>
   );
 }

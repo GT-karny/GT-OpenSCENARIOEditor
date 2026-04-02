@@ -6,7 +6,11 @@ import type { Maneuver } from '@osce/shared';
 import { cn } from '../../lib/utils';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
+import { useCopyPaste } from '../../hooks/use-clipboard';
+import { useClipboardStore } from '../../stores/clipboard-store';
 import { EventRow } from './EventRow';
+import { ComposerContextMenu } from './ComposerContextMenu';
+import type { ComposerMenuPosition } from './ComposerContextMenu';
 
 interface ManeuverSectionProps {
   maneuver: Maneuver;
@@ -50,6 +54,11 @@ export function ManeuverSection({
   const [draftName, setDraftName] = useState(maneuver.name);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
+  // Context menu
+  const [ctxMenu, setCtxMenu] = useState<ComposerMenuPosition | null>(null);
+  const { copyElement, duplicateElement, pasteAtSelection, canPasteAtSelection } = useCopyPaste();
+  const hasClipboard = useClipboardStore((s) => s.copiedItem !== null);
+
   // D&D state (scoped to this Maneuver)
   const [dragEventId, setDragEventId] = useState<string | null>(null);
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
@@ -89,10 +98,8 @@ export function ManeuverSection({
     store.addAction(event.id, { name: `Action_${maneuver.events.length}` });
   };
 
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const doDelete = () => {
     storeApi.getState().removeManeuver(maneuver.id);
-    // Clear selection if any child was selected
     const allEventIds = maneuver.events.map((ev) => ev.id);
     const allActionIds = maneuver.events.flatMap((ev) => ev.actions.map((a) => a.id));
     const allIds = [maneuver.id, ...allEventIds, ...allActionIds];
@@ -142,6 +149,11 @@ export function ManeuverSection({
           e.stopPropagation();
           setCollapsed(!collapsed);
         }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setCtxMenu({ x: e.clientX, y: e.clientY });
+        }}
       >
         {/* Collapse chevron */}
         {collapsed ? (
@@ -177,7 +189,7 @@ export function ManeuverSection({
         {/* Delete button (hidden when sole Maneuver) */}
         {!isOnly && !editingName && (
           <button
-            onClick={handleDelete}
+            onClick={(e) => { e.stopPropagation(); doDelete(); }}
             className="shrink-0 p-0.5 opacity-0 group-hover/maneuver:opacity-100 text-[var(--color-text-muted)] hover:text-destructive transition-all"
             title={t('card.deleteManeuver')}
           >
@@ -237,6 +249,19 @@ export function ManeuverSection({
             {t('card.addEvent')}
           </button>
         </div>
+      )}
+
+      {/* Context menu */}
+      {ctxMenu && (
+        <ComposerContextMenu
+          position={ctxMenu}
+          onDuplicate={() => duplicateElement(maneuver.id)}
+          onCopy={() => copyElement(maneuver.id)}
+          onPaste={hasClipboard ? () => pasteAtSelection(maneuver.id) : undefined}
+          canPaste={canPasteAtSelection(maneuver.id)}
+          onDelete={isOnly ? undefined : doDelete}
+          onClose={() => setCtxMenu(null)}
+        />
       )}
     </div>
   );

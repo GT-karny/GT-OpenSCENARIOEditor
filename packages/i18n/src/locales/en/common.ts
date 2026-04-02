@@ -106,6 +106,9 @@ export const common = {
     addEvent: 'Add Event',
     addAction: 'Add Action',
     delete: 'Delete',
+    copy: 'Copy',
+    paste: 'Paste',
+    duplicate: 'Duplicate',
   },
   catalog: {
     editor: 'Catalog Editor',

@@ -55,6 +55,8 @@ export { deepReplaceParamRef, deepReplaceDirectRef, replaceInBindings, escapeReg
 export { deepReplaceEntityRef, deepRemoveEntityRef } from './operations/entity-rename-utils.js';
 export { findEntityRefUsages } from './operations/entity-ref-utils.js';
 export type { EntityRefUsage } from './operations/entity-ref-utils.js';
+export { deepCloneWithNewIds } from './operations/deep-clone.js';
+export type { CloneableElementType } from './operations/deep-clone.js';
 export type { EntityCleanupOption } from './commands/entity-commands.js';
 
 // Component Engine
