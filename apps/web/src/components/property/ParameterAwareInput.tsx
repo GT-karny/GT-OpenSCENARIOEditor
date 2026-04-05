@@ -139,6 +139,11 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
       // (parent would parseFloat them to NaN/0)
       if (elementId && fieldName && (val.startsWith('$') || looksLikeExpression(val))) {
         setLocalEditValue(val);
+      } else if (elementId && fieldName) {
+        // Numeric field: keep raw string in localEditValue to preserve intermediate
+        // states like "1." while typing "1.5" (parseFloat("1.") → 1 would lose the dot)
+        setLocalEditValue(val);
+        onValueChange(val);
       } else {
         setLocalEditValue(null);
         onValueChange(val);
@@ -239,11 +244,14 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
       // Confirm complete expression on blur (use ref for latest value)
       const editVal = localEditValueRef.current;
       if (editVal) {
-        confirmExpression(editVal);
+        if (!confirmExpression(editVal)) {
+          // Plain numeric value: ensure parent gets final value on blur
+          onValueChange(editVal);
+        }
       }
       setLocalEditValue(null);
       props.onBlur?.(e);
-    }, [confirmExpression, props]);
+    }, [confirmExpression, onValueChange, props]);
 
     // Cleanup blur timer on unmount
     useEffect(() => {
