@@ -11,7 +11,7 @@ export function createXodrXmlBuilder(formatted: boolean): XMLBuilder {
     indentBy: '  ',
     suppressBooleanAttributes: false,
     suppressEmptyNode: false,
-    processEntities: false,
+    processEntities: true,
     cdataPropName: '__cdata',
   });
 }

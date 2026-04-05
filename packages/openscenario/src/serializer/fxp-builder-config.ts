@@ -8,6 +8,6 @@ export function createXoscXmlBuilder(formatted: boolean): XMLBuilder {
     indentBy: '  ',
     suppressBooleanAttributes: false,
     suppressEmptyNode: false,
-    processEntities: false,
+    processEntities: true,
   });
 }
