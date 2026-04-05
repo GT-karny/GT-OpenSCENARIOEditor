@@ -6,6 +6,7 @@ import type {
   MiscObjectDefinition,
   CatalogReference,
   ParameterAssignment,
+  Property,
 } from '@osce/shared';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -24,6 +25,8 @@ import {
   PEDESTRIAN_CATEGORIES,
   MISC_OBJECT_CATEGORIES,
 } from '../../constants/osc-enum-values';
+import { useSpeedUnit } from '../../hooks/use-speed-unit';
+import { PropertiesEditor } from '../catalog/PropertiesEditor';
 
 type SourceMode = 'inline' | 'catalog';
 
@@ -103,6 +106,13 @@ function EntityDefinitionContent({ entity }: { entity: ScenarioEntity }) {
     });
   };
 
+  const handlePropertiesChange = (properties: Property[]) => {
+    if (!def || def.kind === 'catalogReference') return;
+    storeApi.getState().updateEntity(entity.id, {
+      definition: { ...def, properties },
+    });
+  };
+
   const handleSourceModeChange = (mode: string) => {
     const newMode = mode as SourceMode;
     if (newMode === 'catalog') {
@@ -176,6 +186,7 @@ function EntityDefinitionContent({ entity }: { entity: ScenarioEntity }) {
         <DefinitionDetails
           definition={def as VehicleDefinition | PedestrianDefinition | MiscObjectDefinition}
           onDefinitionChange={handleDefinitionChange}
+          onPropertiesChange={handlePropertiesChange}
         />
       )}
 
@@ -250,10 +261,12 @@ function createDefaultDefinition(type: string): VehicleDefinition | PedestrianDe
 interface DefinitionDetailsProps {
   definition: VehicleDefinition | PedestrianDefinition | MiscObjectDefinition;
   onDefinitionChange: (field: string, value: string) => void;
+  onPropertiesChange: (properties: Property[]) => void;
 }
 
-function DefinitionDetails({ definition, onDefinitionChange }: DefinitionDetailsProps) {
+function DefinitionDetails({ definition, onDefinitionChange, onPropertiesChange }: DefinitionDetailsProps) {
   const { t } = useTranslation('common');
+  const { label: speedLabel, toDisplay } = useSpeedUnit();
 
   if (definition.kind === 'vehicle') {
     return (
@@ -269,14 +282,18 @@ function DefinitionDetails({ definition, onDefinitionChange }: DefinitionDetails
         </div>
         {definition.performance && (
           <div className="grid gap-1">
-            <Label className="text-xs">Max {t('labels.speed')} (m/s)</Label>
+            <Label className="text-xs">Max {t('labels.speed')} ({speedLabel})</Label>
             <Input
-              value={String(definition.performance.maxSpeed ?? 0)}
+              value={String(toDisplay(definition.performance.maxSpeed ?? 0))}
               readOnly
               className="h-8 text-sm bg-muted"
             />
           </div>
         )}
+        <PropertiesEditor
+          properties={definition.properties}
+          onChange={onPropertiesChange}
+        />
       </div>
     );
   }
@@ -301,6 +318,10 @@ function DefinitionDetails({ definition, onDefinitionChange }: DefinitionDetails
             className="h-8 text-sm bg-muted"
           />
         </div>
+        <PropertiesEditor
+          properties={definition.properties}
+          onChange={onPropertiesChange}
+        />
       </div>
     );
   }
@@ -325,6 +346,10 @@ function DefinitionDetails({ definition, onDefinitionChange }: DefinitionDetails
             className="h-8 text-sm bg-muted"
           />
         </div>
+        <PropertiesEditor
+          properties={definition.properties}
+          onChange={onPropertiesChange}
+        />
       </div>
     );
   }

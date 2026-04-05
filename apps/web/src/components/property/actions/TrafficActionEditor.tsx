@@ -1,6 +1,6 @@
 import type { ScenarioAction, TrafficAction } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
 import { GenericActionEditor } from './GenericActionEditor';
 
@@ -21,20 +21,20 @@ export function TrafficActionEditor({ action, onUpdate }: TrafficActionEditorPro
     <div className="space-y-3">
       <div className="grid gap-1">
         <Label className="text-xs">Traffic Name (optional)</Label>
-        <Input
+        <ParameterAwareInput
           value={trafficName}
           placeholder="--"
-          onChange={(e) => {
-            const val = e.target.value;
-            if (val === '') {
+          onValueChange={(v) => {
+            if (v === '') {
               const { trafficName: _, ...rest } = inner;
               onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
             } else {
               onUpdate({
-                action: { ...inner, trafficName: val },
+                action: { ...inner, trafficName: v },
               } as Partial<ScenarioAction>);
             }
           }}
+          acceptedTypes={['string']}
           className="h-8 text-sm"
         />
       </div>

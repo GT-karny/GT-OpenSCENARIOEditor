@@ -4,6 +4,7 @@ import { useEditorStore } from '../stores/editor-store';
 import { useRouteEditStore } from '../stores/route-edit-store';
 import { useFileOperations } from './use-file-operations';
 import { useElementDelete } from './use-element-delete';
+import { useCopyPaste } from './use-clipboard';
 import { getOpenDriveStoreApi } from './use-opendrive-store';
 import { isInputFocused } from '../lib/dom-utils';
 
@@ -11,6 +12,7 @@ export function useKeyboardShortcuts() {
   const storeApi = useScenarioStoreApi();
   const { openXosc, saveXosc, saveAsXosc, loadXodr, saveXodr, saveAsXodr } = useFileOperations();
   const { deleteSelected } = useElementDelete();
+  const { copyElement, pasteAtSelection } = useCopyPaste();
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -59,6 +61,20 @@ export function useKeyboardShortcuts() {
         } else {
           openXosc();
         }
+      } else if (ctrl && e.key === 'c') {
+        if (isInputFocused() || isRoadNetwork) return;
+        const selectedIds = useEditorStore.getState().selection.selectedElementIds;
+        if (selectedIds.length === 1) {
+          e.preventDefault();
+          copyElement(selectedIds[0]);
+        }
+      } else if (ctrl && e.key === 'v') {
+        if (isInputFocused() || isRoadNetwork) return;
+        const selectedIds = useEditorStore.getState().selection.selectedElementIds;
+        if (selectedIds.length === 1) {
+          e.preventDefault();
+          pasteAtSelection(selectedIds[0]);
+        }
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
         if (isInputFocused() || routeEditActive) return;
         e.preventDefault();
@@ -68,5 +84,5 @@ export function useKeyboardShortcuts() {
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [storeApi, openXosc, saveXosc, saveAsXosc, loadXodr, saveXodr, saveAsXodr, deleteSelected]);
+  }, [storeApi, openXosc, saveXosc, saveAsXosc, loadXodr, saveXodr, saveAsXodr, deleteSelected, copyElement, pasteAtSelection]);
 }

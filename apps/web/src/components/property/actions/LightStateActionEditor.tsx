@@ -1,6 +1,5 @@
 import type { ScenarioAction, LightStateAction } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
 import { SegmentedControl } from '../SegmentedControl';
@@ -76,10 +75,11 @@ export function LightStateActionEditor({ action, onUpdate }: LightStateActionEdi
         {lightCategory === 'userDefinedLight' && (
           <div className="grid gap-1">
             <Label className="text-xs">Light Type Name</Label>
-            <Input
+            <ParameterAwareInput
               value={inner.lightType}
               placeholder="custom light type"
-              onChange={(e) => updateInner({ lightType: e.target.value })}
+              onValueChange={(v) => updateInner({ lightType: v })}
+              acceptedTypes={['string']}
               className="h-8 text-sm"
             />
           </div>
@@ -108,7 +108,7 @@ export function LightStateActionEditor({ action, onUpdate }: LightStateActionEdi
         >
           <ParameterAwareInput
             elementId={action.id}
-            fieldName="action.intensity"
+            fieldName="intensity"
             value={inner.intensity ?? ''}
             placeholder="--"
             onValueChange={(v) => {
@@ -135,7 +135,7 @@ export function LightStateActionEditor({ action, onUpdate }: LightStateActionEdi
         >
           <ParameterAwareInput
             elementId={action.id}
-            fieldName="action.transitionTime"
+            fieldName="transitionTime"
             value={inner.transitionTime ?? ''}
             placeholder="--"
             onValueChange={(v) => {

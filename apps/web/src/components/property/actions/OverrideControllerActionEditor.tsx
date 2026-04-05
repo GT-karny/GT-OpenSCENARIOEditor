@@ -131,7 +131,7 @@ function GearGroup({ value, onChange, elementId }: GearGroupProps) {
           <Label className="text-xs text-muted-foreground">Gear Number (optional)</Label>
           <ParameterAwareInput
             elementId={elementId}
-            fieldName="action.gear.number"
+            fieldName="gear.number"
             value={value.number ?? ''}
             placeholder="--"
             onValueChange={(v) => {

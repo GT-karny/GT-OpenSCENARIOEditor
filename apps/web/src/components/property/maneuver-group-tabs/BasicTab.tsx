@@ -2,8 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { ManeuverGroup } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
 import { useScenarioStore, useScenarioStoreApi } from '../../../stores/use-scenario-store';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 
 interface BasicTabProps {
   group: ManeuverGroup;
@@ -86,15 +86,16 @@ export function BasicTab({ group }: BasicTabProps) {
       {/* Max Execution Count */}
       <section className="space-y-1.5">
         <Label className="text-xs">Max Execution Count</Label>
-        <Input
-          type="number"
-          min={1}
+        <ParameterAwareInput
+          elementId={group.id}
+          fieldName="maximumExecutionCount"
           value={group.maximumExecutionCount}
-          onChange={(e) =>
+          onValueChange={(v) =>
             storeApi.getState().updateManeuverGroup(group.id, {
-              maximumExecutionCount: parseInt(e.target.value) || 1,
+              maximumExecutionCount: parseInt(v) || 1,
             })
           }
+          acceptedTypes={['unsignedInt', 'int']}
           className="h-8 text-sm"
         />
       </section>

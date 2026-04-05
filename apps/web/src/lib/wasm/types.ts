@@ -56,6 +56,18 @@ export interface WasmTrafficLightState {
   state: string;
 }
 
+export interface WasmVehicleLightState {
+  id: number;
+  name: string;
+  head_light: string;
+  high_beam: string;
+  indicator: string; // 'off' | 'left' | 'right' | 'warning'
+  brake_light: string;
+  fog_light: string;
+  reversing_light: string;
+  warning_light: string;
+}
+
 export interface WasmOpenScenarioConfig {
   max_loop: number;
   min_time_step: number;
@@ -125,6 +137,7 @@ export type WorkerResponse =
       storyBoardEvents: WasmStoryBoardEvent[];
       conditionEvents: WasmConditionEvent[];
       trafficLightStates: WasmTrafficLightState[];
+      vehicleLightStates: WasmVehicleLightState[];
       isComplete: boolean;
     }
   | {
@@ -133,7 +146,7 @@ export type WorkerResponse =
     }
   | {
       type: 'batch-completed';
-      frames: Array<{ simulationTime: number; objects: WasmScenarioObjectState[]; trafficLightStates: WasmTrafficLightState[] }>;
+      frames: Array<{ simulationTime: number; objects: WasmScenarioObjectState[]; trafficLightStates: WasmTrafficLightState[]; vehicleLightStates: WasmVehicleLightState[] }>;
       storyBoardEvents: WasmStoryBoardEvent[];
       conditionEvents: WasmConditionEvent[];
       duration: number;

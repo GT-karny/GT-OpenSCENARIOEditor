@@ -173,7 +173,7 @@ function ParameterFieldRenderer({ param, value, onChange }: ParameterFieldRender
           onChange={(e) => onChange(Number(e.target.value))}
           min={param.min}
           max={param.max}
-          step={param.step}
+          step={param.step ?? 'any'}
         />
       </div>
     );

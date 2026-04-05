@@ -288,22 +288,45 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
     case 'lightStateAction': {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const lsa: any = {};
-      lsa.LightType = buildAttrs({ value: action.lightType });
+
+      // Build XSD-compliant LightType element
+      // Internal format: "vehicleLight:indicatorLeft" or "userDefined:customType"
+      if (action.lightType.startsWith('vehicleLight:')) {
+        lsa.LightType = {
+          VehicleLight: buildAttrs({
+            vehicleLightType: action.lightType.slice('vehicleLight:'.length),
+          }),
+        };
+      } else if (action.lightType.startsWith('userDefined:')) {
+        lsa.LightType = {
+          UserDefinedLight: buildAttrs({
+            userDefinedLightType: action.lightType.slice('userDefined:'.length),
+          }),
+        };
+      } else {
+        // Fallback: treat as vehicle light type directly
+        lsa.LightType = {
+          VehicleLight: buildAttrs({ vehicleLightType: action.lightType }),
+        };
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const lightState: any = buildAttrs({ mode: action.mode });
       if (action.intensity !== undefined) {
         lightState.Intensity = buildAttrs({ value: action.intensity });
       }
       if (action.color) {
-        lightState.Color = buildAttrs({
-          r: action.color.r,
-          g: action.color.g,
-          b: action.color.b,
-        });
+        lightState.Color = {
+          ColorRgb: buildAttrs({
+            red: action.color.r,
+            green: action.color.g,
+            blue: action.color.b,
+          }),
+        };
       }
       lsa.LightState = lightState;
       if (action.transitionTime !== undefined) {
-        lsa.TransitionTime = buildAttrs({ value: action.transitionTime });
+        lsa['@_transitionTime'] = action.transitionTime;
       }
       return { LightStateAction: lsa };
     }

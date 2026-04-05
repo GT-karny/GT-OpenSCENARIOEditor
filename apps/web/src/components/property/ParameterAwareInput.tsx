@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo, forwardRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Input } from '../ui/input';
 import { useScenarioStore, useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { PARAMETER_DND_TYPE } from '../parameter/ParameterListItem';
@@ -70,23 +71,39 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
     // Determine display value: binding overrides the actual value for numeric fields
     // Strip ${} wrapper for display — users see raw expressions (e.g. "250/3.6" not "${250/3.6}")
     const displayBinding = binding && isExpression(binding) ? binding.slice(2, -1) : binding;
-    const displayValue = localEditValue ?? displayBinding ?? String(value);
+    // For text fields, strip ${} wrapper for display (same as numeric binding display)
+    const rawStr = String(value);
+    const strippedValue = !elementId && isExpression(rawStr) ? rawStr.slice(2, -1) : rawStr;
+    const displayValue = localEditValue ?? displayBinding ?? strippedValue;
     const isBound = binding !== null;
-    const isExpr = binding ? isExpression(binding) : false;
-    const isParamRef = isBound && !isExpr;
+    // Detect expression: either via binding (numeric fields) or direct value (text fields)
+    const rawValue = String(value);
+    const textIsExpr = !elementId && (isExpression(rawValue) || looksLikeExpression(rawValue));
+    const isExpr = binding ? isExpression(binding) : textIsExpr;
+    const textIsParamRef = !elementId && !textIsExpr
+      && rawValue.startsWith('$') && !isExpression(rawValue) && rawValue.length > 1;
+    const isParamRef = isBound ? !isExpr : textIsParamRef;
 
-    // Resolve the parameter/variable's current value for the badge shown on bound fields
-    const activeRef = binding ?? localEditValue;
-    const resolvedParam = activeRef && !isExpression(activeRef)
+    // Resolve the parameter/variable's current value for the badge shown on bound/ref fields
+    const activeRef = binding ?? localEditValue ?? (isParamRef ? rawValue : null);
+    const resolvedParam = activeRef && !isExpression(activeRef) && !looksLikeExpression(activeRef)
       ? parameters.find((p) => `$${p.name}` === activeRef)
         ?? variables.find((v) => `$${v.name}` === activeRef)
       : null;
 
     // Evaluate expression to show computed result
+    // For text-mode values not wrapped in ${}, auto-wrap for evaluation
+    const exprSource = useMemo(() => {
+      if (binding) return binding;
+      if (!textIsExpr) return null;
+      if (isExpression(rawValue)) return rawValue;
+      // Auto-wrap bare expressions like "$a/3" or "100+50" for evaluation
+      return `\${${rawValue}}`;
+    }, [binding, textIsExpr, rawValue]);
     const evaluatedResult = useMemo(() => {
-      if (!isExpr || !binding) return undefined;
-      return evaluateExpression(binding, parameters, variables);
-    }, [isExpr, binding, parameters, variables]);
+      if (!exprSource) return undefined;
+      return evaluateExpression(exprSource, parameters, variables);
+    }, [exprSource, parameters, variables]);
 
     /** Save an expression or $param to parameterBindings. Auto-wraps arithmetic in ${}. */
     const confirmExpression = useCallback((expr: string) => {
@@ -118,10 +135,15 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
         storeApi.getState().removeParameterBinding(elementId, fieldName);
       }
 
-      // For numeric fields: hold $-prefixed values and arithmetic expressions
-      // in local state (parent would parseFloat them to NaN/0)
+      // For numeric fields: hold $-prefixed and expression values in local state
+      // (parent would parseFloat them to NaN/0)
       if (elementId && fieldName && (val.startsWith('$') || looksLikeExpression(val))) {
         setLocalEditValue(val);
+      } else if (elementId && fieldName) {
+        // Numeric field: keep raw string in localEditValue to preserve intermediate
+        // states like "1." while typing "1.5" (parseFloat("1.") → 1 would lose the dot)
+        setLocalEditValue(val);
+        onValueChange(val);
       } else {
         setLocalEditValue(null);
         onValueChange(val);
@@ -222,11 +244,14 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
       // Confirm complete expression on blur (use ref for latest value)
       const editVal = localEditValueRef.current;
       if (editVal) {
-        confirmExpression(editVal);
+        if (!confirmExpression(editVal)) {
+          // Plain numeric value: ensure parent gets final value on blur
+          onValueChange(editVal);
+        }
       }
       setLocalEditValue(null);
       props.onBlur?.(e);
-    }, [confirmExpression, props]);
+    }, [confirmExpression, onValueChange, props]);
 
     // Cleanup blur timer on unmount
     useEffect(() => {
@@ -304,27 +329,49 @@ export const ParameterAwareInput = forwardRef<HTMLInputElement, ParameterAwareIn
             = {resolvedParam.value}
           </span>
         )}
-        {showSuggestions && filtered.length > 0 && (
-          <div className="absolute z-50 top-full left-0 mt-1 w-full max-h-32 overflow-auto rounded border border-[var(--color-border-glass)] bg-[var(--color-bg-deep)] shadow-md">
-            {filtered.map((item, i) => (
-              <button
-                key={`${item.kind}-${item.name}`}
-                type="button"
-                className={cn(
-                  'w-full px-2 py-1 text-left text-xs flex items-center gap-2 hover:bg-[var(--color-glass-1)]',
-                  i === selectedIndex && 'bg-[var(--color-glass-1)]',
-                )}
-                onMouseDown={(e) => { e.preventDefault(); handleSelect(item.name); }}
-              >
-                <span className="font-medium text-[var(--color-accent-1)]">${item.name}</span>
-                <span className="text-[var(--color-text-tertiary)] text-[10px]">{item.kind === 'var' ? 'var' : 'param'}</span>
-                <span className="text-[var(--color-text-tertiary)] text-[10px]">{item.type}</span>
-                <span className="text-[var(--color-text-tertiary)] text-[10px] ml-auto">= {item.value}</span>
-              </button>
-            ))}
-          </div>
+        {showSuggestions && filtered.length > 0 && inputRef.current && createPortal(
+          <SuggestionDropdown inputEl={inputRef.current} filtered={filtered} selectedIndex={selectedIndex} onSelect={handleSelect} />,
+          document.body,
         )}
       </div>
     );
   },
 );
+
+/** Fixed-position suggestion dropdown rendered via Portal to escape overflow containers. */
+function SuggestionDropdown({
+  inputEl,
+  filtered,
+  selectedIndex,
+  onSelect,
+}: {
+  inputEl: HTMLInputElement;
+  filtered: { name: string; type: string; value: string; kind: 'param' | 'var' }[];
+  selectedIndex: number;
+  onSelect: (name: string) => void;
+}) {
+  const rect = inputEl.getBoundingClientRect();
+  return (
+    <div
+      className="fixed z-[9999] max-h-32 overflow-auto rounded-none border border-[var(--color-border-glass)] bg-[var(--color-bg-deep)] shadow-md"
+      style={{ top: rect.bottom + 4, left: rect.left, width: rect.width }}
+    >
+      {filtered.map((item, i) => (
+        <button
+          key={`${item.kind}-${item.name}`}
+          type="button"
+          className={cn(
+            'w-full px-2 py-1 text-left text-xs flex items-center gap-2 hover:bg-[var(--color-glass-1)]',
+            i === selectedIndex && 'bg-[var(--color-glass-1)]',
+          )}
+          onMouseDown={(e) => { e.preventDefault(); onSelect(item.name); }}
+        >
+          <span className="font-medium text-[var(--color-accent-1)]">${item.name}</span>
+          <span className="text-[var(--color-text-tertiary)] text-[10px]">{item.kind === 'var' ? 'var' : 'param'}</span>
+          <span className="text-[var(--color-text-tertiary)] text-[10px]">{item.type}</span>
+          <span className="text-[var(--color-text-tertiary)] text-[10px] ml-auto">= {item.value}</span>
+        </button>
+      ))}
+    </div>
+  );
+}

@@ -54,7 +54,7 @@ export function LaneChangeActionEditor({ action, onUpdate }: LaneChangeActionEdi
             {inner.target.kind === 'absolute' ? (
               <ParameterAwareInput
                 elementId={action.id}
-                fieldName="action.target.value"
+                fieldName="target.value"
                 value={inner.target.value}
                 onValueChange={(v) => {
                   updateInner({ target: { kind: 'absolute', value: parseInt(v) || 0 } });
@@ -65,7 +65,7 @@ export function LaneChangeActionEditor({ action, onUpdate }: LaneChangeActionEdi
             ) : (
               <ParameterAwareInput
                 elementId={action.id}
-                fieldName="action.target.value"
+                fieldName="target.value"
                 value={Math.abs(inner.target.value)}
                 onValueChange={(v) => {
                   const mag = Math.abs(parseInt(v) || 0);
@@ -113,7 +113,7 @@ export function LaneChangeActionEditor({ action, onUpdate }: LaneChangeActionEdi
       >
         <ParameterAwareInput
           elementId={action.id}
-          fieldName="action.targetLaneOffset"
+          fieldName="targetLaneOffset"
           value={inner.targetLaneOffset ?? ''}
           placeholder="—"
           onValueChange={(v) =>

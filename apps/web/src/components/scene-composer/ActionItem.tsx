@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Gauge,
   ArrowLeftRight,
@@ -16,12 +17,16 @@ import {
   Terminal,
   Activity,
   Trash2,
+  GripVertical,
 } from 'lucide-react';
 import type { ScenarioAction } from '@osce/shared';
 import { cn } from '../../lib/utils';
 import { useFlashState } from '../../hooks/use-flash-state';
+import { useCopyPaste } from '../../hooks/use-clipboard';
 import { useScenarioStore } from '../../stores/use-scenario-store';
 import { getActionSummary } from './action-summary';
+import { ComposerContextMenu } from './ComposerContextMenu';
+import type { ComposerMenuPosition } from './ComposerContextMenu';
 import { isCustomName } from './name-utils';
 
 interface ActionItemProps {
@@ -30,6 +35,11 @@ interface ActionItemProps {
   running?: boolean;
   onSelect: () => void;
   onRemove: () => void;
+  dragHandleProps?: {
+    draggable: boolean;
+    onDragStart: (e: React.DragEvent) => void;
+    onDragEnd: (e: React.DragEvent) => void;
+  };
 }
 
 export const actionIcons: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -65,11 +75,13 @@ export const actionIcons: Record<string, React.ComponentType<{ className?: strin
 /**
  * A single action row within an EventRow, shown indented under the trigger.
  */
-export function ActionItem({ action, selected, running, onSelect, onRemove }: ActionItemProps) {
+export function ActionItem({ action, selected, running, onSelect, onRemove, dragHandleProps }: ActionItemProps) {
   const bindings = useScenarioStore((s) => s.document._editor.parameterBindings);
   const Icon = actionIcons[action.action.type] ?? Settings;
   const summary = getActionSummary(action, bindings);
   const flash = useFlashState(running ?? false);
+  const [ctxMenu, setCtxMenu] = useState<ComposerMenuPosition | null>(null);
+  const { copyElement, duplicateElement } = useCopyPaste();
 
   return (
     <div
@@ -88,7 +100,15 @@ export function ActionItem({ action, selected, running, onSelect, onRemove }: Ac
         e.stopPropagation();
         onSelect();
       }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setCtxMenu({ x: e.clientX, y: e.clientY });
+      }}
+
+      {...dragHandleProps}
     >
+      <GripVertical className="h-3 w-3 shrink-0 text-[var(--color-text-muted)] opacity-0 group-hover/action:opacity-40 cursor-grab" />
       <Icon className={cn('h-3 w-3 shrink-0', flash !== 'idle' ? 'text-emerald-400' : 'text-[var(--color-accent-1)]')} />
       <span className="text-[11px] text-[var(--color-text-primary)] truncate flex-1">
         {isCustomName(action.name, 'action') && (
@@ -106,6 +126,17 @@ export function ActionItem({ action, selected, running, onSelect, onRemove }: Ac
       >
         <Trash2 className="h-3 w-3" />
       </button>
+
+      {/* Context menu */}
+      {ctxMenu && (
+        <ComposerContextMenu
+          position={ctxMenu}
+          onDuplicate={() => duplicateElement(action.id)}
+          onCopy={() => copyElement(action.id)}
+          onDelete={onRemove}
+          onClose={() => setCtxMenu(null)}
+        />
+      )}
     </div>
   );
 }

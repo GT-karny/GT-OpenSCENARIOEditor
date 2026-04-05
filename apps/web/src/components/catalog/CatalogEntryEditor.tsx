@@ -19,6 +19,7 @@ import type {
   ControllerType,
   Maneuver,
   Route,
+  Trajectory,
 } from '@osce/shared';
 import { cn } from '@/lib/utils';
 import { ParameterDeclarationsEditor } from './ParameterDeclarationsEditor';
@@ -28,6 +29,7 @@ import type { HighlightKey } from './diagrams';
 import { ManeuverFields } from './ManeuverFields';
 import { ManeuverEventPanel } from './ManeuverEventPanel';
 import { RouteFields } from './RouteFields';
+import { TrajectoryFields } from './TrajectoryFields';
 
 interface HighlightProps {
   highlighted: HighlightKey;
@@ -139,6 +141,12 @@ export function CatalogEntryEditor() {
         {entry.catalogType === 'route' && (
           <RouteFields
             entry={entry as { catalogType: 'route'; definition: Route }}
+            onUpdate={handleUpdate}
+          />
+        )}
+        {entry.catalogType === 'trajectory' && (
+          <TrajectoryFields
+            entry={entry as { catalogType: 'trajectory'; definition: Trajectory }}
             onUpdate={handleUpdate}
           />
         )}

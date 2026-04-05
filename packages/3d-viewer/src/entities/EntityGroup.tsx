@@ -11,6 +11,7 @@ import { Mesh, MeshStandardMaterial, MeshBasicMaterial } from 'three';
 import type { ScenarioEntity, OpenDriveDocument } from '@osce/shared';
 import type { WorldCoords } from '../utils/position-resolver.js';
 import type { GizmoMode } from '../store/viewer-types.js';
+import type { VehicleLightState } from '../scenario/useEntityLightStates.js';
 import { VehicleEntity } from './VehicleEntity.js';
 import { PedestrianEntity } from './PedestrianEntity.js';
 import { MiscObjectEntity } from './MiscObjectEntity.js';
@@ -37,6 +38,8 @@ interface EntityGroupProps {
   selectedEntityRoadPosition?: { roadId: string; laneId: number; s: number } | null;
   /** Opacity override for entities (used during route editing to fade entities) */
   routeOpacity?: number;
+  /** Vehicle light states extracted from Init LightStateActions */
+  entityLightStates?: Map<string, VehicleLightState>;
 }
 
 function isEgoEntity(entity: ScenarioEntity, index: number): boolean {
@@ -54,6 +57,7 @@ function EntityWithRef({
   isSelected,
   isEgo,
   showLabel,
+  lightState,
   onSelect,
   onFocus,
   groupRef,
@@ -64,6 +68,7 @@ function EntityWithRef({
   isSelected: boolean;
   isEgo: boolean;
   showLabel: boolean;
+  lightState?: VehicleLightState;
   onSelect: () => void;
   onFocus?: () => void;
   groupRef?: React.Ref<THREE.Group>;
@@ -101,6 +106,7 @@ function EntityWithRef({
             {...commonProps}
             position={zeroed}
             isEgo={isEgo}
+            lightState={lightState}
           />
         )}
         {entity.type === 'pedestrian' && (
@@ -148,6 +154,7 @@ export const EntityGroup: React.FC<EntityGroupProps> = React.memo(
     snapToLane,
     selectedEntityRoadPosition,
     routeOpacity,
+    entityLightStates,
   }) => {
     const entityGroupRef = useRef<THREE.Group>(null);
     const selectedGroupRef = useRef<THREE.Group>(null);
@@ -218,6 +225,7 @@ export const EntityGroup: React.FC<EntityGroupProps> = React.memo(
                   isSelected={isSelected}
                   isEgo={isEgo}
                   showLabel={showLabels}
+                  lightState={entityLightStates?.get(entity.name)}
                   onSelect={() => onEntitySelect(entity.id)}
                   onFocus={() => onEntityFocus?.(entity.id)}
                   groupRef={selectedGroupCallbackRef}
@@ -254,6 +262,7 @@ export const EntityGroup: React.FC<EntityGroupProps> = React.memo(
                     key={entity.id}
                     {...commonProps}
                     isEgo={isEgo}
+                    lightState={entityLightStates?.get(entity.name)}
                   />
                 );
               case 'pedestrian':

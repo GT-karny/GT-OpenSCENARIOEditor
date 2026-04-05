@@ -176,6 +176,7 @@ const defaultPreferences: EditorPreferences = {
   showGrid3D: true,
   showLaneIds: false,
   showRoadIds: false,
+  speedUnit: 'mps',
   compatibilityProfile: {
     oscVersion: '1.3',
     simulator: 'any',

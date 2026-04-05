@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { Car, Plus } from 'lucide-react';
 import { useScenarioStore, useScenarioStoreApi } from '../../stores/use-scenario-store';
@@ -98,6 +98,40 @@ export function SceneComposerView() {
     storeApi.getState().updateAct(actId, { name });
   };
 
+  // --- ManeuverGroup D&D ---
+  const [dragGroupId, setDragGroupId] = useState<string | null>(null);
+  const [dropTargetGroupIndex, setDropTargetGroupIndex] = useState<number | null>(null);
+
+  const handleGroupDragStart = (groupId: string) => (e: React.DragEvent) => {
+    e.stopPropagation();
+    setDragGroupId(groupId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleGroupDragEnd = (e: React.DragEvent) => {
+    e.stopPropagation();
+    setDragGroupId(null);
+    setDropTargetGroupIndex(null);
+  };
+
+  const handleGroupDragOver = (index: number) => (e: React.DragEvent) => {
+    if (!dragGroupId) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    setDropTargetGroupIndex(index);
+  };
+
+  const handleGroupDrop = (targetIndex: number) => (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dragGroupId) {
+      storeApi.getState().reorderManeuverGroup(dragGroupId, targetIndex);
+    }
+    setDragGroupId(null);
+    setDropTargetGroupIndex(null);
+  };
+
   // Empty state — no Story at all
   if (acts.length === 0) {
     return (
@@ -144,15 +178,29 @@ export function SceneComposerView() {
               Entity Behaviors
             </p>
             <div className="flex flex-wrap items-start gap-4">
-              {activeGroups.map((group) => (
-                <EntityBehaviorCard
+              {activeGroups.map((group, index) => (
+                <div
                   key={group.id}
-                  group={group}
-                  selected={selectedIds.includes(group.id)}
-                  onSelect={() => handleSelectGroup(group.id)}
-                  activeSimIds={activeSimIds}
-                  onSeekToElement={seekToElement}
-                />
+                  onDragOver={handleGroupDragOver(index)}
+                  onDrop={handleGroupDrop(index)}
+                  className="flex items-start gap-0"
+                >
+                  {dropTargetGroupIndex === index && dragGroupId && (
+                    <div className="w-0.5 self-stretch bg-[var(--color-accent-1)] rounded-full shrink-0" />
+                  )}
+                  <EntityBehaviorCard
+                    group={group}
+                    selected={selectedIds.includes(group.id)}
+                    onSelect={() => handleSelectGroup(group.id)}
+                    activeSimIds={activeSimIds}
+                    onSeekToElement={seekToElement}
+                    dragHandleProps={{
+                      draggable: true,
+                      onDragStart: handleGroupDragStart(group.id),
+                      onDragEnd: handleGroupDragEnd,
+                    }}
+                  />
+                </div>
               ))}
 
               {/* Add behavior button */}

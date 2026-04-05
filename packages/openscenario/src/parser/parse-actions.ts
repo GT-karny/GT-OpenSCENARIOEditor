@@ -907,13 +907,30 @@ function parseLightStateAction(raw: any): LightStateAction {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseLightType(raw: any): string {
   if (!raw) return '';
+  // XSD-compliant: <VehicleLight vehicleLightType="..."/>
+  if (raw.VehicleLight) {
+    const vlt = strAttr(raw.VehicleLight, 'vehicleLightType', '');
+    return vlt ? `vehicleLight:${vlt}` : '';
+  }
+  // Legacy: <VehicleLightType vehicleLightType="..."/>
   if (raw.VehicleLightType) {
-    return strAttr(raw.VehicleLightType, 'vehicleLightType', '') ||
+    const vlt = strAttr(raw.VehicleLightType, 'vehicleLightType', '') ||
       (typeof raw.VehicleLightType === 'string' ? raw.VehicleLightType : '');
+    return vlt ? `vehicleLight:${vlt}` : '';
   }
+  // XSD-compliant: <UserDefinedLight userDefinedLightType="..."/>
+  if (raw.UserDefinedLight) {
+    const udt = strAttr(raw.UserDefinedLight, 'userDefinedLightType', '');
+    return udt ? `userDefined:${udt}` : '';
+  }
+  // Legacy: <UserDefinedLightType type="..."/>
   if (raw.UserDefinedLightType) {
-    return strAttr(raw.UserDefinedLightType, 'type', '');
+    const udt = strAttr(raw.UserDefinedLightType, 'type', '');
+    return udt ? `userDefined:${udt}` : '';
   }
+  // Fallback: old format <LightType value="vehicleLight:..."/>
+  const value = strAttr(raw, 'value', '');
+  if (value) return value;
   return '';
 }
 

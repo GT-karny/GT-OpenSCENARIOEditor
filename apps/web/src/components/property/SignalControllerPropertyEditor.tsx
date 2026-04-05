@@ -10,6 +10,7 @@ import { Plus, Trash2, TrafficCone } from 'lucide-react';
 import type { TrafficSignalController } from '@osce/shared';
 import { useScenarioStore, useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
+import { ParameterAwareInput } from './ParameterAwareInput';
 
 export function SignalControllerPropertyEditor() {
   const storeApi = useScenarioStoreApi();
@@ -136,17 +137,17 @@ export function SignalControllerPropertyEditor() {
           {/* Delay */}
           <div className="space-y-0.5">
             <label className="text-[10px] text-[var(--color-text-secondary)]">Delay (s)</label>
-            <input
-              type="number"
+            <ParameterAwareInput
+              elementId={selectedController.id}
+              fieldName="delay"
               value={selectedController.delay ?? ''}
-              placeholder="--"
-              onChange={(e) => {
-                const v = parseFloat(e.target.value);
-                handleUpdate({ delay: isNaN(v) ? undefined : v });
+              onValueChange={(v) => {
+                const n = parseFloat(v);
+                handleUpdate({ delay: isNaN(n) ? undefined : n });
               }}
+              acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
+              placeholder="--"
               className="h-7 w-full px-2 text-xs bg-[var(--color-glass-2)] border border-[var(--color-glass-edge)] rounded-none text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)]"
-              step={1}
-              min={0}
             />
           </div>
 

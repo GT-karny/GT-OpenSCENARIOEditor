@@ -22,6 +22,7 @@ import { IntersectionTimelinePanel } from '../panels/intersection-timeline';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { NodeEditorContextMenu } from '../node-editor/NodeEditorContextMenu';
 import { WaypointContextMenu } from '../route/WaypointContextMenu';
+import { TrajectoryContextMenu } from '../trajectory/TrajectoryContextMenu';
 import type { WaypointContextMenuPosition } from '../route/WaypointContextMenu';
 import type { ContextMenuPosition } from '../node-editor/NodeEditorContextMenu';
 import { DeleteConfirmationDialog } from '../node-editor/DeleteConfirmationDialog';
@@ -36,12 +37,16 @@ import { useEditorStore } from '../../stores/editor-store';
 import { useProjectStore } from '../../stores/project-store';
 import { useSimulationStore } from '../../stores/simulation-store';
 import { useRouteEdit } from '../../hooks/use-route-edit';
+import { useTrajectoryEdit } from '../../hooks/use-trajectory-edit';
 import { useRoutePreview } from '../../hooks/use-route-preview';
+import { useTrajectoryPreview } from '../../hooks/use-trajectory-preview';
 import { useRoadManagerClient } from '../../hooks/use-road-manager-client';
 import { useCatalogStore } from '../../stores/catalog-store';
 import { useTemplateDrop } from '../../hooks/use-template-drop';
 import { useElementDelete } from '../../hooks/use-element-delete';
 import { useElementAdd } from '../../hooks/use-element-add';
+import { useCopyPaste } from '../../hooks/use-clipboard';
+import { useClipboardStore } from '../../stores/clipboard-store';
 import { getDirectChildCount } from '../../lib/count-descendants';
 import { useFileOperations } from '../../hooks/use-file-operations';
 import { useProjectFileOperations } from '../../hooks/use-project-file-operations';
@@ -95,6 +100,22 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   routeWaypointCount?: number;
   resolveCatalogRoute?: (ref: { catalogName: string; entryName: string }) => import('@osce/shared').Route | null;
   routePreviewData?: import('@osce/3d-viewer').RoutePreviewData[];
+  // Trajectory editing props
+  trajectoryEditActive?: boolean;
+  trajectoryShapeType?: 'polyline' | 'clothoid' | 'nurbs';
+  trajectoryPoints?: Array<{ x: number; y: number; z: number; h: number }>;
+  trajectoryCurvePoints?: Array<{ x: number; y: number; z: number }>;
+  trajectoryPointTimes?: Array<number | undefined>;
+  trajectorySelectedPointIndex?: number | null;
+  onTrajectoryPointClick?: (index: number) => void;
+  onTrajectoryPointContextMenu?: (index: number, event: unknown) => void;
+  onTrajectoryPointAdd?: (worldX: number, worldY: number, worldZ: number, heading: number, roadId: string, laneId: string, s: number, offset: number) => void;
+  onTrajectoryPointDragEnd?: (index: number, worldX: number, worldY: number, worldZ: number, heading: number, roadId: string, laneId: string, s: number, offset: number) => void;
+  onTrajectoryEditSave?: () => void;
+  onTrajectoryEditCancel?: () => void;
+  trajectoryWarnings?: string[];
+  trajectoryPointCount?: number;
+  trajectoryPreviewData?: import('@osce/3d-viewer').TrajectoryPreviewData[];
   selectedSignalKey?: string | null;
   onSignalSelect?: (key: string) => void;
   highlightedSignalIds?: ReadonlySet<string>;
@@ -161,6 +182,21 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       routeWaypointCount={props.routeWaypointCount}
       resolveCatalogRoute={props.resolveCatalogRoute}
       routePreviewData={props.routePreviewData}
+      trajectoryEditActive={props.trajectoryEditActive}
+      trajectoryShapeType={props.trajectoryShapeType}
+      trajectoryPoints={props.trajectoryPoints}
+      trajectoryCurvePoints={props.trajectoryCurvePoints}
+      trajectoryPointTimes={props.trajectoryPointTimes}
+      trajectorySelectedPointIndex={props.trajectorySelectedPointIndex}
+      onTrajectoryPointClick={props.onTrajectoryPointClick}
+      onTrajectoryPointContextMenu={props.onTrajectoryPointContextMenu}
+      onTrajectoryPointAdd={props.onTrajectoryPointAdd}
+      onTrajectoryPointDragEnd={props.onTrajectoryPointDragEnd}
+      onTrajectoryEditSave={props.onTrajectoryEditSave}
+      onTrajectoryEditCancel={props.onTrajectoryEditCancel}
+      trajectoryWarnings={props.trajectoryWarnings}
+      trajectoryPointCount={props.trajectoryPointCount}
+      trajectoryPreviewData={props.trajectoryPreviewData}
       selectedSignalKey={props.selectedSignalKey}
       onSignalSelect={props.onSignalSelect}
       highlightedSignalIds={props.highlightedSignalIds}
@@ -420,6 +456,9 @@ export function EditorLayout() {
   // --- Route preview (read-only visualization for selected entity/action) ---
   const routePreviewData = useRoutePreview(scenarioStoreApi, roadNetwork, roadManagerClient);
 
+  // --- Trajectory preview (read-only visualization for selected entity/action) ---
+  const trajectoryPreviewData = useTrajectoryPreview(scenarioStoreApi, roadNetwork);
+
   const resolveCatalogRoute = useCallback(
     (ref: { catalogName: string; entryName: string }) => {
       const resolved = catalogResolveReference({
@@ -548,6 +587,148 @@ export function EditorLayout() {
     routeEdit.cancelRoute();
   }, [routeEdit]);
 
+  // --- Trajectory editing ---
+  const trajectoryEdit = useTrajectoryEdit(roadNetwork);
+
+  const handleTrajectoryPointAdd = useCallback(
+    (
+      _worldX: number, _worldY: number, _worldZ: number, _heading: number,
+      roadId: string, laneId: string, s: number, _offset: number,
+    ) => {
+      const shape = trajectoryEdit.editingTrajectory?.shape;
+      if (shape?.type === 'polyline') {
+        trajectoryEdit.addVertex({
+          type: 'lanePosition',
+          roadId,
+          laneId,
+          s: Math.round(s * 100) / 100,
+        });
+      } else if (shape?.type === 'nurbs') {
+        trajectoryEdit.addControlPoint({
+          type: 'lanePosition',
+          roadId,
+          laneId,
+          s: Math.round(s * 100) / 100,
+        });
+      }
+    },
+    [trajectoryEdit],
+  );
+
+  const handleTrajectoryPointClick = useCallback(
+    (index: number) => {
+      trajectoryEdit.selectPoint(index);
+    },
+    [trajectoryEdit],
+  );
+
+  interface TrajectoryContextMenuPosition {
+    x: number;
+    y: number;
+    pointIndex: number;
+  }
+  const [trajectoryContextMenu, setTrajectoryContextMenu] =
+    useState<TrajectoryContextMenuPosition | null>(null);
+
+  const handleTrajectoryPointContextMenu = useCallback(
+    (index: number, event: unknown) => {
+      const nativeEvent = (event as { nativeEvent?: MouseEvent })?.nativeEvent;
+      if (!nativeEvent) return;
+      nativeEvent.preventDefault();
+      setTrajectoryContextMenu({
+        x: nativeEvent.clientX,
+        y: nativeEvent.clientY,
+        pointIndex: index,
+      });
+    },
+    [],
+  );
+
+  const handleTrajectoryPointDragEnd = useCallback(
+    (
+      index: number,
+      _worldX: number, _worldY: number, _worldZ: number, _heading: number,
+      roadId: string, laneId: string, s: number, _offset: number,
+    ) => {
+      const shape = trajectoryEdit.editingTrajectory?.shape;
+      const pos = {
+        type: 'lanePosition' as const,
+        roadId,
+        laneId,
+        s: Math.round(s * 100) / 100,
+      };
+      if (shape?.type === 'polyline') {
+        trajectoryEdit.updateVertexPosition(index, pos);
+      } else if (shape?.type === 'nurbs') {
+        trajectoryEdit.updateControlPointPosition(index, pos);
+      } else if (shape?.type === 'clothoid') {
+        trajectoryEdit.updateClothoidPosition(pos);
+      }
+    },
+    [trajectoryEdit],
+  );
+
+  const handleTrajectoryEditSave = useCallback(() => {
+    trajectoryEdit.saveTrajectory(
+      (actionId, trajectory) => {
+        // Read the existing action from the store to preserve timeReference, followingMode, etc.
+        const doc = scenarioStoreApi.getState().document;
+        if (!doc) return;
+        // Search storyboard actions
+        for (const story of doc.storyboard.stories) {
+          for (const act of story.acts) {
+            for (const group of act.maneuverGroups) {
+              for (const maneuver of group.maneuvers) {
+                for (const event of maneuver.events) {
+                  const existing = event.actions.find((a) => a.id === actionId);
+                  if (existing && existing.action?.type === 'followTrajectoryAction') {
+                    scenarioStoreApi.getState().updateAction(actionId, {
+                      action: { ...existing.action, trajectory },
+                    });
+                    return;
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      (catalogName, entryIndex, trajectory) => {
+        updateCatalogEntry(catalogName, entryIndex, {
+          catalogType: 'trajectory',
+          definition: trajectory,
+        });
+      },
+    );
+  }, [trajectoryEdit, scenarioStoreApi, updateCatalogEntry]);
+
+  const handleTrajectoryEditCancel = useCallback(() => {
+    trajectoryEdit.cancelTrajectory();
+  }, [trajectoryEdit]);
+
+  // Compute time values for trajectory point markers
+  const trajectoryPointTimes = useMemo(() => {
+    const t = trajectoryEdit.editingTrajectory;
+    if (!t) return undefined;
+    if (t.shape.type === 'polyline') {
+      return t.shape.vertices.map((v) => v.time);
+    }
+    if (t.shape.type === 'nurbs') {
+      return t.shape.controlPoints.map((cp) => cp.time);
+    }
+    return undefined;
+  }, [trajectoryEdit.editingTrajectory]);
+
+  // Compute point count for trajectory
+  const trajectoryPointCount = useMemo(() => {
+    const t = trajectoryEdit.editingTrajectory;
+    if (!t) return 0;
+    if (t.shape.type === 'polyline') return t.shape.vertices.length;
+    if (t.shape.type === 'clothoid') return t.shape.position ? 1 : 0;
+    if (t.shape.type === 'nurbs') return t.shape.controlPoints.length;
+    return 0;
+  }, [trajectoryEdit.editingTrajectory]);
+
   // --- Drag & Drop ---
   const {
     handleDragOver,
@@ -624,6 +805,25 @@ export function EditorLayout() {
     }
     setDeleteRequest(null);
   }, [deleteRequest, deleteElementById]);
+
+  // --- Copy / Paste / Duplicate ---
+  const { copyElement, duplicateElement, pasteInto, canPasteInto } = useCopyPaste();
+  const hasClipboardItem = useClipboardStore((s) => s.copiedItem !== null);
+
+  const handleCopyNode = useCallback(
+    (nodeId: string) => copyElement(nodeId),
+    [copyElement],
+  );
+
+  const handleDuplicateNode = useCallback(
+    (nodeId: string) => duplicateElement(nodeId),
+    [duplicateElement],
+  );
+
+  const handlePasteNode = useCallback(
+    (nodeId: string) => pasteInto(nodeId),
+    [pasteInto],
+  );
 
   return (
     <div className="relative flex flex-col h-screen overflow-hidden">
@@ -739,6 +939,21 @@ export function EditorLayout() {
                     routeWaypointCount={routeEdit.editingRoute?.waypoints.length ?? 0}
                     resolveCatalogRoute={resolveCatalogRoute}
                     routePreviewData={routePreviewData}
+                    trajectoryEditActive={trajectoryEdit.active}
+                    trajectoryShapeType={trajectoryEdit.editingTrajectory?.shape.type}
+                    trajectoryPoints={trajectoryEdit.pointWorldPositions}
+                    trajectoryCurvePoints={trajectoryEdit.curvePoints}
+                    trajectoryPointTimes={trajectoryPointTimes}
+                    trajectorySelectedPointIndex={trajectoryEdit.selectedPointIndex}
+                    onTrajectoryPointClick={handleTrajectoryPointClick}
+                    onTrajectoryPointContextMenu={handleTrajectoryPointContextMenu}
+                    onTrajectoryPointAdd={handleTrajectoryPointAdd}
+                    onTrajectoryPointDragEnd={handleTrajectoryPointDragEnd}
+                    onTrajectoryEditSave={handleTrajectoryEditSave}
+                    onTrajectoryEditCancel={handleTrajectoryEditCancel}
+                    trajectoryWarnings={trajectoryEdit.warnings}
+                    trajectoryPointCount={trajectoryPointCount}
+                    trajectoryPreviewData={trajectoryPreviewData}
                     selectedSignalKey={selectedSignalKey}
                     onSignalSelect={handleSignalSelect}
                     highlightedSignalIds={signalPickMode ? undefined : highlightedSignalIds}
@@ -767,6 +982,45 @@ export function EditorLayout() {
                       setWaypointContextMenu(null);
                     }}
                     onClose={() => setWaypointContextMenu(null)}
+                  />
+                )}
+                {trajectoryContextMenu && (
+                  <TrajectoryContextMenu
+                    x={trajectoryContextMenu.x}
+                    y={trajectoryContextMenu.y}
+                    pointIndex={trajectoryContextMenu.pointIndex}
+                    onSelect={() => {
+                      trajectoryEdit.selectPoint(trajectoryContextMenu.pointIndex);
+                      setTrajectoryContextMenu(null);
+                    }}
+                    onInsertAfter={() => {
+                      const shape = trajectoryEdit.editingTrajectory?.shape;
+                      const pos = trajectoryEdit.pointWorldPositions[trajectoryContextMenu.pointIndex];
+                      if (pos && shape?.type === 'polyline') {
+                        trajectoryEdit.insertVertex(trajectoryContextMenu.pointIndex, {
+                          type: 'worldPosition',
+                          x: pos.x + 5,
+                          y: pos.y,
+                        });
+                      } else if (pos && shape?.type === 'nurbs') {
+                        trajectoryEdit.insertControlPoint(trajectoryContextMenu.pointIndex, {
+                          type: 'worldPosition',
+                          x: pos.x + 5,
+                          y: pos.y,
+                        });
+                      }
+                      setTrajectoryContextMenu(null);
+                    }}
+                    onDelete={() => {
+                      const shape = trajectoryEdit.editingTrajectory?.shape;
+                      if (shape?.type === 'polyline') {
+                        trajectoryEdit.removeVertex(trajectoryContextMenu.pointIndex);
+                      } else if (shape?.type === 'nurbs') {
+                        trajectoryEdit.removeControlPoint(trajectoryContextMenu.pointIndex);
+                      }
+                      setTrajectoryContextMenu(null);
+                    }}
+                    onClose={() => setTrajectoryContextMenu(null)}
                   />
                 )}
               </div>
@@ -967,6 +1221,10 @@ export function EditorLayout() {
           position={contextMenu}
           onAddChild={handleAddChild}
           onDeleteNode={handleDeleteNode}
+          onCopyNode={handleCopyNode}
+          onPasteNode={handlePasteNode}
+          onDuplicateNode={handleDuplicateNode}
+          canPaste={hasClipboardItem && contextMenu.nodeId ? canPasteInto(contextMenu.nodeId) : false}
           onClose={() => setContextMenu(null)}
         />
       )}

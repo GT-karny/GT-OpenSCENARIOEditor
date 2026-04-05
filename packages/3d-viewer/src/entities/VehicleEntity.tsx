@@ -12,6 +12,8 @@ import type { WorldCoords } from '../utils/position-resolver.js';
 import { EntityLabel } from './EntityLabel.js';
 import { HOVER_MATERIAL } from '../constants/selection-theme.js';
 import { SelectionFeedback } from '../interaction/primitives/SelectionFeedback.js';
+import type { VehicleLightState } from '../scenario/useEntityLightStates.js';
+import { VehicleLightEffects } from './VehicleLightEffects.js';
 
 interface VehicleEntityProps {
   entity: ScenarioEntity;
@@ -20,12 +22,13 @@ interface VehicleEntityProps {
   isHovered?: boolean;
   isEgo: boolean;
   showLabel: boolean;
+  lightState?: VehicleLightState;
   onClick?: () => void;
   onDoubleClick?: () => void;
 }
 
 export const VehicleEntity: React.FC<VehicleEntityProps> = React.memo(
-  ({ entity, position, isSelected, isHovered, isEgo, showLabel, onClick, onDoubleClick }) => {
+  ({ entity, position, isSelected, isHovered, isEgo, showLabel, lightState, onClick, onDoubleClick }) => {
     const meshRef = useRef<THREE.Mesh>(null);
     const geom = getEntityGeometry(entity);
     const color = getEntityColor('vehicle', isEgo);
@@ -61,6 +64,17 @@ export const VehicleEntity: React.FC<VehicleEntityProps> = React.memo(
           <coneGeometry args={[0.3, 0.6, 8]} />
           <meshStandardMaterial color={color} />
         </mesh>
+
+        {/* Vehicle light effects (indicators, headlights, brake lights) */}
+        {lightState && (
+          <VehicleLightEffects
+            vehicleWidth={geom.width}
+            vehicleLength={geom.length}
+            centerX={geom.centerX}
+            centerZ={geom.centerZ}
+            lightState={lightState}
+          />
+        )}
 
         {/* Entity label */}
         {(showLabel || isHovered) && (

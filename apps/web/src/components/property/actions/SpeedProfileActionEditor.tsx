@@ -11,6 +11,7 @@ import { EntityRefSelect } from '../EntityRefSelect';
 import { SegmentedControl } from '../SegmentedControl';
 import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
 import { Plus, Trash2 } from 'lucide-react';
+import { useSpeedUnit } from '../../../hooks/use-speed-unit';
 
 const FOLLOWING_MODES = ['follow', 'position'] as const;
 const DYNAMICS_DIMENSIONS = ['time', 'distance', 'rate'] as const;
@@ -22,6 +23,7 @@ interface SpeedProfileActionEditorProps {
 
 export function SpeedProfileActionEditor({ action, onUpdate }: SpeedProfileActionEditorProps) {
   const inner = action.action as SpeedProfileAction;
+  const { label: speedLabel, toDisplay, toInternal } = useSpeedUnit();
 
   const updateInner = (updates: Partial<SpeedProfileAction>) => {
     onUpdate({
@@ -118,13 +120,13 @@ export function SpeedProfileActionEditor({ action, onUpdate }: SpeedProfileActio
                 <ParameterAwareInput
                   elementId={action.id}
                   fieldName={`action.entries[${i}].speed`}
-                  value={entry.speed}
-                  placeholder="m/s"
-                  onValueChange={(v) => updateEntry(i, { speed: parseFloat(v) || 0 })}
+                  value={toDisplay(entry.speed)}
+                  placeholder={speedLabel}
+                  onValueChange={(v) => updateEntry(i, { speed: toInternal(parseFloat(v) || 0) })}
                   acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
                   className="h-6 text-xs flex-1 min-w-0"
                 />
-                <span className="text-[10px] text-muted-foreground shrink-0">m/s</span>
+                <span className="text-[10px] text-muted-foreground shrink-0">{speedLabel}</span>
                 <ParameterAwareInput
                   elementId={action.id}
                   fieldName={`action.entries[${i}].time`}

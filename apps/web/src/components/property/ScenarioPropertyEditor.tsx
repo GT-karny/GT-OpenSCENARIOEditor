@@ -1,5 +1,6 @@
+import { useState, useCallback } from 'react';
 import { useTranslation } from '@osce/i18n';
-import type { CatalogLocations } from '@osce/shared';
+import type { CatalogLocations, Condition } from '@osce/shared';
 import { FileText, TrafficCone } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -12,6 +13,8 @@ import {
 import { useScenarioStore, useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
 import { XodrFilePicker } from './XodrFilePicker';
+import { SegmentedControl } from './SegmentedControl';
+import { TriggerSectionEditor } from './TriggerSectionEditor';
 
 const CATALOG_KEYS = [
   'vehicleCatalog',
@@ -26,12 +29,23 @@ const CATALOG_KEYS = [
 
 type CatalogKey = (typeof CATALOG_KEYS)[number];
 
+type ScenarioTab = 'general' | 'endCondition';
+const SCENARIO_TABS = ['general', 'endCondition'] as const;
+const SCENARIO_TAB_LABELS: Record<ScenarioTab, string> = {
+  general: 'General',
+  endCondition: 'End Condition',
+};
+
 export function ScenarioPropertyEditor() {
   const { t } = useTranslation('common');
   const storeApi = useScenarioStoreApi();
   const fileHeader = useScenarioStore((s) => s.document.fileHeader);
   const roadNetwork = useScenarioStore((s) => s.document.roadNetwork);
   const catalogLocations = useScenarioStore((s) => s.document.catalogLocations);
+  const stopTrigger = useScenarioStore((s) => s.document.storyboard.stopTrigger);
+
+  const [scenarioTab, setScenarioTab] = useState<ScenarioTab>('general');
+  const [selectedConditionId, setSelectedConditionId] = useState<string | null>(null);
 
   const handleFileHeaderChange = (field: string, value: string | number) => {
     storeApi.getState().updateFileHeader({ [field]: value });
@@ -55,6 +69,58 @@ export function ScenarioPropertyEditor() {
     } as Partial<CatalogLocations>);
   };
 
+  // ── StopTrigger callbacks ──────────────────────────────────────
+
+  const handleAddCondition = useCallback(
+    (groupId: string) => {
+      storeApi.getState().addCondition(groupId, {
+        name: 'SimTime',
+        delay: 0,
+        conditionEdge: 'none',
+        condition: {
+          kind: 'byValue',
+          valueCondition: { type: 'simulationTime', value: 0, rule: 'greaterThan' },
+        },
+      });
+    },
+    [storeApi],
+  );
+
+  const handleAddOrGroup = useCallback(() => {
+    const store = storeApi.getState();
+    const newGroup = store.addConditionGroup(stopTrigger.id);
+    store.addCondition(newGroup.id, {
+      name: 'SimTime',
+      delay: 0,
+      conditionEdge: 'none',
+      condition: {
+        kind: 'byValue',
+        valueCondition: { type: 'simulationTime', value: 0, rule: 'greaterThan' },
+      },
+    });
+  }, [storeApi, stopTrigger.id]);
+
+  const handleRemoveCondition = useCallback(
+    (conditionId: string) => {
+      storeApi.getState().removeCondition(conditionId);
+    },
+    [storeApi],
+  );
+
+  const handleRemoveGroup = useCallback(
+    (groupId: string) => {
+      storeApi.getState().removeConditionGroup(groupId);
+    },
+    [storeApi],
+  );
+
+  const handleUpdateCondition = useCallback(
+    (conditionId: string, partial: Partial<Condition>) => {
+      storeApi.getState().updateCondition(conditionId, partial);
+    },
+    [storeApi],
+  );
+
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-2 pb-2 border-b border-[var(--color-glass-edge)]">
@@ -62,128 +128,155 @@ export function ScenarioPropertyEditor() {
         <p className="text-sm font-medium">{t('scenario.title')}</p>
       </div>
 
-      <Accordion type="multiple" defaultValue={['fileHeader', 'roadNetwork']}>
-        {/* File Header */}
-        <AccordionItem value="fileHeader">
-          <AccordionTrigger className="py-2 text-xs hover:no-underline">
-            {t('scenario.fileHeader')}
-          </AccordionTrigger>
-          <AccordionContent className="pb-3 pt-0">
-            <div className="space-y-2">
-              <div className="grid gap-1">
-                <Label className="text-xs">{t('scenario.description')}</Label>
-                <Input
-                  value={fileHeader.description}
-                  onChange={(e) => handleFileHeaderChange('description', e.target.value)}
-                  className="h-8 text-sm"
-                />
-              </div>
+      <div className="py-2">
+        <SegmentedControl
+          value={scenarioTab}
+          options={SCENARIO_TABS}
+          onValueChange={(v) => {
+            setScenarioTab(v);
+            setSelectedConditionId(null);
+          }}
+          labels={SCENARIO_TAB_LABELS}
+        />
+      </div>
 
-              <div className="grid gap-1">
-                <Label className="text-xs">{t('scenario.author')}</Label>
-                <Input
-                  value={fileHeader.author}
-                  onChange={(e) => handleFileHeaderChange('author', e.target.value)}
-                  className="h-8 text-sm"
-                />
-              </div>
-
-              <div className="grid gap-1">
-                <Label className="text-xs">{t('scenario.date')}</Label>
-                <Input
-                  value={fileHeader.date}
-                  onChange={(e) => handleFileHeaderChange('date', e.target.value)}
-                  className="h-8 text-sm"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
+      {scenarioTab === 'general' ? (
+        <Accordion type="multiple" defaultValue={['fileHeader', 'roadNetwork']}>
+          {/* File Header */}
+          <AccordionItem value="fileHeader">
+            <AccordionTrigger className="py-2 text-xs hover:no-underline">
+              {t('scenario.fileHeader')}
+            </AccordionTrigger>
+            <AccordionContent className="pb-3 pt-0">
+              <div className="space-y-2">
                 <div className="grid gap-1">
-                  <Label className="text-xs">{t('scenario.revMajor')}</Label>
+                  <Label className="text-xs">{t('scenario.description')}</Label>
                   <Input
-                    value={String(fileHeader.revMajor)}
-                    readOnly
-                    className="h-8 text-sm bg-muted"
+                    value={fileHeader.description}
+                    onChange={(e) => handleFileHeaderChange('description', e.target.value)}
+                    className="h-8 text-sm"
                   />
                 </div>
+
                 <div className="grid gap-1">
-                  <Label className="text-xs">{t('scenario.revMinor')}</Label>
+                  <Label className="text-xs">{t('scenario.author')}</Label>
                   <Input
-                    value={String(fileHeader.revMinor)}
-                    readOnly
-                    className="h-8 text-sm bg-muted"
+                    value={fileHeader.author}
+                    onChange={(e) => handleFileHeaderChange('author', e.target.value)}
+                    className="h-8 text-sm"
                   />
                 </div>
-              </div>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
 
-        {/* Road Network */}
-        <AccordionItem value="roadNetwork">
-          <AccordionTrigger className="py-2 text-xs hover:no-underline">
-            {t('scenario.roadNetwork')}
-          </AccordionTrigger>
-          <AccordionContent className="pb-3 pt-0">
-            <div className="space-y-2">
-              <XodrFilePicker
-                currentPath={roadNetwork.logicFile?.filepath ?? ''}
-                onPathChange={handleLogicFileChange}
-              />
-
-              <div className="grid gap-1">
-                <Label className="text-xs">{t('scenario.sceneGraphFile')}</Label>
-                <Input
-                  value={roadNetwork.sceneGraphFile?.filepath ?? ''}
-                  onChange={(e) => handleSceneGraphFileChange(e.target.value)}
-                  placeholder={t('scenario.notConfigured')}
-                  className="h-8 text-sm"
-                />
-              </div>
-
-              {/* Traffic Signal Controllers — summary + link to timeline */}
-              <div className="space-y-2 pt-2 border-t border-[var(--color-glass-edge)]">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs">Traffic Signal Controllers</Label>
-                  <span className="text-xs text-[var(--color-text-secondary)]">
-                    {(roadNetwork.trafficSignals ?? []).length} defined
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => useEditorStore.getState().setShowIntersectionTimeline(true)}
-                  className="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-glass-hover)] border border-[var(--color-glass-edge)] rounded-none transition-colors"
-                >
-                  <TrafficCone className="size-3" />
-                  Open in Signal Timeline
-                </button>
-              </div>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-
-        {/* Catalog Locations */}
-        <AccordionItem value="catalogLocations">
-          <AccordionTrigger className="py-2 text-xs hover:no-underline">
-            {t('scenario.catalogLocations')}
-          </AccordionTrigger>
-          <AccordionContent className="pb-3 pt-0">
-            <div className="space-y-2">
-              {CATALOG_KEYS.map((key) => (
-                <div key={key} className="grid gap-1">
-                  <Label className="text-xs">{t(`scenario.${key}`)}</Label>
+                <div className="grid gap-1">
+                  <Label className="text-xs">{t('scenario.date')}</Label>
                   <Input
-                    value={catalogLocations[key]?.directory ?? ''}
-                    onChange={(e) => handleCatalogChange(key, e.target.value)}
+                    value={fileHeader.date}
+                    onChange={(e) => handleFileHeaderChange('date', e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="grid gap-1">
+                    <Label className="text-xs">{t('scenario.revMajor')}</Label>
+                    <Input
+                      value={String(fileHeader.revMajor)}
+                      readOnly
+                      className="h-8 text-sm bg-muted"
+                    />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label className="text-xs">{t('scenario.revMinor')}</Label>
+                    <Input
+                      value={String(fileHeader.revMinor)}
+                      readOnly
+                      className="h-8 text-sm bg-muted"
+                    />
+                  </div>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* Road Network */}
+          <AccordionItem value="roadNetwork">
+            <AccordionTrigger className="py-2 text-xs hover:no-underline">
+              {t('scenario.roadNetwork')}
+            </AccordionTrigger>
+            <AccordionContent className="pb-3 pt-0">
+              <div className="space-y-2">
+                <XodrFilePicker
+                  currentPath={roadNetwork.logicFile?.filepath ?? ''}
+                  onPathChange={handleLogicFileChange}
+                />
+
+                <div className="grid gap-1">
+                  <Label className="text-xs">{t('scenario.sceneGraphFile')}</Label>
+                  <Input
+                    value={roadNetwork.sceneGraphFile?.filepath ?? ''}
+                    onChange={(e) => handleSceneGraphFileChange(e.target.value)}
                     placeholder={t('scenario.notConfigured')}
                     className="h-8 text-sm"
                   />
                 </div>
-              ))}
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+
+                {/* Traffic Signal Controllers — summary + link to timeline */}
+                <div className="space-y-2 pt-2 border-t border-[var(--color-glass-edge)]">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Traffic Signal Controllers</Label>
+                    <span className="text-xs text-[var(--color-text-secondary)]">
+                      {(roadNetwork.trafficSignals ?? []).length} defined
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => useEditorStore.getState().setShowIntersectionTimeline(true)}
+                    className="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-glass-hover)] border border-[var(--color-glass-edge)] rounded-none transition-colors"
+                  >
+                    <TrafficCone className="size-3" />
+                    Open in Signal Timeline
+                  </button>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* Catalog Locations */}
+          <AccordionItem value="catalogLocations">
+            <AccordionTrigger className="py-2 text-xs hover:no-underline">
+              {t('scenario.catalogLocations')}
+            </AccordionTrigger>
+            <AccordionContent className="pb-3 pt-0">
+              <div className="space-y-2">
+                {CATALOG_KEYS.map((key) => (
+                  <div key={key} className="grid gap-1">
+                    <Label className="text-xs">{t(`scenario.${key}`)}</Label>
+                    <Input
+                      value={catalogLocations[key]?.directory ?? ''}
+                      onChange={(e) => handleCatalogChange(key, e.target.value)}
+                      placeholder={t('scenario.notConfigured')}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                ))}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      ) : (
+        <div className="pt-1">
+          <TriggerSectionEditor
+            trigger={stopTrigger}
+            selectedConditionId={selectedConditionId}
+            onSelectCondition={setSelectedConditionId}
+            onUpdateCondition={handleUpdateCondition}
+            onAddCondition={handleAddCondition}
+            onRemoveCondition={handleRemoveCondition}
+            onAddOrGroup={handleAddOrGroup}
+            onRemoveGroup={handleRemoveGroup}
+          />
+        </div>
+      )}
     </div>
   );
 }

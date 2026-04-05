@@ -106,6 +106,9 @@ export const common = {
     addEvent: 'イベントを追加',
     addAction: 'アクションを追加',
     delete: '削除',
+    copy: 'コピー',
+    paste: '貼り付け',
+    duplicate: '複製',
   },
   catalog: {
     editor: 'カタログエディタ',

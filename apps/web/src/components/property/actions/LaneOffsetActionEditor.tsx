@@ -12,6 +12,7 @@ import { ParameterAwareInput } from '../ParameterAwareInput';
 import { SegmentedControl } from '../SegmentedControl';
 import { SHAPE_PATHS, SHAPE_LABELS } from '../TransitionDynamicsEditor';
 import { DYNAMICS_SHAPES } from '../../../constants/osc-enum-values';
+import { useSpeedUnit } from '../../../hooks/use-speed-unit';
 
 const SHAPE_OPTIONS = DYNAMICS_SHAPES;
 
@@ -36,6 +37,7 @@ interface LaneOffsetActionEditorProps {
 
 export function LaneOffsetActionEditor({ action, onUpdate }: LaneOffsetActionEditorProps) {
   const inner = action.action as LaneOffsetAction;
+  const { label: speedLabel, toDisplay: toDisplaySpeed, toInternal: toInternalSpeed } = useSpeedUnit();
 
   const updateInner = (updates: Partial<LaneOffsetAction>) => {
     onUpdate({
@@ -86,7 +88,7 @@ export function LaneOffsetActionEditor({ action, onUpdate }: LaneOffsetActionEdi
             />
             <ParameterAwareInput
               elementId={action.id}
-              fieldName="action.target.value"
+              fieldName="target.value"
               value={Math.abs(inner.target.value)}
               onValueChange={(v) => {
                 const mag = Math.abs(parseFloat(v) || 0);
@@ -132,13 +134,20 @@ export function LaneOffsetActionEditor({ action, onUpdate }: LaneOffsetActionEdi
         <p className="text-xs font-medium text-muted-foreground">Dynamics</p>
         <div className="grid grid-cols-2 gap-2">
           <div className="grid gap-1">
-            <Label className="text-[10px]">Max Speed (m/s)</Label>
+            <Label className="text-[10px]">Max Speed ({speedLabel})</Label>
             <ParameterAwareInput
               elementId={action.id}
-              fieldName="action.dynamics.maxSpeed"
-              value={dynamics.maxSpeed ?? ''}
+              fieldName="dynamics.maxSpeed"
+              value={dynamics.maxSpeed != null ? toDisplaySpeed(dynamics.maxSpeed) : ''}
               placeholder="—"
-              onValueChange={(v) => updateDynamicsNum('maxSpeed', v)}
+              onValueChange={(v) => {
+                const n = parseFloat(v);
+                if (isNaN(n) || v === '') {
+                  updateDynamicsNum('maxSpeed', v);
+                } else {
+                  updateDynamicsNum('maxSpeed', String(toInternalSpeed(n)));
+                }
+              }}
               acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
               className="h-7 text-xs"
             />
@@ -147,7 +156,7 @@ export function LaneOffsetActionEditor({ action, onUpdate }: LaneOffsetActionEdi
             <Label className="text-[10px]">Max Lateral Acc (m/s²)</Label>
             <ParameterAwareInput
               elementId={action.id}
-              fieldName="action.dynamics.maxLateralAcc"
+              fieldName="dynamics.maxLateralAcc"
               value={dynamics.maxLateralAcc ?? ''}
               placeholder="—"
               onValueChange={(v) => updateDynamicsNum('maxLateralAcc', v)}

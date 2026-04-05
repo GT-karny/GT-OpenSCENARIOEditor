@@ -27,7 +27,7 @@ export function ParameterActionEditor({ action, onUpdate }: ParameterActionEdito
         <Label className="text-xs">Parameter Ref</Label>
         <ParameterAwareInput
           elementId={action.id}
-          fieldName="action.parameterRef"
+          fieldName="parameterRef"
           value={inner.parameterRef}
           onValueChange={(v) => updateInner({ parameterRef: v })}
           acceptedTypes={['string']}
@@ -68,7 +68,7 @@ export function ParameterActionEditor({ action, onUpdate }: ParameterActionEdito
           <Label className="text-xs">Value</Label>
           <ParameterAwareInput
             elementId={action.id}
-            fieldName="action.value"
+            fieldName="value"
             value={inner.value ?? ''}
             onValueChange={(v) => updateInner({ value: v })}
             acceptedTypes={['string', 'double', 'int', 'boolean']}
@@ -92,7 +92,7 @@ export function ParameterActionEditor({ action, onUpdate }: ParameterActionEdito
             <Label className="text-xs">Value</Label>
             <ParameterAwareInput
               elementId={action.id}
-              fieldName="action.modifyValue"
+              fieldName="modifyValue"
               value={inner.modifyValue ?? 0}
               onValueChange={(v) => updateInner({ modifyValue: parseFloat(v) || 0 })}
               acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}

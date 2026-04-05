@@ -47,6 +47,50 @@ export class AddManeuverCommand extends BaseCommand {
   }
 }
 
+export class ReorderManeuverCommand extends BaseCommand {
+  private readonly maneuverId: string;
+  private readonly newIndex: number;
+  private oldIndex = -1;
+  private parentGroupId: string | null = null;
+  private readonly getDoc: GetDoc;
+  private readonly setDoc: SetDoc;
+
+  constructor(maneuverId: string, newIndex: number, getDoc: GetDoc, setDoc: SetDoc) {
+    super(`Reorder maneuver: ${maneuverId}`);
+    this.maneuverId = maneuverId;
+    this.newIndex = newIndex;
+    this.getDoc = getDoc;
+    this.setDoc = setDoc;
+  }
+
+  execute(): void {
+    const doc = this.getDoc();
+    const found = findManeuverById(doc, this.maneuverId);
+    if (!found) return;
+    this.oldIndex = found.maneuverIndex;
+    this.parentGroupId = found.group.id;
+
+    this.setDoc(produce(doc, (draft) => {
+      const f = findManeuverGroupById(draft, this.parentGroupId!);
+      if (f) {
+        const [maneuver] = f.group.maneuvers.splice(this.oldIndex, 1);
+        f.group.maneuvers.splice(this.newIndex, 0, maneuver);
+      }
+    }));
+  }
+
+  undo(): void {
+    if (!this.parentGroupId || this.oldIndex === -1) return;
+    this.setDoc(produce(this.getDoc(), (draft) => {
+      const f = findManeuverGroupById(draft, this.parentGroupId!);
+      if (f) {
+        const [maneuver] = f.group.maneuvers.splice(this.newIndex, 1);
+        f.group.maneuvers.splice(this.oldIndex, 0, maneuver);
+      }
+    }));
+  }
+}
+
 export class RemoveManeuverCommand extends BaseCommand {
   private removedManeuver: Maneuver | null = null;
   private removedIndex = -1;

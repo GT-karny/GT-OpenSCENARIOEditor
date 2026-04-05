@@ -6,7 +6,7 @@ import type {
   TrafficSignalController,
 } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
+import { ParameterAwareInput } from '../ParameterAwareInput';
 import { RefSelect } from '../RefSelect';
 import type { RefSelectItem } from '../RefSelect';
 import { useScenarioStore } from '../../../stores/use-scenario-store';
@@ -58,10 +58,11 @@ export function TrafficSignalControllerConditionEditor({
         </div>
         <div className="grid gap-1">
           <Label className="text-[10px]">Phase</Label>
-          <Input
+          <ParameterAwareInput
             value={cond.phase}
             placeholder="phase name"
-            onChange={(e) => update({ phase: e.target.value })}
+            onValueChange={(v) => update({ phase: v })}
+            acceptedTypes={['string']}
             className="h-7 text-xs"
           />
         </div>

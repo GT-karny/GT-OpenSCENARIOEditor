@@ -11,6 +11,7 @@ import { SegmentedControl } from '../SegmentedControl';
 import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
 import { EnumSelect } from '../EnumSelect';
 import { Label } from '../../ui/label';
+import { useSpeedUnit } from '../../../hooks/use-speed-unit';
 
 const LATERAL_DISPLACEMENTS = ['any', 'leftToReferencedEntity', 'rightToReferencedEntity'] as const;
 const COORDINATE_SYSTEMS = ['', 'entity', 'lane', 'road', 'trajectory'] as const;
@@ -22,6 +23,7 @@ interface LateralDistanceActionEditorProps {
 
 export function LateralDistanceActionEditor({ action, onUpdate }: LateralDistanceActionEditorProps) {
   const inner = action.action as LateralDistanceAction;
+  const { label: speedLabel, toDisplay: toDisplaySpeed, toInternal: toInternalSpeed } = useSpeedUnit();
 
   const updateInner = (updates: Partial<LateralDistanceAction>) => {
     onUpdate({
@@ -69,7 +71,7 @@ export function LateralDistanceActionEditor({ action, onUpdate }: LateralDistanc
         <Label className="text-xs">Distance (m)</Label>
         <ParameterAwareInput
           elementId={action.id}
-          fieldName="action.distance"
+          fieldName="distance"
           value={inner.distance ?? ''}
           placeholder="—"
           onValueChange={(v) => {
@@ -161,7 +163,7 @@ export function LateralDistanceActionEditor({ action, onUpdate }: LateralDistanc
             <Label className="text-[10px]">Max Accel (m/s²)</Label>
             <ParameterAwareInput
               elementId={action.id}
-              fieldName="action.dynamics.maxAcceleration"
+              fieldName="dynamics.maxAcceleration"
               value={dynamics.maxAcceleration ?? ''}
               placeholder="—"
               onValueChange={(v) => updateDynamics('maxAcceleration', v)}
@@ -173,7 +175,7 @@ export function LateralDistanceActionEditor({ action, onUpdate }: LateralDistanc
             <Label className="text-[10px]">Max Decel (m/s²)</Label>
             <ParameterAwareInput
               elementId={action.id}
-              fieldName="action.dynamics.maxDeceleration"
+              fieldName="dynamics.maxDeceleration"
               value={dynamics.maxDeceleration ?? ''}
               placeholder="—"
               onValueChange={(v) => updateDynamics('maxDeceleration', v)}
@@ -182,13 +184,20 @@ export function LateralDistanceActionEditor({ action, onUpdate }: LateralDistanc
             />
           </div>
           <div className="grid gap-0.5">
-            <Label className="text-[10px]">Max Speed (m/s)</Label>
+            <Label className="text-[10px]">Max Speed ({speedLabel})</Label>
             <ParameterAwareInput
               elementId={action.id}
-              fieldName="action.dynamics.maxSpeed"
-              value={dynamics.maxSpeed ?? ''}
+              fieldName="dynamics.maxSpeed"
+              value={dynamics.maxSpeed != null ? toDisplaySpeed(dynamics.maxSpeed) : ''}
               placeholder="—"
-              onValueChange={(v) => updateDynamics('maxSpeed', v)}
+              onValueChange={(v) => {
+                const n = parseFloat(v);
+                if (isNaN(n) || v === '') {
+                  updateDynamics('maxSpeed', v);
+                } else {
+                  updateDynamics('maxSpeed', String(toInternalSpeed(n)));
+                }
+              }}
               acceptedTypes={['double', 'int', 'unsignedInt', 'unsignedShort']}
               className="h-7 text-xs"
             />

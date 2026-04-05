@@ -31,6 +31,7 @@ import { PositionInspectorOverlay } from '../interaction/PositionInspectorOverla
 import { ViewerToolbar } from './ViewerToolbar.js';
 import { useScenarioEntities } from '../scenario/useScenarioEntities.js';
 import { useEntityPositions } from '../scenario/useEntityPositions.js';
+import { useEntityLightStates } from '../scenario/useEntityLightStates.js';
 import { SimulationOverlay } from '../scenario/SimulationOverlay.js';
 import { useCameraFollow } from '../scene/useCameraFollow.js';
 import { Minimap } from './Minimap.js';
@@ -39,6 +40,11 @@ import { RoutePreviewOverlay } from '../route/RoutePreviewOverlay.js';
 import type { RoutePreviewData } from '../route/RoutePreviewOverlay.js';
 import { RouteClickHandler } from '../interaction/RouteClickHandler.js';
 import { RouteEditOverlay } from '../route/RouteEditOverlay.js';
+import { TrajectoryOverlay } from '../trajectory/TrajectoryOverlay.js';
+import { TrajectoryClickHandler } from '../interaction/TrajectoryClickHandler.js';
+import { TrajectoryEditOverlay } from '../trajectory/TrajectoryEditOverlay.js';
+import { TrajectoryPreviewOverlay } from '../trajectory/TrajectoryPreviewOverlay.js';
+import type { TrajectoryPreviewData } from '../trajectory/TrajectoryPreviewOverlay.js';
 import { TrafficSignalGroup } from '../signals/TrafficSignalGroup.js';
 import { useScenarioPositions } from '../scenario/useScenarioPositions.js';
 import { PositionMarkersOverlay } from '../markers/PositionMarkersOverlay.js';
@@ -118,6 +124,48 @@ export interface ScenarioViewerProps {
   resolveCatalogRoute?: (ref: { catalogName: string; entryName: string }) => Route | null;
   /** Route preview data for selected entity/action (read-only visualization) */
   routePreviewData?: RoutePreviewData[];
+
+  // ---- Trajectory Editing ----
+  /** Whether trajectory editing mode is active */
+  trajectoryEditActive?: boolean;
+  /** Trajectory shape type being edited */
+  trajectoryShapeType?: 'polyline' | 'clothoid' | 'nurbs';
+  /** World positions of trajectory points (vertices / origin / control points) */
+  trajectoryPoints?: Array<{ x: number; y: number; z: number; h: number }>;
+  /** Evaluated curve sample points for rendering */
+  trajectoryCurvePoints?: Array<{ x: number; y: number; z: number }>;
+  /** Time values per point */
+  trajectoryPointTimes?: Array<number | undefined>;
+  /** Currently selected point index */
+  trajectorySelectedPointIndex?: number | null;
+  /** Callback when user clicks a trajectory point marker */
+  onTrajectoryPointClick?: (index: number) => void;
+  /** Callback when user right-clicks a trajectory point marker */
+  onTrajectoryPointContextMenu?: (index: number, event: ThreeEvent<MouseEvent>) => void;
+  /** Callback when user clicks the trajectory line */
+  onTrajectoryLineClick?: (event: ThreeEvent<MouseEvent>) => void;
+  /** Callback when user double-clicks road surface to add a point */
+  onTrajectoryPointAdd?: (
+    worldX: number, worldY: number, worldZ: number, heading: number,
+    roadId: string, laneId: string, s: number, offset: number,
+  ) => void;
+  /** Callback when user drags a point to a new position */
+  onTrajectoryPointDragEnd?: (
+    index: number,
+    worldX: number, worldY: number, worldZ: number, heading: number,
+    roadId: string, laneId: string, s: number, offset: number,
+  ) => void;
+  /** Callback to save and exit trajectory editing */
+  onTrajectoryEditSave?: () => void;
+  /** Callback to cancel trajectory editing */
+  onTrajectoryEditCancel?: () => void;
+  /** Warnings from trajectory validation */
+  trajectoryWarnings?: string[];
+  /** Number of points in the editing trajectory */
+  trajectoryPointCount?: number;
+  /** Trajectory preview data for selected entity/action (read-only visualization) */
+  trajectoryPreviewData?: TrajectoryPreviewData[];
+
   /** Currently selected traffic signal key (roadId:signalId) */
   selectedSignalKey?: string | null;
   /** Callback when user clicks a traffic signal in the viewer */
@@ -339,6 +387,18 @@ function ScenarioViewerScene({
   onRouteWaypointDragEnd,
   resolveCatalogRoute,
   routePreviewData,
+  trajectoryEditActive,
+  trajectoryShapeType,
+  trajectoryPoints,
+  trajectoryCurvePoints,
+  trajectoryPointTimes,
+  trajectorySelectedPointIndex,
+  onTrajectoryPointClick,
+  onTrajectoryPointContextMenu,
+  onTrajectoryLineClick,
+  onTrajectoryPointAdd,
+  onTrajectoryPointDragEnd,
+  trajectoryPreviewData,
   selectedSignalKey,
   onSignalSelect,
   highlightedSignalIds,
@@ -431,6 +491,18 @@ function ScenarioViewerScene({
   onRouteWaypointDragEnd?: ScenarioViewerProps['onRouteWaypointDragEnd'];
   resolveCatalogRoute?: ScenarioViewerProps['resolveCatalogRoute'];
   routePreviewData?: RoutePreviewData[];
+  trajectoryEditActive?: boolean;
+  trajectoryShapeType?: 'polyline' | 'clothoid' | 'nurbs';
+  trajectoryPoints?: Array<{ x: number; y: number; z: number; h: number }>;
+  trajectoryCurvePoints?: Array<{ x: number; y: number; z: number }>;
+  trajectoryPointTimes?: Array<number | undefined>;
+  trajectorySelectedPointIndex?: number | null;
+  onTrajectoryPointClick?: (index: number) => void;
+  onTrajectoryPointContextMenu?: (index: number, event: ThreeEvent<MouseEvent>) => void;
+  onTrajectoryLineClick?: (event: ThreeEvent<MouseEvent>) => void;
+  onTrajectoryPointAdd?: ScenarioViewerProps['onTrajectoryPointAdd'];
+  onTrajectoryPointDragEnd?: ScenarioViewerProps['onTrajectoryPointDragEnd'];
+  trajectoryPreviewData?: TrajectoryPreviewData[];
   selectedSignalKey?: string | null;
   onSignalSelect?: (key: string) => void;
   highlightedSignalIds?: ReadonlySet<string>;
@@ -523,6 +595,7 @@ function ScenarioViewerScene({
 
   const entities = useScenarioEntities(scenarioStore);
   const entityPositions = useEntityPositions(scenarioStore, openDriveDocument, resolveOptions);
+  const entityLightStates = useEntityLightStates(scenarioStore);
   const scenarioPositions = useScenarioPositions(scenarioStore, openDriveDocument, resolveOptions);
 
   const isSimulating = currentFrame != null;
@@ -721,6 +794,41 @@ function ScenarioViewerScene({
         />
       )}
 
+      {/* Trajectory preview overlay (shown when entity/action selected, not editing) */}
+      {!trajectoryEditActive && trajectoryPreviewData && trajectoryPreviewData.length > 0 && (
+        <group rotation={[-Math.PI / 2, 0, 0]}>
+          <TrajectoryPreviewOverlay previews={trajectoryPreviewData} />
+        </group>
+      )}
+
+      {/* Trajectory overlay (inside rotation group to match OpenDRIVE coords) */}
+      {trajectoryEditActive && trajectoryPoints && trajectoryPoints.length > 0 && (
+        <group rotation={[-Math.PI / 2, 0, 0]}>
+          <TrajectoryOverlay
+            points={trajectoryPoints}
+            curvePoints={trajectoryCurvePoints ?? []}
+            pointTimes={trajectoryPointTimes}
+            selectedPointIndex={trajectorySelectedPointIndex ?? null}
+            shapeType={trajectoryShapeType ?? 'polyline'}
+            onPointClick={onTrajectoryPointClick}
+            onPointContextMenu={onTrajectoryPointContextMenu}
+            onLineClick={onTrajectoryLineClick}
+            openDriveDocument={openDriveDocument}
+            orbitControlsRef={cameraRef.current?.orbitControls}
+            onPointDragEnd={onTrajectoryPointDragEnd}
+          />
+        </group>
+      )}
+
+      {/* Trajectory click handler for point placement (trajectory edit mode only) */}
+      {trajectoryEditActive && onTrajectoryPointAdd && (
+        <TrajectoryClickHandler
+          roadGroupRef={roadGroupRef}
+          openDriveDocument={openDriveDocument}
+          onPointAdd={onTrajectoryPointAdd}
+        />
+      )}
+
       {/* Position markers for actions/conditions (inside rotation group) */}
       {!showSimulation && showPositionMarkers && scenarioPositions.length > 0 && (
         <group rotation={[-Math.PI / 2, 0, 0]}>
@@ -748,6 +856,7 @@ function ScenarioViewerScene({
           snapToLane={snapToLane}
           selectedEntityRoadPosition={selectedEntityRoadPosition}
           routeOpacity={routeEditActive ? 0.3 : undefined}
+          entityLightStates={entityLightStates}
         />
       )}
 
@@ -884,6 +993,22 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   routeWaypointCount,
   resolveCatalogRoute,
   routePreviewData,
+  trajectoryEditActive,
+  trajectoryShapeType,
+  trajectoryPoints,
+  trajectoryCurvePoints,
+  trajectoryPointTimes,
+  trajectorySelectedPointIndex,
+  onTrajectoryPointClick,
+  onTrajectoryPointContextMenu,
+  onTrajectoryLineClick,
+  onTrajectoryPointAdd,
+  onTrajectoryPointDragEnd,
+  onTrajectoryEditSave,
+  onTrajectoryEditCancel,
+  trajectoryWarnings,
+  trajectoryPointCount,
+  trajectoryPreviewData,
   selectedSignalKey,
   onSignalSelect,
   highlightedSignalIds,
@@ -1162,6 +1287,17 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
         />
       )}
 
+      {/* Trajectory edit overlay (bottom-center, shown during trajectory editing) */}
+      {trajectoryEditActive && onTrajectoryEditSave && onTrajectoryEditCancel && (
+        <TrajectoryEditOverlay
+          shapeType={trajectoryShapeType ?? 'polyline'}
+          pointCount={trajectoryPointCount ?? 0}
+          warnings={trajectoryWarnings ?? []}
+          onSave={onTrajectoryEditSave}
+          onCancel={onTrajectoryEditCancel}
+        />
+      )}
+
       {/* Minimap overlay (bottom-right) */}
       {showMinimap && (
         <Minimap
@@ -1202,6 +1338,18 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           onRouteWaypointDragEnd={onRouteWaypointDragEnd}
           resolveCatalogRoute={resolveCatalogRoute}
           routePreviewData={routePreviewData}
+          trajectoryEditActive={trajectoryEditActive}
+          trajectoryShapeType={trajectoryShapeType}
+          trajectoryPoints={trajectoryPoints}
+          trajectoryCurvePoints={trajectoryCurvePoints}
+          trajectoryPointTimes={trajectoryPointTimes}
+          trajectorySelectedPointIndex={trajectorySelectedPointIndex}
+          onTrajectoryPointClick={onTrajectoryPointClick}
+          onTrajectoryPointContextMenu={onTrajectoryPointContextMenu}
+          onTrajectoryLineClick={onTrajectoryLineClick}
+          onTrajectoryPointAdd={onTrajectoryPointAdd}
+          onTrajectoryPointDragEnd={onTrajectoryPointDragEnd}
+          trajectoryPreviewData={trajectoryPreviewData}
           selectedSignalKey={selectedSignalKey}
           onSignalSelect={onSignalSelect}
           highlightedSignalIds={highlightedSignalIds}

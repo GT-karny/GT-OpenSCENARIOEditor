@@ -65,6 +65,7 @@ export interface IScenarioService {
   // --- Init operations ---
   addInitAction(entityName: string, action: PrivateAction): void;
   removeInitAction(actionId: string): void;
+  updateInitAction(actionId: string, newAction: PrivateAction): void;
   setInitPosition(entityName: string, position: Position): void;
   setInitSpeed(entityName: string, speed: number): void;
 

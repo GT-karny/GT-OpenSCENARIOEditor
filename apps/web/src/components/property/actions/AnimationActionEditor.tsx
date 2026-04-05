@@ -1,6 +1,5 @@
 import type { ScenarioAction, AnimationAction } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
 
@@ -45,7 +44,7 @@ export function AnimationActionEditor({ action, onUpdate }: AnimationActionEdito
         <Label className="text-xs">Animation Duration (s)</Label>
         <ParameterAwareInput
           elementId={action.id}
-          fieldName="action.duration"
+          fieldName="duration"
           value={inner.duration ?? ''}
           placeholder="--"
           onValueChange={(v) => {
@@ -65,10 +64,11 @@ export function AnimationActionEditor({ action, onUpdate }: AnimationActionEdito
       {inner.animationType === 'componentAnimation' && (
         <div className="grid gap-1">
           <Label className="text-xs">Component Name</Label>
-          <Input
+          <ParameterAwareInput
             value={inner.state ?? ''}
             placeholder="component name"
-            onChange={(e) => updateInner({ state: e.target.value })}
+            onValueChange={(v) => updateInner({ state: v })}
+            acceptedTypes={['string']}
             className="h-8 text-sm"
           />
         </div>
@@ -78,10 +78,11 @@ export function AnimationActionEditor({ action, onUpdate }: AnimationActionEdito
         <div className="space-y-2">
           <div className="grid gap-1">
             <Label className="text-xs">Motion</Label>
-            <Input
+            <ParameterAwareInput
               value={inner.state ?? ''}
               placeholder="motion type"
-              onChange={(e) => updateInner({ state: e.target.value })}
+              onValueChange={(v) => updateInner({ state: v })}
+              acceptedTypes={['string']}
               className="h-8 text-sm"
             />
           </div>
@@ -92,10 +93,11 @@ export function AnimationActionEditor({ action, onUpdate }: AnimationActionEdito
         <div className="space-y-2">
           <div className="grid gap-1">
             <Label className="text-xs">File Path</Label>
-            <Input
+            <ParameterAwareInput
               value={inner.state ?? ''}
               placeholder="path/to/animation.fbx"
-              onChange={(e) => updateInner({ state: e.target.value })}
+              onValueChange={(v) => updateInner({ state: v })}
+              acceptedTypes={['string']}
               className="h-8 text-sm"
             />
           </div>
@@ -105,10 +107,11 @@ export function AnimationActionEditor({ action, onUpdate }: AnimationActionEdito
       {inner.animationType === 'userDefinedAnimation' && (
         <div className="grid gap-1">
           <Label className="text-xs">User Defined Type</Label>
-          <Input
+          <ParameterAwareInput
             value={inner.state ?? ''}
             placeholder="custom animation type"
-            onChange={(e) => updateInner({ state: e.target.value })}
+            onValueChange={(v) => updateInner({ state: v })}
+            acceptedTypes={['string']}
             className="h-8 text-sm"
           />
         </div>

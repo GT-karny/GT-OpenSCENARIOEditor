@@ -67,24 +67,29 @@ export function useFlyControls({
     [camera, orbitControlsRef, handleMouseMove],
   );
 
+  const deactivate = useCallback(() => {
+    if (!isActiveRef.current) return;
+    isActiveRef.current = false;
+
+    // Re-enable orbit controls
+    if (orbitControlsRef.current) {
+      orbitControlsRef.current.enabled = true;
+
+      // Sync OrbitControls target to where the camera is looking
+      camera.getWorldDirection(_forward);
+      orbitControlsRef.current.target.copy(camera.position).addScaledVector(_forward, 30);
+      orbitControlsRef.current.update();
+    }
+
+    document.removeEventListener('mousemove', handleMouseMove);
+  }, [camera, orbitControlsRef, handleMouseMove]);
+
   const handlePointerUp = useCallback(
     (e: PointerEvent) => {
       if (e.button !== 2) return;
-      isActiveRef.current = false;
-
-      // Re-enable orbit controls
-      if (orbitControlsRef.current) {
-        orbitControlsRef.current.enabled = true;
-
-        // Sync OrbitControls target to where the camera is looking
-        camera.getWorldDirection(_forward);
-        orbitControlsRef.current.target.copy(camera.position).addScaledVector(_forward, 30);
-        orbitControlsRef.current.update();
-      }
-
-      document.removeEventListener('mousemove', handleMouseMove);
+      deactivate();
     },
-    [camera, orbitControlsRef, handleMouseMove],
+    [deactivate],
   );
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -95,24 +100,33 @@ export function useFlyControls({
     keysRef.current.delete(e.key.toLowerCase());
   }, []);
 
+  const handleBlur = useCallback(() => {
+    keysRef.current.clear();
+    deactivate();
+  }, [deactivate]);
+
   // Attach listeners
   useEffect(() => {
     const canvas = gl.domElement;
     canvas.addEventListener('pointerdown', handlePointerDown);
-    canvas.addEventListener('pointerup', handlePointerUp);
+    // Listen on document so pointerup outside the canvas is caught
+    document.addEventListener('pointerup', handlePointerUp);
     canvas.addEventListener('contextmenu', handleContextMenu);
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    // Reset all input state when window loses focus (tab switch, minimize, etc.)
+    window.addEventListener('blur', handleBlur);
 
     return () => {
       canvas.removeEventListener('pointerdown', handlePointerDown);
-      canvas.removeEventListener('pointerup', handlePointerUp);
+      document.removeEventListener('pointerup', handlePointerUp);
       canvas.removeEventListener('contextmenu', handleContextMenu);
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', handleBlur);
       document.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [gl, handlePointerDown, handlePointerUp, handleContextMenu, handleKeyDown, handleKeyUp, handleMouseMove]);
+  }, [gl, handlePointerDown, handlePointerUp, handleContextMenu, handleKeyDown, handleKeyUp, handleBlur, handleMouseMove]);
 
   // Per-frame update
   useFrame((_, delta) => {

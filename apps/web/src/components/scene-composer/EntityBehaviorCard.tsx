@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
+import { GripVertical, Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import { useTranslation } from '@osce/i18n';
 import type { ManeuverGroup, ScenarioEvent } from '@osce/shared';
 import { cn } from '../../lib/utils';
@@ -16,6 +16,11 @@ interface EntityBehaviorCardProps {
   onSelect: () => void;
   activeSimIds?: Set<string>;
   onSeekToElement?: (elementId: string) => void;
+  dragHandleProps?: {
+    draggable: boolean;
+    onDragStart: (e: React.DragEvent) => void;
+    onDragEnd: (e: React.DragEvent) => void;
+  };
 }
 
 /**
@@ -25,7 +30,7 @@ interface EntityBehaviorCardProps {
  * Body: EventRow list (trigger → actions), drag-and-drop reorderable
  * Collapsed: name + action summary tags
  */
-export function EntityBehaviorCard({ group, selected, onSelect, activeSimIds, onSeekToElement }: EntityBehaviorCardProps) {
+export function EntityBehaviorCard({ group, selected, onSelect, activeSimIds, onSeekToElement, dragHandleProps }: EntityBehaviorCardProps) {
   const { t } = useTranslation('composer');
   const storeApi = useScenarioStoreApi();
   const entities = useScenarioStore(useShallow((s) => s.document.entities));
@@ -130,6 +135,40 @@ export function EntityBehaviorCard({ group, selected, onSelect, activeSimIds, on
     });
   };
 
+  // --- Maneuver D&D ---
+  const [dragManeuverId, setDragManeuverId] = useState<string | null>(null);
+  const [dropTargetManeuverIndex, setDropTargetManeuverIndex] = useState<number | null>(null);
+
+  const handleManeuverDragStart = (maneuverId: string) => (e: React.DragEvent) => {
+    e.stopPropagation();
+    setDragManeuverId(maneuverId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleManeuverDragEnd = (e: React.DragEvent) => {
+    e.stopPropagation();
+    setDragManeuverId(null);
+    setDropTargetManeuverIndex(null);
+  };
+
+  const handleManeuverDragOver = (index: number) => (e: React.DragEvent) => {
+    if (!dragManeuverId) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    setDropTargetManeuverIndex(index);
+  };
+
+  const handleManeuverDrop = (targetIndex: number) => (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dragManeuverId) {
+      storeApi.getState().reorderManeuver(dragManeuverId, targetIndex);
+    }
+    setDragManeuverId(null);
+    setDropTargetManeuverIndex(null);
+  };
+
   // --- Hover → 3D viewer ---
 
   const handleMouseEnter = () => {
@@ -169,7 +208,10 @@ export function EntityBehaviorCard({ group, selected, onSelect, activeSimIds, on
       onMouseLeave={handleMouseLeave}
     >
       {/* Header */}
-      <div className="flex items-center gap-2 p-3 pb-1">
+      <div className="flex items-center gap-2 p-3 pb-1" {...dragHandleProps}>
+        {/* Drag handle */}
+        <GripVertical className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-muted)] opacity-0 group-hover/card:opacity-40 cursor-grab" />
+
         {/* Collapse toggle */}
         <button
           onClick={(e) => {
@@ -263,21 +305,34 @@ export function EntityBehaviorCard({ group, selected, onSelect, activeSimIds, on
       {/* Maneuver sections */}
       {!collapsed && (
         <div className="pb-2 flex flex-col">
-          {group.maneuvers.map((maneuver) => (
-            <ManeuverSection
+          {group.maneuvers.map((maneuver, index) => (
+            <div
               key={maneuver.id}
-              maneuver={maneuver}
-              groupId={group.id}
-              isOnly={group.maneuvers.length === 1}
-              selectedEventId={selectedEventId}
-              selectedActionId={selectedActionId}
-              onSelectEvent={handleSelectEvent}
-              onSelectAction={handleSelectAction}
-              onRemoveEvent={handleRemoveEvent}
-              onAddAction={handleAddAction}
-              onRemoveAction={handleRemoveAction}
-              activeSimIds={activeSimIds}
-            />
+              onDragOver={handleManeuverDragOver(index)}
+              onDrop={handleManeuverDrop(index)}
+            >
+              {dropTargetManeuverIndex === index && dragManeuverId && (
+                <div className="h-0.5 mx-2 bg-[var(--color-accent-1)] rounded-full" />
+              )}
+              <ManeuverSection
+                maneuver={maneuver}
+                groupId={group.id}
+                isOnly={group.maneuvers.length === 1}
+                selectedEventId={selectedEventId}
+                selectedActionId={selectedActionId}
+                onSelectEvent={handleSelectEvent}
+                onSelectAction={handleSelectAction}
+                onRemoveEvent={handleRemoveEvent}
+                onAddAction={handleAddAction}
+                onRemoveAction={handleRemoveAction}
+                activeSimIds={activeSimIds}
+                dragHandleProps={{
+                  draggable: true,
+                  onDragStart: handleManeuverDragStart(maneuver.id),
+                  onDragEnd: handleManeuverDragEnd,
+                }}
+              />
+            </div>
           ))}
 
           {group.maneuvers.length === 0 && (

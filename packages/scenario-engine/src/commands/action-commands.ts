@@ -47,6 +47,50 @@ export class AddActionCommand extends BaseCommand {
   }
 }
 
+export class ReorderActionCommand extends BaseCommand {
+  private readonly actionId: string;
+  private readonly newIndex: number;
+  private oldIndex = -1;
+  private parentEventId: string | null = null;
+  private readonly getDoc: GetDoc;
+  private readonly setDoc: SetDoc;
+
+  constructor(actionId: string, newIndex: number, getDoc: GetDoc, setDoc: SetDoc) {
+    super(`Reorder action: ${actionId}`);
+    this.actionId = actionId;
+    this.newIndex = newIndex;
+    this.getDoc = getDoc;
+    this.setDoc = setDoc;
+  }
+
+  execute(): void {
+    const doc = this.getDoc();
+    const found = findActionById(doc, this.actionId);
+    if (!found) return;
+    this.oldIndex = found.actionIndex;
+    this.parentEventId = found.event.id;
+
+    this.setDoc(produce(doc, (draft) => {
+      const f = findEventById(draft, this.parentEventId!);
+      if (f) {
+        const [action] = f.event.actions.splice(this.oldIndex, 1);
+        f.event.actions.splice(this.newIndex, 0, action);
+      }
+    }));
+  }
+
+  undo(): void {
+    if (!this.parentEventId || this.oldIndex === -1) return;
+    this.setDoc(produce(this.getDoc(), (draft) => {
+      const f = findEventById(draft, this.parentEventId!);
+      if (f) {
+        const [action] = f.event.actions.splice(this.newIndex, 1);
+        f.event.actions.splice(this.oldIndex, 0, action);
+      }
+    }));
+  }
+}
+
 export class RemoveActionCommand extends BaseCommand {
   private removedAction: ScenarioAction | null = null;
   private removedIndex = -1;
