@@ -17,8 +17,8 @@ export function getActionSummary(action: ScenarioAction, bindings?: Bindings): s
     // --- Private: Longitudinal ---
     case 'speedAction': {
       const t = a.target;
-      if (t.kind === 'absolute') return `Speed → ${v(t.value, 'action.target.value')} m/s`;
-      return `Speed → ${v(t.value, 'action.target.value')} (rel ${t.entityRef})`;
+      if (t.kind === 'absolute') return `Speed → ${v(t.value, 'target.value')} m/s`;
+      return `Speed → ${v(t.value, 'target.value')} (rel ${t.entityRef})`;
     }
     case 'speedProfileAction':
       return `SpeedProfile (${a.entries.length} pts)`;
@@ -30,16 +30,16 @@ export function getActionSummary(action: ScenarioAction, bindings?: Bindings): s
     // --- Private: Lateral ---
     case 'laneChangeAction': {
       const t = a.target;
-      if (t.kind === 'absolute') return `LaneChange → ${v(t.value, 'action.target.value')}`;
-      return `LaneChange ${v(t.value, 'action.target.value')} (rel ${t.entityRef})`;
+      if (t.kind === 'absolute') return `LaneChange → ${v(t.value, 'target.value')}`;
+      return `LaneChange ${v(t.value, 'target.value')} (rel ${t.entityRef})`;
     }
     case 'laneOffsetAction': {
       const t = a.target;
-      if (t.kind === 'absolute') return `LaneOffset → ${v(t.value, 'action.target.value')}m`;
-      return `LaneOffset ${v(t.value, 'action.target.value')}m (rel ${t.entityRef})`;
+      if (t.kind === 'absolute') return `LaneOffset → ${v(t.value, 'target.value')}m`;
+      return `LaneOffset ${v(t.value, 'target.value')}m (rel ${t.entityRef})`;
     }
     case 'lateralDistanceAction':
-      return `LatDist → ${a.entityRef}${a.distance != null ? ` ${v(a.distance, 'action.distance')}m` : ''}`;
+      return `LatDist → ${a.entityRef}${a.distance != null ? ` ${v(a.distance, 'distance')}m` : ''}`;
 
     // --- Private: Position ---
     case 'teleportAction':
@@ -85,9 +85,9 @@ export function getActionSummary(action: ScenarioAction, bindings?: Bindings): s
     case 'entityAction':
       return `${a.actionType === 'addEntity' ? 'Add' : 'Delete'} ${a.entityRef}`;
     case 'parameterAction':
-      return `Param ${a.parameterRef} = ${v(a.value ?? a.modifyValue, 'action.value')}`;
+      return `Param ${a.parameterRef} = ${v(a.value ?? a.modifyValue, a.actionType === 'set' ? 'value' : 'modifyValue')}`;
     case 'variableAction':
-      return `Var ${a.variableRef} = ${v(a.value ?? a.modifyValue, 'action.value')}`;
+      return `Var ${a.variableRef} = ${v(a.value ?? a.modifyValue, a.actionType === 'set' ? 'value' : 'modifyValue')}`;
     case 'infrastructureAction':
       return `Traffic signal`;
     case 'trafficAction':

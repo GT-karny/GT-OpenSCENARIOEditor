@@ -54,12 +54,12 @@ export function getPrivateActionSummary(action: PrivateAction, eb?: ElementBindi
   switch (action.type) {
     case 'speedAction': {
       const target = action.target;
-      const speed = target.kind === 'absolute' ? `${v(target.value, 'action.target.value')} m/s` : `relative ${v(target.value, 'action.target.value')}`;
+      const speed = target.kind === 'absolute' ? `${v(target.value, 'target.value')} m/s` : `relative ${v(target.value, 'target.value')}`;
       return `Speed: ${speed}, ${action.dynamics.dynamicsShape}`;
     }
     case 'laneChangeAction': {
       const target = action.target;
-      const lane = target.kind === 'absolute' ? `lane ${v(target.value, 'action.target.value')}` : `relative ${v(target.value, 'action.target.value')}`;
+      const lane = target.kind === 'absolute' ? `lane ${v(target.value, 'target.value')}` : `relative ${v(target.value, 'target.value')}`;
       return `Lane Change: ${lane}`;
     }
     case 'teleportAction':
@@ -72,7 +72,7 @@ export function getPrivateActionSummary(action: PrivateAction, eb?: ElementBindi
       return `Speed Profile: ${action.entries.length} entries`;
     case 'laneOffsetAction': {
       const t = action.target;
-      return `Lane Offset: ${t.kind === 'absolute' ? v(t.value, 'action.target.value') : `rel ${v(t.value, 'action.target.value')}`}`;
+      return `Lane Offset: ${t.kind === 'absolute' ? v(t.value, 'target.value') : `rel ${v(t.value, 'target.value')}`}`;
     }
     case 'synchronizeAction':
       return `Sync with ${action.masterEntityRef}`;
