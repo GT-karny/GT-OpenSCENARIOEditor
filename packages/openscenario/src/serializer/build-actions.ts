@@ -373,7 +373,7 @@ export function buildGlobalAction(action: GlobalAction, elementBindings: Record<
       if (action.actionType === 'set') {
         return {
           ParameterAction: {
-            SetAction: buildAttrs({ value: action.value }),
+            SetAction: buildAttrs({ value: action.value }, elementBindings),
             ...buildAttrs({ parameterRef: action.parameterRef }),
           },
         };
@@ -402,7 +402,7 @@ export function buildGlobalAction(action: GlobalAction, elementBindings: Record<
       if (action.actionType === 'set') {
         return {
           VariableAction: {
-            SetAction: buildAttrs({ value: action.value }),
+            SetAction: buildAttrs({ value: action.value }, elementBindings),
             ...buildAttrs({ variableRef: action.variableRef }),
           },
         };
