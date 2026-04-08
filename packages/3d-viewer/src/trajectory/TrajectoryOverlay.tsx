@@ -26,6 +26,7 @@ export interface TrajectoryOverlayProps {
   onLineClick?: (event: ThreeEvent<MouseEvent>) => void;
   openDriveDocument?: OpenDriveDocument | null;
   orbitControlsRef?: React.RefObject<any>;
+  snapToLane?: boolean;
   onPointDragEnd?: (
     index: number,
     worldX: number,
@@ -36,6 +37,7 @@ export interface TrajectoryOverlayProps {
     laneId: string,
     s: number,
     offset: number,
+    snapped: boolean,
   ) => void;
 }
 
@@ -51,6 +53,7 @@ export const TrajectoryOverlay: React.FC<TrajectoryOverlayProps> = React.memo(
     onLineClick,
     openDriveDocument,
     orbitControlsRef,
+    snapToLane,
     onPointDragEnd,
   }) => {
     const selectedPt =
@@ -95,13 +98,14 @@ export const TrajectoryOverlay: React.FC<TrajectoryOverlayProps> = React.memo(
         ))}
 
         {/* Drag gizmo for selected point */}
-        {selectedPt && openDriveDocument && onPointDragEnd && selectedPointIndex !== null && (
+        {selectedPt && (openDriveDocument || !snapToLane) && onPointDragEnd && selectedPointIndex !== null && (
           <TrajectoryPointGizmo
             position={[selectedPt.x, selectedPt.y, selectedPt.z]}
-            openDriveDocument={openDriveDocument}
+            openDriveDocument={openDriveDocument ?? null}
             orbitControlsRef={orbitControlsRef}
-            onDragEnd={(wX, wY, wZ, h, rId, lId, s, off) =>
-              onPointDragEnd(selectedPointIndex, wX, wY, wZ, h, rId, lId, s, off)
+            snapToLane={snapToLane}
+            onDragEnd={(wX, wY, wZ, h, rId, lId, s, off, snapped) =>
+              onPointDragEnd(selectedPointIndex, wX, wY, wZ, h, rId, lId, s, off, snapped)
             }
           />
         )}

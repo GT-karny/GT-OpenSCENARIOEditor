@@ -109,8 +109,8 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   trajectorySelectedPointIndex?: number | null;
   onTrajectoryPointClick?: (index: number) => void;
   onTrajectoryPointContextMenu?: (index: number, event: unknown) => void;
-  onTrajectoryPointAdd?: (worldX: number, worldY: number, worldZ: number, heading: number, roadId: string, laneId: string, s: number, offset: number) => void;
-  onTrajectoryPointDragEnd?: (index: number, worldX: number, worldY: number, worldZ: number, heading: number, roadId: string, laneId: string, s: number, offset: number) => void;
+  onTrajectoryPointAdd?: (worldX: number, worldY: number, worldZ: number, heading: number, roadId: string, laneId: string, s: number, offset: number, snapped: boolean) => void;
+  onTrajectoryPointDragEnd?: (index: number, worldX: number, worldY: number, worldZ: number, heading: number, roadId: string, laneId: string, s: number, offset: number, snapped: boolean) => void;
   onTrajectoryEditSave?: () => void;
   onTrajectoryEditCancel?: () => void;
   trajectoryWarnings?: string[];
@@ -592,24 +592,18 @@ export function EditorLayout() {
 
   const handleTrajectoryPointAdd = useCallback(
     (
-      _worldX: number, _worldY: number, _worldZ: number, _heading: number,
+      worldX: number, worldY: number, worldZ: number, heading: number,
       roadId: string, laneId: string, s: number, _offset: number,
+      snapped: boolean,
     ) => {
       const shape = trajectoryEdit.editingTrajectory?.shape;
+      const pos = snapped
+        ? { type: 'lanePosition' as const, roadId, laneId, s: Math.round(s * 100) / 100 }
+        : { type: 'worldPosition' as const, x: Math.round(worldX * 100) / 100, y: Math.round(worldY * 100) / 100, z: Math.round(worldZ * 100) / 100, h: heading || undefined };
       if (shape?.type === 'polyline') {
-        trajectoryEdit.addVertex({
-          type: 'lanePosition',
-          roadId,
-          laneId,
-          s: Math.round(s * 100) / 100,
-        });
+        trajectoryEdit.addVertex(pos);
       } else if (shape?.type === 'nurbs') {
-        trajectoryEdit.addControlPoint({
-          type: 'lanePosition',
-          roadId,
-          laneId,
-          s: Math.round(s * 100) / 100,
-        });
+        trajectoryEdit.addControlPoint(pos);
       }
     },
     [trajectoryEdit],
@@ -647,16 +641,14 @@ export function EditorLayout() {
   const handleTrajectoryPointDragEnd = useCallback(
     (
       index: number,
-      _worldX: number, _worldY: number, _worldZ: number, _heading: number,
+      worldX: number, worldY: number, worldZ: number, heading: number,
       roadId: string, laneId: string, s: number, _offset: number,
+      snapped: boolean,
     ) => {
       const shape = trajectoryEdit.editingTrajectory?.shape;
-      const pos = {
-        type: 'lanePosition' as const,
-        roadId,
-        laneId,
-        s: Math.round(s * 100) / 100,
-      };
+      const pos = snapped
+        ? { type: 'lanePosition' as const, roadId, laneId, s: Math.round(s * 100) / 100 }
+        : { type: 'worldPosition' as const, x: Math.round(worldX * 100) / 100, y: Math.round(worldY * 100) / 100, z: Math.round(worldZ * 100) / 100, h: heading || undefined };
       if (shape?.type === 'polyline') {
         trajectoryEdit.updateVertexPosition(index, pos);
       } else if (shape?.type === 'nurbs') {

@@ -13,6 +13,7 @@ import { worldToLane } from '@osce/opendrive';
 interface TrajectoryClickHandlerProps {
   roadGroupRef: React.RefObject<THREE.Group | null>;
   openDriveDocument: OpenDriveDocument | null;
+  snapToLane?: boolean;
   onPointAdd: (
     worldX: number,
     worldY: number,
@@ -22,6 +23,7 @@ interface TrajectoryClickHandlerProps {
     laneId: string,
     s: number,
     offset: number,
+    snapped: boolean,
   ) => void;
 }
 
@@ -31,11 +33,14 @@ const pointerNdc = new THREE.Vector2();
 export function TrajectoryClickHandler({
   roadGroupRef,
   openDriveDocument,
+  snapToLane = true,
   onPointAdd,
 }: TrajectoryClickHandlerProps) {
   const { camera, gl } = useThree();
   const onPointAddRef = useRef(onPointAdd);
   onPointAddRef.current = onPointAdd;
+  const snapRef = useRef(snapToLane);
+  snapRef.current = snapToLane;
 
   const handleDblClick = useCallback(
     (e: MouseEvent) => {
@@ -61,19 +66,25 @@ export function TrajectoryClickHandler({
       const osceY = localPt.y;
       const osceZ = localPt.z;
 
-      const lane = worldToLane(openDriveDocument, osceX, osceY, 20, false);
-      if (!lane) return;
+      if (snapRef.current) {
+        const lane = worldToLane(openDriveDocument, osceX, osceY, 20, false);
+        if (!lane) return;
 
-      onPointAddRef.current(
-        osceX,
-        osceY,
-        osceZ,
-        lane.heading,
-        lane.roadId,
-        String(lane.laneId),
-        lane.s,
-        lane.offset,
-      );
+        onPointAddRef.current(
+          osceX,
+          osceY,
+          osceZ,
+          lane.heading,
+          lane.roadId,
+          String(lane.laneId),
+          lane.s,
+          lane.offset,
+          true,
+        );
+      } else {
+        // Free placement — use world coordinates directly
+        onPointAddRef.current(osceX, osceY, osceZ, 0, '', '', 0, 0, false);
+      }
     },
     [roadGroupRef, openDriveDocument, gl, camera],
   );
