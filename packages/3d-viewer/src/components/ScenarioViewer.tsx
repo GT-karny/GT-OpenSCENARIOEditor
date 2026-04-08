@@ -148,12 +148,14 @@ export interface ScenarioViewerProps {
   onTrajectoryPointAdd?: (
     worldX: number, worldY: number, worldZ: number, heading: number,
     roadId: string, laneId: string, s: number, offset: number,
+    snapped: boolean,
   ) => void;
   /** Callback when user drags a point to a new position */
   onTrajectoryPointDragEnd?: (
     index: number,
     worldX: number, worldY: number, worldZ: number, heading: number,
     roadId: string, laneId: string, s: number, offset: number,
+    snapped: boolean,
   ) => void;
   /** Callback to save and exit trajectory editing */
   onTrajectoryEditSave?: () => void;
@@ -816,6 +818,7 @@ function ScenarioViewerScene({
             openDriveDocument={openDriveDocument}
             orbitControlsRef={cameraRef.current?.orbitControls}
             onPointDragEnd={onTrajectoryPointDragEnd}
+            snapToLane={snapToLane}
           />
         </group>
       )}
@@ -825,6 +828,7 @@ function ScenarioViewerScene({
         <TrajectoryClickHandler
           roadGroupRef={roadGroupRef}
           openDriveDocument={openDriveDocument}
+          snapToLane={snapToLane}
           onPointAdd={onTrajectoryPointAdd}
         />
       )}

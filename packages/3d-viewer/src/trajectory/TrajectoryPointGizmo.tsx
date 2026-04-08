@@ -13,8 +13,9 @@ import { roadCoordsToWorld } from '../utils/road-projection.js';
 
 interface TrajectoryPointGizmoProps {
   position: [number, number, number];
-  openDriveDocument: OpenDriveDocument;
+  openDriveDocument: OpenDriveDocument | null;
   orbitControlsRef?: React.RefObject<any>;
+  snapToLane?: boolean;
   onDragEnd?: (
     worldX: number,
     worldY: number,
@@ -24,6 +25,7 @@ interface TrajectoryPointGizmoProps {
     laneId: string,
     s: number,
     offset: number,
+    snapped: boolean,
   ) => void;
 }
 
@@ -38,11 +40,12 @@ interface DragState {
     laneId: number;
     s: number;
     offset: number;
+    snapped: boolean;
   } | null;
 }
 
 export const TrajectoryPointGizmo: React.FC<TrajectoryPointGizmoProps> = React.memo(
-  ({ position, openDriveDocument, orbitControlsRef, onDragEnd }) => {
+  ({ position, openDriveDocument, orbitControlsRef, snapToLane = true, onDragEnd }) => {
     const { camera, gl } = useThree();
     const groupRef = useRef<THREE.Group>(null);
     const dragRef = useRef<DragState | null>(null);
@@ -53,12 +56,14 @@ export const TrajectoryPointGizmo: React.FC<TrajectoryPointGizmoProps> = React.m
       orbitControlsRef,
       onDragEnd,
       camera,
+      snapToLane,
     });
     propsRef.current = {
       openDriveDocument,
       orbitControlsRef,
       onDragEnd,
       camera,
+      snapToLane,
     };
 
     const handlePointerMove = useCallback(
@@ -81,22 +86,51 @@ export const TrajectoryPointGizmo: React.FC<TrajectoryPointGizmoProps> = React.m
         const odrX = intersection.x;
         const odrY = -intersection.z;
 
-        const laneResult = worldToLane(odr, odrX, odrY, 30);
-        if (laneResult) {
-          const projected = roadCoordsToWorld(odr, laneResult.roadId, laneResult.laneId, laneResult.s);
-          if (projected) {
-            groupRef.current.position.set(projected.x, projected.y, projected.z);
-            drag.result = {
-              x: projected.x,
-              y: projected.y,
-              z: projected.z,
-              h: projected.h,
-              roadId: laneResult.roadId,
-              laneId: laneResult.laneId,
-              s: projected.s,
-              offset: laneResult.offset ?? 0,
-            };
+        if (propsRef.current.snapToLane) {
+          const laneResult = worldToLane(odr, odrX, odrY, 30);
+          if (laneResult) {
+            const projected = roadCoordsToWorld(odr, laneResult.roadId, laneResult.laneId, laneResult.s);
+            if (projected) {
+              groupRef.current.position.set(projected.x, projected.y, projected.z);
+              drag.result = {
+                x: projected.x,
+                y: projected.y,
+                z: projected.z,
+                h: projected.h,
+                roadId: laneResult.roadId,
+                laneId: laneResult.laneId,
+                s: projected.s,
+                offset: laneResult.offset ?? 0,
+                snapped: true,
+              };
+            }
           }
+        } else {
+          // Free placement — use XY freely but snap height to road surface
+          // odrX/odrY are OpenDRIVE coords; find road elevation at that point
+          let odrZ = 0;
+          if (odr) {
+            const laneResult = worldToLane(odr, odrX, odrY, 30);
+            if (laneResult) {
+              const projected = roadCoordsToWorld(odr, laneResult.roadId, laneResult.laneId, laneResult.s);
+              if (projected) {
+                odrZ = projected.z; // OpenDRIVE Z = elevation
+              }
+            }
+          }
+          // Set position in OpenDRIVE local coords (gizmo is inside rotation group)
+          groupRef.current.position.set(odrX, odrY, odrZ);
+          drag.result = {
+            x: odrX,
+            y: odrY,
+            z: odrZ,
+            h: 0,
+            roadId: '',
+            laneId: 0,
+            s: 0,
+            offset: 0,
+            snapped: false,
+          };
         }
       },
       [gl],
@@ -113,7 +147,7 @@ export const TrajectoryPointGizmo: React.FC<TrajectoryPointGizmoProps> = React.m
 
       if (drag?.result) {
         const r = drag.result;
-        onEnd?.(r.x, r.y, r.z, r.h, r.roadId, String(r.laneId), r.s, r.offset);
+        onEnd?.(r.x, r.y, r.z, r.h, r.roadId, String(r.laneId), r.s, r.offset, r.snapped);
       }
 
       dragRef.current = null;
