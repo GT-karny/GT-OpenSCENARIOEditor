@@ -44,6 +44,8 @@ export interface WorldCoords {
 export interface PositionResolveOptions {
   /** Resolve a catalog reference to an inline Route definition. */
   resolveCatalogRoute?: (ref: { catalogName: string; entryName: string }) => Route | null;
+  /** Entity world positions for resolving relative positions (from Init TeleportActions). */
+  entityPositions?: Map<string, WorldCoords>;
 }
 
 /**
@@ -75,11 +77,15 @@ export function resolvePositionToWorld(
     case 'roadPosition':
       return resolveRoadPosition(position, odrDoc);
 
-    // Relative positions require entity state — cannot resolve here
+    case 'relativeObjectPosition':
+      return resolveRelativeObjectPosition(position, options);
+
+    case 'relativeWorldPosition':
+      return resolveRelativeWorldPosition(position, options);
+
+    // Relative lane/road positions require lane resolution from entity — not yet supported
     case 'relativeLanePosition':
     case 'relativeRoadPosition':
-    case 'relativeObjectPosition':
-    case 'relativeWorldPosition':
       return null;
 
     case 'routePosition':
@@ -301,6 +307,44 @@ function resolveRoutePosition(
 
   // Handle FromCurrentEntity — cannot resolve statically
   return null;
+}
+
+function resolveRelativeObjectPosition(
+  pos: { entityRef: string; dx: number; dy: number; dz?: number; orientation?: { type?: string; h?: number; p?: number; r?: number } },
+  options?: PositionResolveOptions,
+): WorldCoords | null {
+  const ref = options?.entityPositions?.get(pos.entityRef);
+  if (!ref) return null;
+
+  // Rotate dx/dy by the reference entity's heading
+  const cos = Math.cos(ref.h);
+  const sin = Math.sin(ref.h);
+  return {
+    x: ref.x + pos.dx * cos - pos.dy * sin,
+    y: ref.y + pos.dx * sin + pos.dy * cos,
+    z: ref.z + (pos.dz ?? 0),
+    h: pos.orientation?.type === 'absolute'
+      ? (pos.orientation.h ?? 0)
+      : ref.h + (pos.orientation?.h ?? 0),
+  };
+}
+
+function resolveRelativeWorldPosition(
+  pos: { entityRef: string; dx: number; dy: number; dz?: number; orientation?: { type?: string; h?: number; p?: number; r?: number } },
+  options?: PositionResolveOptions,
+): WorldCoords | null {
+  const ref = options?.entityPositions?.get(pos.entityRef);
+  if (!ref) return null;
+
+  // dx/dy are in world coordinates (not rotated by entity heading)
+  return {
+    x: ref.x + pos.dx,
+    y: ref.y + pos.dy,
+    z: ref.z + (pos.dz ?? 0),
+    h: pos.orientation?.type === 'absolute'
+      ? (pos.orientation.h ?? 0)
+      : ref.h + (pos.orientation?.h ?? 0),
+  };
 }
 
 /**

@@ -19,6 +19,7 @@ import type {
   PrivateAction,
 } from '@osce/shared';
 import { resolvePositionToWorld } from '@osce/3d-viewer';
+import type { WorldCoords } from '@osce/3d-viewer';
 import { computeTrajectoryVisualPoints } from '../lib/trajectory-curve-computation';
 import type { PointWorldPos } from '../stores/trajectory-edit-store';
 import { useTrajectoryEditStore } from '../stores/trajectory-edit-store';
@@ -132,25 +133,27 @@ function extractTrajectoryFromAction(action: unknown): Trajectory | null {
 function resolveTrajectoryPreview(
   trajectory: Trajectory,
   odrDoc: OpenDriveDocument,
+  entityPositions?: Map<string, WorldCoords>,
 ): TrajectoryPreviewData | null {
   const positions: PointWorldPos[] = [];
+  const resolveOpts = entityPositions ? { entityPositions } : undefined;
 
   switch (trajectory.shape.type) {
     case 'polyline':
       for (const vertex of trajectory.shape.vertices) {
-        const world = resolvePositionToWorld(vertex.position, odrDoc);
+        const world = resolvePositionToWorld(vertex.position, odrDoc, resolveOpts);
         positions.push(world ?? { x: 0, y: 0, z: 0, h: 0 });
       }
       break;
     case 'clothoid':
       if (trajectory.shape.position) {
-        const world = resolvePositionToWorld(trajectory.shape.position, odrDoc);
+        const world = resolvePositionToWorld(trajectory.shape.position, odrDoc, resolveOpts);
         positions.push(world ?? { x: 0, y: 0, z: 0, h: 0 });
       }
       break;
     case 'nurbs':
       for (const cp of trajectory.shape.controlPoints) {
-        const world = resolvePositionToWorld(cp.position, odrDoc);
+        const world = resolvePositionToWorld(cp.position, odrDoc, resolveOpts);
         positions.push(world ?? { x: 0, y: 0, z: 0, h: 0 });
       }
       break;
@@ -173,6 +176,7 @@ function resolveTrajectoryPreview(
 export function useTrajectoryPreview(
   scenarioStoreApi: ReturnType<typeof import('../stores/use-scenario-store').useScenarioStoreApi>,
   odrDoc: OpenDriveDocument | null,
+  entityPositions?: Map<string, WorldCoords>,
 ): TrajectoryPreviewData[] {
   const trajectoryEditActive = useTrajectoryEditStore((s) => s.active);
 
@@ -207,12 +211,12 @@ export function useTrajectoryPreview(
 
     const results: TrajectoryPreviewData[] = [];
     for (const trajectory of trajectories) {
-      const preview = resolveTrajectoryPreview(trajectory, odrDoc);
+      const preview = resolveTrajectoryPreview(trajectory, odrDoc, entityPositions);
       if (preview) results.push(preview);
     }
 
     setPreviews(results);
-  }, [trajectories, odrDoc]);
+  }, [trajectories, odrDoc, entityPositions]);
 
   return previews;
 }

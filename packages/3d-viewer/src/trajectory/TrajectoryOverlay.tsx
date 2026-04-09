@@ -21,6 +21,8 @@ export interface TrajectoryOverlayProps {
   selectedPointIndex: number | null;
   /** Shape type determines rendering behavior */
   shapeType: 'polyline' | 'clothoid' | 'nurbs';
+  /** Indices of points that use relative positions (rendered with dashed connections) */
+  relativePointIndices?: number[];
   onPointClick?: (index: number) => void;
   onPointContextMenu?: (index: number, event: ThreeEvent<MouseEvent>) => void;
   onLineClick?: (event: ThreeEvent<MouseEvent>) => void;
@@ -48,6 +50,7 @@ export const TrajectoryOverlay: React.FC<TrajectoryOverlayProps> = React.memo(
     pointTimes,
     selectedPointIndex,
     shapeType,
+    relativePointIndices,
     onPointClick,
     onPointContextMenu,
     onLineClick,
@@ -59,6 +62,8 @@ export const TrajectoryOverlay: React.FC<TrajectoryOverlayProps> = React.memo(
     const selectedPt =
       selectedPointIndex !== null ? points[selectedPointIndex] : null;
 
+    const relativeSet = relativePointIndices ? new Set(relativePointIndices) : null;
+
     return (
       <group>
         {/* Curve / connection line */}
@@ -68,6 +73,31 @@ export const TrajectoryOverlay: React.FC<TrajectoryOverlayProps> = React.memo(
             onClick={onLineClick}
           />
         )}
+
+        {/* Dashed connections from/to relative points */}
+        {relativeSet && relativeSet.size > 0 && points.length >= 2 &&
+          points.map((pt, idx) => {
+            if (idx === 0) return null;
+            const prevIsRel = relativeSet.has(idx - 1);
+            const curIsRel = relativeSet.has(idx);
+            if (!prevIsRel && !curIsRel) return null;
+            const prev = points[idx - 1];
+            return (
+              <TrajectoryConnectionLine
+                key={`rel-dash-${idx}`}
+                points={[
+                  { x: prev.x, y: prev.y, z: prev.z },
+                  { x: pt.x, y: pt.y, z: pt.z },
+                ]}
+                color="#FF880088"
+                lineWidth={2}
+                dashed
+                dashSize={0.4}
+                gapSize={0.3}
+              />
+            );
+          })
+        }
 
         {/* NURBS: dashed control polygon connecting control points */}
         {shapeType === 'nurbs' && points.length >= 2 && (

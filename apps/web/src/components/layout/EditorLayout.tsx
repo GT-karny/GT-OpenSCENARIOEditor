@@ -55,6 +55,7 @@ import { buildCatalogLocationsFromProject } from '../../lib/catalog-location-uti
 import { editorMetadataStoreApi } from '../../stores/editor-metadata-store-instance';
 import { evaluateReferenceLineAtS, evaluateElevation, stToXyz } from '@osce/opendrive';
 import type { PoleAssemblyInfo } from '@osce/3d-viewer';
+import { extractEntityPositions } from '@osce/3d-viewer';
 import { RoadNetworkEditorLayout } from '../opendrive/RoadNetworkEditorLayout';
 
 function ResizeHandle() {
@@ -106,6 +107,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   trajectoryPoints?: Array<{ x: number; y: number; z: number; h: number }>;
   trajectoryCurvePoints?: Array<{ x: number; y: number; z: number }>;
   trajectoryPointTimes?: Array<number | undefined>;
+  trajectoryRelativePointIndices?: number[];
   trajectorySelectedPointIndex?: number | null;
   onTrajectoryPointClick?: (index: number) => void;
   onTrajectoryPointContextMenu?: (index: number, event: unknown) => void;
@@ -187,6 +189,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       trajectoryPoints={props.trajectoryPoints}
       trajectoryCurvePoints={props.trajectoryCurvePoints}
       trajectoryPointTimes={props.trajectoryPointTimes}
+      trajectoryRelativePointIndices={props.trajectoryRelativePointIndices}
       trajectorySelectedPointIndex={props.trajectorySelectedPointIndex}
       onTrajectoryPointClick={props.onTrajectoryPointClick}
       onTrajectoryPointContextMenu={props.onTrajectoryPointContextMenu}
@@ -456,8 +459,15 @@ export function EditorLayout() {
   // --- Route preview (read-only visualization for selected entity/action) ---
   const routePreviewData = useRoutePreview(scenarioStoreApi, roadNetwork, roadManagerClient);
 
+  // --- Entity positions (shared by trajectory edit + preview) ---
+  const initEntityActions = useStore(scenarioStoreApi, (s) => s.document.storyboard.init.entityActions);
+  const entityPositions = useMemo(() => {
+    const doc = scenarioStoreApi.getState().document;
+    return extractEntityPositions(doc, roadNetwork);
+  }, [initEntityActions, roadNetwork, scenarioStoreApi]);
+
   // --- Trajectory preview (read-only visualization for selected entity/action) ---
-  const trajectoryPreviewData = useTrajectoryPreview(scenarioStoreApi, roadNetwork);
+  const trajectoryPreviewData = useTrajectoryPreview(scenarioStoreApi, roadNetwork, entityPositions);
 
   const resolveCatalogRoute = useCallback(
     (ref: { catalogName: string; entryName: string }) => {
@@ -588,7 +598,7 @@ export function EditorLayout() {
   }, [routeEdit]);
 
   // --- Trajectory editing ---
-  const trajectoryEdit = useTrajectoryEdit(roadNetwork);
+  const trajectoryEdit = useTrajectoryEdit(roadNetwork, entityPositions);
 
   const handleTrajectoryPointAdd = useCallback(
     (
@@ -598,7 +608,7 @@ export function EditorLayout() {
     ) => {
       const shape = trajectoryEdit.editingTrajectory?.shape;
       const pos = snapped
-        ? { type: 'lanePosition' as const, roadId, laneId, s: Math.round(s * 100) / 100 }
+        ? { type: 'lanePosition' as const, roadId, laneId, s: Math.round(s * 100) / 100, orientation: heading ? { type: 'absolute' as const, h: heading } : undefined }
         : { type: 'worldPosition' as const, x: Math.round(worldX * 100) / 100, y: Math.round(worldY * 100) / 100, z: Math.round(worldZ * 100) / 100, h: heading || undefined };
       if (shape?.type === 'polyline') {
         trajectoryEdit.addVertex(pos);
@@ -646,8 +656,40 @@ export function EditorLayout() {
       snapped: boolean,
     ) => {
       const shape = trajectoryEdit.editingTrajectory?.shape;
+
+      // "Start from entity" point: update dx/dy relative to entity instead of replacing position type
+      if (shape) {
+        const curPos = shape.type === 'polyline'
+          ? shape.vertices[index]?.position
+          : shape.type === 'nurbs'
+            ? shape.controlPoints[index]?.position
+            : null;
+        if (curPos && curPos.type === 'relativeObjectPosition') {
+          const ref = entityPositions.get(curPos.entityRef);
+          if (ref) {
+            // Compute dx/dy in entity-local coordinates (inverse rotation by entity heading)
+            const cos = Math.cos(-ref.h);
+            const sin = Math.sin(-ref.h);
+            const deltaX = worldX - ref.x;
+            const deltaY = worldY - ref.y;
+            const newPos = {
+              ...curPos,
+              dx: Math.round((deltaX * cos - deltaY * sin) * 100) / 100,
+              dy: Math.round((deltaX * sin + deltaY * cos) * 100) / 100,
+              dz: Math.round((worldZ - ref.z) * 100) / 100 || undefined,
+            };
+            if (shape.type === 'polyline') {
+              trajectoryEdit.updateVertexPosition(index, newPos);
+            } else if (shape.type === 'nurbs') {
+              trajectoryEdit.updateControlPointPosition(index, newPos);
+            }
+            return;
+          }
+        }
+      }
+
       const pos = snapped
-        ? { type: 'lanePosition' as const, roadId, laneId, s: Math.round(s * 100) / 100 }
+        ? { type: 'lanePosition' as const, roadId, laneId, s: Math.round(s * 100) / 100, orientation: heading ? { type: 'absolute' as const, h: heading } : undefined }
         : { type: 'worldPosition' as const, x: Math.round(worldX * 100) / 100, y: Math.round(worldY * 100) / 100, z: Math.round(worldZ * 100) / 100, h: heading || undefined };
       if (shape?.type === 'polyline') {
         trajectoryEdit.updateVertexPosition(index, pos);
@@ -709,6 +751,30 @@ export function EditorLayout() {
       return t.shape.controlPoints.map((cp) => cp.time);
     }
     return undefined;
+  }, [trajectoryEdit.editingTrajectory]);
+
+  // Compute indices of relative-positioned points (for dashed line rendering)
+  const trajectoryRelativePointIndices = useMemo(() => {
+    const t = trajectoryEdit.editingTrajectory;
+    if (!t) return undefined;
+
+    const isRelative = (posType: string) =>
+      posType === 'relativeObjectPosition' ||
+      posType === 'relativeWorldPosition' ||
+      posType === 'relativeLanePosition' ||
+      posType === 'relativeRoadPosition';
+
+    const indices: number[] = [];
+    if (t.shape.type === 'polyline') {
+      for (let i = 0; i < t.shape.vertices.length; i++) {
+        if (isRelative(t.shape.vertices[i].position.type)) indices.push(i);
+      }
+    } else if (t.shape.type === 'nurbs') {
+      for (let i = 0; i < t.shape.controlPoints.length; i++) {
+        if (isRelative(t.shape.controlPoints[i].position.type)) indices.push(i);
+      }
+    }
+    return indices.length > 0 ? indices : undefined;
   }, [trajectoryEdit.editingTrajectory]);
 
   // Compute point count for trajectory
@@ -943,6 +1009,7 @@ export function EditorLayout() {
                     onTrajectoryPointDragEnd={handleTrajectoryPointDragEnd}
                     onTrajectoryEditSave={handleTrajectoryEditSave}
                     onTrajectoryEditCancel={handleTrajectoryEditCancel}
+                    trajectoryRelativePointIndices={trajectoryRelativePointIndices}
                     trajectoryWarnings={trajectoryEdit.warnings}
                     trajectoryPointCount={trajectoryPointCount}
                     trajectoryPreviewData={trajectoryPreviewData}

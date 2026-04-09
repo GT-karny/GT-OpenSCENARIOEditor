@@ -58,6 +58,7 @@ export type { EntityRefUsage } from './operations/entity-ref-utils.js';
 export { deepCloneWithNewIds } from './operations/deep-clone.js';
 export type { CloneableElementType } from './operations/deep-clone.js';
 export type { EntityCleanupOption } from './commands/entity-commands.js';
+export { findManeuverGroupForAction } from './operations/storyboard-operations.js';
 
 // Component Engine
 export { applyUseCaseComponent, reconcileComponent } from './components/component-engine.js';

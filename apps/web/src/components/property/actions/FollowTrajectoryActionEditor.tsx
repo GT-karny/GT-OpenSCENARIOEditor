@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react';
 import type {
   ScenarioAction,
   FollowTrajectoryAction,
@@ -7,6 +8,8 @@ import type {
   NurbsControlPoint,
   TimeReference,
   Position,
+  Orientation,
+  WorldPosition,
 } from '@osce/shared';
 import type { FollowingMode } from '@osce/shared';
 import { MapPin, Plus } from 'lucide-react';
@@ -24,6 +27,8 @@ import { KnotVectorEditor } from './KnotVectorEditor';
 import { generateClampedUniformKnots } from '../../../lib/nurbs-knot-utils';
 import { useTrajectoryEditStore } from '../../../stores/trajectory-edit-store';
 import { useRouteEditStore } from '../../../stores/route-edit-store';
+import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
+import { findManeuverGroupForAction } from '@osce/scenario-engine';
 
 interface FollowTrajectoryActionEditorProps {
   action: ScenarioAction;
@@ -49,6 +54,15 @@ export function FollowTrajectoryActionEditor({
     trajectoryEditSource.actionId === action.id;
 
   const canEditIn3D = !trajectoryEditActive && !routeEditActive;
+
+  // Resolve owner entity for "Start from entity position" feature
+  const scenarioStoreApi = useScenarioStoreApi();
+  const ownerEntityName = useMemo(() => {
+    const doc = scenarioStoreApi.getState().document;
+    const result = findManeuverGroupForAction(doc, action.id);
+    if (!result) return undefined;
+    return result.group.actors.entityRefs[0];
+  }, [scenarioStoreApi, action.id]);
 
   const handleEditIn3D = () => {
     if (!canEditIn3D) return;
@@ -147,17 +161,38 @@ export function FollowTrajectoryActionEditor({
     );
   };
 
-  // --- Clothoid helpers ---
-  const clothoidShape = shapeType === 'clothoid'
-    ? (inner.trajectory.shape as Extract<TrajectoryShape, { type: 'clothoid' }>)
-    : null;
+  // --- Vertex expansion & orientation ---
+  const [expandedVertexIndex, setExpandedVertexIndex] = useState<number | null>(null);
 
-  const updateClothoid = (updates: Partial<Extract<TrajectoryShape, { type: 'clothoid' }>>) => {
-    if (!clothoidShape) return;
-    updateTrajectory({ shape: { ...clothoidShape, ...updates } });
+  const handleVertexOrientationChange = (index: number, orientation: Orientation | undefined) => {
+    if (!polylineShape) return;
+    updatePolylineVertices(
+      polylineShape.vertices.map((v, i) => {
+        if (i !== index) return v;
+        const pos = v.position;
+        if (pos.type === 'worldPosition') {
+          // WorldPosition stores h/p/r directly
+          const wp = pos as WorldPosition;
+          return {
+            ...v,
+            position: {
+              ...wp,
+              h: orientation?.h,
+              p: orientation?.p,
+              r: orientation?.r,
+            } as Position,
+          };
+        }
+        // All other position types use orientation sub-object
+        return {
+          ...v,
+          position: { ...pos, orientation } as Position,
+        };
+      }),
+    );
   };
 
-  // --- NURBS helpers ---
+  // --- NURBS shape & helpers (declared early for start-from-entity logic) ---
   const nurbsShape = shapeType === 'nurbs'
     ? (inner.trajectory.shape as Extract<TrajectoryShape, { type: 'nurbs' }>)
     : null;
@@ -167,17 +202,97 @@ export function FollowTrajectoryActionEditor({
     updateTrajectory({ shape: { ...nurbsShape, ...updates } });
   };
 
-  /**
-   * Auto-regenerate knots when control point count changes (if knots match auto pattern).
-   */
   const autoRegenerateKnots = (newCpCount: number, currentOrder: number, currentKnots: number[]) => {
     if (newCpCount < 2) return currentKnots;
     const expectedLen = newCpCount + currentOrder;
-    // If knots are empty or length was matching before, regenerate
     if (currentKnots.length === 0 || currentKnots.length === expectedLen - 1 || currentKnots.length === expectedLen + 1) {
       return generateClampedUniformKnots(newCpCount, currentOrder);
     }
     return currentKnots;
+  };
+
+  // --- Start from entity position (shared across polyline & NURBS) ---
+  const relativeEntityPosition: Position = ownerEntityName
+    ? {
+        type: 'relativeObjectPosition',
+        entityRef: ownerEntityName,
+        dx: 0,
+        dy: 0,
+        orientation: { type: 'relative', h: 0 },
+      }
+    : DEFAULT_WORLD_POSITION;
+
+  const isFirstPositionRelativeToEntity = (pos: Position | undefined): boolean => {
+    if (!ownerEntityName || !pos) return false;
+    return (
+      pos.type === 'relativeObjectPosition' &&
+      pos.entityRef === ownerEntityName
+    );
+  };
+
+  const isStartFromEntity = useMemo(() => {
+    if (polylineShape && polylineShape.vertices.length > 0) {
+      return isFirstPositionRelativeToEntity(polylineShape.vertices[0].position);
+    }
+    if (nurbsShape && nurbsShape.controlPoints.length > 0) {
+      return isFirstPositionRelativeToEntity(nurbsShape.controlPoints[0].position);
+    }
+    return false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ownerEntityName, polylineShape, nurbsShape]);
+
+  const handleStartFromEntityToggle = (checked: boolean) => {
+    if (!ownerEntityName) return;
+
+    if (polylineShape) {
+      if (checked) {
+        if (polylineShape.vertices.length === 0) {
+          updatePolylineVertices([{ position: relativeEntityPosition, time: 0 }]);
+        } else {
+          updatePolylineVertices(
+            polylineShape.vertices.map((v, i) =>
+              i === 0 ? { ...v, position: relativeEntityPosition } : v,
+            ),
+          );
+        }
+      } else {
+        updatePolylineVertices(
+          polylineShape.vertices.map((v, i) =>
+            i === 0 ? { ...v, position: { ...DEFAULT_WORLD_POSITION } } : v,
+          ),
+        );
+      }
+    } else if (nurbsShape) {
+      if (checked) {
+        if (nurbsShape.controlPoints.length === 0) {
+          const newCps = [{ position: relativeEntityPosition, weight: 1.0, time: 0 }];
+          const knots = autoRegenerateKnots(newCps.length, nurbsShape.order, nurbsShape.knots);
+          updateNurbs({ controlPoints: newCps, knots });
+        } else {
+          updateNurbs({
+            controlPoints: nurbsShape.controlPoints.map((cp, i) =>
+              i === 0 ? { ...cp, position: relativeEntityPosition } : cp,
+            ),
+          });
+        }
+      } else {
+        updateNurbs({
+          controlPoints: nurbsShape.controlPoints.map((cp, i) =>
+            i === 0 ? { ...cp, position: { ...DEFAULT_WORLD_POSITION } } : cp,
+          ),
+        });
+      }
+    }
+  };
+
+  // --- Clothoid helpers ---
+  const clothoidShape = shapeType === 'clothoid'
+    ? (inner.trajectory.shape as Extract<TrajectoryShape, { type: 'clothoid' }>)
+    : null;
+
+  const updateClothoid = (updates: Partial<Extract<TrajectoryShape, { type: 'clothoid' }>>) => {
+    if (!clothoidShape) return;
+    updateTrajectory({ shape: { ...clothoidShape, ...updates } });
   };
 
   const handleAddControlPoint = () => {
@@ -340,6 +455,17 @@ export function FollowTrajectoryActionEditor({
         {/* ===== Polyline ===== */}
         {polylineShape && (
           <div className="space-y-1">
+            {ownerEntityName && (
+              <label className="flex items-center gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  checked={isStartFromEntity}
+                  onChange={(e) => handleStartFromEntityToggle(e.target.checked)}
+                />
+                Start from entity position
+              </label>
+            )}
+
             <div className="flex items-center justify-between">
               <Label className="text-xs">
                 Vertices ({polylineShape.vertices.length})
@@ -360,17 +486,25 @@ export function FollowTrajectoryActionEditor({
               </p>
             ) : (
               <div className="space-y-0.5 max-h-[200px] overflow-y-auto">
-                {polylineShape.vertices.map((vertex, i) => (
-                  <TrajectoryVertexListItem
-                    key={i}
-                    index={i}
-                    vertex={vertex}
-                    isSelected={false}
-                    onSelect={() => {}}
-                    onDelete={() => handleDeleteVertex(i)}
-                    onTimeChange={(time) => handleVertexTimeChange(i, time)}
-                  />
-                ))}
+                {polylineShape.vertices.map((vertex, i) => {
+                  const locked = i === 0 && isStartFromEntity;
+                  return (
+                    <TrajectoryVertexListItem
+                      key={i}
+                      index={i}
+                      vertex={vertex}
+                      isSelected={expandedVertexIndex === i}
+                      onSelect={() => setExpandedVertexIndex(expandedVertexIndex === i ? null : i)}
+                      onDelete={() => handleDeleteVertex(i)}
+                      onTimeChange={(time) => handleVertexTimeChange(i, time)}
+                      expanded={expandedVertexIndex === i}
+                      onOrientationChange={(ori) => handleVertexOrientationChange(i, ori)}
+                      elementId={action.id}
+                      isLocked={locked}
+                      lockedLabel={locked ? `Starts at ${ownerEntityName}` : undefined}
+                    />
+                  );
+                })}
               </div>
             )}
 
@@ -513,6 +647,17 @@ export function FollowTrajectoryActionEditor({
         {/* ===== NURBS ===== */}
         {nurbsShape && (
           <div className="space-y-2">
+            {ownerEntityName && (
+              <label className="flex items-center gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  checked={isStartFromEntity}
+                  onChange={(e) => handleStartFromEntityToggle(e.target.checked)}
+                />
+                Start from entity position
+              </label>
+            )}
+
             <div className="grid gap-1">
               <Label className="text-xs">Order</Label>
               <ParameterAwareInput
@@ -553,18 +698,23 @@ export function FollowTrajectoryActionEditor({
                 </p>
               ) : (
                 <div className="space-y-0.5 max-h-[200px] overflow-y-auto">
-                  {nurbsShape.controlPoints.map((cp, i) => (
-                    <NurbsControlPointListItem
-                      key={i}
-                      index={i}
-                      controlPoint={cp}
-                      isSelected={false}
-                      onSelect={() => {}}
-                      onDelete={() => handleDeleteControlPoint(i)}
-                      onTimeChange={(time) => handleControlPointTimeChange(i, time)}
-                      onWeightChange={(weight) => handleControlPointWeightChange(i, weight)}
-                    />
-                  ))}
+                  {nurbsShape.controlPoints.map((cp, i) => {
+                    const locked = i === 0 && isStartFromEntity;
+                    return (
+                      <NurbsControlPointListItem
+                        key={i}
+                        index={i}
+                        controlPoint={cp}
+                        isSelected={false}
+                        onSelect={() => {}}
+                        onDelete={() => handleDeleteControlPoint(i)}
+                        onTimeChange={(time) => handleControlPointTimeChange(i, time)}
+                        onWeightChange={(weight) => handleControlPointWeightChange(i, weight)}
+                        isLocked={locked}
+                        lockedLabel={locked ? `Starts at ${ownerEntityName}` : undefined}
+                      />
+                    );
+                  })}
                 </div>
               )}
 

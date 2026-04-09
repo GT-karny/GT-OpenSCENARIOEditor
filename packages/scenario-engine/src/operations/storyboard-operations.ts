@@ -100,3 +100,22 @@ export function findActionById(
   }
   return undefined;
 }
+
+export function findManeuverGroupForAction(
+  doc: ScenarioDocument,
+  actionId: string,
+): { group: ManeuverGroup; event: ScenarioEvent; action: ScenarioAction } | undefined {
+  for (const story of doc.storyboard.stories) {
+    for (const act of story.acts) {
+      for (const group of act.maneuverGroups) {
+        for (const maneuver of group.maneuvers) {
+          for (const event of maneuver.events) {
+            const action = event.actions.find((a) => a.id === actionId);
+            if (action) return { group, event, action };
+          }
+        }
+      }
+    }
+  }
+  return undefined;
+}

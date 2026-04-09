@@ -3,13 +3,17 @@ import type { Trajectory, OpenDriveDocument } from '@osce/shared';
 import { useTrajectoryEditStore } from '../stores/trajectory-edit-store';
 import type { TrajectoryEditSource, PointWorldPos } from '../stores/trajectory-edit-store';
 import { resolvePositionToWorld } from '@osce/3d-viewer';
+import type { WorldCoords } from '@osce/3d-viewer';
 import { computeTrajectoryVisualPoints } from '../lib/trajectory-curve-computation';
 
 /**
  * Hook that bridges the trajectory-edit-store with the scenario/catalog stores
  * and computes visualization data (world positions, curve points).
  */
-export function useTrajectoryEdit(odrDoc: OpenDriveDocument | null) {
+export function useTrajectoryEdit(
+  odrDoc: OpenDriveDocument | null,
+  entityPositions?: Map<string, WorldCoords>,
+) {
   const store = useTrajectoryEditStore();
 
   // ---------------------------------------------------------------------------
@@ -21,24 +25,25 @@ export function useTrajectoryEdit(odrDoc: OpenDriveDocument | null) {
 
     const trajectory = store.editingTrajectory;
     const positions: PointWorldPos[] = [];
+    const resolveOpts = entityPositions ? { entityPositions } : undefined;
 
     // Collect positions based on shape type
     switch (trajectory.shape.type) {
       case 'polyline':
         for (const vertex of trajectory.shape.vertices) {
-          const world = resolvePositionToWorld(vertex.position, odrDoc);
+          const world = resolvePositionToWorld(vertex.position, odrDoc, resolveOpts);
           positions.push(world ?? { x: 0, y: 0, z: 0, h: 0 });
         }
         break;
       case 'clothoid':
         if (trajectory.shape.position) {
-          const world = resolvePositionToWorld(trajectory.shape.position, odrDoc);
+          const world = resolvePositionToWorld(trajectory.shape.position, odrDoc, resolveOpts);
           positions.push(world ?? { x: 0, y: 0, z: 0, h: 0 });
         }
         break;
       case 'nurbs':
         for (const cp of trajectory.shape.controlPoints) {
-          const world = resolvePositionToWorld(cp.position, odrDoc);
+          const world = resolvePositionToWorld(cp.position, odrDoc, resolveOpts);
           positions.push(world ?? { x: 0, y: 0, z: 0, h: 0 });
         }
         break;
@@ -50,7 +55,7 @@ export function useTrajectoryEdit(odrDoc: OpenDriveDocument | null) {
     const curvePoints = computeTrajectoryVisualPoints(trajectory, positions);
     store.setCurvePoints(curvePoints);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [store.editingTrajectory, odrDoc, store.active]);
+  }, [store.editingTrajectory, odrDoc, store.active, entityPositions]);
 
   // ---------------------------------------------------------------------------
   // Start trajectory editing

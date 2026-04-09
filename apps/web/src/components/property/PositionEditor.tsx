@@ -696,11 +696,11 @@ function TextField({
 
 // --- OrientationFields ---
 
-function isOrientationEmpty(ori: Partial<Orientation>): boolean {
+export function isOrientationEmpty(ori: Partial<Orientation>): boolean {
   return ori.type === undefined && ori.h === undefined && ori.p === undefined && ori.r === undefined;
 }
 
-function OrientationFields({
+export function OrientationFields({
   orientation,
   onChange,
   elementId,
