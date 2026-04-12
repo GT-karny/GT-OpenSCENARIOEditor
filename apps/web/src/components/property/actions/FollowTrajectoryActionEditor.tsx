@@ -151,6 +151,7 @@ export function FollowTrajectoryActionEditor({
 
   const handleDeleteVertex = (index: number) => {
     if (!polylineShape) return;
+    if (index < relativePointCount) return;
     updatePolylineVertices(polylineShape.vertices.filter((_, i) => i !== index));
   };
 
@@ -218,7 +219,6 @@ export function FollowTrajectoryActionEditor({
         entityRef: ownerEntityName,
         dx: 0,
         dy: 0,
-        orientation: { type: 'relative', h: 0 },
       }
     : DEFAULT_WORLD_POSITION;
 
@@ -230,58 +230,52 @@ export function FollowTrajectoryActionEditor({
     );
   };
 
-  const isStartFromEntity = useMemo(() => {
-    if (polylineShape && polylineShape.vertices.length > 0) {
-      return isFirstPositionRelativeToEntity(polylineShape.vertices[0].position);
+  const relativePointCount = useMemo(() => {
+    const points = polylineShape?.vertices ?? nurbsShape?.controlPoints;
+    if (!points || !ownerEntityName) return 0;
+    let count = 0;
+    for (let i = 0; i < Math.min(points.length, 2); i++) {
+      if (isFirstPositionRelativeToEntity(points[i].position)) count++;
+      else break; // Only count leading consecutive relative points
     }
-    if (nurbsShape && nurbsShape.controlPoints.length > 0) {
-      return isFirstPositionRelativeToEntity(nurbsShape.controlPoints[0].position);
-    }
-    return false;
+    return count;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ownerEntityName, polylineShape, nurbsShape]);
 
-  const handleStartFromEntityToggle = (checked: boolean) => {
-    if (!ownerEntityName) return;
+  const handleRelativePointCountChange = (newCountStr: string) => {
+    const targetCount = parseInt(newCountStr);
+    if (!ownerEntityName || isNaN(targetCount)) return;
 
     if (polylineShape) {
-      if (checked) {
-        if (polylineShape.vertices.length === 0) {
-          updatePolylineVertices([{ position: relativeEntityPosition, time: 0 }]);
-        } else {
-          updatePolylineVertices(
-            polylineShape.vertices.map((v, i) =>
-              i === 0 ? { ...v, position: relativeEntityPosition } : v,
-            ),
-          );
-        }
-      } else {
-        updatePolylineVertices(
-          polylineShape.vertices.map((v, i) =>
-            i === 0 ? { ...v, position: { ...DEFAULT_WORLD_POSITION } } : v,
-          ),
-        );
+      let vertices = [...polylineShape.vertices];
+      // Ensure enough vertices exist
+      while (vertices.length < targetCount) {
+        vertices.push({ position: { ...DEFAULT_WORLD_POSITION }, time: vertices.length === 0 ? 0 : undefined });
       }
+      vertices = vertices.map((v, i) => {
+        if (i < targetCount) {
+          return { ...v, position: { ...relativeEntityPosition } };
+        } else if (i < 2 && isFirstPositionRelativeToEntity(v.position)) {
+          return { ...v, position: { ...DEFAULT_WORLD_POSITION } };
+        }
+        return v;
+      });
+      updatePolylineVertices(vertices);
     } else if (nurbsShape) {
-      if (checked) {
-        if (nurbsShape.controlPoints.length === 0) {
-          const newCps = [{ position: relativeEntityPosition, weight: 1.0, time: 0 }];
-          const knots = autoRegenerateKnots(newCps.length, nurbsShape.order, nurbsShape.knots);
-          updateNurbs({ controlPoints: newCps, knots });
-        } else {
-          updateNurbs({
-            controlPoints: nurbsShape.controlPoints.map((cp, i) =>
-              i === 0 ? { ...cp, position: relativeEntityPosition } : cp,
-            ),
-          });
-        }
-      } else {
-        updateNurbs({
-          controlPoints: nurbsShape.controlPoints.map((cp, i) =>
-            i === 0 ? { ...cp, position: { ...DEFAULT_WORLD_POSITION } } : cp,
-          ),
-        });
+      let controlPoints = [...nurbsShape.controlPoints];
+      while (controlPoints.length < targetCount) {
+        controlPoints.push({ position: { ...DEFAULT_WORLD_POSITION }, weight: 1.0, time: controlPoints.length === 0 ? 0 : undefined });
       }
+      controlPoints = controlPoints.map((cp, i) => {
+        if (i < targetCount) {
+          return { ...cp, position: { ...relativeEntityPosition } };
+        } else if (i < 2 && isFirstPositionRelativeToEntity(cp.position)) {
+          return { ...cp, position: { ...DEFAULT_WORLD_POSITION } };
+        }
+        return cp;
+      });
+      const knots = autoRegenerateKnots(controlPoints.length, nurbsShape.order, nurbsShape.knots);
+      updateNurbs({ controlPoints, knots });
     }
   };
 
@@ -305,6 +299,7 @@ export function FollowTrajectoryActionEditor({
 
   const handleDeleteControlPoint = (index: number) => {
     if (!nurbsShape) return;
+    if (index < relativePointCount) return;
     const newCps = nurbsShape.controlPoints.filter((_, i) => i !== index);
     const knots = autoRegenerateKnots(newCps.length, nurbsShape.order, nurbsShape.knots);
     updateNurbs({ controlPoints: newCps, knots });
@@ -456,14 +451,15 @@ export function FollowTrajectoryActionEditor({
         {polylineShape && (
           <div className="space-y-1">
             {ownerEntityName && (
-              <label className="flex items-center gap-2 text-xs">
-                <input
-                  type="checkbox"
-                  checked={isStartFromEntity}
-                  onChange={(e) => handleStartFromEntityToggle(e.target.checked)}
+              <div className="grid gap-1">
+                <Label className="text-xs">Start from entity</Label>
+                <SegmentedControl
+                  value={String(relativePointCount) as '0' | '1' | '2'}
+                  options={['0', '1', '2'] as const}
+                  onValueChange={handleRelativePointCountChange}
+                  labels={{ '0': 'Off', '1': '1 pt', '2': '2 pts' }}
                 />
-                Start from entity position
-              </label>
+              </div>
             )}
 
             <div className="flex items-center justify-between">
@@ -487,7 +483,7 @@ export function FollowTrajectoryActionEditor({
             ) : (
               <div className="space-y-0.5 max-h-[200px] overflow-y-auto">
                 {polylineShape.vertices.map((vertex, i) => {
-                  const locked = i === 0 && isStartFromEntity;
+                  const locked = i < relativePointCount;
                   return (
                     <TrajectoryVertexListItem
                       key={i}
@@ -501,7 +497,7 @@ export function FollowTrajectoryActionEditor({
                       onOrientationChange={(ori) => handleVertexOrientationChange(i, ori)}
                       elementId={action.id}
                       isLocked={locked}
-                      lockedLabel={locked ? `Starts at ${ownerEntityName}` : undefined}
+                      lockedLabel={locked ? (i === 0 ? `Starts at ${ownerEntityName}` : `Follows ${ownerEntityName}`) : undefined}
                     />
                   );
                 })}
@@ -648,14 +644,15 @@ export function FollowTrajectoryActionEditor({
         {nurbsShape && (
           <div className="space-y-2">
             {ownerEntityName && (
-              <label className="flex items-center gap-2 text-xs">
-                <input
-                  type="checkbox"
-                  checked={isStartFromEntity}
-                  onChange={(e) => handleStartFromEntityToggle(e.target.checked)}
+              <div className="grid gap-1">
+                <Label className="text-xs">Start from entity</Label>
+                <SegmentedControl
+                  value={String(relativePointCount) as '0' | '1' | '2'}
+                  options={['0', '1', '2'] as const}
+                  onValueChange={handleRelativePointCountChange}
+                  labels={{ '0': 'Off', '1': '1 pt', '2': '2 pts' }}
                 />
-                Start from entity position
-              </label>
+              </div>
             )}
 
             <div className="grid gap-1">
@@ -699,7 +696,7 @@ export function FollowTrajectoryActionEditor({
               ) : (
                 <div className="space-y-0.5 max-h-[200px] overflow-y-auto">
                   {nurbsShape.controlPoints.map((cp, i) => {
-                    const locked = i === 0 && isStartFromEntity;
+                    const locked = i < relativePointCount;
                     return (
                       <NurbsControlPointListItem
                         key={i}
@@ -711,7 +708,7 @@ export function FollowTrajectoryActionEditor({
                         onTimeChange={(time) => handleControlPointTimeChange(i, time)}
                         onWeightChange={(weight) => handleControlPointWeightChange(i, weight)}
                         isLocked={locked}
-                        lockedLabel={locked ? `Starts at ${ownerEntityName}` : undefined}
+                        lockedLabel={locked ? (i === 0 ? `Starts at ${ownerEntityName}` : `Follows ${ownerEntityName}`) : undefined}
                       />
                     );
                   })}
