@@ -114,15 +114,19 @@ This project uses Claude Code worktrees for parallel development. When assigning
 ## Key References
 
 - Specs: `Thirdparty/openscenario-v1.3.1/.../OpenSCENARIO.xsd` (primary), `openscenario-v1.2.0` (legacy)
-- Design: `docs/ARCHITECTURE.md`, `docs/FEATURES.md`, `docs/proposals/`
-- APEX tokens: `packages/theme-apex/README.md`, `docs/STYLE_GUIDE.md`
+- Architecture & features: `docs/ARCHITECTURE.md`, `docs/FEATURES.md`
+- Active proposals: `docs/proposals/` — e.g. `opendrive-editor.md`, `lht-support.md`
+- Development knowledge: `docs/development/pitfalls.md` (must-read), `docs/development/wasm-build.md`
+- APEX styling: `docs/STYLE_GUIDE.md` (rules), `docs/design/apex-identity.md` (brand & visual concept), `packages/theme-apex/README.md` (tokens)
 - Sample scenarios: `Thirdparty/esmini-demo_Windows/esmini-demo/resources/xosc/`
 - Environment: see `.env` files and `docs/DEVELOPMENT.md`
+- Dev container (Podman): `.devcontainer/README.md`
 
 ## Quality Gates
 
 ### Before Reporting Completion
 - Run `pnpm typecheck` after every edit session — fix all errors before moving on
+- After implementation work: also run `pnpm build` (not just typecheck/test) before handing back — owner expects to immediately try changes in the running app, so a broken build wastes their cycle
 - For UI/styling changes: visually verify with Playwright screenshot before reporting completion
 - For 3D/Three.js changes: confirm which specific property to modify before editing — ask if ambiguous
 

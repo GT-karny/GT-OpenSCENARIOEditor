@@ -2,6 +2,7 @@
 
 > Styling rules for the OpenSCENARIO Editor UI.
 > All components must follow these rules for visual consistency.
+> For the brand and visual concept behind APEX (colors, typography, cursor light system), see [design/apex-identity.md](design/apex-identity.md).
 
 ## 1. Corner Radius
 
