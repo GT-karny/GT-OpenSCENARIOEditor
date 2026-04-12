@@ -1,0 +1,54 @@
+{
+  "name": "OpenSCENARIO Editor (Podman)",
+  "build": {
+    "context": "..",
+    "dockerfile": "Containerfile"
+  },
+
+  // Podman-specific runtime args:
+  //   --userns=keep-id     map host UID into container so bind-mounted files are writable
+  //   --security-opt label=disable  disable SELinux relabeling (harmless on Windows/WSL2)
+  "runArgs": ["--userns=keep-id", "--security-opt=label=disable"],
+
+  "containerUser": "vscode",
+  "remoteUser": "vscode",
+
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/GT-OpenSCENARIOEditor,type=bind,consistency=cached",
+  "workspaceFolder": "/workspaces/GT-OpenSCENARIOEditor",
+
+  // Hot paths live on named volumes to avoid the slow Windows<->WSL2 9P bridge.
+  "mounts": [
+    "source=osce-node-modules,target=/workspaces/GT-OpenSCENARIOEditor/node_modules,type=volume",
+    "source=osce-pnpm-store,target=/home/vscode/.local/share/pnpm,type=volume"
+  ],
+
+  "forwardPorts": [5173, 3001],
+  "portsAttributes": {
+    "5173": { "label": "Vite Dev Server", "onAutoForward": "openBrowserOnce" },
+    "3001": { "label": "Backend API", "onAutoForward": "silent" }
+  },
+
+  "postCreateCommand": "sudo chown vscode:vscode node_modules /home/vscode/.local/share/pnpm && git submodule update --init --recursive && pnpm install",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "vitest.explorer",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+        "[typescriptreact]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+        "eslint.workingDirectories": [{ "mode": "auto" }],
+        "files.eol": "\n"
+      }
+    }
+  }
+}
