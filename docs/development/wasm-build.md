@@ -65,4 +65,3 @@ The CMake cache is already configured in the repo, so `ninja` alone rebuilds onl
 - **Expected warnings:** `-Winconsistent-missing-override` from esmini headers. No errors should appear.
 - **Do not edit `apps/web/public/wasm/` files directly** — they are build outputs.
 - **CI does not rebuild WASM** — the artifact is a manually-committed binary.
-- For Podman dev container users: this build is **not** run inside the container. Use the host emsdk install. See [.devcontainer/README.md](../../.devcontainer/README.md) for the rationale.

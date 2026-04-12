@@ -120,7 +120,6 @@ This project uses Claude Code worktrees for parallel development. When assigning
 - APEX styling: `docs/STYLE_GUIDE.md` (rules), `docs/design/apex-identity.md` (brand & visual concept), `packages/theme-apex/README.md` (tokens)
 - Sample scenarios: `Thirdparty/esmini-demo_Windows/esmini-demo/resources/xosc/`
 - Environment: see `.env` files and `docs/DEVELOPMENT.md`
-- Dev container (Podman): `.devcontainer/README.md`
 
 ## Quality Gates
 
