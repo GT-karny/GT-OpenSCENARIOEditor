@@ -39,7 +39,7 @@ export interface RouteEditState {
 
   // --- Computed visualization data ---
   waypointWorldPositions: WaypointWorldPos[];
-  pathSegments: Array<Array<{ x: number; y: number; z: number }>>;
+  pathSegments: Array<Array<{ x: number; y: number; z: number; h?: number }>>;
 
   // --- Validation ---
   warnings: string[];

@@ -13,7 +13,7 @@ import { RouteConnectionLine } from './RouteConnectionLine.js';
 
 export interface RouteOverlayProps {
   waypoints: Array<{ x: number; y: number; z: number; h: number }>;
-  pathSegments: Array<Array<{ x: number; y: number; z: number }>>;
+  pathSegments: Array<Array<{ x: number; y: number; z: number; h?: number }>>;
   selectedWaypointIndex: number | null;
   onWaypointClick?: (index: number) => void;
   onWaypointContextMenu?: (index: number, event: ThreeEvent<MouseEvent>) => void;

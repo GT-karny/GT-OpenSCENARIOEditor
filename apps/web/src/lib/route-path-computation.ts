@@ -15,11 +15,20 @@ import { resolvePositionToWorld, roadCoordsToWorld } from '@osce/3d-viewer';
 import {
   generateCurvatureAdaptiveSamples,
   resolveRoute,
+  computeDrivingHeading,
   type RouteSegment,
 } from '@osce/opendrive';
 import type { RoadManagerClient } from './wasm/road-manager-client';
 
-export type Point3 = { x: number; y: number; z: number };
+/**
+ * A point on a computed route path.
+ *
+ * `h` is the driving-direction heading in radians (NaN-safe: consumers should
+ * treat `undefined` or non-finite values as "heading unknown"). Populated by
+ * link-based interpolation; may be undefined on WASM fallback or straight-line
+ * segments where heading cannot be derived from road geometry.
+ */
+export type Point3 = { x: number; y: number; z: number; h?: number };
 
 export interface WaypointWorldPos {
   x: number;
@@ -68,16 +77,18 @@ export function interpolateRoadSegment(
   if (!road) return null;
 
   const sValues = generateCurvatureAdaptiveSamples(road, sMin, sMax, ROUTE_SAMPLING);
+  const reverse = sFrom > sTo;
   const points: Point3[] = [];
 
   for (const s of sValues) {
     const result = roadCoordsToWorld(odrDoc, roadId, laneId, s);
     if (result) {
-      points.push({ x: result.x, y: result.y, z: result.z });
+      const h = computeDrivingHeading(road, laneId, s, reverse);
+      points.push({ x: result.x, y: result.y, z: result.z, h });
     }
   }
 
-  if (sFrom > sTo && points.length >= 2) {
+  if (reverse && points.length >= 2) {
     points.reverse();
   }
 
@@ -109,7 +120,9 @@ function interpolateRouteSegments(
       // roadCoordsToWorld so the chain stays continuous.
       const anchor = roadCoordsToWorld(odrDoc, seg.roadId, seg.laneId, seg.entryS);
       if (anchor) {
-        const p = { x: anchor.x, y: anchor.y, z: anchor.z };
+        const road = odrDoc.roads.find((r) => r.id === seg.roadId);
+        const h = road ? computeDrivingHeading(road, seg.laneId, seg.entryS) : undefined;
+        const p: Point3 = { x: anchor.x, y: anchor.y, z: anchor.z, h };
         if (out.length === 0) out.push(p);
         else if (
           out[out.length - 1].x !== p.x ||
@@ -160,9 +173,14 @@ async function computeCrossRoadSegmentViaWasm(
  * Straight-line fallback between two world positions.
  */
 function straightLine(from: WaypointWorldPos, to: WaypointWorldPos): Point3[] {
+  // Derive heading from the segment direction; fall back to waypoint headings
+  // if the two points coincide.
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const segH = dx === 0 && dy === 0 ? from.h : Math.atan2(dy, dx);
   return [
-    { x: from.x, y: from.y, z: from.z },
-    { x: to.x, y: to.y, z: to.z },
+    { x: from.x, y: from.y, z: from.z, h: segH },
+    { x: to.x, y: to.y, z: to.z, h: segH },
   ];
 }
 
