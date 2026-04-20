@@ -5,8 +5,19 @@
  * Examples: ${250/3.6}, ${$speed * 0.5}, ${-$Speed}
  */
 
+import type { ParameterType } from '@osce/shared';
+
 /** XSD v1.3.1 expression character set */
 const EXPR_PATTERN = /^\$\{[ A-Za-z0-9_+\-*/%$().,]*\}$/;
+
+/**
+ * Per OpenSCENARIO 1.3.1 XSD: only numeric/boolean types accept ${...} expressions.
+ * String and DateTime unions are (parameter | literal) only — no expression member.
+ */
+export function typeAllowsExpression(t: ParameterType | undefined): boolean {
+  if (!t) return true;
+  return t !== 'string' && t !== 'dateTime';
+}
 
 /** Check if a string is a complete expression (starts with ${ and ends with }) */
 export function isExpression(v: string): boolean {

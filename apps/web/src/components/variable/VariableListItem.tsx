@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { VariableDeclaration, ParameterType } from '@osce/shared';
-import { isExpression, looksLikeExpression } from '@/lib/expression-utils';
+import { isExpression, looksLikeExpression, typeAllowsExpression } from '@/lib/expression-utils';
 import { GripVertical, Trash2, ToggleLeft } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -52,7 +52,12 @@ export function VariableListItem({ variable, onDelete }: VariableListItemProps) 
   const commitValue = () => {
     let val = tempValue;
     // Auto-wrap bare expressions in ${...} for OpenSCENARIO compliance
-    if (val && !isExpression(val) && looksLikeExpression(val)) {
+    if (
+      val &&
+      typeAllowsExpression(variable.variableType) &&
+      !isExpression(val) &&
+      looksLikeExpression(val)
+    ) {
       val = `\${${val.trim()}}`;
       setTempValue(val);
     }

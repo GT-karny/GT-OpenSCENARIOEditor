@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { ParameterDeclaration, ParameterType } from '@osce/shared';
-import { isExpression, looksLikeExpression } from '@/lib/expression-utils';
+import { isExpression, looksLikeExpression, typeAllowsExpression } from '@/lib/expression-utils';
 import { GripVertical, Trash2, Variable } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -52,7 +52,12 @@ export function ParameterListItem({ parameter, onDelete }: ParameterListItemProp
   const commitValue = () => {
     let val = tempValue;
     // Auto-wrap bare expressions in ${...} for OpenSCENARIO compliance
-    if (val && !isExpression(val) && looksLikeExpression(val)) {
+    if (
+      val &&
+      typeAllowsExpression(parameter.parameterType) &&
+      !isExpression(val) &&
+      looksLikeExpression(val)
+    ) {
       val = `\${${val.trim()}}`;
       setTempValue(val);
     }
