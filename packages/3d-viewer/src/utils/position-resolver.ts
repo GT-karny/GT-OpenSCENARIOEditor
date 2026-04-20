@@ -21,6 +21,8 @@ import {
   computeLaneOuterT,
   stToXyz,
   computeDrivingHeading,
+  resolveRoute,
+  type RouteSegment,
 } from '@osce/opendrive';
 
 /**
@@ -200,8 +202,54 @@ function findLaneSectionAtS(road: OdrRoad, s: number): OdrLaneSection | null {
 }
 
 /**
+ * Build the road-follow segment list for an entire Route by chaining
+ * resolveRoute() across consecutive waypoint pairs. Returns null if any
+ * pair is unresolvable (falls back to straight-line).
+ */
+function buildRouteSegments(
+  route: Route,
+  odrDoc: OpenDriveDocument,
+): RouteSegment[] | null {
+  if (route.waypoints.length < 2) return null;
+  const out: RouteSegment[] = [];
+  for (let i = 0; i < route.waypoints.length - 1; i++) {
+    const from = route.waypoints[i].position;
+    const to = route.waypoints[i + 1].position;
+    if (from.type !== 'lanePosition' || to.type !== 'lanePosition') return null;
+    const segs = resolveRoute(odrDoc, from, to);
+    if (!segs) return null;
+    for (const s of segs) out.push(s);
+  }
+  return out;
+}
+
+/**
+ * Find the (roadId, s) along a RouteSegment list at a given pathS (road-follow
+ * distance from the route start). Returns null if pathS exceeds the total.
+ */
+function locateAtPathS(
+  segments: RouteSegment[],
+  pathS: number,
+): { roadId: string; s: number } | null {
+  let cum = 0;
+  for (const seg of segments) {
+    const len = Math.abs(seg.exitS - seg.entryS);
+    if (pathS <= cum + len) {
+      const offset = Math.max(0, pathS - cum);
+      const sign = seg.exitS >= seg.entryS ? 1 : -1;
+      return { roadId: seg.roadId, s: seg.entryS + sign * offset };
+    }
+    cum += len;
+  }
+  return null;
+}
+
+/**
  * Resolve a RoutePosition to world coordinates.
- * Uses the route's waypoint positions to approximate the location along the route.
+ *
+ * Path length (`pathS`) is measured along the road-follow polyline produced
+ * by `resolveRoute`, so it respects OpenDRIVE link/junction topology instead
+ * of using straight-line distance between waypoints.
  */
 function resolveRoutePosition(
   pos: RoutePosition,
@@ -236,10 +284,31 @@ function resolveRoutePosition(
       }
     }
 
-    // For non-zero pathS, accumulate distance along waypoints to find position
+    // Primary path: road-follow accumulation via resolveRoute
+    const segments = buildRouteSegments(route, odrDoc);
+    if (segments) {
+      const located = locateAtPathS(segments, pathS);
+      if (located) {
+        return resolveLanePosition(
+          { roadId: located.roadId, laneId, s: located.s, offset: laneOffset },
+          odrDoc,
+        );
+      }
+      // pathS exceeds total route length — snap to last waypoint
+      const lastWp = route.waypoints[route.waypoints.length - 1].position;
+      if (lastWp.type === 'lanePosition') {
+        return resolveLanePosition(
+          { roadId: lastWp.roadId, laneId, s: lastWp.s, offset: laneOffset },
+          odrDoc,
+        );
+      }
+      return null;
+    }
+
+    // Fallback: single waypoint or unresolvable topology — use per-waypoint
+    // straight-line interpolation (prior behavior, approximate)
     const wpPositions = resolveWaypointPositions(route, odrDoc);
     if (wpPositions.length < 2) {
-      // Only one waypoint — resolve using its position
       const wp = route.waypoints[0].position;
       if (wp.type === 'lanePosition') {
         return resolveLanePosition(
@@ -250,7 +319,6 @@ function resolveRoutePosition(
       return null;
     }
 
-    // Walk along the route, accumulating straight-line distance between resolved waypoints
     let accumulated = 0;
     for (let i = 0; i < wpPositions.length - 1; i++) {
       const from = wpPositions[i];
@@ -260,7 +328,6 @@ function resolveRoutePosition(
       );
 
       if (accumulated + segLen >= pathS) {
-        // pathS falls within this segment — interpolate using the waypoint's lane position
         const wp = route.waypoints[i + 1].position;
         if (wp.type === 'lanePosition') {
           const ratio = segLen > 0 ? (pathS - accumulated) / segLen : 0;
@@ -278,7 +345,6 @@ function resolveRoutePosition(
       accumulated += segLen;
     }
 
-    // pathS exceeds total route length — use last waypoint
     const lastWp = route.waypoints[route.waypoints.length - 1].position;
     if (lastWp.type === 'lanePosition') {
       return resolveLanePosition(
