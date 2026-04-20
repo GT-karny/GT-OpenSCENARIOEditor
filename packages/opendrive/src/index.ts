@@ -28,6 +28,22 @@ export {
 } from './geometry/intersection-detection.js';
 export type { IntersectionResult } from './geometry/intersection-detection.js';
 
+// Route resolution (OpenDRIVE link/junction traversal, pure JS)
+export {
+  contactEndS,
+  sideOfS,
+  roadLinkOn,
+  arrivalSFromContactPoint,
+  directNextRoad,
+  findLaneOnSide,
+  traceLaneLinkAcrossBoundary,
+  junctionConnectionsFrom,
+  exitOfConnectingRoad,
+} from './route/road-linking.js';
+export type { RoadSide } from './route/road-linking.js';
+export { resolveRoute } from './route/route-resolver.js';
+export type { RouteSegment } from './route/route-resolver.js';
+
 // Driving direction and inverse lookup
 export { computeDrivingHeading } from './geometry/driving-direction.js';
 export { worldToRoad, worldToLane } from './geometry/inverse-lookup.js';

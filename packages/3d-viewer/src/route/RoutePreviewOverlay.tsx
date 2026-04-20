@@ -7,7 +7,7 @@
 import React, { useMemo } from 'react';
 import { Line } from '@react-three/drei';
 
-type Point3 = { x: number; y: number; z: number };
+type Point3 = { x: number; y: number; z: number; h?: number };
 
 export interface RoutePreviewData {
   waypoints: Array<{ x: number; y: number; z: number; h: number }>;

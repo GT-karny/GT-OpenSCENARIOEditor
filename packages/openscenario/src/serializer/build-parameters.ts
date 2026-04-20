@@ -1,12 +1,22 @@
-import type { ParameterDeclaration, VariableDeclaration } from '@osce/shared';
+import type { ParameterDeclaration, ParameterType, VariableDeclaration } from '@osce/shared';
 import { buildAttrs } from '../utils/xml-helpers.js';
+
+/**
+ * Per OpenSCENARIO 1.3.1 XSD: only numeric/boolean types accept ${...} expressions.
+ * String and DateTime unions are (parameter | literal) only.
+ */
+function typeAllowsExpression(t: ParameterType | undefined): boolean {
+  if (!t) return true;
+  return t !== 'string' && t !== 'dateTime';
+}
 
 /**
  * Auto-wrap bare expressions (e.g. "$P01/10") in ${...} for OpenSCENARIO compliance.
  * Plain $ParamRef (no operators) is left as-is.
  */
-function wrapExpressionValue(v: string): string {
+function wrapExpressionValue(v: string, type: ParameterType): string {
   if (!v || v.startsWith('${')) return v;
+  if (!typeAllowsExpression(type)) return v;
   // Contains arithmetic operators after $ → must be an expression
   if (v.startsWith('$') && /[+\-*/%()]/.test(v.substring(1))) {
     return `\${${v}}`;
@@ -27,7 +37,7 @@ export function buildParameterDeclarations(params: ParameterDeclaration[]): any 
       const result: any = buildAttrs({
         name: p.name,
         parameterType: p.parameterType,
-        value: wrapExpressionValue(p.value),
+        value: wrapExpressionValue(p.value, p.parameterType),
       });
       if (p.constraintGroups && p.constraintGroups.length > 0) {
         result.ConstraintGroup = p.constraintGroups.map((cg) => ({
@@ -49,7 +59,7 @@ export function buildVariableDeclarations(vars: VariableDeclaration[]): any {
       buildAttrs({
         name: v.name,
         variableType: v.variableType,
-        value: wrapExpressionValue(v.value),
+        value: wrapExpressionValue(v.value, v.variableType),
       }),
     ),
   };

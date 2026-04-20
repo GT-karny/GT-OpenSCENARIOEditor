@@ -161,6 +161,8 @@ export interface ScenarioViewerProps {
   onTrajectoryEditSave?: () => void;
   /** Callback to cancel trajectory editing */
   onTrajectoryEditCancel?: () => void;
+  /** Indices of trajectory points that use relative positions (rendered with dashed connections) */
+  trajectoryRelativePointIndices?: number[];
   /** Warnings from trajectory validation */
   trajectoryWarnings?: string[];
   /** Number of points in the editing trajectory */
@@ -400,6 +402,7 @@ function ScenarioViewerScene({
   onTrajectoryLineClick,
   onTrajectoryPointAdd,
   onTrajectoryPointDragEnd,
+  trajectoryRelativePointIndices,
   trajectoryPreviewData,
   selectedSignalKey,
   onSignalSelect,
@@ -504,6 +507,7 @@ function ScenarioViewerScene({
   onTrajectoryLineClick?: (event: ThreeEvent<MouseEvent>) => void;
   onTrajectoryPointAdd?: ScenarioViewerProps['onTrajectoryPointAdd'];
   onTrajectoryPointDragEnd?: ScenarioViewerProps['onTrajectoryPointDragEnd'];
+  trajectoryRelativePointIndices?: number[];
   trajectoryPreviewData?: TrajectoryPreviewData[];
   selectedSignalKey?: string | null;
   onSignalSelect?: (key: string) => void;
@@ -812,6 +816,7 @@ function ScenarioViewerScene({
             pointTimes={trajectoryPointTimes}
             selectedPointIndex={trajectorySelectedPointIndex ?? null}
             shapeType={trajectoryShapeType ?? 'polyline'}
+            relativePointIndices={trajectoryRelativePointIndices}
             onPointClick={onTrajectoryPointClick}
             onPointContextMenu={onTrajectoryPointContextMenu}
             onLineClick={onTrajectoryLineClick}
@@ -1008,6 +1013,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   onTrajectoryLineClick,
   onTrajectoryPointAdd,
   onTrajectoryPointDragEnd,
+  trajectoryRelativePointIndices,
   onTrajectoryEditSave,
   onTrajectoryEditCancel,
   trajectoryWarnings,
@@ -1353,6 +1359,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           onTrajectoryLineClick={onTrajectoryLineClick}
           onTrajectoryPointAdd={onTrajectoryPointAdd}
           onTrajectoryPointDragEnd={onTrajectoryPointDragEnd}
+          trajectoryRelativePointIndices={trajectoryRelativePointIndices}
           trajectoryPreviewData={trajectoryPreviewData}
           selectedSignalKey={selectedSignalKey}
           onSignalSelect={onSignalSelect}

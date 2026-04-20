@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { NurbsControlPoint } from '@osce/shared';
-import { Trash2 } from 'lucide-react';
+import { Lock, Trash2 } from 'lucide-react';
 import { Input } from '../../ui/input';
 import { formatPosition } from './TrajectoryVertexListItem';
 
@@ -12,6 +12,10 @@ export interface NurbsControlPointListItemProps {
   onDelete: () => void;
   onTimeChange: (time: number | undefined) => void;
   onWeightChange: (weight: number | undefined) => void;
+  /** Lock the control point (prevent delete, show lock icon) */
+  isLocked?: boolean;
+  /** Override position display text for locked control points */
+  lockedLabel?: string;
 }
 
 /**
@@ -74,6 +78,8 @@ export function NurbsControlPointListItem({
   onDelete,
   onTimeChange,
   onWeightChange,
+  isLocked = false,
+  lockedLabel,
 }: NurbsControlPointListItemProps) {
   return (
     <div
@@ -97,10 +103,17 @@ export function NurbsControlPointListItem({
         #{index + 1}
       </span>
 
-      {/* Position summary */}
-      <span className="flex-1 truncate text-xs text-foreground">
-        {formatPosition(controlPoint.position)}
-      </span>
+      {/* Position summary or locked label */}
+      {isLocked ? (
+        <span className="flex items-center gap-1 flex-1 truncate text-xs text-muted-foreground italic">
+          <Lock className="h-3 w-3" />
+          {lockedLabel ?? 'Starts at entity'}
+        </span>
+      ) : (
+        <span className="flex-1 truncate text-xs text-foreground">
+          {formatPosition(controlPoint.position)}
+        </span>
+      )}
 
       {/* Weight input */}
       <DecimalInput
@@ -119,17 +132,19 @@ export function NurbsControlPointListItem({
       />
 
       {/* Delete button */}
-      <button
-        type="button"
-        className="shrink-0 p-0.5 text-muted-foreground hover:text-destructive transition-colors"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete();
-        }}
-        title="Delete control point"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
+      {!isLocked && (
+        <button
+          type="button"
+          className="shrink-0 p-0.5 text-muted-foreground hover:text-destructive transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          title="Delete control point"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
     </div>
   );
 }

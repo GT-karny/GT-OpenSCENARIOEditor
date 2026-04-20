@@ -202,7 +202,7 @@ export const useTrajectoryEditStore = create<TrajectoryEditState & TrajectoryEdi
         selectedPointIndex: null,
         pointWorldPositions: [],
         curvePoints: [],
-        warnings: validateTrajectory(copy),
+              warnings: validateTrajectory(copy),
         history: { past: [], future: [] },
       });
     },

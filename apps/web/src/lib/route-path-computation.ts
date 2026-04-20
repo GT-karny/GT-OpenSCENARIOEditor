@@ -3,14 +3,32 @@
  *
  * Used by both the route editor (use-route-edit) and the route preview (use-route-preview)
  * to resolve waypoints to world coordinates and compute road-following path segments.
+ *
+ * Cross-road route resolution is done in pure JS via `resolveRoute` from
+ * `@osce/opendrive`, which follows OpenDRIVE `<link>` / `<laneLink>` /
+ * `<connection>` structures directly. WASM is kept only as a last-resort
+ * fallback when link-based resolution fails.
  */
 
 import type { Route, OpenDriveDocument, LanePosition, Position } from '@osce/shared';
 import { resolvePositionToWorld, roadCoordsToWorld } from '@osce/3d-viewer';
-import { generateCurvatureAdaptiveSamples } from '@osce/opendrive';
+import {
+  generateCurvatureAdaptiveSamples,
+  resolveRoute,
+  computeDrivingHeading,
+  type RouteSegment,
+} from '@osce/opendrive';
 import type { RoadManagerClient } from './wasm/road-manager-client';
 
-export type Point3 = { x: number; y: number; z: number };
+/**
+ * A point on a computed route path.
+ *
+ * `h` is the driving-direction heading in radians (NaN-safe: consumers should
+ * treat `undefined` or non-finite values as "heading unknown"). Populated by
+ * link-based interpolation; may be undefined on WASM fallback or straight-line
+ * segments where heading cannot be derived from road geometry.
+ */
+export type Point3 = { x: number; y: number; z: number; h?: number };
 
 export interface WaypointWorldPos {
   x: number;
@@ -22,7 +40,7 @@ export interface WaypointWorldPos {
 /** Sampling options for same-road route segments (curvature-adaptive). */
 const ROUTE_SAMPLING = { baseStep: 1.0, minStep: 0.3, maxStep: 3.0 };
 
-/** Sample interval for cross-road WASM path calculation. */
+/** Sample interval used when falling back to WASM path calculation. */
 const CROSS_ROAD_SAMPLE_INTERVAL = 0.5;
 
 /**
@@ -59,16 +77,18 @@ export function interpolateRoadSegment(
   if (!road) return null;
 
   const sValues = generateCurvatureAdaptiveSamples(road, sMin, sMax, ROUTE_SAMPLING);
+  const reverse = sFrom > sTo;
   const points: Point3[] = [];
 
   for (const s of sValues) {
     const result = roadCoordsToWorld(odrDoc, roadId, laneId, s);
     if (result) {
-      points.push({ x: result.x, y: result.y, z: result.z });
+      const h = computeDrivingHeading(road, laneId, s, reverse);
+      points.push({ x: result.x, y: result.y, z: result.z, h });
     }
   }
 
-  if (sFrom > sTo && points.length >= 2) {
+  if (reverse && points.length >= 2) {
     points.reverse();
   }
 
@@ -76,39 +96,60 @@ export function interpolateRoadSegment(
 }
 
 /**
- * Determine the entry s-value for a road by checking which end is closer
- * to the previous path point's world position.
+ * Walk a resolved RouteSegment list and produce a concatenated world-space
+ * polyline by interpolating each segment individually. The first point of
+ * each segment (except segment 0) is dropped to avoid duplication at road
+ * boundaries.
  */
-function determineEntryS(
+function interpolateRouteSegments(
   odrDoc: OpenDriveDocument,
-  roadId: string,
-  laneId: number,
-  prevWorldPt: Point3,
-): number {
-  const road = odrDoc.roads.find((r) => r.id === roadId);
-  if (!road) return 0;
-
-  const startPos = roadCoordsToWorld(odrDoc, roadId, laneId, 0);
-  const endPos = roadCoordsToWorld(odrDoc, roadId, laneId, road.length);
-  if (!startPos || !endPos) return 0;
-
-  const distToStart =
-    (prevWorldPt.x - startPos.x) ** 2 + (prevWorldPt.y - startPos.y) ** 2;
-  const distToEnd =
-    (prevWorldPt.x - endPos.x) ** 2 + (prevWorldPt.y - endPos.y) ** 2;
-
-  return distToStart < distToEnd ? 0 : road.length;
+  segments: RouteSegment[],
+): Point3[] | null {
+  const out: Point3[] = [];
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    const pts = interpolateRoadSegment(
+      odrDoc,
+      seg.roadId,
+      seg.laneId,
+      seg.entryS,
+      seg.exitS,
+    );
+    if (!pts || pts.length < 2) {
+      // Zero-length segment (entryS ≈ exitS). Emit a single anchor point via
+      // roadCoordsToWorld so the chain stays continuous.
+      const anchor = roadCoordsToWorld(odrDoc, seg.roadId, seg.laneId, seg.entryS);
+      if (anchor) {
+        const road = odrDoc.roads.find((r) => r.id === seg.roadId);
+        const h = road ? computeDrivingHeading(road, seg.laneId, seg.entryS) : undefined;
+        const p: Point3 = { x: anchor.x, y: anchor.y, z: anchor.z, h };
+        if (out.length === 0) out.push(p);
+        else if (
+          out[out.length - 1].x !== p.x ||
+          out[out.length - 1].y !== p.y ||
+          out[out.length - 1].z !== p.z
+        ) {
+          out.push(p);
+        }
+      }
+      continue;
+    }
+    const startIdx = out.length === 0 ? 0 : 1;
+    for (let j = startIdx; j < pts.length; j++) out.push(pts[j]);
+  }
+  return out.length >= 2 ? out : null;
 }
 
 /**
- * Compute a road-following segment between two lane positions on different roads
- * using WASM-based esmini path calculation.
+ * WASM fallback: compute a cross-road segment via esmini's path calculator.
+ * Used only when link-based resolution returns null (e.g. incomplete xodr
+ * link data, or disconnected network where esmini may still find a path via
+ * geometric adjacency).
  */
-async function computeCrossRoadSegment(
+async function computeCrossRoadSegmentViaWasm(
   rmClient: RoadManagerClient,
   from: LanePosition,
   to: LanePosition,
-  odrDoc: OpenDriveDocument,
 ): Promise<Point3[] | null> {
   try {
     const pathPoints = await rmClient.calculatePath(
@@ -121,113 +162,35 @@ async function computeCrossRoadSegment(
       CROSS_ROAD_SAMPLE_INTERVAL,
     );
     if (pathPoints.length < 2) return null;
-
-    // Extract unique road sequence (collapse consecutive same-road points)
-    const roadSeq: Array<{
-      roadId: number;
-      laneId: number;
-      wasmS: number;
-      wx: number;
-      wy: number;
-      wz: number;
-    }> = [];
-    for (const p of pathPoints) {
-      if (roadSeq.length === 0 || roadSeq[roadSeq.length - 1].roadId !== p.road_id) {
-        roadSeq.push({
-          roadId: p.road_id,
-          laneId: p.lane_id,
-          wasmS: p.s,
-          wx: p.x,
-          wy: p.y,
-          wz: p.z,
-        });
-      } else {
-        const last = roadSeq[roadSeq.length - 1];
-        last.wasmS = p.s;
-        last.wx = p.x;
-        last.wy = p.y;
-        last.wz = p.z;
-      }
-    }
-
-    // Interpolate each road in the sequence
-    const allPoints: Point3[] = [];
-    let prevWorldPt: Point3 | null = null;
-
-    for (let i = 0; i < roadSeq.length; i++) {
-      const seg = roadSeq[i];
-      const roadIdStr = String(seg.roadId);
-      const road = odrDoc.roads.find((r) => r.id === roadIdStr);
-
-      let entryS: number;
-      let exitS: number;
-
-      if (i === 0) {
-        entryS = parseFloat(String(from.s));
-        // Use WASM-computed exit s value instead of assuming road.length.
-        // For roads whose junction is at s=0 (predecessor=junction), the exit
-        // is toward s=0, not road.length. seg.wasmS holds the last s value
-        // esmini sampled on this road, which is the correct exit point.
-        exitS = seg.wasmS;
-        if (Math.abs(exitS - entryS) < 0.1) {
-          const p = roadCoordsToWorld(odrDoc, roadIdStr, seg.laneId, entryS);
-          if (p) {
-            allPoints.push({ x: p.x, y: p.y, z: p.z });
-            prevWorldPt = allPoints[allPoints.length - 1];
-          }
-          continue;
-        }
-      } else if (i === roadSeq.length - 1) {
-        entryS = prevWorldPt
-          ? determineEntryS(odrDoc, roadIdStr, seg.laneId, prevWorldPt)
-          : 0;
-        exitS = parseFloat(String(to.s));
-      } else {
-        if (prevWorldPt) {
-          entryS = determineEntryS(odrDoc, roadIdStr, seg.laneId, prevWorldPt);
-          exitS = road ? (entryS === 0 ? road.length : 0) : seg.wasmS;
-        } else {
-          entryS = 0;
-          exitS = road ? road.length : seg.wasmS;
-        }
-      }
-
-      const segment = interpolateRoadSegment(odrDoc, roadIdStr, seg.laneId, entryS, exitS);
-      if (segment && segment.length >= 2) {
-        const startIdx = allPoints.length > 0 ? 1 : 0;
-        for (let j = startIdx; j < segment.length; j++) {
-          allPoints.push(segment[j]);
-        }
-        prevWorldPt = allPoints[allPoints.length - 1];
-      } else {
-        if (allPoints.length === 0) {
-          allPoints.push({ x: seg.wx, y: seg.wy, z: seg.wz });
-        }
-        allPoints.push({ x: seg.wx, y: seg.wy, z: seg.wz });
-        prevWorldPt = { x: seg.wx, y: seg.wy, z: seg.wz };
-      }
-    }
-
-    return allPoints.length >= 2 ? allPoints : null;
+    return pathPoints.map((p) => ({ x: p.x, y: p.y, z: p.z }));
   } catch (err) {
-    console.warn('[Route] calculatePath failed:', err);
+    console.warn('[Route] calculatePath fallback failed:', err);
+    return null;
   }
-  return null;
 }
 
 /**
  * Straight-line fallback between two world positions.
  */
 function straightLine(from: WaypointWorldPos, to: WaypointWorldPos): Point3[] {
+  // Derive heading from the segment direction; fall back to waypoint headings
+  // if the two points coincide.
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const segH = dx === 0 && dy === 0 ? from.h : Math.atan2(dy, dx);
   return [
-    { x: from.x, y: from.y, z: from.z },
-    { x: to.x, y: to.y, z: to.z },
+    { x: from.x, y: from.y, z: from.z, h: segH },
+    { x: to.x, y: to.y, z: to.z, h: segH },
   ];
 }
 
 /**
  * Compute a single segment between two consecutive waypoints.
- * Priority: same-road JS interpolation → WASM cross-road path → straight line.
+ * Priority:
+ *   1. Same-road JS interpolation
+ *   2. Link-based pure-JS resolveRoute + interpolation (spec-compliant)
+ *   3. WASM esmini calculatePath (fallback for incomplete link data)
+ *   4. Straight line (last resort)
  */
 async function computeSegment(
   fromPos: Position,
@@ -238,7 +201,11 @@ async function computeSegment(
   rmClient: RoadManagerClient | null,
 ): Promise<Point3[]> {
   if (fromPos.type === 'lanePosition' && toPos.type === 'lanePosition') {
-    if (fromPos.roadId === toPos.roadId) {
+    // (1) Same road, same lane — direct interpolation
+    if (
+      fromPos.roadId === toPos.roadId &&
+      parseInt(fromPos.laneId, 10) === parseInt(toPos.laneId, 10)
+    ) {
       const points = interpolateRoadSegment(
         odrDoc,
         fromPos.roadId,
@@ -247,18 +214,28 @@ async function computeSegment(
         toPos.s,
       );
       if (points) return points;
-    } else if (rmClient) {
-      const points = await computeCrossRoadSegment(rmClient, fromPos, toPos, odrDoc);
-      if (points) return points;
+    }
+
+    // (2) Link-based resolution
+    const resolved = resolveRoute(odrDoc, fromPos, toPos);
+    if (resolved) {
+      const pts = interpolateRouteSegments(odrDoc, resolved);
+      if (pts) return pts;
+    }
+
+    // (3) WASM fallback
+    if (rmClient) {
+      const wasmPts = await computeCrossRoadSegmentViaWasm(rmClient, fromPos, toPos);
+      if (wasmPts) return wasmPts;
     }
   }
 
+  // (4) Straight line
   return straightLine(fromWorld, toWorld);
 }
 
 /**
  * Compute road-following segments for all waypoint pairs in a route.
- * Uses JS interpolation for same-road pairs and WASM path calculation for cross-road pairs.
  */
 export async function computeRoadFollowingSegmentsAsync(
   route: Route,
