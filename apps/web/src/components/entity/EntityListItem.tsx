@@ -1,8 +1,11 @@
 import { useState, useCallback } from 'react';
 import type { ScenarioEntity } from '@osce/shared';
+import { readEntityColor, supportsEntityColor, writeEntityColor } from '@osce/shared';
 import { GripVertical, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { EntityIcon } from './EntityIcon';
+import { EntityColorSwatch } from './EntityColorSwatch';
+import { useScenarioStore } from '../../stores/use-scenario-store';
 import { cn } from '@/lib/utils';
 
 export const ENTITY_DND_TYPE = 'application/osce-entity-ref';
@@ -33,6 +36,19 @@ function getEntityCategory(entity: ScenarioEntity): string | undefined {
 export function EntityListItem({ entity, selected, onSelect, onDoubleClick, onDelete }: EntityListItemProps) {
   const category = getEntityCategory(entity);
   const [isDragging, setIsDragging] = useState(false);
+  const updateEntity = useScenarioStore((s) => s.updateEntity);
+  const canHaveColor = supportsEntityColor(entity);
+  const color = canHaveColor ? readEntityColor(entity) : undefined;
+
+  const handleColorChange = useCallback(
+    (hex: string | undefined) => {
+      const next = writeEntityColor(entity, hex);
+      if (next !== entity) {
+        updateEntity(entity.id, { definition: next.definition });
+      }
+    },
+    [entity, updateEntity],
+  );
 
   const handleDragStart = useCallback(
     (e: React.DragEvent) => {
@@ -72,6 +88,7 @@ export function EntityListItem({ entity, selected, onSelect, onDoubleClick, onDe
       )}
       <GripVertical className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-50 cursor-grab" />
       <EntityIcon type={entity.type} className="h-4 w-4 shrink-0 text-muted-foreground" />
+      {canHaveColor && <EntityColorSwatch color={color} onChange={handleColorChange} />}
       <div className="flex-1 min-w-0">
         <p className="text-[12px] font-medium truncate">{entity.name}</p>
         <p className="text-[10px] text-[var(--color-text-tertiary)] mt-px capitalize">

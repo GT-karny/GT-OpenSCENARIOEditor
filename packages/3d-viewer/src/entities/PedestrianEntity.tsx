@@ -4,7 +4,7 @@
 
 import React from 'react';
 import type { ScenarioEntity } from '@osce/shared';
-import { getEntityGeometry, getEntityColor } from '../utils/entity-geometry.js';
+import { getEntityGeometry, resolveEntityColor } from '../utils/entity-geometry.js';
 import type { WorldCoords } from '../utils/position-resolver.js';
 // import { ApexGlassMaterial } from '../materials/ApexGlassMaterial.js';
 import { EntityLabel } from './EntityLabel.js';
@@ -24,7 +24,7 @@ interface PedestrianEntityProps {
 export const PedestrianEntity: React.FC<PedestrianEntityProps> = React.memo(
   ({ entity, position, isSelected, isHovered, showLabel, onClick, onDoubleClick }) => {
     const geom = getEntityGeometry(entity);
-    const color = getEntityColor('pedestrian', false);
+    const color = resolveEntityColor(entity, false);
     const radius = Math.max(geom.width, geom.length) / 2;
 
     return (

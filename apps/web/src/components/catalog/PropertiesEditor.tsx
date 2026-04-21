@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { useTranslation } from '@osce/i18n';
+import { ENTITY_COLOR_PROPERTY_NAME } from '@osce/shared';
 import type { Property } from '@osce/shared';
 import { Input } from '../ui/input';
 import { Plus, Trash2 } from 'lucide-react';
@@ -10,25 +12,38 @@ interface PropertiesEditorProps {
 
 export function PropertiesEditor({ properties, onChange }: PropertiesEditorProps) {
   const { t } = useTranslation('common');
+  const [reservedWarning, setReservedWarning] = useState<number | null>(null);
+
+  // `color` is managed by the entity list color swatch — hide it here but preserve on write.
+  const reservedProps = properties.filter((p) => p.name === ENTITY_COLOR_PROPERTY_NAME);
+  const visibleProps = properties.filter((p) => p.name !== ENTITY_COLOR_PROPERTY_NAME);
+
+  const emit = (next: Property[]) => {
+    onChange([...reservedProps, ...next]);
+  };
 
   const addProperty = () => {
-    onChange([...properties, { name: '', value: '' }]);
+    emit([...visibleProps, { name: '', value: '' }]);
   };
 
   const removeProperty = (index: number) => {
-    onChange(properties.filter((_, i) => i !== index));
+    emit(visibleProps.filter((_, i) => i !== index));
+    setReservedWarning(null);
   };
 
   const updateProperty = (index: number, updates: Partial<Property>) => {
-    onChange(properties.map((p, i) => (i === index ? { ...p, ...updates } : p)));
+    if (updates.name === ENTITY_COLOR_PROPERTY_NAME) {
+      setReservedWarning(index);
+      return;
+    }
+    setReservedWarning(null);
+    emit(visibleProps.map((p, i) => (i === index ? { ...p, ...updates } : p)));
   };
 
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between">
-        <p className="text-[10px] font-medium text-muted-foreground">
-          {t('catalog.properties')}
-        </p>
+        <p className="text-[10px] font-medium text-muted-foreground">{t('catalog.properties')}</p>
         <button
           type="button"
           onClick={addProperty}
@@ -37,32 +52,37 @@ export function PropertiesEditor({ properties, onChange }: PropertiesEditorProps
           <Plus className="h-3 w-3" /> {t('catalog.addProperty')}
         </button>
       </div>
-      {properties.length === 0 ? (
-        <p className="text-[10px] text-muted-foreground italic">
-          {t('catalog.noProperties')}
-        </p>
+      {visibleProps.length === 0 ? (
+        <p className="text-[10px] text-muted-foreground italic">{t('catalog.noProperties')}</p>
       ) : (
-        properties.map((prop, i) => (
-          <div key={i} className="flex gap-1 items-center">
-            <Input
-              value={prop.name}
-              placeholder={t('catalog.propertyName')}
-              onChange={(e) => updateProperty(i, { name: e.target.value })}
-              className="h-6 text-[10px] flex-1"
-            />
-            <Input
-              value={prop.value}
-              placeholder={t('catalog.propertyValue')}
-              onChange={(e) => updateProperty(i, { value: e.target.value })}
-              className="h-6 text-[10px] flex-1"
-            />
-            <button
-              type="button"
-              onClick={() => removeProperty(i)}
-              className="text-destructive hover:text-destructive/80 px-0.5 shrink-0"
-            >
-              <Trash2 className="h-3 w-3" />
-            </button>
+        visibleProps.map((prop, i) => (
+          <div key={i} className="flex flex-col gap-0.5">
+            <div className="flex gap-1 items-center">
+              <Input
+                value={prop.name}
+                placeholder={t('catalog.propertyName')}
+                onChange={(e) => updateProperty(i, { name: e.target.value })}
+                className="h-6 text-[10px] flex-1"
+              />
+              <Input
+                value={prop.value}
+                placeholder={t('catalog.propertyValue')}
+                onChange={(e) => updateProperty(i, { value: e.target.value })}
+                className="h-6 text-[10px] flex-1"
+              />
+              <button
+                type="button"
+                onClick={() => removeProperty(i)}
+                className="text-destructive hover:text-destructive/80 px-0.5 shrink-0"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </div>
+            {reservedWarning === i && (
+              <p className="text-[10px] text-[var(--color-warning)]">
+                {t('entityColor.reservedName')}
+              </p>
+            )}
           </div>
         ))
       )}

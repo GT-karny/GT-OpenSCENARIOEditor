@@ -19,6 +19,9 @@ export type * from './enums/osc-enums.js';
 export type * from './enums/odr-enums.js';
 export type * from './enums/editor-enums.js';
 
+// Utils
+export * from './utils/entity-color.js';
+
 // Interfaces
 export type * from './interfaces/scenario-service.js';
 export type * from './interfaces/parser-service.js';
