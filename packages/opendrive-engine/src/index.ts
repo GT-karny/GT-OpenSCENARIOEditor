@@ -137,6 +137,7 @@ export {
   syncLaneLinksForDirectConnections,
   clearLaneLinks,
   syncIntraRoadLaneLinks,
+  relinkIntraRoadLanes,
 } from './operations/lane-link-operations.js';
 
 // Lane taper operations

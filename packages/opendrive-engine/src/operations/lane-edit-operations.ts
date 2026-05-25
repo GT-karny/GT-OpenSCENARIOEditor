@@ -703,34 +703,6 @@ export function createTaperAtRange(
     });
     store.updateRoad(roadId, { lanes: updatedSections });
 
-    // Step 2b: Fix lane links in sections adjacent to the taper range.
-    // When inner renumbering shifts existing lanes (e.g. -1 → -2), the preceding
-    // section's successor links and following section's predecessor links must be
-    // updated to reference the new IDs.
-    if (needsRenumber) {
-      const r3b = getRoad(store, roadId)!;
-      const firstTaperIdx = taperSecIndices[0];
-      const fixedSections = r3b.lanes.map((sec, i) => {
-        // Fix successor links in the section immediately BEFORE the taper range
-        if (i === firstTaperIdx - 1) {
-          const fixSide = (lanes: OdrLaneSection['leftLanes']): OdrLaneSection['leftLanes'] =>
-            lanes.map((l) => {
-              if (!l.link?.successorId) return l;
-              // If this lane's successor was one of the renumbered lanes, update it
-              const oldId = l.link.successorId;
-              const wasRenamed = (side === 'left' && oldId >= 1) || (side === 'right' && oldId <= -1);
-              if (!wasRenamed) return l;
-              return { ...l, link: { ...l.link, successorId: oldId + shiftAmount } };
-            });
-          return side === 'left'
-            ? { ...sec, leftLanes: fixSide(sec.leftLanes) }
-            : { ...sec, rightLanes: fixSide(sec.rightLanes) };
-        }
-        return sec;
-      });
-      store.updateRoad(roadId, { lanes: fixedSections });
-    }
-
     // Step 3: For narrow-to-wide, add full-width lane to all sections after the taper range
     if (direction === 'narrow-to-wide') {
       const r4 = getRoad(store, roadId)!;

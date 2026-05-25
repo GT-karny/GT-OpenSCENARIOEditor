@@ -426,6 +426,9 @@ importers:
 
   packages/opendrive-engine:
     dependencies:
+      '@osce/opendrive':
+        specifier: workspace:*
+        version: link:../opendrive
       '@osce/shared':
         specifier: workspace:*
         version: link:../shared

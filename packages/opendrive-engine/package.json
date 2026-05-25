@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@osce/shared": "workspace:*",
+    "@osce/opendrive": "workspace:*",
     "zustand": "^5.0.0",
     "immer": "^10.1.0",
     "uuid": "^11.0.0"
