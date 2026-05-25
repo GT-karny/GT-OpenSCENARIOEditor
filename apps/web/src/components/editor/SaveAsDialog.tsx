@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { ProjectFileEntry } from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
 import {
@@ -223,6 +223,15 @@ export function SaveAsDialog({ open, onOpenChange, onSave, fileType = 'xosc' }: 
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set([prefix]));
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Re-sync the selected directory whenever the dialog opens, since `prefix`
+  // depends on `fileType` which may change after this component first mounts.
+  useEffect(() => {
+    if (open) {
+      setSelectedDir(prefix);
+      setExpandedPaths(new Set([prefix]));
+    }
+  }, [open, prefix]);
 
   const tree = useMemo(() => {
     if (!currentProject) return [];
