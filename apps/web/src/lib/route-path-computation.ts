@@ -14,6 +14,7 @@ import type { Route, OpenDriveDocument, LanePosition, Position } from '@osce/sha
 import { resolvePositionToWorld, roadCoordsToWorld } from '@osce/3d-viewer';
 import {
   generateCurvatureAdaptiveSamples,
+  laneSpansAcrossSections,
   resolveRoute,
   computeDrivingHeading,
   type RouteSegment,
@@ -61,6 +62,11 @@ export function resolveRouteWaypoints(
 /**
  * Interpolate points along a road lane between two s values using JS geometry.
  * Uses curvature-adaptive sampling for smooth lines on curves.
+ *
+ * `laneId` is the lane at `sFrom`. Spans that cross internal lane-section
+ * boundaries follow `<lane><link>` so the physically continuous lane is tracked
+ * even when lane IDs shift mid-road (e.g. a lane is added/dropped internally),
+ * instead of sticking to the same numeric ID in each section.
  */
 export function interpolateRoadSegment(
   odrDoc: OpenDriveDocument,
@@ -76,14 +82,24 @@ export function interpolateRoadSegment(
   const road = odrDoc.roads.find((r) => r.id === roadId);
   if (!road) return null;
 
-  const sValues = generateCurvatureAdaptiveSamples(road, sMin, sMax, ROUTE_SAMPLING);
   const reverse = sFrom > sTo;
-  const points: Point3[] = [];
+  // Split at lane-section boundaries, remapping laneId via <lane><link>. The
+  // input laneId is valid at sFrom, so anchor to the high end when reversed.
+  const spans = laneSpansAcrossSections(road, laneId, sMin, sMax, reverse ? 'high' : 'low');
 
-  for (const s of sValues) {
-    const result = roadCoordsToWorld(odrDoc, roadId, laneId, s);
-    if (result) {
-      const h = computeDrivingHeading(road, laneId, s, reverse);
+  // Sample each sub-span with its own laneId; concatenate in increasing-s order,
+  // dropping the duplicate point shared at each section boundary.
+  const points: Point3[] = [];
+  for (const span of spans) {
+    if (span.sEnd - span.sStart < 1e-6) continue;
+    const sValues = generateCurvatureAdaptiveSamples(road, span.sStart, span.sEnd, ROUTE_SAMPLING);
+    const dropFirst = points.length > 0;
+    for (let i = 0; i < sValues.length; i++) {
+      if (i === 0 && dropFirst) continue;
+      const s = sValues[i];
+      const result = roadCoordsToWorld(odrDoc, roadId, span.laneId, s);
+      if (!result) continue;
+      const h = computeDrivingHeading(road, span.laneId, s, reverse);
       points.push({ x: result.x, y: result.y, z: result.z, h });
     }
   }

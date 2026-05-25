@@ -16,6 +16,7 @@ import {
   traceLaneLinkAcrossBoundary,
   junctionConnectionsFrom,
   exitOfConnectingRoad,
+  laneSpansAcrossSections,
 } from '../../route/road-linking.js';
 
 // ----- fixture builders -----
@@ -299,5 +300,96 @@ describe('junctionConnectionsFrom + exitOfConnectingRoad', () => {
   it('returns empty when leaving side link is not junction', () => {
     const r = makeRoad({ id: 'x', length: 10 });
     expect(junctionConnectionsFrom(r, 'successor', doc)).toEqual([]);
+  });
+});
+
+describe('laneSpansAcrossSections', () => {
+  // Through lane -1 (section0) links to -2 (section1) and -3 (section2) via
+  // <lane><link>, e.g. inner lanes added with correct (renumbered) links.
+  const linkRoad = makeRoad({
+    id: 'X',
+    length: 100,
+    lanes: [
+      makeSection(0, [], makeLane(0), [makeLane(-1, { successorId: -2 })]),
+      makeSection(50, [], makeLane(0), [makeLane(-1), makeLane(-2, { predecessorId: -1 })]),
+    ],
+  });
+
+  it('single-section road → one span, id unchanged', () => {
+    const road = makeRoad({
+      id: '1',
+      length: 100,
+      lanes: [makeSection(0, [], makeLane(0), [makeLane(-1)])],
+    });
+    expect(laneSpansAcrossSections(road, -1, 10, 90, 'low')).toEqual([
+      { laneId: -1, sStart: 10, sEnd: 90 },
+    ]);
+  });
+
+  it('forward (anchor low): remaps via successorId at the boundary', () => {
+    expect(laneSpansAcrossSections(linkRoad, -1, 10, 90, 'low')).toEqual([
+      { laneId: -1, sStart: 10, sEnd: 50 },
+      { laneId: -2, sStart: 50, sEnd: 90 },
+    ]);
+  });
+
+  it('backward (anchor high): remaps via predecessorId, increasing-s order', () => {
+    // laneId -2 is valid at the high end (section1); walking upstream yields -1.
+    expect(laneSpansAcrossSections(linkRoad, -2, 10, 90, 'high')).toEqual([
+      { laneId: -1, sStart: 10, sEnd: 50 },
+      { laneId: -2, sStart: 50, sEnd: 90 },
+    ]);
+  });
+
+  it('missing lane.link → same id across the boundary (fallback)', () => {
+    const road = makeRoad({
+      id: '2',
+      length: 100,
+      lanes: [
+        makeSection(0, [], makeLane(0), [makeLane(-1)]),
+        makeSection(50, [], makeLane(0), [makeLane(-1)]),
+      ],
+    });
+    expect(laneSpansAcrossSections(road, -1, 10, 90, 'low')).toEqual([
+      { laneId: -1, sStart: 10, sEnd: 50 },
+      { laneId: -1, sStart: 50, sEnd: 90 },
+    ]);
+  });
+
+  it('span entirely within one section → single clamped span', () => {
+    expect(laneSpansAcrossSections(linkRoad, -1, 10, 40, 'low')).toEqual([
+      { laneId: -1, sStart: 10, sEnd: 40 },
+    ]);
+  });
+
+  it('center lane (id 0) stays 0 across the boundary', () => {
+    // The span is still split at the section boundary; only the ID stays 0.
+    expect(laneSpansAcrossSections(linkRoad, 0, 10, 90, 'low')).toEqual([
+      { laneId: 0, sStart: 10, sEnd: 50 },
+      { laneId: 0, sStart: 50, sEnd: 90 },
+    ]);
+  });
+
+  it('span ending exactly on a boundary → no zero-length/duplicate span', () => {
+    expect(laneSpansAcrossSections(linkRoad, -1, 0, 50, 'low')).toEqual([
+      { laneId: -1, sStart: 0, sEnd: 50 },
+    ]);
+  });
+
+  it('three chained sections remap -1 → -2 → -3 via links', () => {
+    const road = makeRoad({
+      id: '3',
+      length: 100,
+      lanes: [
+        makeSection(0, [], makeLane(0), [makeLane(-1, { successorId: -2 })]),
+        makeSection(40, [], makeLane(0), [makeLane(-1), makeLane(-2, { successorId: -3 })]),
+        makeSection(70, [], makeLane(0), [makeLane(-1), makeLane(-2), makeLane(-3)]),
+      ],
+    });
+    expect(laneSpansAcrossSections(road, -1, 10, 90, 'low')).toEqual([
+      { laneId: -1, sStart: 10, sEnd: 40 },
+      { laneId: -2, sStart: 40, sEnd: 70 },
+      { laneId: -3, sStart: 70, sEnd: 90 },
+    ]);
   });
 });

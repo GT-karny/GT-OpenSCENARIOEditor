@@ -39,8 +39,9 @@ export {
   traceLaneLinkAcrossBoundary,
   junctionConnectionsFrom,
   exitOfConnectingRoad,
+  laneSpansAcrossSections,
 } from './route/road-linking.js';
-export type { RoadSide } from './route/road-linking.js';
+export type { RoadSide, LaneSectionSpan } from './route/road-linking.js';
 export { resolveRoute } from './route/route-resolver.js';
 export type { RouteSegment } from './route/route-resolver.js';
 
