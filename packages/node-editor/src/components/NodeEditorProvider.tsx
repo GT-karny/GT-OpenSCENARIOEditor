@@ -1,6 +1,6 @@
 /**
  * Provider component that sets up the editor store and scenario sync.
- * Wrap NodeEditor, TimelineView, and PropertyPanel within this provider.
+ * Wrap NodeEditor within this provider.
  */
 
 import type React from 'react';
