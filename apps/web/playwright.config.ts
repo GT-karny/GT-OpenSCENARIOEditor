@@ -12,12 +12,16 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
+    // Wide viewport so the header toolbar renders in full (non-compact) mode.
+    // Below 1300px the toolbar collapses Validate/Catalog/etc. to icon-only
+    // buttons, which hides their text labels from getByRole name matching.
+    viewport: { width: 1600, height: 900 },
   },
 
   projects: [
     {
       name: 'default',
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1600, height: 900 } },
       testIgnore: /gt-sim\//,
     },
     ...(process.env.USE_GT_SIM
