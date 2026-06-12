@@ -203,6 +203,80 @@ describe('XodrSerializer roundtrip', () => {
     });
   });
 
+  describe('userData and include lossless round-trip', () => {
+    /** Minimal valid XODR with userData on road and header, plus an include element. */
+    const XML_WITH_USER_DATA = `<?xml version="1.0" encoding="UTF-8"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="6" name="test" date="2024-01-01">
+    <userData code="source" value="lidar-scan"/>
+    <include file="./env.xodr"/>
+  </header>
+  <road name="R1" length="100" id="1" junction="-1">
+    <link/>
+    <planView>
+      <geometry s="0" x="0" y="0" hdg="0" length="100"><line/></geometry>
+    </planView>
+    <elevationProfile/>
+    <lateralProfile/>
+    <lanes>
+      <laneSection s="0">
+        <center>
+          <lane id="0" type="none" level="false">
+            <roadMark sOffset="0" type="solid" color="standard"/>
+          </lane>
+        </center>
+        <right>
+          <lane id="-1" type="driving" level="false">
+            <width sOffset="0" a="3.5" b="0" c="0" d="0"/>
+            <roadMark sOffset="0" type="solid" color="standard"/>
+          </lane>
+        </right>
+      </laneSection>
+    </lanes>
+    <objects/>
+    <signals/>
+    <userData code="survey" value="2024"/>
+    <include file="./signals.xodr"/>
+  </road>
+</OpenDRIVE>`;
+
+    it('should preserve road-level userData through roundtrip', () => {
+      const doc = parser.parse(XML_WITH_USER_DATA);
+      expect(doc.roads[0].userData).toEqual([{ code: 'survey', value: '2024' }]);
+
+      const serialized = serializer.serialize(doc);
+      const reparsed = parser.parse(serialized);
+      expect(reparsed.roads[0].userData).toEqual(doc.roads[0].userData);
+    });
+
+    it('should preserve road-level includes through roundtrip', () => {
+      const doc = parser.parse(XML_WITH_USER_DATA);
+      expect(doc.roads[0].includes).toEqual([{ file: './signals.xodr' }]);
+
+      const serialized = serializer.serialize(doc);
+      const reparsed = parser.parse(serialized);
+      expect(reparsed.roads[0].includes).toEqual(doc.roads[0].includes);
+    });
+
+    it('should preserve header-level userData through roundtrip', () => {
+      const doc = parser.parse(XML_WITH_USER_DATA);
+      expect(doc.header.userData).toEqual([{ code: 'source', value: 'lidar-scan' }]);
+
+      const serialized = serializer.serialize(doc);
+      const reparsed = parser.parse(serialized);
+      expect(reparsed.header.userData).toEqual(doc.header.userData);
+    });
+
+    it('should preserve header-level includes through roundtrip', () => {
+      const doc = parser.parse(XML_WITH_USER_DATA);
+      expect(doc.header.includes).toEqual([{ file: './env.xodr' }]);
+
+      const serialized = serializer.serialize(doc);
+      const reparsed = parser.parse(serialized);
+      expect(reparsed.header.includes).toEqual(doc.header.includes);
+    });
+  });
+
   describe('serialized XML structure', () => {
     it('should produce well-formed XML with declaration', () => {
       const { serializedXml } = roundtrip(resolve(FIXTURES_DIR, 'straight_500m.xodr'));

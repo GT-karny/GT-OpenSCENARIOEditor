@@ -148,22 +148,3 @@ export function generateCurvatureAdaptiveSamples(
   return Array.from(samples).sort((a, b) => a - b);
 }
 
-/**
- * Simple uniform sampling without boundary awareness.
- */
-export function generateUniformSamples(
-  sStart: number,
-  sEnd: number,
-  step: number,
-): number[] {
-  const samples: number[] = [sStart];
-  let s = sStart + step;
-  while (s < sEnd - 1e-6) {
-    samples.push(s);
-    s += step;
-  }
-  if (samples[samples.length - 1] < sEnd - 1e-6) {
-    samples.push(sEnd);
-  }
-  return samples;
-}

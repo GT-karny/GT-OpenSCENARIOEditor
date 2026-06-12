@@ -8,6 +8,7 @@ import { parseLaneSections } from './parse-lane.js';
 import { parseObjects, parseObjectReferences, parseTunnels, parseBridges } from './parse-object.js';
 import { parseSignals, parseSignalReferences } from './parse-signal.js';
 import { parseRailroad } from './parse-railroad.js';
+import { parseUserData, parseDataQuality, parseIncludes } from './parse-common.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Raw = Record<string, any>;
@@ -74,6 +75,16 @@ export function parseRoad(raw: Raw): OdrRoad {
   // railroad
   const railroad = parseRailroad(raw.railroad);
   if (railroad) road.railroad = railroad;
+
+  // userData / dataQuality / include (lossless round-trip)
+  const userData = parseUserData(raw.userData);
+  if (userData.length > 0) road.userData = userData;
+
+  const dataQuality = parseDataQuality(raw.dataQuality);
+  if (dataQuality) road.dataQuality = dataQuality;
+
+  const includes = parseIncludes(raw.include);
+  if (includes.length > 0) road.includes = includes;
 
   return road;
 }

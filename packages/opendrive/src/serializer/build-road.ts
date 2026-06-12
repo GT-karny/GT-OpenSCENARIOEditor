@@ -15,6 +15,7 @@ import { buildLanes } from './build-lane.js';
 import { buildObject, buildObjectReference, buildTunnel, buildBridge } from './build-object.js';
 import { buildSignal, buildSignalRef } from './build-signal.js';
 import { buildRailroad } from './build-railroad.js';
+import { buildUserData, buildDataQuality, buildInclude } from './build-common.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type XmlNode = Record<string, any>;
@@ -144,6 +145,17 @@ export function buildRoad(road: OdrRoad): XmlNode {
   // railroad
   if (road.railroad) {
     node.railroad = buildRailroad(road.railroad);
+  }
+
+  // userData / dataQuality / include (lossless round-trip, XSD-correct positions at end of road element)
+  if (road.userData && road.userData.length > 0) {
+    node.userData = road.userData.map(buildUserData);
+  }
+  if (road.dataQuality) {
+    node.dataQuality = buildDataQuality(road.dataQuality);
+  }
+  if (road.includes && road.includes.length > 0) {
+    node.include = road.includes.map(buildInclude);
   }
 
   return node;

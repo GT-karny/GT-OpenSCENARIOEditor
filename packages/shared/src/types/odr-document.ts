@@ -6,6 +6,7 @@ import type { OdrRoad } from './odr-road.js';
 import type { OdrController } from './odr-controller.js';
 import type { OdrJunction, OdrJunctionGroup } from './odr-junction.js';
 import type { OdrStation } from './odr-railroad.js';
+import type { OdrUserData, OdrDataQuality, OdrInclude } from './odr-common.js';
 
 export interface OpenDriveDocument {
   header: OdrHeader;
@@ -27,6 +28,12 @@ export interface OdrHeader {
   west?: number;
   geoReference?: string;
   offset?: OdrHeaderOffset;
+  /** Arbitrary key/value metadata (OpenDRIVE <userData> elements). */
+  userData?: OdrUserData[];
+  /** Data quality information (<dataQuality> element). */
+  dataQuality?: OdrDataQuality;
+  /** External file includes (<include> elements). */
+  includes?: OdrInclude[];
 }
 
 export interface OdrHeaderOffset {

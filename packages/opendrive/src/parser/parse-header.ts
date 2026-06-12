@@ -3,6 +3,7 @@
  */
 import type { OdrHeader, OdrHeaderOffset } from '@osce/shared';
 import { attrNum, attrStr, attrOptNum } from './xml-helpers.js';
+import { parseUserData, parseDataQuality, parseIncludes } from './parse-common.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Raw = Record<string, any>;
@@ -11,7 +12,8 @@ export function parseHeader(raw: Raw | undefined): OdrHeader {
   if (!raw) {
     return { revMajor: 1, revMinor: 0, name: '', date: '' };
   }
-  return {
+
+  const header: OdrHeader = {
     revMajor: attrNum(raw, 'revMajor', 1),
     revMinor: attrNum(raw, 'revMinor', 0),
     name: attrStr(raw, 'name'),
@@ -23,6 +25,18 @@ export function parseHeader(raw: Raw | undefined): OdrHeader {
     geoReference: extractGeoReference(raw.geoReference),
     offset: parseHeaderOffset(raw.offset),
   };
+
+  // userData / dataQuality / include (lossless round-trip)
+  const userData = parseUserData(raw.userData);
+  if (userData.length > 0) header.userData = userData;
+
+  const dataQuality = parseDataQuality(raw.dataQuality);
+  if (dataQuality) header.dataQuality = dataQuality;
+
+  const includes = parseIncludes(raw.include);
+  if (includes.length > 0) header.includes = includes;
+
+  return header;
 }
 
 function parseHeaderOffset(raw: Raw | undefined): OdrHeaderOffset | undefined {

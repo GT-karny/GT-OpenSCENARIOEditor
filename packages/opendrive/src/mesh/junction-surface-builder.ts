@@ -105,6 +105,10 @@ export function buildJunctionSurfaceMesh(
     }
   }
 
+  // A meaningful junction surface requires at least 2 distinct incoming roads.
+  // With only one incoming road there is no junction area to triangulate.
+  if (visitedIncoming.size < 2) return null;
+
   // Need enough boundary points to form a surface
   if (candidates.length < 4) return null;
 

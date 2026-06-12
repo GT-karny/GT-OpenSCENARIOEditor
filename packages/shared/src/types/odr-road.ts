@@ -8,6 +8,7 @@ import type { OdrRoadObject, OdrObjectReference, OdrTunnel, OdrBridge } from './
 import type { OdrSignal, OdrSignalRef } from './odr-signal.js';
 import type { OdrRailroad } from './odr-railroad.js';
 import type { OdrSurfaceCRG } from './odr-surface.js';
+import type { OdrUserData, OdrDataQuality, OdrInclude } from './odr-common.js';
 
 export type OdrRoadRule = 'RHT' | 'LHT';
 
@@ -34,6 +35,12 @@ export interface OdrRoad {
   railroad?: OdrRailroad;
   surface?: { crg?: OdrSurfaceCRG[] };
   shapes?: OdrShape[];
+  /** Arbitrary key/value metadata (OpenDRIVE <userData> elements). */
+  userData?: OdrUserData[];
+  /** Data quality information (<dataQuality> element). */
+  dataQuality?: OdrDataQuality;
+  /** External file includes (<include> elements). */
+  includes?: OdrInclude[];
 }
 
 export interface OdrRoadLink {

@@ -3,6 +3,7 @@
  */
 import type { OdrHeader } from '@osce/shared';
 import { fmtNum, optAttr } from './format-utils.js';
+import { buildUserData, buildDataQuality, buildInclude } from './build-common.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type XmlNode = Record<string, any>;
@@ -31,6 +32,17 @@ export function buildHeader(header: OdrHeader): XmlNode {
       '@_z': fmtNum(header.offset.z),
       '@_hdg': fmtNum(header.offset.hdg),
     };
+  }
+
+  // userData / dataQuality / include (lossless round-trip, XSD-correct positions at end of header element)
+  if (header.userData && header.userData.length > 0) {
+    node.userData = header.userData.map(buildUserData);
+  }
+  if (header.dataQuality) {
+    node.dataQuality = buildDataQuality(header.dataQuality);
+  }
+  if (header.includes && header.includes.length > 0) {
+    node.include = header.includes.map(buildInclude);
   }
 
   return node;
