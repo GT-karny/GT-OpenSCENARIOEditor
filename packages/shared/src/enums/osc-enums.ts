@@ -56,6 +56,20 @@ export type FractionalCloudCover =
   | 'eightOktas'
   | 'nineOktas';
 
+/** All valid FractionalCloudCover values, per ASAM OpenSCENARIO XSD. */
+export const FRACTIONAL_CLOUD_COVER_VALUES = [
+  'zeroOktas',
+  'oneOktas',
+  'twoOktas',
+  'threeOktas',
+  'fourOktas',
+  'fiveOktas',
+  'sixOktas',
+  'sevenOktas',
+  'eightOktas',
+  'nineOktas',
+] as const satisfies readonly FractionalCloudCover[];
+
 export type LateralDisplacement = 'any' | 'leftToReferencedEntity' | 'rightToReferencedEntity';
 
 export type LightMode = 'on' | 'off' | 'flashing';
@@ -130,6 +144,13 @@ export type PedestrianMotionType =
   | 'bendingDown';
 
 export type PrecipitationType = 'dry' | 'rain' | 'snow';
+
+/** All valid PrecipitationType values, per ASAM OpenSCENARIO XSD. */
+export const PRECIPITATION_TYPE_VALUES = [
+  'dry',
+  'rain',
+  'snow',
+] as const satisfies readonly PrecipitationType[];
 
 export type Priority =
   /** @deprecated */
@@ -238,3 +259,12 @@ export type VehicleLightType =
   | 'specialPurposeLights';
 
 export type Wetness = 'dry' | 'moist' | 'wetWithPuddles' | 'lowFlooded' | 'highFlooded';
+
+/** All valid Wetness values, per ASAM OpenSCENARIO XSD. */
+export const WETNESS_VALUES = [
+  'dry',
+  'moist',
+  'wetWithPuddles',
+  'lowFlooded',
+  'highFlooded',
+] as const satisfies readonly Wetness[];

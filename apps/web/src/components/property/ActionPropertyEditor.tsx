@@ -14,6 +14,7 @@ import {
 import { SpeedActionEditor } from './actions/SpeedActionEditor';
 import { LaneChangeActionEditor } from './actions/LaneChangeActionEditor';
 import { TeleportActionEditor } from './actions/TeleportActionEditor';
+import { SynchronizeActionEditor } from './actions/SynchronizeActionEditor';
 import { LongitudinalDistanceActionEditor } from './actions/LongitudinalDistanceActionEditor';
 import { LaneOffsetActionEditor } from './actions/LaneOffsetActionEditor';
 import { AcquirePositionActionEditor } from './actions/AcquirePositionActionEditor';
@@ -60,7 +61,7 @@ const CATEGORY_SEGMENTS = [
   { key: 'userDefined' as const, icon: Wrench },
 ] as const;
 
-const POSITION_BASED_TYPES = ['teleportAction', 'synchronizeAction'] as const;
+const POSITION_BASED_TYPES = ['teleportAction'] as const;
 
 const PHASE5_TYPES = [
   'visibilityAction',
@@ -276,6 +277,9 @@ export function ActionPropertyEditor({ action, onUpdate }: ActionPropertyEditorP
         {(POSITION_BASED_TYPES as readonly string[]).includes(actionType) && (
           <TeleportActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
         )}
+        {actionType === 'synchronizeAction' && (
+          <SynchronizeActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
+        )}
         {actionType === 'visibilityAction' && (
           <VisibilityActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />
         )}
@@ -336,6 +340,7 @@ export function ActionPropertyEditor({ action, onUpdate }: ActionPropertyEditorP
           actionType !== 'assignControllerAction' &&
           actionType !== 'followTrajectoryAction' &&
           actionType !== 'routingAction' &&
+          actionType !== 'synchronizeAction' &&
           !(POSITION_BASED_TYPES as readonly string[]).includes(actionType) &&
           !(PHASE5_TYPES as readonly string[]).includes(actionType) && (
             <GenericActionEditor action={action} onUpdate={(p) => onUpdate(action.id, p)} />

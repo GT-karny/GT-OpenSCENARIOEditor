@@ -14,6 +14,7 @@ import { cn } from '../../lib/utils';
 import { SpeedActionEditor } from './actions/SpeedActionEditor';
 import { LaneChangeActionEditor } from './actions/LaneChangeActionEditor';
 import { TeleportActionEditor } from './actions/TeleportActionEditor';
+import { SynchronizeActionEditor } from './actions/SynchronizeActionEditor';
 import { LongitudinalDistanceActionEditor } from './actions/LongitudinalDistanceActionEditor';
 import { LaneOffsetActionEditor } from './actions/LaneOffsetActionEditor';
 import { AcquirePositionActionEditor } from './actions/AcquirePositionActionEditor';
@@ -31,7 +32,7 @@ import { SpeedProfileActionEditor } from './actions/SpeedProfileActionEditor';
 import { LateralDistanceActionEditor } from './actions/LateralDistanceActionEditor';
 import { GenericActionEditor } from './actions/GenericActionEditor';
 
-const POSITION_BASED_TYPES = ['teleportAction', 'synchronizeAction'] as const;
+const POSITION_BASED_TYPES = ['teleportAction'] as const;
 
 function detectSubcategory(type: string): string {
   for (const sub of PRIVATE_ACTION_SUBCATEGORIES) {
@@ -191,11 +192,13 @@ function ActionFieldsRouter({
       return <SpeedProfileActionEditor action={action} onUpdate={onUpdate} />;
     case 'lateralDistanceAction':
       return <LateralDistanceActionEditor action={action} onUpdate={onUpdate} />;
+    case 'synchronizeAction':
+      return <SynchronizeActionEditor action={action} onUpdate={onUpdate} />;
     default:
       break;
   }
 
-  // Position-based types (teleportAction, synchronizeAction)
+  // Position-based types (teleportAction)
   if ((POSITION_BASED_TYPES as readonly string[]).includes(actionType)) {
     return <TeleportActionEditor action={action} onUpdate={onUpdate} />;
   }

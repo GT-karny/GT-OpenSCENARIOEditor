@@ -1,4 +1,9 @@
 import type { ScenarioAction, EnvironmentAction, Weather } from '@osce/shared';
+import {
+  FRACTIONAL_CLOUD_COVER_VALUES,
+  PRECIPITATION_TYPE_VALUES,
+  WETNESS_VALUES,
+} from '@osce/shared';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { ParameterAwareInput } from '../ParameterAwareInput';
@@ -11,23 +16,11 @@ interface EnvironmentActionEditorProps {
   onUpdate: (partial: Partial<ScenarioAction>) => void;
 }
 
-const FRACTIONAL_CLOUD_COVER_OPTIONS = [
-  'zeroOktas',
-  'oneOkta',
-  'twoOktas',
-  'threeOktas',
-  'fourOktas',
-  'fiveOktas',
-  'sixOktas',
-  'sevenOktas',
-  'eightOktas',
-  'nineOktasOrMore',
-  'skyObscured',
-] as const;
-
-const PRECIPITATION_TYPES = ['dry', 'rain', 'snow'] as const;
-
-const WETNESS_OPTIONS = ['dry', 'moist', 'wetWithPuddles', 'lowFlooded', 'highFlooded'] as const;
+// Option arrays come from @osce/shared, the single XSD-derived source of
+// truth, so UI options cannot drift from the spec enums.
+const FRACTIONAL_CLOUD_COVER_OPTIONS = FRACTIONAL_CLOUD_COVER_VALUES;
+const PRECIPITATION_TYPES = PRECIPITATION_TYPE_VALUES;
+const WETNESS_OPTIONS = WETNESS_VALUES;
 
 export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionEditorProps) {
   const inner = action.action as EnvironmentAction;
