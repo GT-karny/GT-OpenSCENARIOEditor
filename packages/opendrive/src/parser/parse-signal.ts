@@ -2,7 +2,7 @@
  * Parse OpenDRIVE signal elements.
  */
 import type { OdrSignal, OdrSignalRef } from '@osce/shared';
-import { ensureArray, toNum, toStr, toOptNum, toOptStr } from './xml-helpers.js';
+import { ensureArray, attrNum, attrStr, attrOptNum, attrOptStr } from './xml-helpers.js';
 import { parseLaneValidity } from './parse-common.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -12,25 +12,25 @@ export function parseSignals(raw: Raw | undefined): OdrSignal[] {
   if (!raw) return [];
   return ensureArray(raw.signal).map((s: Raw) => {
     const sig: OdrSignal = {
-      id: toStr(s.id),
-      name: toOptStr(s.name),
-      s: toNum(s.s),
-      t: toNum(s.t),
-      zOffset: toOptNum(s.zOffset),
-      orientation: toStr(s.orientation, '+'),
-      dynamic: toOptStr(s.dynamic),
-      country: toOptStr(s.country),
-      countryRevision: toOptStr(s.countryRevision),
-      type: toOptStr(s.type),
-      subtype: toOptStr(s.subtype),
-      value: toOptNum(s.value),
-      unit: toOptStr(s.unit),
-      text: toOptStr(s.text),
-      hOffset: toOptNum(s.hOffset),
-      pitch: toOptNum(s.pitch),
-      roll: toOptNum(s.roll),
-      width: toOptNum(s.width),
-      height: toOptNum(s.height),
+      id: attrStr(s, 'id'),
+      name: attrOptStr(s, 'name'),
+      s: attrNum(s, 's'),
+      t: attrNum(s, 't'),
+      zOffset: attrOptNum(s, 'zOffset'),
+      orientation: attrStr(s, 'orientation', '+'),
+      dynamic: attrOptStr(s, 'dynamic'),
+      country: attrOptStr(s, 'country'),
+      countryRevision: attrOptStr(s, 'countryRevision'),
+      type: attrOptStr(s, 'type'),
+      subtype: attrOptStr(s, 'subtype'),
+      value: attrOptNum(s, 'value'),
+      unit: attrOptStr(s, 'unit'),
+      text: attrOptStr(s, 'text'),
+      hOffset: attrOptNum(s, 'hOffset'),
+      pitch: attrOptNum(s, 'pitch'),
+      roll: attrOptNum(s, 'roll'),
+      width: attrOptNum(s, 'width'),
+      height: attrOptNum(s, 'height'),
     };
 
     // validity
@@ -41,8 +41,8 @@ export function parseSignals(raw: Raw | undefined): OdrSignal[] {
     const depArr = ensureArray(s.dependency);
     if (depArr.length > 0) {
       sig.dependency = depArr.map((d: Raw) => ({
-        id: toStr(d.id),
-        type: toOptStr(d.type),
+        id: attrStr(d, 'id'),
+        type: attrOptStr(d, 'type'),
       }));
     }
 
@@ -50,9 +50,9 @@ export function parseSignals(raw: Raw | undefined): OdrSignal[] {
     const refArr = ensureArray(s.reference);
     if (refArr.length > 0) {
       sig.reference = refArr.map((r: Raw) => ({
-        elementType: toStr(r.elementType) as 'object' | 'signal',
-        elementId: toStr(r.elementId),
-        type: toOptStr(r.type),
+        elementType: attrStr(r, 'elementType') as 'object' | 'signal',
+        elementId: attrStr(r, 'elementId'),
+        type: attrOptStr(r, 'type'),
       }));
     }
 
@@ -60,13 +60,13 @@ export function parseSignals(raw: Raw | undefined): OdrSignal[] {
     if (s.positionRoad) {
       const pr = s.positionRoad;
       sig.positionRoad = {
-        roadId: toStr(pr.roadId),
-        s: toNum(pr.s),
-        t: toNum(pr.t),
-        zOffset: toNum(pr.zOffset),
-        hOffset: toNum(pr.hOffset),
-        pitch: toOptNum(pr.pitch),
-        roll: toOptNum(pr.roll),
+        roadId: attrStr(pr, 'roadId'),
+        s: attrNum(pr, 's'),
+        t: attrNum(pr, 't'),
+        zOffset: attrNum(pr, 'zOffset'),
+        hOffset: attrNum(pr, 'hOffset'),
+        pitch: attrOptNum(pr, 'pitch'),
+        roll: attrOptNum(pr, 'roll'),
       };
     }
 
@@ -74,12 +74,12 @@ export function parseSignals(raw: Raw | undefined): OdrSignal[] {
     if (s.positionInertial) {
       const pi = s.positionInertial;
       sig.positionInertial = {
-        x: toNum(pi.x),
-        y: toNum(pi.y),
-        z: toNum(pi.z),
-        hdg: toNum(pi.hdg),
-        pitch: toOptNum(pi.pitch),
-        roll: toOptNum(pi.roll),
+        x: attrNum(pi, 'x'),
+        y: attrNum(pi, 'y'),
+        z: attrNum(pi, 'z'),
+        hdg: attrNum(pi, 'hdg'),
+        pitch: attrOptNum(pi, 'pitch'),
+        roll: attrOptNum(pi, 'roll'),
       };
     }
 
@@ -91,10 +91,10 @@ export function parseSignalReferences(raw: Raw | undefined): OdrSignalRef[] {
   if (!raw) return [];
   return ensureArray(raw.signalReference).map((sr: Raw) => {
     const ref: OdrSignalRef = {
-      s: toNum(sr.s),
-      t: toNum(sr.t),
-      id: toStr(sr.id),
-      orientation: toStr(sr.orientation, '+'),
+      s: attrNum(sr, 's'),
+      t: attrNum(sr, 't'),
+      id: attrStr(sr, 'id'),
+      orientation: attrStr(sr, 'orientation', '+'),
     };
     const validity = parseLaneValidity(sr.validity);
     if (validity) ref.validity = validity;

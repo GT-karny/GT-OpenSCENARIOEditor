@@ -2,7 +2,7 @@
  * Parse OpenDRIVE <header> element.
  */
 import type { OdrHeader, OdrHeaderOffset } from '@osce/shared';
-import { toNum, toStr, toOptNum } from './xml-helpers.js';
+import { attrNum, attrStr, attrOptNum } from './xml-helpers.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Raw = Record<string, any>;
@@ -12,14 +12,14 @@ export function parseHeader(raw: Raw | undefined): OdrHeader {
     return { revMajor: 1, revMinor: 0, name: '', date: '' };
   }
   return {
-    revMajor: toNum(raw.revMajor, 1),
-    revMinor: toNum(raw.revMinor, 0),
-    name: toStr(raw.name),
-    date: toStr(raw.date),
-    north: toOptNum(raw.north),
-    south: toOptNum(raw.south),
-    east: toOptNum(raw.east),
-    west: toOptNum(raw.west),
+    revMajor: attrNum(raw, 'revMajor', 1),
+    revMinor: attrNum(raw, 'revMinor', 0),
+    name: attrStr(raw, 'name'),
+    date: attrStr(raw, 'date'),
+    north: attrOptNum(raw, 'north'),
+    south: attrOptNum(raw, 'south'),
+    east: attrOptNum(raw, 'east'),
+    west: attrOptNum(raw, 'west'),
     geoReference: extractGeoReference(raw.geoReference),
     offset: parseHeaderOffset(raw.offset),
   };
@@ -28,10 +28,10 @@ export function parseHeader(raw: Raw | undefined): OdrHeader {
 function parseHeaderOffset(raw: Raw | undefined): OdrHeaderOffset | undefined {
   if (!raw) return undefined;
   return {
-    x: toNum(raw.x),
-    y: toNum(raw.y),
-    z: toNum(raw.z),
-    hdg: toNum(raw.hdg),
+    x: attrNum(raw, 'x'),
+    y: attrNum(raw, 'y'),
+    z: attrNum(raw, 'z'),
+    hdg: attrNum(raw, 'hdg'),
   };
 }
 

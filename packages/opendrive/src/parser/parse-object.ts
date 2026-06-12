@@ -7,7 +7,16 @@ import type {
   OdrTunnel,
   OdrBridge,
 } from '@osce/shared';
-import { ensureArray, toNum, toStr, toOptNum, toOptStr } from './xml-helpers.js';
+import {
+  ensureArray,
+  toNum,
+  attr,
+  attrNum,
+  attrStr,
+  attrOptNum,
+  attrOptStr,
+  attrBool,
+} from './xml-helpers.js';
 import { parseLaneValidity } from './parse-common.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -20,44 +29,44 @@ export function parseObjects(raw: Raw | undefined): OdrRoadObject[] {
 
 function parseObject(o: Raw): OdrRoadObject {
   const obj: OdrRoadObject = {
-    id: toStr(o.id),
-    name: toOptStr(o.name),
-    type: toOptStr(o.type),
-    subtype: toOptStr(o.subtype),
-    dynamic: toOptStr(o.dynamic),
-    s: toNum(o.s),
-    t: toNum(o.t),
-    zOffset: toOptNum(o.zOffset),
-    validLength: toOptNum(o.validLength),
-    hdg: toOptNum(o.hdg),
-    pitch: toOptNum(o.pitch),
-    roll: toOptNum(o.roll),
-    length: toOptNum(o.length),
-    width: toOptNum(o.width),
-    height: toOptNum(o.height),
-    radius: toOptNum(o.radius),
-    orientation: toOptStr(o.orientation),
+    id: attrStr(o, 'id'),
+    name: attrOptStr(o, 'name'),
+    type: attrOptStr(o, 'type'),
+    subtype: attrOptStr(o, 'subtype'),
+    dynamic: attrOptStr(o, 'dynamic'),
+    s: attrNum(o, 's'),
+    t: attrNum(o, 't'),
+    zOffset: attrOptNum(o, 'zOffset'),
+    validLength: attrOptNum(o, 'validLength'),
+    hdg: attrOptNum(o, 'hdg'),
+    pitch: attrOptNum(o, 'pitch'),
+    roll: attrOptNum(o, 'roll'),
+    length: attrOptNum(o, 'length'),
+    width: attrOptNum(o, 'width'),
+    height: attrOptNum(o, 'height'),
+    radius: attrOptNum(o, 'radius'),
+    orientation: attrOptStr(o, 'orientation'),
   };
 
   // repeat
   const repeatArr = ensureArray(o.repeat);
   if (repeatArr.length > 0) {
     obj.repeat = repeatArr.map((r: Raw) => ({
-      s: toNum(r.s),
-      length: toNum(r.length),
-      distance: toNum(r.distance),
-      tStart: toNum(r.tStart),
-      tEnd: toNum(r.tEnd),
-      heightStart: toNum(r.heightStart),
-      heightEnd: toNum(r.heightEnd),
-      zOffsetStart: toNum(r.zOffsetStart),
-      zOffsetEnd: toNum(r.zOffsetEnd),
-      widthStart: toOptNum(r.widthStart),
-      widthEnd: toOptNum(r.widthEnd),
-      lengthStart: toOptNum(r.lengthStart),
-      lengthEnd: toOptNum(r.lengthEnd),
-      radiusStart: toOptNum(r.radiusStart),
-      radiusEnd: toOptNum(r.radiusEnd),
+      s: attrNum(r, 's'),
+      length: attrNum(r, 'length'),
+      distance: attrNum(r, 'distance'),
+      tStart: attrNum(r, 'tStart'),
+      tEnd: attrNum(r, 'tEnd'),
+      heightStart: attrNum(r, 'heightStart'),
+      heightEnd: attrNum(r, 'heightEnd'),
+      zOffsetStart: attrNum(r, 'zOffsetStart'),
+      zOffsetEnd: attrNum(r, 'zOffsetEnd'),
+      widthStart: attrOptNum(r, 'widthStart'),
+      widthEnd: attrOptNum(r, 'widthEnd'),
+      lengthStart: attrOptNum(r, 'lengthStart'),
+      lengthEnd: attrOptNum(r, 'lengthEnd'),
+      radiusStart: attrOptNum(r, 'radiusStart'),
+      radiusEnd: attrOptNum(r, 'radiusEnd'),
     }));
   }
 
@@ -81,9 +90,9 @@ function parseObject(o: Raw): OdrRoadObject {
   const materialArr = ensureArray(o.material);
   if (materialArr.length > 0) {
     obj.material = materialArr.map((m: Raw) => ({
-      surface: toOptStr(m.surface),
-      friction: toOptNum(m.friction),
-      roughness: toOptNum(m.roughness),
+      surface: attrOptStr(m, 'surface'),
+      friction: attrOptNum(m, 'friction'),
+      roughness: attrOptNum(m, 'roughness'),
     }));
   }
 
@@ -94,8 +103,8 @@ function parseObject(o: Raw): OdrRoadObject {
   // parkingSpace
   if (o.parkingSpace) {
     obj.parkingSpace = {
-      access: toStr(o.parkingSpace.access),
-      restrictions: toOptStr(o.parkingSpace.restrictions),
+      access: attrStr(o.parkingSpace, 'access'),
+      restrictions: attrOptStr(o.parkingSpace, 'restrictions'),
     };
   }
 
@@ -104,17 +113,17 @@ function parseObject(o: Raw): OdrRoadObject {
     const markingArr = ensureArray(o.markings.marking ?? o.markings);
     if (markingArr.length > 0 && typeof markingArr[0] === 'object') {
       obj.markings = markingArr.map((m: Raw) => ({
-        side: toStr(m.side),
-        weight: toOptStr(m.weight),
-        width: toOptNum(m.width),
-        color: toStr(m.color),
-        zOffset: toOptNum(m.zOffset),
-        spaceLength: toNum(m.spaceLength),
-        lineLength: toNum(m.lineLength),
-        startOffset: toNum(m.startOffset),
-        stopOffset: toNum(m.stopOffset),
+        side: attrStr(m, 'side'),
+        weight: attrOptStr(m, 'weight'),
+        width: attrOptNum(m, 'width'),
+        color: attrStr(m, 'color'),
+        zOffset: attrOptNum(m, 'zOffset'),
+        spaceLength: attrNum(m, 'spaceLength'),
+        lineLength: attrNum(m, 'lineLength'),
+        startOffset: attrNum(m, 'startOffset'),
+        stopOffset: attrNum(m, 'stopOffset'),
         cornerReferences: ensureArray(m.cornerReference).map((cr: Raw) =>
-          toNum(typeof cr === 'object' ? cr.id : cr),
+          toNum(typeof cr === 'object' ? attr(cr, 'id') : cr),
         ),
       }));
     }
@@ -125,13 +134,12 @@ function parseObject(o: Raw): OdrRoadObject {
     const borderArr = ensureArray(o.borders.border ?? o.borders);
     if (borderArr.length > 0 && typeof borderArr[0] === 'object') {
       obj.borders = borderArr.map((b: Raw) => ({
-        outlineId: toStr(b.outlineId),
-        type: toStr(b.type),
-        width: toNum(b.width),
-        useCompleteOutline:
-          b.useCompleteOutline === true || b.useCompleteOutline === 'true' ? true : undefined,
+        outlineId: attrStr(b, 'outlineId'),
+        type: attrStr(b, 'type'),
+        width: attrNum(b, 'width'),
+        useCompleteOutline: attrBool(b, 'useCompleteOutline') === true ? true : undefined,
         cornerReferences: ensureArray(b.cornerReference).map((cr: Raw) =>
-          toNum(typeof cr === 'object' ? cr.id : cr),
+          toNum(typeof cr === 'object' ? attr(cr, 'id') : cr),
         ),
       }));
     }
@@ -150,32 +158,32 @@ function parseOutline(raw: Raw): {
   cornerLocal?: { u: number; v: number; z: number; height: number; id?: number }[];
 } {
   const outline: ReturnType<typeof parseOutline> = {
-    id: toOptStr(raw.id),
-    fillType: toOptStr(raw.fillType),
-    outer: raw.outer === true || raw.outer === 'true' ? true : undefined,
-    closed: raw.closed === true || raw.closed === 'true' ? true : undefined,
-    laneType: toOptStr(raw.laneType),
+    id: attrOptStr(raw, 'id'),
+    fillType: attrOptStr(raw, 'fillType'),
+    outer: attrBool(raw, 'outer') === true ? true : undefined,
+    closed: attrBool(raw, 'closed') === true ? true : undefined,
+    laneType: attrOptStr(raw, 'laneType'),
   };
 
   const cornerRoadArr = ensureArray(raw.cornerRoad);
   if (cornerRoadArr.length > 0) {
     outline.cornerRoad = cornerRoadArr.map((c: Raw) => ({
-      s: toNum(c.s),
-      t: toNum(c.t),
-      dz: toNum(c.dz),
-      height: toNum(c.height),
-      id: toOptNum(c.id),
+      s: attrNum(c, 's'),
+      t: attrNum(c, 't'),
+      dz: attrNum(c, 'dz'),
+      height: attrNum(c, 'height'),
+      id: attrOptNum(c, 'id'),
     }));
   }
 
   const cornerLocalArr = ensureArray(raw.cornerLocal);
   if (cornerLocalArr.length > 0) {
     outline.cornerLocal = cornerLocalArr.map((c: Raw) => ({
-      u: toNum(c.u),
-      v: toNum(c.v),
-      z: toNum(c.z),
-      height: toNum(c.height),
-      id: toOptNum(c.id),
+      u: attrNum(c, 'u'),
+      v: attrNum(c, 'v'),
+      z: attrNum(c, 'z'),
+      height: attrNum(c, 'height'),
+      id: attrOptNum(c, 'id'),
     }));
   }
 
@@ -186,12 +194,12 @@ export function parseObjectReferences(raw: Raw | undefined): OdrObjectReference[
   if (!raw) return [];
   return ensureArray(raw.objectReference).map((or: Raw) => {
     const ref: OdrObjectReference = {
-      s: toNum(or.s),
-      t: toNum(or.t),
-      id: toStr(or.id),
-      zOffset: toOptNum(or.zOffset),
-      validLength: toOptNum(or.validLength),
-      orientation: toOptStr(or.orientation),
+      s: attrNum(or, 's'),
+      t: attrNum(or, 't'),
+      id: attrStr(or, 'id'),
+      zOffset: attrOptNum(or, 'zOffset'),
+      validLength: attrOptNum(or, 'validLength'),
+      orientation: attrOptStr(or, 'orientation'),
     };
     const validity = parseLaneValidity(or.validity);
     if (validity) ref.validity = validity;
@@ -203,13 +211,13 @@ export function parseTunnels(raw: Raw | undefined): OdrTunnel[] {
   if (!raw) return [];
   return ensureArray(raw.tunnel).map((t: Raw) => {
     const tunnel: OdrTunnel = {
-      s: toNum(t.s),
-      length: toNum(t.length),
-      name: toOptStr(t.name),
-      id: toStr(t.id),
-      type: toStr(t.type),
-      lighting: toOptNum(t.lighting),
-      daylight: toOptNum(t.daylight),
+      s: attrNum(t, 's'),
+      length: attrNum(t, 'length'),
+      name: attrOptStr(t, 'name'),
+      id: attrStr(t, 'id'),
+      type: attrStr(t, 'type'),
+      lighting: attrOptNum(t, 'lighting'),
+      daylight: attrOptNum(t, 'daylight'),
     };
     const validity = parseLaneValidity(t.validity);
     if (validity) tunnel.validity = validity;
@@ -221,11 +229,11 @@ export function parseBridges(raw: Raw | undefined): OdrBridge[] {
   if (!raw) return [];
   return ensureArray(raw.bridge).map((b: Raw) => {
     const bridge: OdrBridge = {
-      s: toNum(b.s),
-      length: toNum(b.length),
-      name: toOptStr(b.name),
-      id: toStr(b.id),
-      type: toStr(b.type),
+      s: attrNum(b, 's'),
+      length: attrNum(b, 'length'),
+      name: attrOptStr(b, 'name'),
+      id: attrStr(b, 'id'),
+      type: attrStr(b, 'type'),
     };
     const validity = parseLaneValidity(b.validity);
     if (validity) bridge.validity = validity;

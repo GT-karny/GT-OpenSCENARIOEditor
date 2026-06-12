@@ -15,7 +15,14 @@ import type {
   OdrRoadMarkExplicit,
   OdrRoadMarkSway,
 } from '@osce/shared';
-import { ensureArray, toNum, toStr, toOptStr, toOptNum } from './xml-helpers.js';
+import {
+  ensureArray,
+  attrNum,
+  attrStr,
+  attrOptStr,
+  attrOptNum,
+  attrBool,
+} from './xml-helpers.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Raw = Record<string, any>;
@@ -39,8 +46,8 @@ function parseLaneSection(raw: Raw): OdrLaneSection {
   }
 
   return {
-    s: toNum(raw.s),
-    singleSide: raw.singleSide === true || raw.singleSide === 'true' ? true : undefined,
+    s: attrNum(raw, 's'),
+    singleSide: attrBool(raw, 'singleSide') === true ? true : undefined,
     leftLanes,
     centerLane,
     rightLanes,
@@ -49,14 +56,9 @@ function parseLaneSection(raw: Raw): OdrLaneSection {
 
 function parseLane(raw: Raw): OdrLane {
   const lane: OdrLane = {
-    id: toNum(raw.id),
-    type: toStr(raw.type, 'none'),
-    level:
-      raw.level === true || raw.level === 'true'
-        ? true
-        : raw.level === false || raw.level === 'false'
-          ? false
-          : undefined,
+    id: attrNum(raw, 'id'),
+    type: attrStr(raw, 'type', 'none'),
+    level: attrBool(raw, 'level'),
     width: ensureArray(raw.width).map(parseLaneWidth),
     roadMarks: ensureArray(raw.roadMark).map(parseRoadMark),
   };
@@ -67,11 +69,11 @@ function parseLane(raw: Raw): OdrLane {
     const laneLink: OdrLaneLink = {};
     if (link.predecessor) {
       const pred = ensureArray(link.predecessor);
-      if (pred.length > 0) laneLink.predecessorId = toNum(pred[0].id);
+      if (pred.length > 0) laneLink.predecessorId = attrNum(pred[0], 'id');
     }
     if (link.successor) {
       const succ = ensureArray(link.successor);
-      if (succ.length > 0) laneLink.successorId = toNum(succ[0].id);
+      if (succ.length > 0) laneLink.successorId = attrNum(succ[0], 'id');
     }
     if (laneLink.predecessorId !== undefined || laneLink.successorId !== undefined) {
       lane.link = laneLink;
@@ -82,9 +84,9 @@ function parseLane(raw: Raw): OdrLane {
   const speedArr = ensureArray(raw.speed);
   if (speedArr.length > 0) {
     lane.speed = speedArr.map((s: Raw) => ({
-      sOffset: toNum(s.sOffset),
-      max: toNum(s.max),
-      unit: toStr(s.unit, 'm/s'),
+      sOffset: attrNum(s, 'sOffset'),
+      max: attrNum(s, 'max'),
+      unit: attrStr(s, 'unit', 'm/s'),
     }));
   }
 
@@ -92,9 +94,9 @@ function parseLane(raw: Raw): OdrLane {
   const heightArr = ensureArray(raw.height);
   if (heightArr.length > 0) {
     lane.height = heightArr.map((h: Raw) => ({
-      sOffset: toNum(h.sOffset),
-      inner: toNum(h.inner),
-      outer: toNum(h.outer),
+      sOffset: attrNum(h, 'sOffset'),
+      inner: attrNum(h, 'inner'),
+      outer: attrNum(h, 'outer'),
     }));
   }
 
@@ -127,68 +129,67 @@ function parseLane(raw: Raw): OdrLane {
 
 function parseLaneWidth(raw: Raw): OdrLaneWidth {
   return {
-    sOffset: toNum(raw.sOffset),
-    a: toNum(raw.a),
-    b: toNum(raw.b),
-    c: toNum(raw.c),
-    d: toNum(raw.d),
+    sOffset: attrNum(raw, 'sOffset'),
+    a: attrNum(raw, 'a'),
+    b: attrNum(raw, 'b'),
+    c: attrNum(raw, 'c'),
+    d: attrNum(raw, 'd'),
   };
 }
 
 function parseLaneBorder(raw: Raw): OdrLaneBorder {
   return {
-    sOffset: toNum(raw.sOffset),
-    a: toNum(raw.a),
-    b: toNum(raw.b),
-    c: toNum(raw.c),
-    d: toNum(raw.d),
+    sOffset: attrNum(raw, 'sOffset'),
+    a: attrNum(raw, 'a'),
+    b: attrNum(raw, 'b'),
+    c: attrNum(raw, 'c'),
+    d: attrNum(raw, 'd'),
   };
 }
 
 function parseLaneMaterial(raw: Raw): OdrLaneMaterial {
   return {
-    sOffset: toNum(raw.sOffset),
-    surface: toOptStr(raw.surface),
-    friction: toNum(raw.friction),
-    roughness: toOptNum(raw.roughness),
+    sOffset: attrNum(raw, 'sOffset'),
+    surface: attrOptStr(raw, 'surface'),
+    friction: attrNum(raw, 'friction'),
+    roughness: attrOptNum(raw, 'roughness'),
   };
 }
 
 function parseLaneAccess(raw: Raw): OdrLaneAccess {
-  const ruleStr = toOptStr(raw.rule);
+  const ruleStr = attrOptStr(raw, 'rule');
   return {
-    sOffset: toNum(raw.sOffset),
+    sOffset: attrNum(raw, 'sOffset'),
     rule: ruleStr === 'allow' || ruleStr === 'deny' ? ruleStr : undefined,
-    restriction: toStr(raw.restriction),
+    restriction: attrStr(raw, 'restriction'),
   };
 }
 
 function parseLaneRule(raw: Raw): OdrLaneRule {
   return {
-    sOffset: toNum(raw.sOffset),
-    value: toStr(raw.value),
+    sOffset: attrNum(raw, 'sOffset'),
+    value: attrStr(raw, 'value'),
   };
 }
 
 function parseRoadMark(raw: Raw): OdrRoadMark {
   const rm: OdrRoadMark = {
-    sOffset: toNum(raw.sOffset),
-    type: toStr(raw.type, 'none'),
-    weight: toOptStr(raw.weight),
-    color: toOptStr(raw.color),
-    material: toOptStr(raw.material),
-    width: toOptNum(raw.width),
-    laneChange: toOptStr(raw.laneChange),
-    height: toOptNum(raw.height),
+    sOffset: attrNum(raw, 'sOffset'),
+    type: attrStr(raw, 'type', 'none'),
+    weight: attrOptStr(raw, 'weight'),
+    color: attrOptStr(raw, 'color'),
+    material: attrOptStr(raw, 'material'),
+    width: attrOptNum(raw, 'width'),
+    laneChange: attrOptStr(raw, 'laneChange'),
+    height: attrOptNum(raw, 'height'),
   };
 
-  // typeDef — the <type> child element (has name+line children)
-  // Note: fast-xml-parser puts `type` as both the attribute (string) and child element (object).
-  // The attribute is already captured above. The child element <type> has `name`, `width`, `line`.
-  // In the parsed raw, if there's a child <type> element, it appears as an array item with `name` property.
+  // typeDef — the <type> child element (detailed line definitions).
+  // The `type` attribute is read above as `@_type`; the `<type>` child element
+  // lives at the bare `type` key, so the two no longer collide.
   const typeArr = ensureArray(raw.type);
   for (const t of typeArr) {
-    if (typeof t === 'object' && t != null && t.name != null) {
+    if (typeof t === 'object' && t != null) {
       rm.typeDef = parseRoadMarkTypeDef(t);
       break;
     }
@@ -210,16 +211,16 @@ function parseRoadMark(raw: Raw): OdrRoadMark {
 
 function parseRoadMarkTypeDef(raw: Raw): OdrRoadMarkTypeDef {
   return {
-    name: toStr(raw.name),
-    width: toNum(raw.width),
+    name: attrStr(raw, 'name'),
+    width: attrNum(raw, 'width'),
     lines: ensureArray(raw.line).map((l: Raw) => ({
-      length: toNum(l.length),
-      space: toNum(l.space),
-      tOffset: toNum(l.tOffset),
-      sOffset: toNum(l.sOffset),
-      rule: toOptStr(l.rule),
-      width: toOptNum(l.width),
-      color: toOptStr(l.color),
+      length: attrNum(l, 'length'),
+      space: attrNum(l, 'space'),
+      tOffset: attrNum(l, 'tOffset'),
+      sOffset: attrNum(l, 'sOffset'),
+      rule: attrOptStr(l, 'rule'),
+      width: attrOptNum(l, 'width'),
+      color: attrOptStr(l, 'color'),
     })),
   };
 }
@@ -227,21 +228,21 @@ function parseRoadMarkTypeDef(raw: Raw): OdrRoadMarkTypeDef {
 function parseRoadMarkExplicit(raw: Raw): OdrRoadMarkExplicit {
   return {
     lines: ensureArray(raw.line).map((l: Raw) => ({
-      length: toNum(l.length),
-      tOffset: toNum(l.tOffset),
-      sOffset: toNum(l.sOffset),
-      rule: toOptStr(l.rule),
-      width: toOptNum(l.width),
+      length: attrNum(l, 'length'),
+      tOffset: attrNum(l, 'tOffset'),
+      sOffset: attrNum(l, 'sOffset'),
+      rule: attrOptStr(l, 'rule'),
+      width: attrOptNum(l, 'width'),
     })),
   };
 }
 
 function parseRoadMarkSway(raw: Raw): OdrRoadMarkSway {
   return {
-    ds: toNum(raw.ds),
-    a: toNum(raw.a),
-    b: toNum(raw.b),
-    c: toNum(raw.c),
-    d: toNum(raw.d),
+    ds: attrNum(raw, 'ds'),
+    a: attrNum(raw, 'a'),
+    b: attrNum(raw, 'b'),
+    c: attrNum(raw, 'c'),
+    d: attrNum(raw, 'd'),
   };
 }

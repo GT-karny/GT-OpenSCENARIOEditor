@@ -2,7 +2,7 @@
  * Parse OpenDRIVE <road> elements.
  */
 import type { OdrRoad, OdrRoadLink, OdrRoadLinkElement, OdrRoadTypeEntry } from '@osce/shared';
-import { ensureArray, toNum, toStr, toOptStr, toOptNum } from './xml-helpers.js';
+import { ensureArray, attrNum, attrStr, attrOptStr, attrOptNum } from './xml-helpers.js';
 import { parsePlanView, parseElevations, parseSuperelevations, parseLaneOffsets, parseShapes } from './parse-geometry.js';
 import { parseLaneSections } from './parse-lane.js';
 import { parseObjects, parseObjectReferences, parseTunnels, parseBridges } from './parse-object.js';
@@ -13,12 +13,12 @@ import { parseRailroad } from './parse-railroad.js';
 type Raw = Record<string, any>;
 
 export function parseRoad(raw: Raw): OdrRoad {
-  const ruleStr = toOptStr(raw.rule);
+  const ruleStr = attrOptStr(raw, 'rule');
   const road: OdrRoad = {
-    id: toStr(raw.id),
-    name: toStr(raw.name),
-    length: toNum(raw.length),
-    junction: toStr(raw.junction),
+    id: attrStr(raw, 'id'),
+    name: attrStr(raw, 'name'),
+    length: attrNum(raw, 'length'),
+    junction: attrStr(raw, 'junction'),
     rule: ruleStr === 'RHT' || ruleStr === 'LHT' ? ruleStr : undefined,
     link: parseRoadLink(raw.link),
     type: parseRoadTypes(raw.type),
@@ -55,17 +55,17 @@ export function parseRoad(raw: Raw): OdrRoad {
     if (crgArr.length > 0) {
       road.surface = {
         crg: crgArr.map((crg: Raw) => ({
-          file: toStr(crg.file),
-          sStart: toOptNum(crg.sStart),
-          sEnd: toOptNum(crg.sEnd),
-          orientation: toOptStr(crg.orientation),
-          mode: toOptStr(crg.mode),
-          purpose: toOptStr(crg.purpose),
-          sOffset: toOptNum(crg.sOffset),
-          tOffset: toOptNum(crg.tOffset),
-          zOffset: toOptNum(crg.zOffset),
-          zScale: toOptNum(crg.zScale),
-          hOffset: toOptNum(crg.hOffset),
+          file: attrStr(crg, 'file'),
+          sStart: attrOptNum(crg, 'sStart'),
+          sEnd: attrOptNum(crg, 'sEnd'),
+          orientation: attrOptStr(crg, 'orientation'),
+          mode: attrOptStr(crg, 'mode'),
+          purpose: attrOptStr(crg, 'purpose'),
+          sOffset: attrOptNum(crg, 'sOffset'),
+          tOffset: attrOptNum(crg, 'tOffset'),
+          zOffset: attrOptNum(crg, 'zOffset'),
+          zScale: attrOptNum(crg, 'zScale'),
+          hOffset: attrOptNum(crg, 'hOffset'),
         })),
       };
     }
@@ -92,11 +92,11 @@ function parseRoadLink(raw: Raw | undefined): OdrRoadLink | undefined {
 function parseLinkElement(raw: Raw | undefined): OdrRoadLinkElement | undefined {
   if (!raw) return undefined;
   return {
-    elementType: toStr(raw.elementType) as 'road' | 'junction',
-    elementId: toStr(raw.elementId),
-    contactPoint: toOptStr(raw.contactPoint) as 'start' | 'end' | undefined,
-    elementS: toOptNum(raw.elementS),
-    elementDir: toOptStr(raw.elementDir) as '+' | '-' | undefined,
+    elementType: attrStr(raw, 'elementType') as 'road' | 'junction',
+    elementId: attrStr(raw, 'elementId'),
+    contactPoint: attrOptStr(raw, 'contactPoint') as 'start' | 'end' | undefined,
+    elementS: attrOptNum(raw, 'elementS'),
+    elementDir: attrOptStr(raw, 'elementDir') as '+' | '-' | undefined,
   };
 }
 
@@ -105,8 +105,8 @@ function parseRoadTypes(raw: Raw[] | undefined): OdrRoadTypeEntry[] | undefined 
   if (arr.length === 0) return undefined;
   return arr.map((r) => {
     const entry: OdrRoadTypeEntry = {
-      s: toNum(r.s),
-      type: toStr(r.type),
+      s: attrNum(r, 's'),
+      type: attrStr(r, 'type'),
     };
     // speed can be a child element or nested
     const spd = r.speed;
@@ -114,8 +114,8 @@ function parseRoadTypes(raw: Raw[] | undefined): OdrRoadTypeEntry[] | undefined 
       const speedArr = ensureArray(spd);
       if (speedArr.length > 0) {
         entry.speed = {
-          max: toNum(speedArr[0].max),
-          unit: toStr(speedArr[0].unit, 'm/s'),
+          max: attrNum(speedArr[0], 'max'),
+          unit: attrStr(speedArr[0], 'unit', 'm/s'),
         };
       }
     }

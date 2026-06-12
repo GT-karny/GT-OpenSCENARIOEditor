@@ -6,16 +6,24 @@ import type {
   OdrJunctionConnection,
   OdrJunctionGroup,
 } from '@osce/shared';
-import { ensureArray, toNum, toStr, toOptStr, toOptNum } from './xml-helpers.js';
+import {
+  ensureArray,
+  toStr,
+  attr,
+  attrNum,
+  attrStr,
+  attrOptStr,
+  attrOptNum,
+} from './xml-helpers.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Raw = Record<string, any>;
 
 export function parseJunction(raw: Raw): OdrJunction {
   const junction: OdrJunction = {
-    id: toStr(raw.id),
-    name: toStr(raw.name),
-    type: toOptStr(raw.type),
+    id: attrStr(raw, 'id'),
+    name: attrStr(raw, 'name'),
+    type: attrOptStr(raw, 'type'),
     connections: ensureArray(raw.connection).map(parseJunctionConnection),
   };
 
@@ -23,8 +31,8 @@ export function parseJunction(raw: Raw): OdrJunction {
   const priorityArr = ensureArray(raw.priority);
   if (priorityArr.length > 0) {
     junction.priority = priorityArr.map((p: Raw) => ({
-      high: toOptStr(p.high),
-      low: toOptStr(p.low),
+      high: attrOptStr(p, 'high'),
+      low: attrOptStr(p, 'low'),
     }));
   }
 
@@ -32,9 +40,9 @@ export function parseJunction(raw: Raw): OdrJunction {
   const controllerArr = ensureArray(raw.controller);
   if (controllerArr.length > 0) {
     junction.controller = controllerArr.map((c: Raw) => ({
-      id: toStr(c.id),
-      type: toOptStr(c.type),
-      sequence: toOptNum(c.sequence),
+      id: attrStr(c, 'id'),
+      type: attrOptStr(c, 'type'),
+      sequence: attrOptNum(c, 'sequence'),
     }));
   }
 
@@ -44,17 +52,17 @@ export function parseJunction(raw: Raw): OdrJunction {
     if (crgArr.length > 0) {
       junction.surface = {
         crg: crgArr.map((crg: Raw) => ({
-          file: toStr(crg.file),
-          sStart: toOptNum(crg.sStart),
-          sEnd: toOptNum(crg.sEnd),
-          orientation: toOptStr(crg.orientation),
-          mode: toOptStr(crg.mode),
-          purpose: toOptStr(crg.purpose),
-          sOffset: toOptNum(crg.sOffset),
-          tOffset: toOptNum(crg.tOffset),
-          zOffset: toOptNum(crg.zOffset),
-          zScale: toOptNum(crg.zScale),
-          hOffset: toOptNum(crg.hOffset),
+          file: attrStr(crg, 'file'),
+          sStart: attrOptNum(crg, 'sStart'),
+          sEnd: attrOptNum(crg, 'sEnd'),
+          orientation: attrOptStr(crg, 'orientation'),
+          mode: attrOptStr(crg, 'mode'),
+          purpose: attrOptStr(crg, 'purpose'),
+          sOffset: attrOptNum(crg, 'sOffset'),
+          tOffset: attrOptNum(crg, 'tOffset'),
+          zOffset: attrOptNum(crg, 'zOffset'),
+          zScale: attrOptNum(crg, 'zScale'),
+          hOffset: attrOptNum(crg, 'hOffset'),
         })),
       };
     }
@@ -65,27 +73,27 @@ export function parseJunction(raw: Raw): OdrJunction {
 
 function parseJunctionConnection(raw: Raw): OdrJunctionConnection {
   const conn: OdrJunctionConnection = {
-    id: toStr(raw.id),
-    incomingRoad: toStr(raw.incomingRoad),
-    connectingRoad: toStr(raw.connectingRoad),
-    contactPoint: toStr(raw.contactPoint, 'start') as 'start' | 'end',
+    id: attrStr(raw, 'id'),
+    incomingRoad: attrStr(raw, 'incomingRoad'),
+    connectingRoad: attrStr(raw, 'connectingRoad'),
+    contactPoint: attrStr(raw, 'contactPoint', 'start') as 'start' | 'end',
     laneLinks: ensureArray(raw.laneLink).map((ll: Raw) => ({
-      from: toNum(ll.from),
-      to: toNum(ll.to),
+      from: attrNum(ll, 'from'),
+      to: attrNum(ll, 'to'),
     })),
   };
 
   // type (for virtual/direct junction connections)
-  conn.type = toOptStr(raw.type);
+  conn.type = attrOptStr(raw, 'type');
 
   // predecessor
   if (raw.predecessor) {
     const p = raw.predecessor;
     conn.predecessor = {
-      elementType: toStr(p.elementType),
-      elementId: toStr(p.elementId),
-      elementS: toNum(p.elementS),
-      elementDir: toStr(p.elementDir, '+') as '+' | '-',
+      elementType: attrStr(p, 'elementType'),
+      elementId: attrStr(p, 'elementId'),
+      elementS: attrNum(p, 'elementS'),
+      elementDir: attrStr(p, 'elementDir', '+') as '+' | '-',
     };
   }
 
@@ -93,10 +101,10 @@ function parseJunctionConnection(raw: Raw): OdrJunctionConnection {
   if (raw.successor) {
     const s = raw.successor;
     conn.successor = {
-      elementType: toStr(s.elementType),
-      elementId: toStr(s.elementId),
-      elementS: toNum(s.elementS),
-      elementDir: toStr(s.elementDir, '+') as '+' | '-',
+      elementType: attrStr(s, 'elementType'),
+      elementId: attrStr(s, 'elementId'),
+      elementS: attrNum(s, 'elementS'),
+      elementDir: attrStr(s, 'elementDir', '+') as '+' | '-',
     };
   }
 
@@ -106,11 +114,11 @@ function parseJunctionConnection(raw: Raw): OdrJunctionConnection {
 export function parseJunctionGroups(raw: Raw[] | undefined): OdrJunctionGroup[] {
   if (!raw) return [];
   return ensureArray(raw).map((jg: Raw) => ({
-    id: toStr(jg.id),
-    name: toOptStr(jg.name),
-    type: toStr(jg.type),
+    id: attrStr(jg, 'id'),
+    name: attrOptStr(jg, 'name'),
+    type: attrStr(jg, 'type'),
     junctionReferences: ensureArray(jg.junctionReference).map((jr: Raw) =>
-      toStr(typeof jr === 'object' ? jr.junction : jr),
+      toStr(typeof jr === 'object' ? attr(jr, 'junction') : jr),
     ),
   }));
 }
