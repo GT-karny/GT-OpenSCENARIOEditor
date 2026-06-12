@@ -82,6 +82,12 @@ import { getElementById as _getElementById, getParentOf as _getParentOf } from '
 export interface ScenarioStore extends ScenarioState, IScenarioService {
   getCommandHistory(): CommandHistory;
 
+  // Wholesale document replacement — mirrors the web app's file-open path.
+  // Clears command history, resets undo/redo availability, and replaces the
+  // document atomically. Any selection or dirty-state bookkeeping owned by
+  // the store is also reset here.
+  loadDocument(document: ScenarioDocument): void;
+
   // Override to accept optional cleanup option
   removeEntity(entityId: string, cleanupOption?: EntityCleanupOption): void;
 
@@ -143,6 +149,14 @@ export function createScenarioStore() {
         const doc = createDefaultDocument();
         set({ document: doc, undoAvailable: false, redoAvailable: false });
         return doc;
+      },
+
+      loadDocument: (document: ScenarioDocument): void => {
+        // Mirror the web app's file-open path: clear command history so that
+        // undo cannot reach across a file-load boundary, then replace the
+        // document wholesale without going through the command pattern.
+        commandHistory.clear();
+        set({ document, undoAvailable: false, redoAvailable: false });
       },
 
       getScenario: (): ScenarioDocument => get().document,

@@ -2,7 +2,7 @@
  * Action tools: add speed, lane change, teleport, and generic actions.
  */
 
-import type { McpToolResult, PrivateAction, TransitionDynamics, DynamicsShape, DynamicsDimension } from '@osce/shared';
+import type { McpToolResult, PrivateAction, LaneChangeTarget, TransitionDynamics, DynamicsShape, DynamicsDimension } from '@osce/shared';
 import { successResult, errorResult } from '../utils/response-helpers.js';
 import { buildPositionFromInput } from '../utils/entity-builder.js';
 import type { ToolDefinition } from './tool-registry.js';
@@ -97,7 +97,10 @@ export const actionTools: ToolDefinition[] = [
     name: 'add_lane_change_action',
     description:
       'Add a LaneChangeAction to an event. Changes the entity\'s lane. ' +
-      'targetLane can be an absolute lane number (integer) or a relative offset.',
+      'Set targetType="absolute" (default) for a fixed lane number, or ' +
+      'targetType="relative" with entityRef for a lane offset relative to another entity. ' +
+      'Example absolute: { eventId, targetLane: -2 }. ' +
+      'Example relative: { eventId, targetLane: -1, targetType: "relative", entityRef: "Ego" }.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -106,7 +109,23 @@ export const actionTools: ToolDefinition[] = [
           description: 'ID of the event to add the action to.',
         },
         targetLane: {
-          description: 'Target lane: absolute lane number (integer) or relative offset. Positive = right, negative = left.',
+          type: 'number',
+          description:
+            'Target lane value. For absolute: the lane ID (integer). ' +
+            'For relative: the lane offset (integer, negative = left, positive = right).',
+        },
+        targetType: {
+          type: 'string',
+          enum: ['absolute', 'relative'],
+          description:
+            'Whether targetLane is an absolute lane ID or a relative offset. ' +
+            'Defaults to "absolute". Use "relative" together with entityRef.',
+        },
+        entityRef: {
+          type: 'string',
+          description:
+            'Required when targetType is "relative". ' +
+            'The entity whose current lane is used as the reference.',
         },
         transitionDynamics: {
           type: 'object',
@@ -135,8 +154,14 @@ export const actionTools: ToolDefinition[] = [
       try {
         const eventId = args['eventId'] as string;
         const targetLane = args['targetLane'];
+        const targetType = (args['targetType'] as 'absolute' | 'relative') ?? 'absolute';
+        const entityRef = args['entityRef'] as string | undefined;
+
         if (!eventId) return errorResult('"eventId" is required.');
         if (targetLane === undefined) return errorResult('"targetLane" is required.');
+        if (targetType === 'relative' && !entityRef) {
+          return errorResult('"entityRef" is required when targetType is "relative".');
+        }
 
         const dynamics = buildTransitionDynamics(
           args['transitionDynamics'] as Record<string, unknown> | undefined,
@@ -144,19 +169,28 @@ export const actionTools: ToolDefinition[] = [
 
         const laneValue = typeof targetLane === 'number' ? targetLane : Number(targetLane);
 
+        const target: LaneChangeTarget =
+          targetType === 'relative'
+            ? { kind: 'relative', entityRef: entityRef!, value: laneValue }
+            : { kind: 'absolute', value: laneValue };
+
         const action: PrivateAction = {
           type: 'laneChangeAction',
           dynamics,
-          target: { kind: 'absolute', value: laneValue },
+          target,
           targetLaneOffset: (args['targetLaneOffset'] as number) ?? 0,
         };
 
         const s = store.getState();
         const added = s.addAction(eventId, { action });
+        const targetDesc =
+          targetType === 'relative'
+            ? `relative offset ${laneValue} from ${entityRef}`
+            : `absolute lane ${laneValue}`;
         return successResult({
           actionId: added.id,
           action: added.action,
-          message: `Lane change action added (target lane: ${laneValue}).`,
+          message: `Lane change action added (target: ${targetDesc}).`,
         });
       } catch (e) {
         return errorResult(`Failed to add lane change action: ${(e as Error).message}`);
