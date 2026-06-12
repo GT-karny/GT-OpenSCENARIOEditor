@@ -30,6 +30,8 @@ import { ParameterDialog } from '../template/ParameterDialog';
 import { CatalogEditorModal } from '../catalog/CatalogEditorModal';
 import { FileTreeSidebar } from '../editor/FileTreeSidebar';
 import { SaveAsDialog } from '../editor/SaveAsDialog';
+import { AutosaveRecoveryDialog } from '../editor/AutosaveRecoveryDialog';
+import { useAutosave } from '../../hooks/use-autosave';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { useTranslation } from '@osce/i18n';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
@@ -230,6 +232,9 @@ export function EditorLayout() {
   const currentProject = useProjectStore((s) => s.currentProject);
   const editorMode = useEditorStore((s) => s.editorMode);
   const [centerTab, setCenterTab] = useState<'composer' | 'graph'>('composer');
+
+  // --- Autosave with crash recovery (mounted once) ---
+  const autosave = useAutosave();
   const fileTreePanelRef = useRef<ImperativePanelHandle>(null);
   const editingPanelGroupRef = useRef<ImperativePanelGroupHandle>(null);
   const [fileTreeCollapsed, setFileTreeCollapsed] = useState(true);
@@ -887,6 +892,13 @@ export function EditorLayout() {
   return (
     <div className="relative flex flex-col h-screen overflow-hidden">
       <HeaderToolbar />
+
+      {/* Autosave crash-recovery prompt (mode-independent) */}
+      <AutosaveRecoveryDialog
+        snapshot={autosave.recoverySnapshot}
+        onRestore={autosave.restore}
+        onDiscard={autosave.discard}
+      />
 
       {editorMode === 'roadNetwork' ? (
         <>

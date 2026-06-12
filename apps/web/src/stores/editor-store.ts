@@ -165,7 +165,8 @@ export interface EditorState {
 const defaultPreferences: EditorPreferences = {
   language: 'en',
   theme: 'system',
-  autoSave: false,
+  // Autosave with crash recovery is on by default; consumed by use-autosave.
+  autoSave: true,
   autoValidate: true,
   showGrid3D: true,
   showLaneIds: false,
