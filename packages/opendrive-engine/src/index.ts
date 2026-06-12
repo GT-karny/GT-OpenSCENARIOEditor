@@ -80,12 +80,6 @@ export {
 export { AddObjectCommand, RemoveObjectCommand } from './commands/object-commands.js';
 export { CompoundCommand } from './commands/compound-command.js';
 
-// Serializers / Parsers (editor format)
-export { serializeOsceJson, isOsceJsonFormat } from './serializer/osce-json-serializer.js';
-export type { OsceEditorFile } from './serializer/osce-json-serializer.js';
-export { parseOsceJson } from './parser/osce-json-parser.js';
-export type { OsceParseResult } from './parser/osce-json-parser.js';
-
 // Operations
 export { generateRoadId, findRoadById, findRoadIndex } from './operations/road-operations.js';
 export {
@@ -204,7 +198,6 @@ export * from './signal/signal-head-renderer.js';
 export * from './signal/signal-preset-persistence.js';
 
 // Signal assembly
-export * from './signal/signal-assembly.js';
 export * from './signal/signal-assembly-operations.js';
 export * from './signal/signal-preset-store.js';
 
@@ -218,13 +211,3 @@ export {
 } from './commands/signal-assembly-commands.js';
 export type { GetMeta, SetMeta } from './commands/signal-assembly-commands.js';
 
-// Virtual junction operations
-export {
-  createVirtualJunction,
-  validateVirtualJunctionRefs,
-} from './operations/virtual-junction-operations.js';
-export type {
-  VirtualJunctionRoadRef,
-  CreateVirtualJunctionParams,
-  VirtualJunctionResult,
-} from './operations/virtual-junction-operations.js';

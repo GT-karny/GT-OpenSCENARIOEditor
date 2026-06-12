@@ -160,52 +160,6 @@ function stopPlayLoop() {
   }
 }
 
-function executeStep(dt: number) {
-  if (!scenario) {
-    post({ type: 'error', message: 'No scenario loaded' });
-    return;
-  }
-
-  const result = scenario.step(dt);
-  const simulationTime = scenario.getSimulationTime();
-  const isComplete = scenario.isComplete();
-
-  const stateVec = scenario.getCurrentState();
-  const objects = vectorToArray(stateVec, cloneObjectState);
-
-  const sbVec = scenario.popStoryBoardEvents();
-  const storyBoardEvents = vectorToArray(sbVec);
-
-  const condVec = scenario.popConditionEvents();
-  const conditionEvents = vectorToArray(condVec);
-
-  // emscripten::val returns a plain JS array — no deep clone needed
-  // Guard: older WASM builds may not have this function
-  const trafficLightStates = typeof scenario.getTrafficLightStatesOnly === 'function'
-    ? (scenario.getTrafficLightStatesOnly() as WasmTrafficLightState[])
-    : [];
-
-  const vehicleLightStates = typeof scenario.getVehicleLightStates === 'function'
-    ? (scenario.getVehicleLightStates() as WasmVehicleLightState[])
-    : [];
-
-  post({
-    type: 'frame',
-    simulationTime,
-    objects,
-    storyBoardEvents,
-    conditionEvents,
-    trafficLightStates,
-    vehicleLightStates,
-    isComplete,
-  });
-
-  if (isComplete || result !== 0) {
-    stopPlayLoop();
-    post({ type: 'completed', simulationTime });
-  }
-}
-
 function ensureDir(fs: EsminiModule['FS'], path: string) {
   try { fs.mkdir(path); } catch { /* already exists */ }
 }
@@ -230,13 +184,6 @@ async function handleLoad(
 
     let finalXosc = xoscXml;
 
-    // Diagnostic: log what data was provided
-    console.warn('[Worker] handleLoad: xodrData provided =', !!xodrData, ', xodrData length =', xodrData?.length ?? 0);
-    console.warn('[Worker] handleLoad: catalogs provided =', catalogs ? Object.keys(catalogs) : 'none');
-    // Log the RoadNetwork section from the XOSC
-    const rnMatch = finalXosc.match(/<RoadNetwork>[\s\S]*?<\/RoadNetwork>/);
-    console.warn('[Worker] RoadNetwork in XOSC:', rnMatch ? rnMatch[0] : 'NOT FOUND');
-
     // Write xodr and rewrite LogicFile path
     if (xodrData) {
       mod.FS.writeFile('/scenarios/road.xodr', xodrData);
@@ -257,21 +204,6 @@ async function handleLoad(
         /(<(?:Vehicle|Controller|Pedestrian|MiscObject|Environment|Maneuver|Trajectory|Route)Catalog>\s*<Directory\s+path\s*=\s*")([^"]*?)(")/g,
         '$1/catalogs/$3',
       );
-    }
-
-    // Diagnostic: log the Init section of the final XOSC XML
-    const initMatch = finalXosc.match(/<Init>[\s\S]*?<\/Init>/);
-    if (initMatch) {
-      console.warn('[Worker] Init section in XOSC XML:\n', initMatch[0]);
-    } else {
-      console.warn('[Worker] WARNING: No <Init> section found in XOSC XML!');
-    }
-    // Also log ParameterDeclarations
-    const paramMatch = finalXosc.match(/<ParameterDeclarations>[\s\S]*?<\/ParameterDeclarations>/);
-    if (paramMatch) {
-      console.warn('[Worker] ParameterDeclarations:\n', paramMatch[0]);
-    } else {
-      console.warn('[Worker] WARNING: No <ParameterDeclarations> found!');
     }
 
     mod.FS.writeFile('/scenarios/scenario.xosc', finalXosc);
@@ -337,14 +269,6 @@ function handlePlay(speed: number, fps: number) {
     frames.push({ simulationTime, objects, trafficLightStates, vehicleLightStates });
     allStoryBoardEvents.push(...storyBoardEvents);
     allConditionEvents.push(...conditionEvents);
-
-    // Diagnostic: log first 5 frames and every 500th to verify positions change
-    if (i < 5 || i % 500 === 0) {
-      const posStr = objects
-        .map((o) => `${o.name}(x=${o.x.toFixed(2)},y=${o.y.toFixed(2)},spd=${o.speed.toFixed(2)},s=${o.s.toFixed(2)})`)
-        .join(' | ');
-      console.warn(`[Worker] step ${i}, t=${simulationTime.toFixed(2)}: ${posStr}`);
-    }
 
     if (isComplete || result !== 0 || simulationTime >= MAX_SIM_TIME) {
       break;
@@ -511,16 +435,6 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
     // Simulation messages
     case 'load':
       handleLoad(msg.xoscXml, msg.xodrData, msg.catalogs, msg.config);
-      break;
-    case 'step':
-      try {
-        executeStep(msg.dt);
-      } catch (err) {
-        post({
-          type: 'error',
-          message: `Step failed: ${err instanceof Error ? err.message : String(err)}`,
-        });
-      }
       break;
     case 'play':
       try {

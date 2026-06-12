@@ -9,7 +9,6 @@ import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 
 interface PropertyEditorProps {
   element: unknown;
-  elementId: string;
 }
 
 export function PropertyEditor({ element }: PropertyEditorProps) {

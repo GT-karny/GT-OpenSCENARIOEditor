@@ -11,7 +11,6 @@ import type {
   ConditionEdge,
   DynamicsDimension,
   DynamicsShape,
-  Rule,
   ControllerType,
   ParameterType,
   RouteStrategy,
@@ -95,15 +94,6 @@ export const DYNAMICS_DIMENSIONS: readonly DynamicsDimension[] = [
   'time',
   'distance',
   'rate',
-] as const;
-
-export const RULES: readonly Rule[] = [
-  'equalTo',
-  'greaterThan',
-  'lessThan',
-  'greaterOrEqual',
-  'lessOrEqual',
-  'notEqualTo',
 ] as const;
 
 export const EVENT_PRIORITIES: readonly EventPriority[] = [
@@ -209,16 +199,6 @@ export const ENTITY_CONDITION_TYPES = [
   'collision',
   'offroad',
   'relativeClearance',
-] as const;
-
-export const VALUE_CONDITION_TYPES = [
-  'simulationTime',
-  'storyboardElementState',
-  'parameter',
-  'variable',
-  'trafficSignal',
-  'trafficSignalController',
-  'userDefinedValue',
 ] as const;
 
 export const CONDITION_SUBCATEGORIES = [

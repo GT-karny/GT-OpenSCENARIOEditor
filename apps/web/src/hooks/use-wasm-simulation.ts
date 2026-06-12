@@ -27,10 +27,6 @@ export function useWasmSimulation() {
     const store = useSimulationStore.getState;
 
     const unsubComplete = service.onComplete((result) => {
-      console.warn(
-        `[useWasmSimulation] onComplete: ${result.frames.length} frames, ` +
-          `duration: ${result.duration.toFixed(2)}s`,
-      );
       store().setCompleted(result);
       // Auto-play after batch completion
       store().play();
@@ -38,11 +34,9 @@ export function useWasmSimulation() {
 
     // Use batch callbacks instead of per-event callbacks
     const unsubSB = service.onBatchStoryBoardEvents((events) => {
-      console.warn(`[useWasmSimulation] Batch storyboard events: ${events.length}`);
       store().setStoryBoardEvents(events);
     });
     const unsubCond = service.onBatchConditionEvents((events) => {
-      console.warn(`[useWasmSimulation] Batch condition events: ${events.length}`);
       store().setConditionEvents(events);
     });
     const unsubError = service.onError((errorMessage) => {

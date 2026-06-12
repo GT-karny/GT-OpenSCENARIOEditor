@@ -127,7 +127,6 @@ export interface WasmGTRouteResult {
 export type WorkerRequest =
   // Simulation messages
   | { type: 'load'; xoscXml: string; xodrData?: string; catalogs?: Record<string, string>; config?: Partial<WasmOpenScenarioConfig> }
-  | { type: 'step'; dt: number }
   | { type: 'play'; speed: number; fps: number }
   | { type: 'pause' }
   | { type: 'dispose' }
@@ -149,20 +148,6 @@ export type WorkerResponse =
   | {
       type: 'loaded';
       numberOfObjects: number;
-    }
-  | {
-      type: 'frame';
-      simulationTime: number;
-      objects: WasmScenarioObjectState[];
-      storyBoardEvents: WasmStoryBoardEvent[];
-      conditionEvents: WasmConditionEvent[];
-      trafficLightStates: WasmTrafficLightState[];
-      vehicleLightStates: WasmVehicleLightState[];
-      isComplete: boolean;
-    }
-  | {
-      type: 'completed';
-      simulationTime: number;
     }
   | {
       type: 'batch-completed';

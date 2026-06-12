@@ -44,17 +44,11 @@ async function loadProjectCatalogs(): Promise<void> {
     return;
   }
 
-  console.warn(
-    '[SimulationButtons] On-demand loading catalogs:',
-    catalogFiles.map((f) => f.relativePath),
-  );
-
   await Promise.allSettled(
     catalogFiles.map(async (f) => {
       try {
         const content = await api.readProjectFile(project.meta.id, f.relativePath);
-        const doc = useCatalogStore.getState().loadCatalog(content, f.relativePath);
-        console.warn(`[SimulationButtons] Loaded catalog "${doc.catalogName}"`);
+        useCatalogStore.getState().loadCatalog(content, f.relativePath);
       } catch (err) {
         console.error(`[SimulationButtons] Failed to load ${f.relativePath}:`, err);
       }
@@ -81,12 +75,6 @@ export function SimulationButtons({ compact }: { compact?: boolean }) {
 
       // Collect catalogs from the store
       let catalogXmls = collectCatalogXmls();
-      console.warn(
-        '[SimulationButtons] Catalogs in store:',
-        Object.keys(catalogXmls),
-        'hasCatalogLocations:',
-        hasCatalogLocations,
-      );
 
       // On-demand fallback: if scenario needs catalogs but none are loaded,
       // try loading from the project before giving up
@@ -94,7 +82,6 @@ export function SimulationButtons({ compact }: { compact?: boolean }) {
         console.warn('[SimulationButtons] No catalogs loaded, attempting on-demand load...');
         await loadProjectCatalogs();
         catalogXmls = collectCatalogXmls();
-        console.warn('[SimulationButtons] After on-demand load:', Object.keys(catalogXmls));
       }
 
       // Block simulation if catalogs are still missing

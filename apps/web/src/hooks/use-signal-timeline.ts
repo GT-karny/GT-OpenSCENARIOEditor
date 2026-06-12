@@ -29,14 +29,6 @@ export function getControllerCycleDuration(controller: TrafficSignalController):
 }
 
 /**
- * Compute total cycle duration across all controllers (max of all).
- */
-export function getTotalCycleDuration(controllers: TrafficSignalController[]): number {
-  if (controllers.length === 0) return 0;
-  return Math.max(...controllers.map(getControllerCycleDuration));
-}
-
-/**
  * Get the active phase for a controller at a given time.
  * Accounts for controller delay and wraps around the cycle.
  */
@@ -60,22 +52,6 @@ export function getActivePhase(
 
   // Fallback (shouldn't happen due to modulo)
   return { phase: controller.phases[0], index: 0 };
-}
-
-/**
- * Get the state string for a specific signal at a given time.
- */
-export function getSignalStateAtTime(
-  controller: TrafficSignalController,
-  signalId: string,
-  time: number,
-): string {
-  const active = getActivePhase(controller, time);
-  if (!active) return '';
-  const signalState = active.phase.trafficSignalStates.find(
-    (s) => s.trafficSignalId === signalId,
-  );
-  return signalState?.state ?? '';
 }
 
 export interface SignalTimelineHook {

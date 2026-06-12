@@ -11,7 +11,7 @@ import { useStore } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 import { createOpenDriveStore } from '@osce/opendrive-engine';
 import type { OpenDriveStore } from '@osce/opendrive-engine';
-import type { OpenDriveDocument, OdrRoad, OdrJunction, OdrSignal } from '@osce/shared';
+import type { OdrRoad, OdrJunction, OdrSignal } from '@osce/shared';
 import type { EndpointLaneRouting, TurnType } from '@osce/opendrive-engine';
 import { useEditorStore } from '../stores/editor-store';
 
@@ -466,10 +466,6 @@ export function useOdrSignals(): Array<OdrSignal & { roadId: string; roadName: s
     }
     return result;
   }, [roads]);
-}
-
-export function useOdrDocument(): OpenDriveDocument | null {
-  return useEditorStore((s) => s.roadNetwork);
 }
 
 export function countRoadLanes(road: OdrRoad): number {

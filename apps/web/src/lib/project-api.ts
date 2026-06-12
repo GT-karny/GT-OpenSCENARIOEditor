@@ -2,8 +2,6 @@ import type {
   ProjectSummary,
   ProjectDetail,
   ProjectCreateRequest,
-  ProjectUpdateRequest,
-  ProjectMeta,
 } from '@osce/shared';
 
 const API_BASE = '/api';
@@ -27,16 +25,6 @@ export async function createProject(req: ProjectCreateRequest): Promise<ProjectD
     body: JSON.stringify(req),
   });
   if (!res.ok) throw new Error(`Failed to create project: ${res.statusText}`);
-  return res.json();
-}
-
-export async function updateProject(id: string, req: ProjectUpdateRequest): Promise<ProjectMeta> {
-  const res = await fetch(`${API_BASE}/projects/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(req),
-  });
-  if (!res.ok) throw new Error(`Failed to update project: ${res.statusText}`);
   return res.json();
 }
 

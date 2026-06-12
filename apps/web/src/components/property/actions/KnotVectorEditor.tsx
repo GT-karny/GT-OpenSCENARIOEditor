@@ -5,9 +5,6 @@ import { Label } from '../../ui/label';
 import { Slider } from '../../ui/slider';
 import { generateKnots, inferBiasSpread } from '../../../lib/nurbs-knot-utils';
 
-// Re-export for consumers
-export { generateKnots, generateClampedUniformKnots } from '../../../lib/nurbs-knot-utils';
-
 export interface KnotVectorEditorProps {
   knots: number[];
   order: number;

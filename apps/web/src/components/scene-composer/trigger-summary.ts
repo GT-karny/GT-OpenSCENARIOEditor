@@ -1,4 +1,4 @@
-import type { Trigger, Condition } from '@osce/shared';
+import type { Condition } from '@osce/shared';
 import { resolveBindingDisplay } from '../../lib/expression-utils';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -76,13 +76,6 @@ export function getConditionNaturalSummary(condition: Condition, t: TranslateFun
   return t('composer:trigger.immediate');
 }
 
-/** Returns a natural-language trigger summary using i18n. */
-export function getNaturalTriggerSummary(trigger: Trigger, t: TranslateFunc, bindings?: Bindings): string {
-  const firstCondition = trigger.conditionGroups[0]?.conditions[0];
-  if (!firstCondition) return t('composer:trigger.immediate');
-  return getConditionNaturalSummary(firstCondition, t, bindings);
-}
-
 /** Returns a short human-readable label for a single Condition. */
 export function getConditionShortSummary(condition: Condition, bindings?: Bindings): string {
   const { condition: inner } = condition;
@@ -120,11 +113,4 @@ export function getConditionShortSummary(condition: Condition, bindings?: Bindin
   }
 
   return 'trigger';
-}
-
-/** Returns a short human-readable label for a Trigger. */
-export function getTriggerSummary(trigger: Trigger, bindings?: Bindings): string {
-  const firstCondition = trigger.conditionGroups[0]?.conditions[0];
-  if (!firstCondition) return 'Immediate';
-  return getConditionShortSummary(firstCondition, bindings);
 }

@@ -31,7 +31,6 @@ interface ElectronAPI {
   writeFile: (filePath: string, content: string) => Promise<void>;
   readDir: (dirPath: string) => Promise<string[]>;
   onMenuAction: (callback: (action: string) => void) => () => void;
-  setTitle: (title: string) => void;
   windowMinimize: () => void;
   windowMaximize: () => void;
   windowClose: () => void;

@@ -23,13 +23,11 @@ export interface SimulationState {
   isPlaying: boolean;
   playbackSpeed: number;
 
-  // Actions (called by WebSocket handler or WASM service)
+  // Actions (called by WASM service)
   addFrame: (frame: SimulationFrame) => void;
   setCompleted: (result: SimulationResult) => void;
   setError: (error: string) => void;
   setStatus: (status: SimulationStatus) => void;
-  addStoryBoardEvent: (event: StoryBoardEvent) => void;
-  addConditionEvent: (event: ConditionEvent) => void;
   setStoryBoardEvents: (events: StoryBoardEvent[]) => void;
   setConditionEvents: (events: ConditionEvent[]) => void;
   reset: () => void;
@@ -214,11 +212,6 @@ export const useSimulationStore = create<SimulationState>()((set) => ({
   setCompleted: (result) => {
     stopPlaybackLoop();
 
-    console.warn(
-      `[SimulationStore] setCompleted: ${result.frames.length} frames, ` +
-        `duration: ${result.duration.toFixed(2)}s`,
-    );
-
     if (result.frames.length > 0 && result.frames.length < 10) {
       console.warn(
         `[SimulationStore] Warning: very few frames (${result.frames.length}). ` +
@@ -241,29 +234,6 @@ export const useSimulationStore = create<SimulationState>()((set) => ({
   },
 
   setStatus: (status) => set({ status }),
-
-  addStoryBoardEvent: (event) => {
-    set((state) => {
-      // Insert maintaining sorted order by timestamp
-      const events = [...state.storyBoardEvents];
-      let insertIdx = events.length;
-      for (let i = events.length - 1; i >= 0; i--) {
-        if (events[i].timestamp <= event.timestamp) {
-          insertIdx = i + 1;
-          break;
-        }
-        if (i === 0) insertIdx = 0;
-      }
-      events.splice(insertIdx, 0, event);
-      return { storyBoardEvents: events };
-    });
-    syncActiveElements();
-  },
-
-  addConditionEvent: (event) =>
-    set((state) => ({
-      conditionEvents: [...state.conditionEvents, event],
-    })),
 
   setStoryBoardEvents: (events) => {
     // Sort by timestamp for efficient binary-search in time-based queries

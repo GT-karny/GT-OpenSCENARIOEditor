@@ -48,7 +48,7 @@ export function PropertyPanel() {
               controllers={signalData.controllers}
             />
           ) : element ? (
-            <PropertyEditor element={element} elementId={selectedId!} />
+            <PropertyEditor element={element} />
           ) : !showIntersectionTimeline ? (
             <ScenarioPropertyEditor />
           ) : null}

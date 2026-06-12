@@ -337,38 +337,3 @@ export function renderSignalToCanvas(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Cache for ImageBitmap (optional optimization for timeline playback)
-// ---------------------------------------------------------------------------
-
-const bitmapCache = new Map<string, HTMLCanvasElement>();
-
-export function buildIconCacheKey(descriptor: SignalDescriptor, activeState: string): string {
-  const bulbKey = descriptor.bulbs.map((b) => `${b.color}:${b.shape}`).join(',');
-  return `${descriptor.bulbs.length}|${bulbKey}|${descriptor.orientation ?? 'vertical'}|${activeState}`;
-}
-
-/**
- * Get a cached canvas with the signal rendered. Avoids re-drawing when the
- * same descriptor+state combination is requested multiple times (e.g., during
- * playback when multiple signals share the same state).
- */
-export function getCachedSignalCanvas(
-  descriptor: SignalDescriptor,
-  activeState: string,
-  width: number,
-  height: number,
-): HTMLCanvasElement {
-  const key = `${buildIconCacheKey(descriptor, activeState)}|${width}x${height}`;
-  const cached = bitmapCache.get(key);
-  if (cached) return cached;
-
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d')!;
-  renderSignalToCanvas(ctx, descriptor, activeState, width, height);
-
-  bitmapCache.set(key, canvas);
-  return canvas;
-}

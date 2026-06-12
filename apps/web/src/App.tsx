@@ -8,7 +8,6 @@ import { useElectronMenu } from './hooks/use-electron-menu';
 import { useScenarioStoreApi } from './stores/use-scenario-store';
 import { useEditorStore } from './stores/editor-store';
 import { useProjectStore } from './stores/project-store';
-import { ServerConnectionProvider } from './providers/ServerConnectionProvider';
 
 export default function App() {
   useKeyboardShortcuts();
@@ -25,7 +24,7 @@ export default function App() {
   }, [storeApi]);
 
   return (
-    <ServerConnectionProvider>
+    <>
       <CursorLight />
       {currentView === 'home' ? <HomeScreen /> : <EditorLayout />}
       <Toaster
@@ -35,6 +34,6 @@ export default function App() {
             'bg-[var(--color-glass-2)] backdrop-blur-[28px] saturate-[1.3] border border-[var(--color-glass-edge-mid)] text-[var(--color-text-primary)] text-xs',
         }}
       />
-    </ServerConnectionProvider>
+    </>
   );
 }

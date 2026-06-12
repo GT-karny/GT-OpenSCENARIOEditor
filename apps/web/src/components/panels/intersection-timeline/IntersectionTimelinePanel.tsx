@@ -592,7 +592,6 @@ export function IntersectionTimelinePanel() {
     let newMetas: TrackMeta[];
     if (signalPickMode.trackSignalIds.has(signalId)) {
       // Remove from target track
-      console.debug('[pick] remove signal', signalId, 'from track', targetTrackKey);
       newMetas = prevMetas.map((t) =>
         t.trackKey === targetTrackKey
           ? { ...t, signalIds: t.signalIds.filter((id) => id !== signalId) }
@@ -607,7 +606,6 @@ export function IntersectionTimelinePanel() {
           break;
         }
       }
-      console.debug('[pick] add signal', signalId, 'to track', targetTrackKey, movedFrom ? `(moved from ${movedFrom})` : '');
       newMetas = prevMetas.map((t) => {
         if (t.trackKey === movedFrom) {
           return { ...t, signalIds: t.signalIds.filter((id) => id !== signalId) };
@@ -664,7 +662,6 @@ export function IntersectionTimelinePanel() {
       trackSignalIds: new Set(targetMeta.signalIds),
       allTrackSignalMap,
     };
-    console.debug('[pick] re-enter pick mode for track', targetTrackKey, 'signals:', [...mode.trackSignalIds]);
     useEditorStore.getState().enterSignalPickMode(mode);
   }, [pendingSignalPick, signalPickMode, selectedController, trackMetaMap, updateControllerPhases]);
 

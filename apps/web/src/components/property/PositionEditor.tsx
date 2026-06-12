@@ -696,7 +696,7 @@ function TextField({
 
 // --- OrientationFields ---
 
-export function isOrientationEmpty(ori: Partial<Orientation>): boolean {
+function isOrientationEmpty(ori: Partial<Orientation>): boolean {
   return ori.type === undefined && ori.h === undefined && ori.p === undefined && ori.r === undefined;
 }
 

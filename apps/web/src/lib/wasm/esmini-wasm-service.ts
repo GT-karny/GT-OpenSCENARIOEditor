@@ -90,8 +90,6 @@ export class EsminiWasmService implements IEsminiService {
   private result: SimulationResult | null = null;
   private frameCallbacks: Array<(frame: SimulationFrame) => void> = [];
   private completeCallbacks: Array<(result: SimulationResult) => void> = [];
-  private storyBoardCallbacks: Array<(event: StoryBoardEvent) => void> = [];
-  private conditionCallbacks: Array<(event: ConditionEvent) => void> = [];
   private batchStoryBoardCallbacks: Array<(events: StoryBoardEvent[]) => void> = [];
   private batchConditionCallbacks: Array<(events: ConditionEvent[]) => void> = [];
   private errorCallbacks: Array<(error: string) => void> = [];
@@ -126,54 +124,6 @@ export class EsminiWasmService implements IEsminiService {
         this.status = 'running';
         break;
 
-      case 'frame': {
-        const frame: SimulationFrame = {
-          time: msg.simulationTime,
-          objects: msg.objects.map(convertObjectState),
-          trafficLightStates: msg.trafficLightStates.map((tl) => ({
-            signalId: tl.id,
-            state: tl.state,
-          })),
-          vehicleLightStates: msg.vehicleLightStates?.map((vl) => ({
-            name: vl.name,
-            indicator: vl.indicator as 'off' | 'left' | 'right' | 'warning',
-            headLight: vl.head_light !== 'off',
-            highBeam: vl.high_beam !== 'off',
-            brakeLight: vl.brake_light !== 'off',
-          })),
-        };
-        this.frames.push(frame);
-
-        for (const cb of this.frameCallbacks) {
-          cb(frame);
-        }
-
-        // Emit storyboard events
-        for (const wasmEvent of msg.storyBoardEvents) {
-          const event = convertStoryBoardEvent(wasmEvent);
-          for (const cb of this.storyBoardCallbacks) {
-            cb(event);
-          }
-        }
-
-        // Emit condition events
-        for (const wasmEvent of msg.conditionEvents) {
-          const event = convertConditionEvent(wasmEvent);
-          for (const cb of this.conditionCallbacks) {
-            cb(event);
-          }
-        }
-
-        if (msg.isComplete) {
-          this.completeSimulation(msg.simulationTime);
-        }
-        break;
-      }
-
-      case 'completed':
-        this.completeSimulation(msg.simulationTime);
-        break;
-
       case 'batch-completed': {
         // Convert all frames at once
         const convertedFrames: SimulationFrame[] = msg.frames.map((f) => ({
@@ -192,20 +142,6 @@ export class EsminiWasmService implements IEsminiService {
           })),
         }));
         this.frames = convertedFrames;
-
-        console.warn(
-          `[EsminiWasmService] Batch completed: ${convertedFrames.length} frames, ` +
-            `time range: 0 – ${msg.duration.toFixed(2)}s, ` +
-            `${msg.storyBoardEvents.length} storyboard events, ` +
-            `${msg.conditionEvents.length} condition events`,
-        );
-
-        if (convertedFrames.length > 0) {
-          const firstFrame = convertedFrames[0];
-          console.warn(
-            `[EsminiWasmService] Entity names in first frame: [${firstFrame.objects.map((o) => JSON.stringify(o.name)).join(', ')}]`,
-          );
-        }
 
         // Emit batch storyboard events
         const sbEvents = msg.storyBoardEvents.map(convertStoryBoardEvent);
@@ -344,22 +280,6 @@ export class EsminiWasmService implements IEsminiService {
     };
   }
 
-  onStoryBoardEvent(callback: (event: StoryBoardEvent) => void): () => void {
-    this.storyBoardCallbacks.push(callback);
-    return () => {
-      const idx = this.storyBoardCallbacks.indexOf(callback);
-      if (idx !== -1) this.storyBoardCallbacks.splice(idx, 1);
-    };
-  }
-
-  onConditionEvent(callback: (event: ConditionEvent) => void): () => void {
-    this.conditionCallbacks.push(callback);
-    return () => {
-      const idx = this.conditionCallbacks.indexOf(callback);
-      if (idx !== -1) this.conditionCallbacks.splice(idx, 1);
-    };
-  }
-
   onBatchStoryBoardEvents(callback: (events: StoryBoardEvent[]) => void): () => void {
     this.batchStoryBoardCallbacks.push(callback);
     return () => {
@@ -382,8 +302,6 @@ export class EsminiWasmService implements IEsminiService {
     this.worker = null;
     this.frameCallbacks = [];
     this.completeCallbacks = [];
-    this.storyBoardCallbacks = [];
-    this.conditionCallbacks = [];
     this.batchStoryBoardCallbacks = [];
     this.batchConditionCallbacks = [];
     this.errorCallbacks = [];
