@@ -10,6 +10,7 @@ import type { OpenDriveDocument } from '@osce/shared';
 import { TrajectoryPointMarker } from './TrajectoryPointMarker.js';
 import { TrajectoryPointGizmo } from './TrajectoryPointGizmo.js';
 import { TrajectoryConnectionLine } from './TrajectoryConnectionLine.js';
+import type { OrbitControlsLike } from '../store/viewer-types.js';
 
 export interface TrajectoryOverlayProps {
   /** World positions of editable points (vertices / origin / control points) */
@@ -27,7 +28,7 @@ export interface TrajectoryOverlayProps {
   onPointContextMenu?: (index: number, event: ThreeEvent<MouseEvent>) => void;
   onLineClick?: (event: ThreeEvent<MouseEvent>) => void;
   openDriveDocument?: OpenDriveDocument | null;
-  orbitControlsRef?: React.RefObject<any>;
+  orbitControlsRef?: React.RefObject<OrbitControlsLike | null>;
   snapToLane?: boolean;
   onPointDragEnd?: (
     index: number,

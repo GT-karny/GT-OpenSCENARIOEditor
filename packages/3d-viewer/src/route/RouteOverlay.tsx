@@ -11,6 +11,7 @@ import { WaypointMarker } from './WaypointMarker.js';
 import { WaypointGizmo } from './WaypointGizmo.js';
 import { RouteConnectionLine } from './RouteConnectionLine.js';
 import { LaneChangeMarker } from './LaneChangeMarker.js';
+import type { OrbitControlsLike } from '../store/viewer-types.js';
 
 /** A lane change required along a lane-change-aware route, in road (x/y/z) space. */
 export interface RouteLaneChangeMarker {
@@ -31,7 +32,7 @@ export interface RouteOverlayProps {
   onWaypointContextMenu?: (index: number, event: ThreeEvent<MouseEvent>) => void;
   onLineClick?: (segmentIndex: number, event: ThreeEvent<MouseEvent>) => void;
   openDriveDocument?: OpenDriveDocument | null;
-  orbitControlsRef?: React.RefObject<any>;
+  orbitControlsRef?: React.RefObject<OrbitControlsLike | null>;
   onWaypointDragEnd?: (
     index: number,
     worldX: number,

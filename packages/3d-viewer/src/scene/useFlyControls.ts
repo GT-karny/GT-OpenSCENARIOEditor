@@ -4,13 +4,15 @@
  * Disables OrbitControls while active.
  */
 
+import type React from 'react';
 import { useEffect, useRef, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import type { OrbitControlsLike } from '../store/viewer-types.js';
 
 interface FlyControlsOptions {
   /** Reference to OrbitControls to disable during fly mode */
-  orbitControlsRef: React.RefObject<any>;
+  orbitControlsRef: React.RefObject<OrbitControlsLike | null>;
   /** Movement speed (units per second) */
   moveSpeed?: number;
   /** Mouse look sensitivity */

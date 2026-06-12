@@ -47,6 +47,10 @@ apps/desktop/src-tauri/target/
 # Temporary files
 *.tmp
 *.log
+tmp/
+
+# Claude Code local instructions (private, not committed)
+CLAUDE.local.md
 
 # Claude Code (local settings, skills, worktrees, etc.)
 .claude/

@@ -7,7 +7,7 @@ import React, { useRef, useEffect, useImperativeHandle, forwardRef, useCallback 
 import { useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
-import type { CameraMode } from '../store/viewer-types.js';
+import type { CameraMode, OrbitControlsLike } from '../store/viewer-types.js';
 import { useFlyControls } from './useFlyControls.js';
 
 interface CameraControllerProps {
@@ -21,7 +21,7 @@ interface CameraControllerProps {
 
 export interface CameraControllerHandle {
   /** Reference to the underlying OrbitControls */
-  orbitControls: React.RefObject<any>;
+  orbitControls: React.RefObject<OrbitControlsLike | null>;
 }
 
 interface CameraAnimation {
@@ -43,7 +43,9 @@ const FOCUS_DURATION = 0.3; // seconds
 
 export const CameraController = forwardRef<CameraControllerHandle, CameraControllerProps>(
   ({ mode, focusTarget, flySpeed = 1, cameraStateRef }, ref) => {
-    const controlsRef = useRef<any>(null);
+    // Concrete instance type required by the drei component's ref attribute;
+    // it structurally satisfies OrbitControlsLike for the exposed handle.
+    const controlsRef = useRef<React.ComponentRef<typeof OrbitControls> | null>(null);
     const { camera } = useThree();
     const animRef = useRef<CameraAnimation>({
       startPos: new THREE.Vector3(),

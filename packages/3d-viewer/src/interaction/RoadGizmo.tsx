@@ -16,13 +16,14 @@ import { worldToLane } from '@osce/opendrive';
 import { roadCoordsToWorld } from '../utils/road-projection.js';
 import { GizmoArrow } from './primitives/GizmoArrow.js';
 import { useDragOnPlane } from './primitives/useDragOnPlane.js';
+import type { OrbitControlsLike } from '../store/viewer-types.js';
 
 interface RoadGizmoProps {
   /** The entity's Three.js group (inside the rotation group) */
   entityRef: React.RefObject<THREE.Object3D | null>;
   openDriveDocument: OpenDriveDocument;
   currentRoadPosition: { roadId: string; laneId: number; s: number };
-  orbitControlsRef?: React.RefObject<any>;
+  orbitControlsRef?: React.RefObject<OrbitControlsLike | null>;
   onDragEnd?: (worldX: number, worldY: number, worldZ: number, heading: number) => void;
 }
 

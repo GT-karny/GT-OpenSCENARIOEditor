@@ -6,16 +6,38 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    ignores: ['**/dist/**', '**/node_modules/**', 'Thirdparty/**', '**/generated/**'],
+    ignores: [
+      '**/dist/**',
+      '**/node_modules/**',
+      'Thirdparty/**',
+      '**/generated/**',
+      'apps/web/public/wasm/**',
+      'apps/desktop/release/**',
+      '.claude/**',
+      'tmp/**',
+      '*.config.mjs',
+      'scripts/**',
+      '**/scripts/**',
+    ],
   },
   {
     rules: {
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true },
+      ],
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/consistent-type-imports': ['error', {
         prefer: 'type-imports',
         disallowTypeAnnotations: false,
       }],
+    },
+  },
+  {
+    // openscenario parser layer is being retyped in a later phase — keep as warn
+    files: ['packages/openscenario/src/**'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'warn',
     },
   },
   {

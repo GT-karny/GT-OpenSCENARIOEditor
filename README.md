@@ -99,6 +99,7 @@ packages/
   mcp-server/       — MCP protocol for AI agent integration
   templates/        — Built-in scenario templates
   i18n/             — English/Japanese translation strings
+  opendrive-engine/ — OpenDRIVE editing engine — Zustand store, commands, builders
   theme-apex/       — APEX design tokens and styles (glass, cursor light)
 ```
 
@@ -117,4 +118,4 @@ Sample `.xosc` files are included under `Thirdparty/esmini-demo_Windows/esmini-d
 
 ## License
 
-[MIT](LICENSE)
+[Apache-2.0](LICENSE)

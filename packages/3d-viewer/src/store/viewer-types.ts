@@ -2,7 +2,23 @@
  * Types for the 3D viewer local state.
  */
 
+import type { Vector3 } from 'three';
 import type { SimulationFrame } from '@osce/shared';
+
+/**
+ * Minimal interface for OrbitControls-like objects from @react-three/drei.
+ * Used instead of `any` for refs that hold an OrbitControls instance.
+ * The concrete drei OrbitControls instance satisfies this structurally.
+ */
+export interface OrbitControlsLike {
+  enabled: boolean;
+  enableRotate: boolean;
+  /** The orbit target point. */
+  target: Vector3;
+  /** The camera controlled by OrbitControls. */
+  object: { position: Vector3 };
+  update: () => void;
+}
 
 export type CameraMode = 'orbit' | 'topDown';
 export type ViewerMode = 'edit' | 'play';

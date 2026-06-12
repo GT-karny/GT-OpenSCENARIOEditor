@@ -10,11 +10,12 @@ import * as THREE from 'three';
 import type { OpenDriveDocument } from '@osce/shared';
 import { worldToLane } from '@osce/opendrive';
 import { roadCoordsToWorld } from '../utils/road-projection.js';
+import type { OrbitControlsLike } from '../store/viewer-types.js';
 
 interface TrajectoryPointGizmoProps {
   position: [number, number, number];
   openDriveDocument: OpenDriveDocument | null;
-  orbitControlsRef?: React.RefObject<any>;
+  orbitControlsRef?: React.RefObject<OrbitControlsLike | null>;
   snapToLane?: boolean;
   onDragEnd?: (
     worldX: number,

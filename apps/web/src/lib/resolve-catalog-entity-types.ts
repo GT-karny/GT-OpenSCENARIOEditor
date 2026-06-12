@@ -1,4 +1,6 @@
 import type { CatalogReference, EntityType, ScenarioEntity } from '@osce/shared';
+import type { StoreApi } from 'zustand';
+import type { ScenarioStore } from '@osce/scenario-engine';
 import { useCatalogStore } from '../stores/catalog-store';
 
 const ENTITY_TYPES: EntityType[] = ['vehicle', 'pedestrian', 'miscObject'];
@@ -8,11 +10,8 @@ const ENTITY_TYPES: EntityType[] = ['vehicle', 'pedestrian', 'miscObject'];
  * by inspecting the loaded catalog contents (e.g., PedestrianCatalog → 'pedestrian').
  * Uses direct setState to avoid polluting undo history during initial file load.
  */
- 
-export function resolveCatalogEntityTypes(storeApi: {
-  getState: () => any;
-  setState: (s: any) => void;
-}): void {
+
+export function resolveCatalogEntityTypes(storeApi: StoreApi<ScenarioStore>): void {
   const { document } = storeApi.getState();
   const { resolveReference } = useCatalogStore.getState();
   let updated = false;
