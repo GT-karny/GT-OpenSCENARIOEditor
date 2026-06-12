@@ -17,7 +17,7 @@ test.describe('File Operations', () => {
     await page.addInitScript(() => {
       // @ts-expect-error — intentionally remove FS Access API for the fallback path
       delete window.showOpenFilePicker;
-      // @ts-expect-error
+      // @ts-expect-error — same as above for the save dialog
       delete window.showSaveFilePicker;
     });
     await gotoEditor(page);
