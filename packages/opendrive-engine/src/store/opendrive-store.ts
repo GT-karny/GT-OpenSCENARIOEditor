@@ -4,9 +4,6 @@
  */
 
 import { createStore } from 'zustand/vanilla';
-import { produce } from 'immer';
-import { v4 as uuidv4 } from 'uuid';
-import { nextNumericId } from '../utils/id-generator.js';
 import type {
   OpenDriveDocument,
   OdrRoad,
@@ -18,13 +15,37 @@ import type {
   OdrController,
   OdrJunction,
   OdrJunctionConnection,
+  ICommand,
 } from '@osce/shared';
 import type { OpenDriveState } from './store-types.js';
-import { createDefaultDocument, createSignalFromDefaults, createControllerFromDefaults, createJunctionFromDefaults, createJunctionConnectionFromDefaults } from './defaults.js';
+import { createDefaultDocument } from './defaults.js';
 import { CommandHistory } from '../commands/command-history.js';
 import { AddRoadCommand, RemoveRoadCommand, UpdateRoadCommand } from '../commands/road-commands.js';
 import { UpdateHeaderCommand } from '../commands/header-commands.js';
-import { findRoadIndex } from '../operations/road-operations.js';
+import { SetRoadLinkCommand } from '../commands/road-link-commands.js';
+import {
+  AddLaneCommand,
+  RemoveLaneCommand,
+  UpdateLaneCommand,
+} from '../commands/lane-commands.js';
+import {
+  AddJunctionCommand,
+  RemoveJunctionCommand,
+  UpdateJunctionCommand,
+  AddJunctionConnectionCommand,
+} from '../commands/junction-commands.js';
+import { AddObjectCommand, RemoveObjectCommand } from '../commands/object-commands.js';
+import {
+  AddSignalCommand,
+  RemoveSignalCommand,
+  UpdateSignalCommand,
+} from '../commands/signal-commands.js';
+import {
+  AddControllerCommand,
+  RemoveControllerCommand,
+  UpdateControllerCommand,
+} from '../commands/controller-commands.js';
+import { CompoundCommand } from '../commands/compound-command.js';
 
 export interface OpenDriveStore extends OpenDriveState {
   // Command history
@@ -106,7 +127,7 @@ export function createOpenDriveStore() {
   const commandHistory = new CommandHistory();
 
   // Batch state: used by beginBatch/endBatch to collapse multiple commands
-  let batchSnapshot: OpenDriveDocument | null = null;
+  let batchActive = false;
   let batchDescription = '';
   let batchUndoStackSize = 0;
 
@@ -203,92 +224,35 @@ export function createOpenDriveStore() {
         linkType: 'predecessor' | 'successor',
         link: OdrRoadLinkElement | undefined,
       ): void => {
-        const doc = getDoc();
-        const roadIdx = findRoadIndex(doc, roadId);
-        if (roadIdx === -1) {
+        // Preserve the prior diagnostic for callers passing a missing road id.
+        if (getDoc().roads.findIndex((r) => r.id === roadId) === -1) {
           console.warn(
             `[opendrive-store] setRoadLink: road "${roadId}" not found in document (${linkType} link)`,
           );
           return;
         }
-
-        const prevDoc = structuredClone(doc);
-        setDoc(
-          produce(doc, (draft) => {
-            const road = draft.roads[roadIdx];
-            if (!road.link) road.link = {};
-            if (link) {
-              road.link[linkType] = { ...link };
-            } else {
-              delete road.link[linkType];
-              if (!road.link.predecessor && !road.link.successor) {
-                road.link = undefined;
-              }
-            }
-          }),
-        );
-        markDirtyRoad(roadId);
-
-        commandHistory.execute({
-          id: uuidv4(),
-          description: `Set ${linkType} link on road ${roadId}`,
-          execute: () => { /* already executed */ },
-          undo: () => {
-            setDoc(prevDoc);
-            markDirtyRoad(roadId);
-          },
-        });
+        const cmd = new SetRoadLinkCommand(roadId, linkType, link, getDoc, setDoc, markDirtyRoad);
+        commandHistory.execute(cmd);
         syncUndoRedo();
       },
 
-      // --- Lane operations (inline commands for simplicity) ---
+      // --- Lane operations ---
       addLane: (
         roadId: string,
         sectionIdx: number,
         side: 'left' | 'right',
         partial: Partial<OdrLane>,
       ): void => {
-        const doc = getDoc();
-        const roadIdx = findRoadIndex(doc, roadId);
-        if (roadIdx === -1) return;
-        const section = doc.roads[roadIdx].lanes[sectionIdx];
-        if (!section) return;
-
-        const lanes = side === 'left' ? section.leftLanes : section.rightLanes;
-        const sign = side === 'left' ? 1 : -1;
-        const newId = partial.id ?? sign * (lanes.length + 1);
-        const newLane: OdrLane = {
-          id: newId,
-          type: partial.type ?? 'driving',
-          level: partial.level,
-          width: partial.width ?? [{ sOffset: 0, a: 3.5, b: 0, c: 0, d: 0 }],
-          roadMarks: partial.roadMarks ?? [{ sOffset: 0, type: 'solid', color: 'standard' }],
-          link: partial.link,
-          speed: partial.speed,
-          height: partial.height,
-        };
-
-        const prevDoc = structuredClone(doc);
-        setDoc(
-          produce(doc, (draft) => {
-            const target = side === 'left'
-              ? draft.roads[roadIdx].lanes[sectionIdx].leftLanes
-              : draft.roads[roadIdx].lanes[sectionIdx].rightLanes;
-            target.push(newLane);
-          }),
+        const cmd = new AddLaneCommand(
+          roadId,
+          sectionIdx,
+          side,
+          partial,
+          getDoc,
+          setDoc,
+          markDirtyRoad,
         );
-        markDirtyRoad(roadId);
-
-        // Register as inline command for undo
-        commandHistory.execute({
-          id: uuidv4(),
-          description: `Add lane ${newId} to road ${roadId}`,
-          execute: () => { /* already executed */ },
-          undo: () => {
-            setDoc(prevDoc);
-            markDirtyRoad(roadId);
-          },
-        });
+        commandHistory.execute(cmd);
         syncUndoRedo();
       },
 
@@ -298,31 +262,16 @@ export function createOpenDriveStore() {
         side: 'left' | 'right',
         laneId: number,
       ): void => {
-        const doc = getDoc();
-        const roadIdx = findRoadIndex(doc, roadId);
-        if (roadIdx === -1) return;
-
-        const prevDoc = structuredClone(doc);
-        setDoc(
-          produce(doc, (draft) => {
-            const target = side === 'left'
-              ? draft.roads[roadIdx].lanes[sectionIdx].leftLanes
-              : draft.roads[roadIdx].lanes[sectionIdx].rightLanes;
-            const idx = target.findIndex((l) => l.id === laneId);
-            if (idx !== -1) target.splice(idx, 1);
-          }),
+        const cmd = new RemoveLaneCommand(
+          roadId,
+          sectionIdx,
+          side,
+          laneId,
+          getDoc,
+          setDoc,
+          markDirtyRoad,
         );
-        markDirtyRoad(roadId);
-
-        commandHistory.execute({
-          id: uuidv4(),
-          description: `Remove lane ${laneId} from road ${roadId}`,
-          execute: () => { /* already executed */ },
-          undo: () => {
-            setDoc(prevDoc);
-            markDirtyRoad(roadId);
-          },
-        });
+        commandHistory.execute(cmd);
         syncUndoRedo();
       },
 
@@ -333,112 +282,43 @@ export function createOpenDriveStore() {
         laneId: number,
         updates: Partial<OdrLane>,
       ): void => {
-        const doc = getDoc();
-        const roadIdx = findRoadIndex(doc, roadId);
-        if (roadIdx === -1) return;
-
-        const prevDoc = structuredClone(doc);
-        setDoc(
-          produce(doc, (draft) => {
-            const target = side === 'left'
-              ? draft.roads[roadIdx].lanes[sectionIdx].leftLanes
-              : draft.roads[roadIdx].lanes[sectionIdx].rightLanes;
-            const lane = target.find((l) => l.id === laneId);
-            if (lane) Object.assign(lane, updates);
-          }),
+        const cmd = new UpdateLaneCommand(
+          roadId,
+          sectionIdx,
+          side,
+          laneId,
+          updates,
+          getDoc,
+          setDoc,
+          markDirtyRoad,
         );
-        markDirtyRoad(roadId);
-
-        commandHistory.execute({
-          id: uuidv4(),
-          description: `Update lane ${laneId} on road ${roadId}`,
-          execute: () => { /* already executed */ },
-          undo: () => {
-            setDoc(prevDoc);
-            markDirtyRoad(roadId);
-          },
-        });
+        commandHistory.execute(cmd);
         syncUndoRedo();
       },
 
       // --- Junction operations ---
       addJunction: (partial: Partial<OdrJunction>): OdrJunction => {
-        const junction = createJunctionFromDefaults(
-          partial.id ?? nextNumericId(getDoc().junctions.map((j) => j.id)),
-          partial.name ?? '',
-        );
-        if (partial.type) junction.type = partial.type;
-        if (partial.connections) junction.connections = partial.connections;
-
-        const prevDoc = structuredClone(getDoc());
-        setDoc(
-          produce(getDoc(), (draft) => {
-            draft.junctions.push(junction);
-          }),
-        );
-        markDirtyJunction(junction.id);
-
-        commandHistory.execute({
-          id: uuidv4(),
-          description: `Add junction: ${junction.name}`,
-          execute: () => { /* already executed */ },
-          undo: () => {
-            setDoc(prevDoc);
-            markDirtyJunction(junction.id);
-          },
-        });
+        const cmd = new AddJunctionCommand(partial, getDoc, setDoc, markDirtyJunction);
+        commandHistory.execute(cmd);
         syncUndoRedo();
-        return junction;
+        return cmd.getCreatedJunction();
       },
 
       removeJunction: (junctionId: string): void => {
-        const prevDoc = structuredClone(getDoc());
-        setDoc(
-          produce(getDoc(), (draft) => {
-            const idx = draft.junctions.findIndex((j) => j.id === junctionId);
-            if (idx !== -1) draft.junctions.splice(idx, 1);
-          }),
-        );
-        markDirtyJunction(junctionId);
-
-        commandHistory.execute({
-          id: uuidv4(),
-          description: `Remove junction: ${junctionId}`,
-          execute: () => { /* already executed */ },
-          undo: () => {
-            setDoc(prevDoc);
-            markDirtyJunction(junctionId);
-          },
-        });
+        const cmd = new RemoveJunctionCommand(junctionId, getDoc, setDoc, markDirtyJunction);
+        commandHistory.execute(cmd);
         syncUndoRedo();
       },
 
       updateJunction: (junctionId: string, updates: Partial<OdrJunction>): void => {
-        const doc = getDoc();
-        const idx = doc.junctions.findIndex((j) => j.id === junctionId);
-        if (idx === -1) return;
-        const prevJunction = structuredClone(doc.junctions[idx]);
-        setDoc(
-          produce(doc, (draft) => {
-            Object.assign(draft.junctions[idx], updates);
-          }),
+        const cmd = new UpdateJunctionCommand(
+          junctionId,
+          updates,
+          getDoc,
+          setDoc,
+          markDirtyJunction,
         );
-        markDirtyJunction(junctionId);
-
-        commandHistory.execute({
-          id: uuidv4(),
-          description: `Update junction: ${junctionId}`,
-          execute: () => { /* already executed */ },
-          undo: () => {
-            setDoc(
-              produce(getDoc(), (draft) => {
-                const i = draft.junctions.findIndex((j) => j.id === junctionId);
-                if (i !== -1) draft.junctions[i] = prevJunction;
-              }),
-            );
-            markDirtyJunction(junctionId);
-          },
-        });
+        commandHistory.execute(cmd);
         syncUndoRedo();
       },
 
@@ -446,242 +326,76 @@ export function createOpenDriveStore() {
         junctionId: string,
         partial: Partial<OdrJunctionConnection>,
       ): OdrJunctionConnection => {
-        const allConnIds = getDoc().junctions.flatMap((j) => j.connections.map((c) => c.id));
-        const connection = createJunctionConnectionFromDefaults(
-          partial.id ?? nextNumericId(allConnIds),
-          partial.incomingRoad ?? '',
-          partial.connectingRoad ?? '',
+        const cmd = new AddJunctionConnectionCommand(
+          junctionId,
+          partial,
+          getDoc,
+          setDoc,
+          markDirtyJunction,
         );
-        if (partial.contactPoint) connection.contactPoint = partial.contactPoint;
-        if (partial.laneLinks) connection.laneLinks = partial.laneLinks;
-
-        const prevDoc = structuredClone(getDoc());
-        setDoc(
-          produce(getDoc(), (draft) => {
-            const junction = draft.junctions.find((j) => j.id === junctionId);
-            if (junction) junction.connections.push(connection);
-          }),
-        );
-        markDirtyJunction(junctionId);
-
-        commandHistory.execute({
-          id: uuidv4(),
-          description: `Add connection to junction: ${junctionId}`,
-          execute: () => { /* already executed */ },
-          undo: () => {
-            setDoc(prevDoc);
-            markDirtyJunction(junctionId);
-          },
-        });
+        commandHistory.execute(cmd);
         syncUndoRedo();
-        return connection;
+        return cmd.getCreatedConnection();
       },
 
       // --- Object operations ---
       addObject: (roadId: string, partial: Partial<OdrRoadObject>): OdrRoadObject => {
-        const allObjectIds = getDoc().roads.flatMap((r) => r.objects.map((o) => o.id));
-        const objectId = partial.id ?? nextNumericId(allObjectIds);
-        const obj: OdrRoadObject = {
-          s: 0,
-          t: 0,
-          ...partial,
-          id: objectId,
-        };
-
-        const prevDoc = structuredClone(getDoc());
-        setDoc(
-          produce(getDoc(), (draft) => {
-            const roadIdx = findRoadIndex(draft, roadId);
-            if (roadIdx !== -1) draft.roads[roadIdx].objects.push(obj);
-          }),
-        );
-        markDirtyRoad(roadId);
-
-        commandHistory.execute({
-          id: uuidv4(),
-          description: `Add object ${obj.id} to road ${roadId}`,
-          execute: () => { /* already executed */ },
-          undo: () => {
-            setDoc(prevDoc);
-            markDirtyRoad(roadId);
-          },
-        });
+        const cmd = new AddObjectCommand(roadId, partial, getDoc, setDoc, markDirtyRoad);
+        commandHistory.execute(cmd);
         syncUndoRedo();
-        return obj;
+        return cmd.getCreatedObject();
       },
 
       removeObject: (roadId: string, objectId: string): void => {
-        const prevDoc = structuredClone(getDoc());
-        setDoc(
-          produce(getDoc(), (draft) => {
-            const roadIdx = findRoadIndex(draft, roadId);
-            if (roadIdx !== -1) {
-              const idx = draft.roads[roadIdx].objects.findIndex((o) => o.id === objectId);
-              if (idx !== -1) draft.roads[roadIdx].objects.splice(idx, 1);
-            }
-          }),
-        );
-        markDirtyRoad(roadId);
-
-        commandHistory.execute({
-          id: uuidv4(),
-          description: `Remove object ${objectId} from road ${roadId}`,
-          execute: () => { /* already executed */ },
-          undo: () => {
-            setDoc(prevDoc);
-            markDirtyRoad(roadId);
-          },
-        });
+        const cmd = new RemoveObjectCommand(roadId, objectId, getDoc, setDoc, markDirtyRoad);
+        commandHistory.execute(cmd);
         syncUndoRedo();
       },
 
       // --- Signal operations ---
       addSignal: (roadId: string, partial: Partial<OdrSignal>): OdrSignal => {
-        const allSignalIds = getDoc().roads.flatMap((r) => r.signals.map((s) => s.id));
-        const signalId = partial.id ?? nextNumericId(allSignalIds);
-        const signal: OdrSignal = {
-          ...createSignalFromDefaults(signalId),
-          ...partial,
-          id: signalId,
-        };
-
-        const prevDoc = structuredClone(getDoc());
-        setDoc(
-          produce(getDoc(), (draft) => {
-            const roadIdx = findRoadIndex(draft, roadId);
-            if (roadIdx !== -1) draft.roads[roadIdx].signals.push(signal);
-          }),
-        );
-        markDirtyRoad(roadId);
-
-        commandHistory.execute({
-          id: uuidv4(),
-          description: `Add signal ${signal.id} to road ${roadId}`,
-          execute: () => { /* already executed */ },
-          undo: () => {
-            setDoc(prevDoc);
-            markDirtyRoad(roadId);
-          },
-        });
+        const cmd = new AddSignalCommand(roadId, partial, getDoc, setDoc, markDirtyRoad);
+        commandHistory.execute(cmd);
         syncUndoRedo();
-        return signal;
+        return cmd.getCreatedSignal();
       },
 
       removeSignal: (roadId: string, signalId: string): void => {
-        const prevDoc = structuredClone(getDoc());
-        setDoc(
-          produce(getDoc(), (draft) => {
-            const roadIdx = findRoadIndex(draft, roadId);
-            if (roadIdx !== -1) {
-              const idx = draft.roads[roadIdx].signals.findIndex((s) => s.id === signalId);
-              if (idx !== -1) draft.roads[roadIdx].signals.splice(idx, 1);
-            }
-          }),
-        );
-        markDirtyRoad(roadId);
-
-        commandHistory.execute({
-          id: uuidv4(),
-          description: `Remove signal ${signalId} from road ${roadId}`,
-          execute: () => { /* already executed */ },
-          undo: () => {
-            setDoc(prevDoc);
-            markDirtyRoad(roadId);
-          },
-        });
+        const cmd = new RemoveSignalCommand(roadId, signalId, getDoc, setDoc, markDirtyRoad);
+        commandHistory.execute(cmd);
         syncUndoRedo();
       },
 
       updateSignal: (roadId: string, signalId: string, updates: Partial<OdrSignal>): void => {
-        const prevDoc = structuredClone(getDoc());
-        setDoc(
-          produce(getDoc(), (draft) => {
-            const roadIdx = findRoadIndex(draft, roadId);
-            if (roadIdx !== -1) {
-              const signal = draft.roads[roadIdx].signals.find((s) => s.id === signalId);
-              if (signal) Object.assign(signal, updates);
-            }
-          }),
+        const cmd = new UpdateSignalCommand(
+          roadId,
+          signalId,
+          updates,
+          getDoc,
+          setDoc,
+          markDirtyRoad,
         );
-        markDirtyRoad(roadId);
-
-        commandHistory.execute({
-          id: uuidv4(),
-          description: `Update signal ${signalId} on road ${roadId}`,
-          execute: () => { /* already executed */ },
-          undo: () => {
-            setDoc(prevDoc);
-            markDirtyRoad(roadId);
-          },
-        });
+        commandHistory.execute(cmd);
         syncUndoRedo();
       },
 
       // --- Controller operations ---
       addController: (partial: Partial<OdrController>): OdrController => {
-        const controller = createControllerFromDefaults(
-          partial.id ?? nextNumericId(getDoc().controllers.map((c) => c.id)),
-          partial.name ?? '',
-        );
-        if (partial.sequence !== undefined) controller.sequence = partial.sequence;
-        if (partial.controls) controller.controls = partial.controls;
-
-        const prevDoc = structuredClone(getDoc());
-        setDoc(
-          produce(getDoc(), (draft) => {
-            draft.controllers.push(controller);
-          }),
-        );
-
-        commandHistory.execute({
-          id: uuidv4(),
-          description: `Add controller: ${controller.name}`,
-          execute: () => { /* already executed */ },
-          undo: () => {
-            setDoc(prevDoc);
-          },
-        });
+        const cmd = new AddControllerCommand(partial, getDoc, setDoc);
+        commandHistory.execute(cmd);
         syncUndoRedo();
-        return controller;
+        return cmd.getCreatedController();
       },
 
       removeController: (controllerId: string): void => {
-        const prevDoc = structuredClone(getDoc());
-        setDoc(
-          produce(getDoc(), (draft) => {
-            const idx = draft.controllers.findIndex((c) => c.id === controllerId);
-            if (idx !== -1) draft.controllers.splice(idx, 1);
-          }),
-        );
-
-        commandHistory.execute({
-          id: uuidv4(),
-          description: `Remove controller: ${controllerId}`,
-          execute: () => { /* already executed */ },
-          undo: () => {
-            setDoc(prevDoc);
-          },
-        });
+        const cmd = new RemoveControllerCommand(controllerId, getDoc, setDoc);
+        commandHistory.execute(cmd);
         syncUndoRedo();
       },
 
       updateController: (controllerId: string, updates: Partial<OdrController>): void => {
-        const prevDoc = structuredClone(getDoc());
-        setDoc(
-          produce(getDoc(), (draft) => {
-            const controller = draft.controllers.find((c) => c.id === controllerId);
-            if (controller) Object.assign(controller, updates);
-          }),
-        );
-
-        commandHistory.execute({
-          id: uuidv4(),
-          description: `Update controller: ${controllerId}`,
-          execute: () => { /* already executed */ },
-          undo: () => {
-            setDoc(prevDoc);
-          },
-        });
+        const cmd = new UpdateControllerCommand(controllerId, updates, getDoc, setDoc);
+        commandHistory.execute(cmd);
         syncUndoRedo();
       },
 
@@ -694,31 +408,33 @@ export function createOpenDriveStore() {
 
       // --- Batch operations ---
       beginBatch: (description: string): void => {
+        batchActive = true;
         batchDescription = description;
-        batchSnapshot = structuredClone(getDoc());
         batchUndoStackSize = commandHistory.getUndoStack().length;
       },
 
       endBatch: (): void => {
-        if (!batchSnapshot) return;
+        if (!batchActive) return;
+        batchActive = false;
 
-        const snapshot = batchSnapshot;
-        const commandsAdded =
-          commandHistory.getUndoStack().length - batchUndoStackSize;
+        const undoStack = commandHistory.getUndoStack();
+        const commandsAdded = undoStack.length - batchUndoStackSize;
 
-        // Collapse all individual commands added during the batch
-        // into a single undo entry that restores the pre-batch snapshot.
-        commandHistory.collapseUndo(commandsAdded, {
-          id: uuidv4(),
-          description: batchDescription,
-          execute: () => { /* already executed */ },
-          undo: () => {
-            setDoc(snapshot);
-          },
-        });
+        // Nothing was recorded during the batch — leave the history untouched.
+        if (commandsAdded <= 0) {
+          batchDescription = '';
+          return;
+        }
+
+        // Collapse the member commands added during the batch into a single
+        // CompoundCommand. Because the members are real commands, the collapsed
+        // entry's execute() (redo) and undo() both work: redo re-runs each
+        // member in order, undo reverses them.
+        const members: ICommand[] = undoStack.slice(undoStack.length - commandsAdded);
+        const compound = new CompoundCommand(batchDescription, members);
+        commandHistory.collapseUndo(commandsAdded, compound);
         syncUndoRedo();
 
-        batchSnapshot = null;
         batchDescription = '';
       },
 

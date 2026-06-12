@@ -77,6 +77,7 @@ export {
   RemoveControllerCommand,
   UpdateControllerCommand,
 } from './commands/controller-commands.js';
+export { AddObjectCommand, RemoveObjectCommand } from './commands/object-commands.js';
 export { CompoundCommand } from './commands/compound-command.js';
 
 // Serializers / Parsers (editor format)
