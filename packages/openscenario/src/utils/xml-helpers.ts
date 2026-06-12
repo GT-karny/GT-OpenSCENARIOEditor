@@ -99,14 +99,6 @@ export function optBoolAttr(raw: RawXml | undefined, name: string): boolean | un
   return v === 'true' || v === '1';
 }
 
-export function numStr(value: number | undefined): string | undefined {
-  return value !== undefined ? String(value) : undefined;
-}
-
-export function boolStr(value: boolean | undefined): string | undefined {
-  return value !== undefined ? String(value) : undefined;
-}
-
 // ---------------------------------------------------------------------------
 // Serializer helpers
 // ---------------------------------------------------------------------------

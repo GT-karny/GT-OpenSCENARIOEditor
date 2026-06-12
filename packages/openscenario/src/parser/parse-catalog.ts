@@ -12,6 +12,7 @@ import { parseManeuver } from './parse-storyboard.js';
 import { parseRoute } from './parse-positions.js';
 import { generateId } from '../utils/uuid.js';
 import { strAttr, startBindingCollection, setBindingElementId, finishBindingCollection } from '../utils/xml-helpers.js';
+import { ensureArray } from '../utils/ensure-array.js';
 
 /**
  * Elements that can appear multiple times inside a <Catalog>.
@@ -40,7 +41,7 @@ const CATALOG_ARRAY_ELEMENTS = new Set([
   'ConditionGroup',
   'Condition',
   'EntityRef',
-  'LaneRange',
+  'RelativeLaneRange',
 ]);
 
 function createCatalogXmlParser(): XMLParser {
@@ -57,12 +58,6 @@ function createCatalogXmlParser(): XMLParser {
     allowBooleanAttributes: true,
     trimValues: true,
   });
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function ensureArray(val: any): any[] {
-  if (!val) return [];
-  return Array.isArray(val) ? val : [val];
 }
 
 export function parseCatalogXml(xml: string): CatalogDocument {

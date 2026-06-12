@@ -21,6 +21,9 @@ export function computeTrajectoryVisualPoints(
       return computeClothoidPoints(trajectory.shape, pointWorldPositions);
     case 'nurbs':
       return computeNurbsPoints(trajectory.shape, pointWorldPositions);
+    case 'clothoidSpline':
+      // ClothoidSpline editing/preview not yet implemented — return empty
+      return [];
   }
 }
 

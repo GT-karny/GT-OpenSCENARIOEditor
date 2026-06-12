@@ -109,7 +109,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   routePreviewData?: import('@osce/3d-viewer').RoutePreviewData[];
   // Trajectory editing props
   trajectoryEditActive?: boolean;
-  trajectoryShapeType?: 'polyline' | 'clothoid' | 'nurbs';
+  trajectoryShapeType?: 'polyline' | 'clothoid' | 'nurbs' | 'clothoidSpline';
   trajectoryPoints?: Array<{ x: number; y: number; z: number; h: number }>;
   trajectoryCurvePoints?: Array<{ x: number; y: number; z: number }>;
   trajectoryPointTimes?: Array<number | undefined>;
@@ -148,17 +148,6 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
     currentFrame = simFrames[simFrames.length - 1];
   } else if ((simStatus === 'completed' || simStatus === 'error') && simFrames.length > 0) {
     currentFrame = simFrames[currentFrameIndex] ?? simFrames[simFrames.length - 1];
-  }
-
-  // Diagnostic: log bridge renders
-  const renderCountRef = useRef(0);
-  renderCountRef.current++;
-  if (renderCountRef.current <= 5 || renderCountRef.current % 60 === 0) {
-    console.warn(
-      `[ViewerBridge] render #${renderCountRef.current}: status=${simStatus}, ` +
-        `frameIndex=${currentFrameIndex}/${simFrames.length}, ` +
-        `currentFrame=${currentFrame ? `t=${currentFrame.time.toFixed(3)}` : 'null'}`,
-    );
   }
 
   return (
@@ -1218,7 +1207,6 @@ export function EditorLayout() {
                                 onPaneContextMenu={handlePaneContextMenu}
                                 onNodeContextMenu={handleNodeContextMenu}
                                 deleteKeyCode={null}
-                                disableBuiltinShortcuts
                               />
                             </div>
                           </ErrorBoundary>

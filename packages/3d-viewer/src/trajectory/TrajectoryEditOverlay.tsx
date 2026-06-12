@@ -7,7 +7,7 @@
 import React from 'react';
 
 interface TrajectoryEditOverlayProps {
-  shapeType: 'polyline' | 'clothoid' | 'nurbs';
+  shapeType: 'polyline' | 'clothoid' | 'nurbs' | 'clothoidSpline';
   pointCount: number;
   warnings: string[];
   onSave: () => void;
@@ -89,12 +89,14 @@ const SHAPE_LABELS: Record<string, string> = {
   polyline: 'Polyline',
   clothoid: 'Clothoid',
   nurbs: 'NURBS',
+  clothoidSpline: 'Clothoid Spline',
 };
 
 const POINT_LABELS: Record<string, string> = {
   polyline: 'vertices',
   clothoid: 'origin',
   nurbs: 'control pts',
+  clothoidSpline: 'segments',
 };
 
 export const TrajectoryEditOverlay: React.FC<TrajectoryEditOverlayProps> = React.memo(

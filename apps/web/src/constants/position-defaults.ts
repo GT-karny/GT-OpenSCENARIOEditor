@@ -14,6 +14,7 @@ export const POSITION_TYPE_OPTIONS: readonly string[] = [
   'relativeWorldPosition',
   'geoPosition',
   'routePosition',
+  'trajectoryPosition',
 ] as const;
 
 export const POSITION_TYPE_LABELS: Record<Position['type'], string> = {
@@ -26,6 +27,7 @@ export const POSITION_TYPE_LABELS: Record<Position['type'], string> = {
   relativeWorldPosition: 'Relative World Position',
   geoPosition: 'Geo Position',
   routePosition: 'Route Position',
+  trajectoryPosition: 'Trajectory Position',
 };
 
 export function createDefaultPosition(type: Position['type']): Position {
@@ -51,6 +53,12 @@ export function createDefaultPosition(type: Position['type']): Position {
         type: 'routePosition',
         routeRef: {},
         inRoutePosition: {},
+      };
+    case 'trajectoryPosition':
+      return {
+        type: 'trajectoryPosition',
+        trajectoryRef: {},
+        s: 0,
       };
   }
 }

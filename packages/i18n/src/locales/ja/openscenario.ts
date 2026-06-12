@@ -195,4 +195,11 @@ export const openscenario = {
     factor: '係数',
     steadyState: '定常状態を維持',
   },
+  environmentFields: {
+    catalogReferenceNotice: 'カタログで定義された環境',
+  },
+  trajectoryFields: {
+    catalogReferenceNotice: 'カタログで定義された軌跡',
+    clothoidSplineNotice: 'ClothoidSpline形状はこのUIではまだ編集できません',
+  },
 } as const;

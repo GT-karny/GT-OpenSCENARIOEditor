@@ -12,7 +12,7 @@ import { Line } from '@react-three/drei';
 type Point3 = { x: number; y: number; z: number };
 
 export interface TrajectoryPreviewData {
-  shapeType: 'polyline' | 'clothoid' | 'nurbs';
+  shapeType: 'polyline' | 'clothoid' | 'nurbs' | 'clothoidSpline';
   points: Array<{ x: number; y: number; z: number; h: number }>;
   curvePoints: Point3[];
 }

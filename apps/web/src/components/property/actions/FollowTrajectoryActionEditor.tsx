@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from '@osce/i18n';
 import type {
   ScenarioAction,
   FollowTrajectoryAction,
@@ -57,6 +58,7 @@ export function FollowTrajectoryActionEditor({
 
   // Resolve owner entity for "Start from entity position" feature
   const scenarioStoreApi = useScenarioStoreApi();
+  const { t } = useTranslation('openscenario');
   const ownerEntityName = useMemo(() => {
     const doc = scenarioStoreApi.getState().document;
     const result = findManeuverGroupForAction(doc, action.id);
@@ -65,7 +67,7 @@ export function FollowTrajectoryActionEditor({
   }, [scenarioStoreApi, action.id]);
 
   const handleEditIn3D = () => {
-    if (!canEditIn3D) return;
+    if (!canEditIn3D || !inner.trajectory) return;
     useTrajectoryEditStore.getState().enterTrajectoryEditMode(
       { type: 'action', actionId: action.id },
       inner.trajectory,
@@ -79,7 +81,7 @@ export function FollowTrajectoryActionEditor({
   };
 
   const timeRefMode: 'none' | 'timing' = inner.timeReference.timing ? 'timing' : 'none';
-  const shapeType = inner.trajectory.shape.type;
+  const shapeType = inner.trajectory?.shape.type;
 
   const handleTimeRefChange = (mode: string) => {
     if (mode === 'none') {
@@ -107,6 +109,7 @@ export function FollowTrajectoryActionEditor({
   };
 
   const updateTrajectory = (updates: Partial<Trajectory>) => {
+    if (!inner.trajectory) return;
     updateInner({ trajectory: { ...inner.trajectory, ...updates } });
   };
 
@@ -135,7 +138,7 @@ export function FollowTrajectoryActionEditor({
   };
 
   // --- Polyline helpers ---
-  const polylineShape = shapeType === 'polyline'
+  const polylineShape = shapeType === 'polyline' && inner.trajectory
     ? (inner.trajectory.shape as Extract<TrajectoryShape, { type: 'polyline' }>)
     : null;
 
@@ -194,7 +197,7 @@ export function FollowTrajectoryActionEditor({
   };
 
   // --- NURBS shape & helpers (declared early for start-from-entity logic) ---
-  const nurbsShape = shapeType === 'nurbs'
+  const nurbsShape = shapeType === 'nurbs' && inner.trajectory
     ? (inner.trajectory.shape as Extract<TrajectoryShape, { type: 'nurbs' }>)
     : null;
 
@@ -242,6 +245,54 @@ export function FollowTrajectoryActionEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ownerEntityName, polylineShape, nurbsShape]);
 
+  // All hooks have been called above. Now safe to do catalog-reference early return.
+  if (!inner.trajectory) {
+    const entryName = inner.trajectoryRef?.entryName;
+    return (
+      <div className="space-y-3">
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">Following Mode</p>
+          <SegmentedControl
+            value={inner.followingMode}
+            options={['position', 'follow'] as const}
+            onValueChange={(v) => updateInner({ followingMode: v as FollowingMode })}
+            labels={{ position: 'Position', follow: 'Follow' }}
+          />
+        </div>
+        <div className="px-2 py-3 space-y-1">
+          <p className="text-xs text-muted-foreground">
+            {t('trajectoryFields.catalogReferenceNotice')}
+            {entryName ? `: "${entryName}"` : ''}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // After the early return above, inner.trajectory is guaranteed to be defined.
+  // Re-derive shapeType with a non-optional type for use in JSX below.
+  const definedShapeType = inner.trajectory.shape.type;
+
+  // ClothoidSpline is not yet editable — show a notice instead of the shape editor.
+  if (definedShapeType === 'clothoidSpline') {
+    return (
+      <div className="space-y-3">
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">Following Mode</p>
+          <SegmentedControl
+            value={inner.followingMode}
+            options={['position', 'follow'] as const}
+            onValueChange={(v) => updateInner({ followingMode: v as FollowingMode })}
+            labels={{ position: 'Position', follow: 'Follow' }}
+          />
+        </div>
+        <div className="px-2 py-3">
+          <p className="text-xs text-muted-foreground">{t('trajectoryFields.clothoidSplineNotice')}</p>
+        </div>
+      </div>
+    );
+  }
+
   const handleRelativePointCountChange = (newCountStr: string) => {
     const targetCount = parseInt(newCountStr);
     if (!ownerEntityName || isNaN(targetCount)) return;
@@ -280,7 +331,7 @@ export function FollowTrajectoryActionEditor({
   };
 
   // --- Clothoid helpers ---
-  const clothoidShape = shapeType === 'clothoid'
+  const clothoidShape = shapeType === 'clothoid' && inner.trajectory
     ? (inner.trajectory.shape as Extract<TrajectoryShape, { type: 'clothoid' }>)
     : null;
 
@@ -440,7 +491,7 @@ export function FollowTrajectoryActionEditor({
         <div className="grid gap-1">
           <Label className="text-xs">Shape Type</Label>
           <SegmentedControl
-            value={shapeType}
+            value={definedShapeType}
             options={['polyline', 'clothoid', 'nurbs'] as const}
             onValueChange={handleShapeTypeChange}
             labels={{ polyline: 'Polyline', clothoid: 'Clothoid', nurbs: 'NURBS' }}

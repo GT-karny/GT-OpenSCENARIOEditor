@@ -1,5 +1,6 @@
-import type { Position, Orientation, RoutePosition } from '@osce/shared';
+import type { Position, Orientation, RoutePosition, TrajectoryPosition } from '@osce/shared';
 import { buildAttrs, getSubBindings } from '../utils/xml-helpers.js';
+import { buildTrajectory } from './build-actions.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function buildPosition(pos: Position, bindings: Record<string, string> = {}): Record<string, any> {
@@ -93,7 +94,33 @@ export function buildPosition(pos: Position, bindings: Record<string, string> = 
       if (pos.orientation) gp.Orientation = buildOrientation(pos.orientation, orientationBindings);
       return { GeoPosition: gp };
     }
+    case 'trajectoryPosition':
+      return { TrajectoryPosition: buildTrajectoryPosition(pos, orientationBindings) };
   }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildTrajectoryPosition(pos: TrajectoryPosition, orientationBindings: Record<string, string>): any {
+  // XSD TrajectoryPosition: all(Orientation?, TrajectoryRef) + s / t attributes.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result: any = buildAttrs({ s: pos.s, t: pos.t });
+  if (pos.orientation) {
+    result.Orientation = buildOrientation(pos.orientation, orientationBindings);
+  }
+  // XSD TrajectoryRef: choice(Trajectory | CatalogReference).
+  if (pos.trajectoryRef.catalogReference) {
+    result.TrajectoryRef = {
+      CatalogReference: buildAttrs({
+        catalogName: pos.trajectoryRef.catalogReference.catalogName,
+        entryName: pos.trajectoryRef.catalogReference.entryName,
+      }),
+    };
+  } else if (pos.trajectoryRef.trajectory) {
+    result.TrajectoryRef = { Trajectory: buildTrajectory(pos.trajectoryRef.trajectory) };
+  } else {
+    result.TrajectoryRef = {};
+  }
+  return result;
 }
 
 export function buildPositionWrapped(pos: Position, bindings: Record<string, string> = {}): Record<string, unknown> {

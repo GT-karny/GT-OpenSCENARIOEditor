@@ -73,18 +73,18 @@ export function RoutingActionEditor({ action, onUpdate }: RoutingActionEditorPro
           position: undefined,
         });
         break;
-      case 'followToConnectingRoad':
-        updateInner({
-          routeAction: 'followToConnectingRoad',
-          route: undefined,
-          position: undefined,
-        });
-        break;
       case 'acquirePosition':
         updateInner({
           routeAction: 'acquirePosition',
           route: undefined,
           position: inner.position ?? { type: 'worldPosition', x: 0, y: 0 },
+        });
+        break;
+      case 'randomRoute':
+        updateInner({
+          routeAction: 'randomRoute',
+          route: undefined,
+          position: undefined,
         });
         break;
     }
@@ -149,7 +149,7 @@ export function RoutingActionEditor({ action, onUpdate }: RoutingActionEditorPro
           <Label className="text-xs">Variant</Label>
           <EnumSelect
             value={inner.routeAction}
-            options={['assignRoute', 'followToConnectingRoad', 'acquirePosition']}
+            options={['assignRoute', 'acquirePosition', 'randomRoute']}
             onValueChange={handleVariantChange}
             className="h-8 text-sm"
           />
@@ -257,7 +257,7 @@ export function RoutingActionEditor({ action, onUpdate }: RoutingActionEditorPro
         </div>
       )}
 
-      {inner.routeAction === 'followToConnectingRoad' && (
+      {inner.routeAction === 'randomRoute' && (
         <p className="text-xs text-muted-foreground italic">
           No additional parameters required.
         </p>

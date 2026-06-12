@@ -9,6 +9,8 @@ import type {
   RelativeWorldPosition,
   RoutePosition,
   GeoPosition,
+  TrajectoryPosition,
+  TrajectoryPositionRef,
   Orientation,
   OrientationType,
   RouteRef,
@@ -17,6 +19,7 @@ import type {
   Route,
   RouteStrategy,
 } from '@osce/shared';
+import { parseTrajectory } from './parse-actions.js';
 import { ensureArray } from '../utils/ensure-array.js';
 import { generateId } from '../utils/uuid.js';
 import { parseParameterDeclarations } from './parse-parameters.js';
@@ -35,10 +38,40 @@ export function parsePosition(raw: any): Position {
   if (raw.RelativeWorldPosition) return parseRelativeWorldPosition(raw.RelativeWorldPosition);
   if (raw.RoutePosition) return parseRoutePosition(raw.RoutePosition);
   if (raw.GeoPosition) return parseGeoPosition(raw.GeoPosition);
+  if (raw.TrajectoryPosition) return parseTrajectoryPosition(raw.TrajectoryPosition);
 
-  // Fallback for unsupported position types (e.g. TrajectoryPosition)
+  // Fallback for unsupported position types.
   // Return a default WorldPosition since @osce/shared doesn't define these types
   return { type: 'worldPosition', x: 0, y: 0 };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseTrajectoryPosition(raw: any): TrajectoryPosition {
+  return {
+    type: 'trajectoryPosition',
+    trajectoryRef: parseTrajectoryPositionRef(raw.TrajectoryRef),
+    s: numAttr(raw, 's'),
+    t: optNumAttr(raw, 't'),
+    orientation: parseOrientationWithPrefix(raw.Orientation),
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseTrajectoryPositionRef(raw: any): TrajectoryPositionRef {
+  // XSD TrajectoryRef: choice(Trajectory | CatalogReference).
+  if (!raw) return {};
+  if (raw.Trajectory) {
+    return { trajectory: parseTrajectory(raw.Trajectory) };
+  }
+  if (raw.CatalogReference) {
+    return {
+      catalogReference: {
+        catalogName: strAttr(raw.CatalogReference, 'catalogName'),
+        entryName: strAttr(raw.CatalogReference, 'entryName'),
+      },
+    };
+  }
+  return {};
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -55,14 +55,8 @@ function expectRoundTrip(dir: string, file: string): void {
 
 describe.skipIf(!FIXTURES_AVAILABLE)('Round-trip: parse → serialize → parse', () => {
   // OpenSCENARIO v1.2.0 official examples.
-  // Excluded: CloseVehicleCrossing.xosc — uses FollowTrajectoryAction with a
-  //   catalog-referenced trajectory (<TrajectoryRef><CatalogReference/>). The
-  //   model (FollowTrajectoryAction.trajectory) only holds an inline Trajectory
-  //   and drops the catalog ref on parse, so the serializer emits an empty
-  //   inline <Polyline/>, which fails to re-parse. Re-including requires a
-  //   FollowTrajectoryAction trajectory-vs-catalog-ref model change (out of
-  //   scope for the modify-rule fix).
   const exampleFiles = [
+    'CloseVehicleCrossing.xosc',
     'CutIn.xosc',
     'SimpleOvertake.xosc',
     'EndOfTrafficJam.xosc',

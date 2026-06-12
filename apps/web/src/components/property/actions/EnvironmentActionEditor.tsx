@@ -1,4 +1,5 @@
 import type { ScenarioAction, EnvironmentAction, Weather } from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
 import {
   FRACTIONAL_CLOUD_COVER_VALUES,
   PRECIPITATION_TYPE_VALUES,
@@ -24,8 +25,24 @@ const WETNESS_OPTIONS = WETNESS_VALUES;
 
 export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionEditorProps) {
   const inner = action.action as EnvironmentAction;
-  const env = inner.environment;
+  // Call all hooks unconditionally before any early returns (rules-of-hooks)
   const { label: speedLabel, toDisplay, toInternal } = useSpeedUnit();
+  const { t } = useTranslation('openscenario');
+
+  // When environment is absent, it comes from a catalog reference — show notice
+  if (!inner.environment) {
+    const entryName = inner.catalogReference?.entryName;
+    return (
+      <div className="space-y-2 px-2 py-3">
+        <p className="text-xs text-muted-foreground">
+          {t('environmentFields.catalogReferenceNotice')}
+          {entryName ? `: "${entryName}"` : ''}
+        </p>
+      </div>
+    );
+  }
+
+  const env = inner.environment;
 
   const updateEnv = (updates: Partial<typeof env>) => {
     onUpdate({

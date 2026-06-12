@@ -27,7 +27,7 @@ import { useEditorStore } from '../stores/editor-store';
 
 export interface TrajectoryPreviewData {
   /** Shape type for rendering hints (e.g. NURBS shows control polygon) */
-  shapeType: 'polyline' | 'clothoid' | 'nurbs';
+  shapeType: 'polyline' | 'clothoid' | 'nurbs' | 'clothoidSpline';
   /** Resolved world positions of control points / vertices */
   points: Array<{ x: number; y: number; z: number; h: number }>;
   /** Evaluated curve sample points for smooth line rendering */
@@ -124,7 +124,8 @@ function collectTrajectoriesFromEvent(
 function extractTrajectoryFromAction(action: unknown): Trajectory | null {
   const a = action as PrivateAction;
   if (!a || (a as FollowTrajectoryAction).type !== 'followTrajectoryAction') return null;
-  return (a as FollowTrajectoryAction).trajectory;
+  // Catalog-referenced trajectories have no inline Trajectory object
+  return (a as FollowTrajectoryAction).trajectory ?? null;
 }
 
 /**
@@ -157,9 +158,12 @@ function resolveTrajectoryPreview(
         positions.push(world ?? { x: 0, y: 0, z: 0, h: 0 });
       }
       break;
+    case 'clothoidSpline':
+      // ClothoidSpline preview not yet implemented — skip
+      break;
   }
 
-  if (positions.length === 0) return null;
+  if (positions.length === 0 && trajectory.shape.type !== 'clothoidSpline') return null;
 
   const curvePoints = computeTrajectoryVisualPoints(trajectory, positions);
 

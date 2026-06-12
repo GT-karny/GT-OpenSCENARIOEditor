@@ -38,6 +38,7 @@ import type {
   Trajectory,
   TrajectoryShape,
   TrajectoryVertex,
+  ClothoidSplineSegment,
   NurbsControlPoint,
   TimeReference,
   OverrideValue,
@@ -643,6 +644,11 @@ function parseRoutingAction(raw: any): PrivateAction {
   if (raw.FollowTrajectoryAction) {
     return parseFollowTrajectoryAction(raw.FollowTrajectoryAction);
   }
+  if ('RandomRouteAction' in raw) {
+    // XSD RandomRouteAction is an empty element; preserve it as a typed
+    // passthrough so it survives a round-trip without throwing.
+    return { type: 'routingAction', routeAction: 'randomRoute' };
+  }
 
   throw new Error(
     `Unknown RoutingAction type: ${Object.keys(raw).join(', ')}`,
@@ -691,14 +697,11 @@ function parseRoutingAcquirePositionAction(raw: any): RoutingAction {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseFollowTrajectoryAction(raw: any): FollowTrajectoryAction {
-  // Trajectory can be inline or via TrajectoryRef (catalog reference)
-  const trajectory: Trajectory = raw.Trajectory
-    ? parseTrajectory(raw.Trajectory)
-    : { name: raw.TrajectoryRef?.CatalogReference?.['@_entryName'] ?? '', closed: false, shape: { type: 'polyline', vertices: [] } };
-
-  return {
+  // XSD FollowTrajectoryAction choice (via TrajectoryRef → Trajectory |
+  // CatalogReference), plus deprecated inline Trajectory / CatalogReference
+  // directly under the action.
+  const result: FollowTrajectoryAction = {
     type: 'followTrajectoryAction',
-    trajectory,
     timeReference: parseTimeReference(raw.TimeReference),
     followingMode: strAttr(
       raw.TrajectoryFollowingMode,
@@ -707,6 +710,21 @@ function parseFollowTrajectoryAction(raw: any): FollowTrajectoryAction {
     ) as FollowingMode,
     initialDistanceOffset: optNumAttr(raw, 'initialDistanceOffset'),
   };
+
+  const trajectoryRef = raw.TrajectoryRef;
+  const inlineTrajectory = raw.Trajectory ?? trajectoryRef?.Trajectory;
+  const catalogReference = raw.CatalogReference ?? trajectoryRef?.CatalogReference;
+
+  if (inlineTrajectory) {
+    result.trajectory = parseTrajectory(inlineTrajectory);
+  } else if (catalogReference) {
+    result.trajectoryRef = {
+      catalogName: strAttr(catalogReference, 'catalogName'),
+      entryName: strAttr(catalogReference, 'entryName'),
+    };
+  }
+
+  return result;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -724,10 +742,16 @@ export function parseTrajectory(raw: any): Trajectory {
 function parseTrajectoryShape(raw: any): TrajectoryShape {
   if (!raw) throw new Error('Shape element is missing in Trajectory');
 
-  if (raw.Polyline) {
+  // `Polyline` may parse as '' or {} when it has no Vertex children
+  // (fast-xml-parser collapses empty elements), so check with `in`.
+  if ('Polyline' in raw) {
+    const polyline = raw.Polyline;
     return {
       type: 'polyline',
-      vertices: ensureArray(raw.Polyline.Vertex).map(parseTrajectoryVertex),
+      vertices:
+        polyline && typeof polyline === 'object'
+          ? ensureArray(polyline.Vertex).map(parseTrajectoryVertex)
+          : [],
     };
   }
   if (raw.Clothoid) {
@@ -741,6 +765,13 @@ function parseTrajectoryShape(raw: any): TrajectoryShape {
       position: raw.Clothoid.Position
         ? parsePosition(raw.Clothoid.Position)
         : undefined,
+    };
+  }
+  if (raw.ClothoidSpline) {
+    return {
+      type: 'clothoidSpline',
+      segments: ensureArray(raw.ClothoidSpline.ClothoidSplineSegment).map(parseClothoidSplineSegment),
+      timeEnd: optNumAttr(raw.ClothoidSpline, 'timeEnd'),
     };
   }
   if (raw.Nurbs) {
@@ -758,6 +789,18 @@ function parseTrajectoryShape(raw: any): TrajectoryShape {
   throw new Error(
     `Unknown TrajectoryShape type: ${Object.keys(raw).join(', ')}`,
   );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseClothoidSplineSegment(raw: any): ClothoidSplineSegment {
+  return {
+    curvatureStart: numAttr(raw, 'curvatureStart'),
+    curvatureEnd: numAttr(raw, 'curvatureEnd'),
+    length: numAttr(raw, 'length'),
+    hOffset: optNumAttr(raw, 'hOffset'),
+    timeStart: optNumAttr(raw, 'timeStart'),
+    positionStart: raw.PositionStart ? parsePosition(raw.PositionStart) : undefined,
+  };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -841,7 +884,8 @@ function parseAppearanceAction(raw: any): AppearanceAction {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseAnimationAction(raw: any): AnimationAction {
-  // AnimationAction has an AnimationType child element with the animation type
+  // XSD AnimationAction: sequence(AnimationType, AnimationState?) with
+  // `loop` / `animationDuration` attributes.
   const animationType = raw.AnimationType
     ? parseAnimationType(raw.AnimationType)
     : strAttr(raw, 'animationType', '');
@@ -849,18 +893,24 @@ function parseAnimationAction(raw: any): AnimationAction {
   return {
     type: 'animationAction',
     animationType,
-    state: optStrAttr(raw, 'state'),
-    duration: optNumAttr(raw, 'duration'),
+    state: raw.AnimationState ? optStrAttr(raw.AnimationState, 'state') : undefined,
+    duration: optNumAttr(raw, 'animationDuration'),
     loop: optBoolAttr(raw, 'loop'),
   };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseAnimationType(raw: any): string {
-  // AnimationType can contain VehicleComponentAnimation, PedestrianAnimation,
-  // AnimationFile, or UserDefinedAnimation
-  if (raw.VehicleComponentAnimation) {
-    return strAttr(raw.VehicleComponentAnimation, 'vehicleComponentType', '');
+  // XSD AnimationType: choice(ComponentAnimation | PedestrianAnimation |
+  // AnimationFile | UserDefinedAnimation). UserDefinedAnimation is what the
+  // serializer emits; the others are read tolerantly for external inputs.
+  if (raw.UserDefinedAnimation) {
+    return strAttr(raw.UserDefinedAnimation, 'userDefinedAnimationType', '') ||
+      strAttr(raw.UserDefinedAnimation, 'type', '');
+  }
+  if (raw.ComponentAnimation) {
+    return strAttr(raw.ComponentAnimation.VehicleComponent, 'vehicleComponentType', '') ||
+      strAttr(raw.ComponentAnimation.UserDefinedComponent, 'userDefinedComponentType', '');
   }
   if (raw.PedestrianAnimation) {
     // Could be motion or gesture
@@ -868,10 +918,8 @@ function parseAnimationType(raw: any): string {
       strAttr(raw.PedestrianAnimation, 'gesture', '');
   }
   if (raw.AnimationFile) {
-    return strAttr(raw.AnimationFile, 'file', '');
-  }
-  if (raw.UserDefinedAnimation) {
-    return strAttr(raw.UserDefinedAnimation, 'type', '');
+    return strAttr(raw.AnimationFile.File, 'filepath', '') ||
+      strAttr(raw.AnimationFile, 'file', '');
   }
   return '';
 }
@@ -889,7 +937,9 @@ function parseLightStateAction(raw: any): LightStateAction {
     type: 'lightStateAction',
     lightType: parseLightType(lightType),
     mode: strAttr(lightState, 'mode', 'off') as 'on' | 'off' | 'flashing',
-    intensity: optNumAttr(lightState, 'intensity'),
+    // XSD LightState intensity is the `luminousIntensity` attribute (read the
+    // legacy `intensity` attribute too for tolerance).
+    intensity: optNumAttr(lightState, 'luminousIntensity') ?? optNumAttr(lightState, 'intensity'),
     transitionTime: optNumAttr(raw, 'transitionTime'),
   };
 
@@ -958,6 +1008,16 @@ function parseDisconnectTrailerAction(): DisconnectTrailerAction {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function parseEnvironmentAction(raw: any): EnvironmentAction {
+  // XSD EnvironmentAction: choice(Environment | CatalogReference).
+  if (raw.CatalogReference) {
+    return {
+      type: 'environmentAction',
+      catalogReference: {
+        catalogName: strAttr(raw.CatalogReference, 'catalogName'),
+        entryName: strAttr(raw.CatalogReference, 'entryName'),
+      },
+    };
+  }
   return {
     type: 'environmentAction',
     environment: parseEnvironment(raw.Environment),

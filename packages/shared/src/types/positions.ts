@@ -5,6 +5,7 @@
 
 import type { RouteStrategy } from '../enums/osc-enums.js';
 import type { ParameterDeclaration } from './parameters.js';
+import type { Trajectory } from './actions.js';
 
 export type Position =
   | WorldPosition
@@ -15,7 +16,8 @@ export type Position =
   | RelativeObjectPosition
   | RelativeWorldPosition
   | RoutePosition
-  | GeoPosition;
+  | GeoPosition
+  | TrajectoryPosition;
 
 export interface WorldPosition {
   type: 'worldPosition';
@@ -93,6 +95,24 @@ export interface GeoPosition {
   longitude: number;
   altitude?: number;
   orientation?: Orientation;
+}
+
+/**
+ * Position relative to a trajectory (XSD TrajectoryPosition:
+ * all(Orientation?, TrajectoryRef) + s (required) + t (optional)).
+ */
+export interface TrajectoryPosition {
+  type: 'trajectoryPosition';
+  trajectoryRef: TrajectoryPositionRef;
+  s: number;
+  t?: number;
+  orientation?: Orientation;
+}
+
+/** XSD TrajectoryRef: choice(Trajectory | CatalogReference). */
+export interface TrajectoryPositionRef {
+  trajectory?: Trajectory;
+  catalogReference?: { catalogName: string; entryName: string };
 }
 
 // --- Supporting types ---

@@ -128,7 +128,18 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
       const fta: any = buildAttrs({
         initialDistanceOffset: action.initialDistanceOffset,
       }, elementBindings);
-      fta.Trajectory = buildTrajectory(action.trajectory);
+      // XSD: TrajectoryRef → Trajectory | CatalogReference. Emit a catalog
+      // reference via <TrajectoryRef>, otherwise an inline <Trajectory>.
+      if (action.trajectoryRef) {
+        fta.TrajectoryRef = {
+          CatalogReference: buildAttrs({
+            catalogName: action.trajectoryRef.catalogName,
+            entryName: action.trajectoryRef.entryName,
+          }),
+        };
+      } else if (action.trajectory) {
+        fta.Trajectory = buildTrajectory(action.trajectory);
+      }
       fta.TimeReference = buildTimeReference(action.timeReference);
       if (action.followingMode) {
         fta.TrajectoryFollowingMode = buildAttrs({ followingMode: action.followingMode });
@@ -169,12 +180,6 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
           }
           return { RoutingAction: { AssignRouteAction: '' } };
         }
-        case 'followToConnectingRoad':
-          return {
-            RoutingAction: {
-              FollowToConnectingRoadAction: '',
-            },
-          };
         case 'acquirePosition': {
           if (action.position) {
             return {
@@ -185,6 +190,9 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
           }
           return { RoutingAction: { AcquirePositionAction: '' } };
         }
+        case 'randomRoute':
+          // XSD RandomRouteAction is an empty element.
+          return { RoutingAction: { RandomRouteAction: '' } };
       }
       break;
     }
@@ -272,16 +280,23 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
     }
 
     case 'animationAction': {
+      // XSD AnimationAction: sequence(AnimationType, AnimationState?) with
+      // `loop` / `animationDuration` attributes. The model only carries a flat
+      // animationType string, so it is emitted as a UserDefinedAnimation
+      // (the generic AnimationType choice variant that round-trips a string).
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const aa: any = {
-        AnimationType: buildAttrs({ value: action.animationType }),
+        AnimationType: {
+          UserDefinedAnimation: buildAttrs({ userDefinedAnimationType: action.animationType }),
+        },
       };
       if (action.state !== undefined) {
         aa.AnimationState = buildAttrs({ state: action.state });
       }
-      if (action.duration !== undefined || action.loop !== undefined) {
-        aa.AnimationDuration = buildAttrs({ duration: action.duration, loop: action.loop });
-      }
+      Object.assign(
+        aa,
+        buildAttrs({ loop: action.loop, animationDuration: action.duration }),
+      );
       return { AnimationAction: aa };
     }
 
@@ -310,13 +325,18 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
         };
       }
 
+      // XSD LightState: Color? child + mode (required) / luminousIntensity /
+      // flashingOnDuration / flashingOffDuration attributes. Intensity is the
+      // `luminousIntensity` attribute, not an <Intensity> child element.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const lightState: any = buildAttrs({ mode: action.mode });
-      if (action.intensity !== undefined) {
-        lightState.Intensity = buildAttrs({ value: action.intensity });
-      }
+      const lightState: any = buildAttrs({
+        mode: action.mode,
+        luminousIntensity: action.intensity,
+      });
       if (action.color) {
+        // XSD Color: choice(ColorRgb | ColorCmyk) + colorType (required).
         lightState.Color = {
+          ...buildAttrs({ colorType: 'rgb' }),
           ColorRgb: buildAttrs({
             red: action.color.r,
             green: action.color.g,
@@ -347,9 +367,20 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
 export function buildGlobalAction(action: GlobalAction, elementBindings: Record<string, string> = {}): Record<string, any> {
   switch (action.type) {
     case 'environmentAction':
+      // XSD EnvironmentAction: choice(Environment | CatalogReference).
+      if (action.catalogReference) {
+        return {
+          EnvironmentAction: {
+            CatalogReference: buildAttrs({
+              catalogName: action.catalogReference.catalogName,
+              entryName: action.catalogReference.entryName,
+            }),
+          },
+        };
+      }
       return {
         EnvironmentAction: {
-          Environment: buildEnvironment(action.environment),
+          Environment: buildEnvironment(action.environment!),
         },
       };
 
@@ -577,6 +608,26 @@ function buildTrajectoryShape(shape: Trajectory['shape']): Record<string, any> {
       }
       return { Clothoid: c };
     }
+    case 'clothoidSpline':
+      return {
+        ClothoidSpline: {
+          ...buildAttrs({ timeEnd: shape.timeEnd }),
+          ClothoidSplineSegment: shape.segments.map((seg) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const segment: any = buildAttrs({
+              curvatureStart: seg.curvatureStart,
+              curvatureEnd: seg.curvatureEnd,
+              length: seg.length,
+              hOffset: seg.hOffset,
+              timeStart: seg.timeStart,
+            });
+            if (seg.positionStart) {
+              segment.PositionStart = buildPosition(seg.positionStart);
+            }
+            return segment;
+          }),
+        },
+      };
     case 'nurbs':
       return {
         Nurbs: {

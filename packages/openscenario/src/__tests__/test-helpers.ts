@@ -23,9 +23,6 @@ export const REPO_ROOT = findRepoRoot();
 /** esmini demo xosc fixtures */
 export const XOSC_DIR = resolve(REPO_ROOT, 'test-fixtures/esmini/xosc');
 
-/** esmini demo xodr fixtures */
-export const XODR_DIR = resolve(REPO_ROOT, 'test-fixtures/esmini/xodr');
-
 /** OpenSCENARIO v1.2.0 official examples */
 export const EXAMPLES_DIR = resolve(REPO_ROOT, 'test-fixtures/openscenario-v1.2.0/Examples');
 

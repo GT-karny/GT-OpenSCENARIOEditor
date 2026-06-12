@@ -21,7 +21,7 @@ export interface TrajectoryOverlayProps {
   pointTimes?: Array<number | undefined>;
   selectedPointIndex: number | null;
   /** Shape type determines rendering behavior */
-  shapeType: 'polyline' | 'clothoid' | 'nurbs';
+  shapeType: 'polyline' | 'clothoid' | 'nurbs' | 'clothoidSpline';
   /** Indices of points that use relative positions (rendered with dashed connections) */
   relativePointIndices?: number[];
   onPointClick?: (index: number) => void;

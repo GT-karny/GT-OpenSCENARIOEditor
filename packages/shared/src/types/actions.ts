@@ -121,7 +121,13 @@ export interface SynchronizeAction {
 
 export interface FollowTrajectoryAction {
   type: 'followTrajectoryAction';
-  trajectory: Trajectory;
+  /** Inline trajectory. Mutually exclusive with `trajectoryRef`. */
+  trajectory?: Trajectory;
+  /**
+   * Catalog reference to a trajectory (XSD: TrajectoryRef → CatalogReference).
+   * Mutually exclusive with `trajectory`.
+   */
+  trajectoryRef?: { catalogName: string; entryName: string };
   timeReference: TimeReference;
   followingMode: FollowingMode;
   initialDistanceOffset?: number;
@@ -134,7 +140,13 @@ export interface AcquirePositionAction {
 
 export interface RoutingAction {
   type: 'routingAction';
-  routeAction: 'assignRoute' | 'followToConnectingRoad' | 'acquirePosition';
+  /**
+   * Routing variant. Per the v1.3.1 XSD RoutingAction choice
+   * (AssignRouteAction | FollowTrajectoryAction | AcquirePositionAction |
+   * RandomRouteAction). `followTrajectory` is modeled separately as
+   * FollowTrajectoryAction; `randomRoute` is a typed passthrough.
+   */
+  routeAction: 'assignRoute' | 'acquirePosition' | 'randomRoute';
   route?: { name: string; closed: boolean; waypoints: Array<{ position: Position; routeStrategy: string }> };
   catalogReference?: { catalogName: string; entryName: string };
   position?: Position;
@@ -221,7 +233,14 @@ export type GlobalAction =
 
 export interface EnvironmentAction {
   type: 'environmentAction';
-  environment: Environment;
+  /** Inline environment. Mutually exclusive with `catalogReference`. */
+  environment?: Environment;
+  /**
+   * Catalog reference to an environment (XSD EnvironmentAction:
+   * choice of Environment | CatalogReference). Mutually exclusive with
+   * `environment`.
+   */
+  catalogReference?: { catalogName: string; entryName: string };
 }
 
 export interface Environment {
@@ -355,7 +374,21 @@ export interface Trajectory {
 export type TrajectoryShape =
   | { type: 'polyline'; vertices: TrajectoryVertex[] }
   | { type: 'clothoid'; curvature: number; curvatureDot: number; length: number; startTime?: number; stopTime?: number; position?: Position }
+  | { type: 'clothoidSpline'; segments: ClothoidSplineSegment[]; timeEnd?: number }
   | { type: 'nurbs'; order: number; controlPoints: NurbsControlPoint[]; knots: number[] };
+
+/**
+ * One segment of a ClothoidSpline trajectory shape
+ * (XSD ClothoidSplineSegment, OpenSCENARIO v1.3).
+ */
+export interface ClothoidSplineSegment {
+  curvatureStart: number;
+  curvatureEnd: number;
+  length: number;
+  hOffset?: number;
+  timeStart?: number;
+  positionStart?: Position;
+}
 
 export interface TrajectoryVertex {
   position: Position;

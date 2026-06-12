@@ -142,7 +142,7 @@ export interface ScenarioViewerProps {
   /** Whether trajectory editing mode is active */
   trajectoryEditActive?: boolean;
   /** Trajectory shape type being edited */
-  trajectoryShapeType?: 'polyline' | 'clothoid' | 'nurbs';
+  trajectoryShapeType?: 'polyline' | 'clothoid' | 'nurbs' | 'clothoidSpline';
   /** World positions of trajectory points (vertices / origin / control points) */
   trajectoryPoints?: Array<{ x: number; y: number; z: number; h: number }>;
   /** Evaluated curve sample points for rendering */
@@ -512,7 +512,7 @@ function ScenarioViewerScene({
   resolveCatalogRoute?: ScenarioViewerProps['resolveCatalogRoute'];
   routePreviewData?: RoutePreviewData[];
   trajectoryEditActive?: boolean;
-  trajectoryShapeType?: 'polyline' | 'clothoid' | 'nurbs';
+  trajectoryShapeType?: 'polyline' | 'clothoid' | 'nurbs' | 'clothoidSpline';
   trajectoryPoints?: Array<{ x: number; y: number; z: number; h: number }>;
   trajectoryCurvePoints?: Array<{ x: number; y: number; z: number }>;
   trajectoryPointTimes?: Array<number | undefined>;

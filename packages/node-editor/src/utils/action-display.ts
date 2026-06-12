@@ -77,7 +77,7 @@ export function getPrivateActionSummary(action: PrivateAction, eb?: ElementBindi
     case 'synchronizeAction':
       return `Sync with ${action.masterEntityRef}`;
     case 'followTrajectoryAction':
-      return `Follow: ${action.trajectory.name}`;
+      return `Follow: ${action.trajectory?.name ?? action.trajectoryRef?.entryName ?? 'Trajectory (catalog)'}`;
     case 'acquirePositionAction':
       return `Acquire: ${action.position.type}`;
     case 'routingAction':
@@ -106,7 +106,7 @@ export function getPrivateActionSummary(action: PrivateAction, eb?: ElementBindi
 export function getGlobalActionSummary(action: GlobalAction): string {
   switch (action.type) {
     case 'environmentAction':
-      return `Environment: ${action.environment.name}`;
+      return `Environment: ${action.environment?.name ?? action.catalogReference?.entryName ?? ''}`;
     case 'entityAction':
       return `Entity: ${action.actionType} ${action.entityRef}`;
     case 'parameterAction':

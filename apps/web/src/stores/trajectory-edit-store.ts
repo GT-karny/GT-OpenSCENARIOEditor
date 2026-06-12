@@ -132,6 +132,9 @@ function validateTrajectory(t: Trajectory): string[] {
         warnings.push('Clothoid length must be > 0');
       }
       break;
+    case 'clothoidSpline':
+      // ClothoidSpline validation not yet implemented
+      break;
     case 'nurbs': {
       if (shape.controlPoints.length < 2) {
         warnings.push('NURBS requires at least 2 control points');
@@ -165,6 +168,9 @@ function getPointCount(t: Trajectory): number {
       return t.shape.position ? 1 : 0;
     case 'nurbs':
       return t.shape.controlPoints.length;
+    case 'clothoidSpline':
+      // ClothoidSpline editing not yet implemented
+      return 0;
   }
 }
 

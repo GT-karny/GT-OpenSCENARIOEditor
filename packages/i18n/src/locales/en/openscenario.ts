@@ -195,4 +195,11 @@ export const openscenario = {
     factor: 'Factor',
     steadyState: 'Maintain steady state',
   },
+  environmentFields: {
+    catalogReferenceNotice: 'Environment defined in catalog',
+  },
+  trajectoryFields: {
+    catalogReferenceNotice: 'Trajectory defined in catalog',
+    clothoidSplineNotice: 'ClothoidSpline shape is not yet editable in this UI',
+  },
 } as const;

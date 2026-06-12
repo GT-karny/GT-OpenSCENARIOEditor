@@ -47,7 +47,8 @@ export function getActionSummary(action: ScenarioAction, bindings?: Bindings): s
     case 'synchronizeAction':
       return `Sync with ${a.masterEntityRef}`;
     case 'followTrajectoryAction':
-      return `Follow trajectory "${a.trajectory.name}"`;
+      return `Follow trajectory "${a.trajectory?.name ?? a.trajectoryRef?.entryName ?? 'Trajectory (catalog)'}"`;
+
     case 'acquirePositionAction':
       return `Acquire position`;
 
@@ -81,7 +82,8 @@ export function getActionSummary(action: ScenarioAction, bindings?: Bindings): s
 
     // --- Global ---
     case 'environmentAction':
-      return `Environment "${a.environment.name}"`;
+      return `Environment "${a.environment?.name ?? a.catalogReference?.entryName ?? ''}"`;
+
     case 'entityAction':
       return `${a.actionType === 'addEntity' ? 'Add' : 'Delete'} ${a.entityRef}`;
     case 'parameterAction':
