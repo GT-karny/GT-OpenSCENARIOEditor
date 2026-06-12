@@ -41,7 +41,8 @@ export type { PositionMarkersOverlayProps } from './markers/PositionMarkersOverl
 
 // Route visualization & interaction
 export { RouteOverlay } from './route/RouteOverlay.js';
-export type { RouteOverlayProps } from './route/RouteOverlay.js';
+export type { RouteOverlayProps, RouteLaneChangeMarker } from './route/RouteOverlay.js';
+export { LaneChangeMarker } from './route/LaneChangeMarker.js';
 export { RouteEditOverlay } from './route/RouteEditOverlay.js';
 export { RoutePreviewOverlay } from './route/RoutePreviewOverlay.js';
 export type { RoutePreviewData, RoutePreviewOverlayProps } from './route/RoutePreviewOverlay.js';

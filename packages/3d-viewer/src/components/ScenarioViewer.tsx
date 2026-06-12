@@ -36,6 +36,7 @@ import { SimulationOverlay } from '../scenario/SimulationOverlay.js';
 import { useCameraFollow } from '../scene/useCameraFollow.js';
 import { Minimap } from './Minimap.js';
 import { RouteOverlay } from '../route/RouteOverlay.js';
+import type { RouteLaneChangeMarker } from '../route/RouteOverlay.js';
 import { RoutePreviewOverlay } from '../route/RoutePreviewOverlay.js';
 import type { RoutePreviewData } from '../route/RoutePreviewOverlay.js';
 import { RouteClickHandler } from '../interaction/RouteClickHandler.js';
@@ -120,6 +121,18 @@ export interface ScenarioViewerProps {
   routeWarnings?: string[];
   /** Number of waypoints in the editing route */
   routeWaypointCount?: number;
+  /** Lane-change markers (lane-change-aware routing mode) */
+  routeLaneChangeMarkers?: RouteLaneChangeMarker[];
+  /** Whether lane-change-aware routing is enabled */
+  routeLaneChangeAware?: boolean;
+  /** Whether the lane-change-aware toggle is usable (WASM router ready) */
+  routeLaneChangeAvailable?: boolean;
+  /** Toggle lane-change-aware routing */
+  onToggleRouteLaneChangeAware?: (on: boolean) => void;
+  /** Routing strategy: 0 = SHORTEST, 1 = FASTEST, 2 = MIN_INTERSECTIONS */
+  routeCalcStrategy?: number;
+  /** Change the routing strategy */
+  onRouteCalcStrategyChange?: (strategy: number) => void;
   /** Resolve a catalog reference to a Route definition (for RoutePosition placement) */
   resolveCatalogRoute?: (ref: { catalogName: string; entryName: string }) => Route | null;
   /** Route preview data for selected entity/action (read-only visualization) */
@@ -383,6 +396,7 @@ function ScenarioViewerScene({
   routeEditActive,
   routeWaypoints,
   routePathSegments,
+  routeLaneChangeMarkers,
   routeSelectedWaypointIndex,
   onRouteWaypointClick,
   onRouteWaypointContextMenu,
@@ -488,6 +502,7 @@ function ScenarioViewerScene({
   routeEditActive?: boolean;
   routeWaypoints?: Array<{ x: number; y: number; z: number; h: number }>;
   routePathSegments?: Array<Array<{ x: number; y: number; z: number }>>;
+  routeLaneChangeMarkers?: RouteLaneChangeMarker[];
   routeSelectedWaypointIndex?: number | null;
   onRouteWaypointClick?: (index: number) => void;
   onRouteWaypointContextMenu?: (index: number, event: ThreeEvent<MouseEvent>) => void;
@@ -780,6 +795,7 @@ function ScenarioViewerScene({
           <RouteOverlay
             waypoints={routeWaypoints}
             pathSegments={routePathSegments ?? []}
+            laneChangeMarkers={routeLaneChangeMarkers}
             selectedWaypointIndex={routeSelectedWaypointIndex ?? null}
             onWaypointClick={onRouteWaypointClick}
             onWaypointContextMenu={onRouteWaypointContextMenu}
@@ -1000,6 +1016,12 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   onRouteEditCancel,
   routeWarnings,
   routeWaypointCount,
+  routeLaneChangeMarkers,
+  routeLaneChangeAware,
+  routeLaneChangeAvailable,
+  onToggleRouteLaneChangeAware,
+  routeCalcStrategy,
+  onRouteCalcStrategyChange,
   resolveCatalogRoute,
   routePreviewData,
   trajectoryEditActive,
@@ -1294,6 +1316,11 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           warnings={routeWarnings ?? []}
           onSave={onRouteEditSave}
           onCancel={onRouteEditCancel}
+          laneChangeAware={routeLaneChangeAware}
+          laneChangeAvailable={routeLaneChangeAvailable}
+          onToggleLaneChangeAware={onToggleRouteLaneChangeAware}
+          strategy={routeCalcStrategy}
+          onStrategyChange={onRouteCalcStrategyChange}
         />
       )}
 
@@ -1340,6 +1367,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           routeEditActive={routeEditActive}
           routeWaypoints={routeWaypoints}
           routePathSegments={routePathSegments}
+          routeLaneChangeMarkers={routeLaneChangeMarkers}
           routeSelectedWaypointIndex={routeSelectedWaypointIndex}
           onRouteWaypointClick={onRouteWaypointClick}
           onRouteWaypointContextMenu={onRouteWaypointContextMenu}

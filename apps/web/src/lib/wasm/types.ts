@@ -104,6 +104,24 @@ export interface WasmRMPathPoint {
   s: number;
 }
 
+// --- Lane-change-aware route types (match C++ GTRouteJS.calculateRoute) ---
+
+/** A lane change required while driving along one road of the route. */
+export interface WasmGTLaneChange {
+  road_id: number;
+  s: number; // road-entry s; change should complete before road end
+  from_lane: number; // lane entered on this road
+  to_lane: number; // lane needed to connect onward
+}
+
+/** Result of GTRouteJS.calculateRoute (lane-change-aware routing). */
+export interface WasmGTRouteResult {
+  found: boolean;
+  length: number; // total route length in meters, -1 when not found
+  waypoints: WasmRMPathPoint[];
+  laneChanges: WasmGTLaneChange[];
+}
+
 // --- Worker message protocol ---
 
 export type WorkerRequest =
@@ -123,7 +141,9 @@ export type WorkerRequest =
   | { type: 'rm-road-count'; requestId: string }
   | { type: 'rm-lane-count'; roadId: number; s: number; requestId: string }
   // Route pathfinding messages
-  | { type: 'rm-calculate-path'; startRoadId: number; startLaneId: number; startS: number; endRoadId: number; endLaneId: number; endS: number; sampleInterval: number; requestId: string };
+  | { type: 'rm-calculate-path'; startRoadId: number; startLaneId: number; startS: number; endRoadId: number; endLaneId: number; endS: number; sampleInterval: number; requestId: string }
+  // Lane-change-aware route messages (GTRouteJS)
+  | { type: 'gt-calculate-route'; startRoadId: number; startLaneId: number; startS: number; endRoadId: number; endLaneId: number; endS: number; strategy: number; requestId: string };
 
 export type WorkerResponse =
   | {
@@ -160,4 +180,5 @@ export type WorkerResponse =
   | { type: 'rm-position'; requestId: string; result: WasmRMPositionResult }
   | { type: 'rm-scalar'; requestId: string; value: number }
   | { type: 'rm-path'; requestId: string; points: WasmRMPathPoint[] }
+  | { type: 'gt-route'; requestId: string; result: WasmGTRouteResult }
   | { type: 'rm-error'; requestId?: string; message: string };

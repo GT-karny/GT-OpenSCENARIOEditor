@@ -21,6 +21,8 @@ import type {
   WasmVehicleLightState,
   WasmOpenScenarioConfig,
   WasmRMPositionResult,
+  WasmRMPathPoint,
+  WasmGTLaneChange,
 } from './types.js';
 
 // Emscripten module factory type
@@ -48,6 +50,13 @@ interface EsminiModule {
       endRoadId: number, endLaneId: number, endS: number,
       sampleInterval: number,
     ): unknown[];
+  };
+  GTRouteJS: {
+    calculateRoute(
+      startRoad: number, startLane: number, startS: number,
+      endRoad: number, endLane: number, endS: number,
+      strategy: number,
+    ): unknown;
   };
 }
 
@@ -452,6 +461,49 @@ async function handleRmPath(
   }
 }
 
+async function handleGtRoute(
+  requestId: string,
+  startRoadId: number, startLaneId: number, startS: number,
+  endRoadId: number, endLaneId: number, endS: number,
+  strategy: number,
+) {
+  try {
+    const mod = await loadModule();
+    // GTRouteJS.calculateRoute returns a plain JS object (emscripten::val):
+    //   { found, length, waypoints:[{x,y,z,h,road_id,lane_id,s}], laneChanges:[{road_id,s,from_lane,to_lane}] }
+    const raw = mod.GTRouteJS.calculateRoute(
+      startRoadId, startLaneId, startS,
+      endRoadId, endLaneId, endS,
+      strategy,
+    ) as {
+      found: boolean;
+      length: number;
+      waypoints: Array<Record<string, number>>;
+      laneChanges: Array<Record<string, number>>;
+    };
+
+    const waypoints: WasmRMPathPoint[] = Array.isArray(raw.waypoints)
+      ? raw.waypoints.map((p) => ({
+          x: p.x, y: p.y, z: p.z, h: p.h,
+          road_id: p.road_id, lane_id: p.lane_id, s: p.s,
+        }))
+      : [];
+    const laneChanges: WasmGTLaneChange[] = Array.isArray(raw.laneChanges)
+      ? raw.laneChanges.map((c) => ({
+          road_id: c.road_id, s: c.s, from_lane: c.from_lane, to_lane: c.to_lane,
+        }))
+      : [];
+
+    post({
+      type: 'gt-route',
+      requestId,
+      result: { found: !!raw.found, length: raw.length, waypoints, laneChanges },
+    });
+  } catch (err) {
+    post({ type: 'rm-error', requestId, message: err instanceof Error ? err.message : String(err) });
+  }
+}
+
 self.onmessage = (event: MessageEvent<WorkerRequest>) => {
   const msg = event.data;
 
@@ -532,6 +584,14 @@ self.onmessage = (event: MessageEvent<WorkerRequest>) => {
         msg.startRoadId, msg.startLaneId, msg.startS,
         msg.endRoadId, msg.endLaneId, msg.endS,
         msg.sampleInterval,
+      );
+      break;
+    case 'gt-calculate-route':
+      handleGtRoute(
+        msg.requestId,
+        msg.startRoadId, msg.startLaneId, msg.startS,
+        msg.endRoadId, msg.endLaneId, msg.endS,
+        msg.strategy,
       );
       break;
   }

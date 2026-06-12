@@ -17,6 +17,7 @@ import type {
   WorkerResponse,
   WasmRMPositionResult,
   WasmRMPathPoint,
+  WasmGTRouteResult,
 } from './types.js';
 
 type PendingResolve<T> = {
@@ -34,6 +35,7 @@ export class RoadManagerClient {
   private pendingPosition = new Map<string, PendingResolve<WasmRMPositionResult>>();
   private pendingScalar = new Map<string, PendingResolve<number>>();
   private pendingPath = new Map<string, PendingResolve<WasmRMPathPoint[]>>();
+  private pendingRoute = new Map<string, PendingResolve<WasmGTRouteResult>>();
   private loadResolve: PendingResolve<void> | null = null;
   private disposed = false;
   private boundHandler: (event: MessageEvent<WorkerResponse>) => void;
@@ -77,6 +79,14 @@ export class RoadManagerClient {
         }
         break;
       }
+      case 'gt-route': {
+        const pending = this.pendingRoute.get(msg.requestId);
+        if (pending) {
+          this.pendingRoute.delete(msg.requestId);
+          pending.resolve(msg.result);
+        }
+        break;
+      }
       case 'rm-error': {
         const error = new Error(msg.message);
         if (msg.requestId) {
@@ -96,6 +106,12 @@ export class RoadManagerClient {
           if (pathPending) {
             this.pendingPath.delete(msg.requestId);
             pathPending.reject(error);
+            break;
+          }
+          const routePending = this.pendingRoute.get(msg.requestId);
+          if (routePending) {
+            this.pendingRoute.delete(msg.requestId);
+            routePending.reject(error);
             break;
           }
         }
@@ -223,6 +239,40 @@ export class RoadManagerClient {
     });
   }
 
+  /**
+   * Calculate a lane-change-aware route between two lane positions via the
+   * GT_esmini LaneIndependentRouter (GTRouteJS). Unlike {@link calculatePath},
+   * the result reports both the route waypoints and the lane changes required
+   * along the way.
+   *
+   * @param strategy 0 = SHORTEST, 1 = FASTEST, 2 = MIN_INTERSECTIONS
+   */
+  async calculateRoute(
+    startRoadId: number,
+    startLaneId: number,
+    startS: number,
+    endRoadId: number,
+    endLaneId: number,
+    endS: number,
+    strategy = 0,
+  ): Promise<WasmGTRouteResult> {
+    const requestId = nextRequestId();
+    return new Promise<WasmGTRouteResult>((resolve, reject) => {
+      this.pendingRoute.set(requestId, { resolve, reject });
+      this.post({
+        type: 'gt-calculate-route',
+        startRoadId,
+        startLaneId,
+        startS,
+        endRoadId,
+        endLaneId,
+        endS,
+        strategy,
+        requestId,
+      });
+    });
+  }
+
   /** Clean up event listener. Call when no longer needed. */
   dispose() {
     this.disposed = true;
@@ -233,11 +283,13 @@ export class RoadManagerClient {
     for (const pending of this.pendingPosition.values()) pending.reject(error);
     for (const pending of this.pendingScalar.values()) pending.reject(error);
     for (const pending of this.pendingPath.values()) pending.reject(error);
+    for (const pending of this.pendingRoute.values()) pending.reject(error);
     if (this.loadResolve) this.loadResolve.reject(error);
 
     this.pendingPosition.clear();
     this.pendingScalar.clear();
     this.pendingPath.clear();
+    this.pendingRoute.clear();
     this.loadResolve = null;
   }
 }

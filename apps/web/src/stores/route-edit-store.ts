@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Route, Position, RouteStrategy, Waypoint } from '@osce/shared';
+import type { LaneChangeMarker } from '../lib/route-path-computation';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -41,6 +42,14 @@ export interface RouteEditState {
   waypointWorldPositions: WaypointWorldPos[];
   pathSegments: Array<Array<{ x: number; y: number; z: number; h?: number }>>;
 
+  // --- Lane-change-aware routing (GT_esmini) ---
+  /** When true, paths between waypoints are computed via GTRouteJS (allows mid-road lane changes). */
+  laneChangeAware: boolean;
+  /** Routing strategy passed to GTRouteJS: 0 = SHORTEST, 1 = FASTEST, 2 = MIN_INTERSECTIONS. */
+  routeCalcStrategy: number;
+  /** Lane changes required along the lane-change-aware route, resolved to world coords. */
+  laneChangeMarkers: LaneChangeMarker[];
+
   // --- Validation ---
   warnings: string[];
 
@@ -73,6 +82,11 @@ export interface RouteEditActions {
   // --- Visualization data (set externally by hooks) ---
   setWaypointWorldPositions: (positions: WaypointWorldPos[]) => void;
   setPathSegments: (segments: Array<Array<{ x: number; y: number; z: number }>>) => void;
+
+  // --- Lane-change-aware routing ---
+  setLaneChangeAware: (on: boolean) => void;
+  setRouteCalcStrategy: (strategy: number) => void;
+  setLaneChangeMarkers: (markers: LaneChangeMarker[]) => void;
 
   // --- Undo/Redo ---
   undoRouteEdit: () => void;
@@ -133,6 +147,9 @@ const initialState: RouteEditState = {
   selectedWaypointIndex: null,
   waypointWorldPositions: [],
   pathSegments: [],
+  laneChangeAware: false,
+  routeCalcStrategy: 0,
+  laneChangeMarkers: [],
   warnings: [],
   history: { past: [], future: [] },
 };
@@ -306,6 +323,23 @@ export const useRouteEditStore = create<RouteEditState & RouteEditActions>((set,
 
   setPathSegments: (segments) => {
     set({ pathSegments: segments });
+  },
+
+  // -----------------------------------------------------------------------
+  // Lane-change-aware routing
+  // -----------------------------------------------------------------------
+
+  setLaneChangeAware: (on) => {
+    // Clear stale markers when turning the mode off.
+    set(on ? { laneChangeAware: true } : { laneChangeAware: false, laneChangeMarkers: [] });
+  },
+
+  setRouteCalcStrategy: (strategy) => {
+    set({ routeCalcStrategy: strategy });
+  },
+
+  setLaneChangeMarkers: (markers) => {
+    set({ laneChangeMarkers: markers });
   },
 
   // -----------------------------------------------------------------------

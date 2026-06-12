@@ -99,6 +99,12 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   onRouteEditCancel?: () => void;
   routeWarnings?: string[];
   routeWaypointCount?: number;
+  routeLaneChangeMarkers?: import('@osce/3d-viewer').RouteLaneChangeMarker[];
+  routeLaneChangeAware?: boolean;
+  routeLaneChangeAvailable?: boolean;
+  onToggleRouteLaneChangeAware?: (on: boolean) => void;
+  routeCalcStrategy?: number;
+  onRouteCalcStrategyChange?: (strategy: number) => void;
   resolveCatalogRoute?: (ref: { catalogName: string; entryName: string }) => import('@osce/shared').Route | null;
   routePreviewData?: import('@osce/3d-viewer').RoutePreviewData[];
   // Trajectory editing props
@@ -182,6 +188,12 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       onRouteEditCancel={props.onRouteEditCancel}
       routeWarnings={props.routeWarnings}
       routeWaypointCount={props.routeWaypointCount}
+      routeLaneChangeMarkers={props.routeLaneChangeMarkers}
+      routeLaneChangeAware={props.routeLaneChangeAware}
+      routeLaneChangeAvailable={props.routeLaneChangeAvailable}
+      onToggleRouteLaneChangeAware={props.onToggleRouteLaneChangeAware}
+      routeCalcStrategy={props.routeCalcStrategy}
+      onRouteCalcStrategyChange={props.onRouteCalcStrategyChange}
       resolveCatalogRoute={props.resolveCatalogRoute}
       routePreviewData={props.routePreviewData}
       trajectoryEditActive={props.trajectoryEditActive}
@@ -995,6 +1007,12 @@ export function EditorLayout() {
                     onRouteEditCancel={handleRouteEditCancel}
                     routeWarnings={routeEdit.warnings}
                     routeWaypointCount={routeEdit.editingRoute?.waypoints.length ?? 0}
+                    routeLaneChangeMarkers={routeEdit.laneChangeMarkers}
+                    routeLaneChangeAware={routeEdit.laneChangeAware}
+                    routeLaneChangeAvailable={roadManagerClient !== null}
+                    onToggleRouteLaneChangeAware={routeEdit.setLaneChangeAware}
+                    routeCalcStrategy={routeEdit.routeCalcStrategy}
+                    onRouteCalcStrategyChange={routeEdit.setRouteCalcStrategy}
                     resolveCatalogRoute={resolveCatalogRoute}
                     routePreviewData={routePreviewData}
                     trajectoryEditActive={trajectoryEdit.active}

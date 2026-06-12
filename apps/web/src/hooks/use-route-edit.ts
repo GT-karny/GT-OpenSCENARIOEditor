@@ -3,7 +3,10 @@ import type { Route, OpenDriveDocument } from '@osce/shared';
 import { useRouteEditStore } from '../stores/route-edit-store';
 import type { RouteEditSource } from '../stores/route-edit-store';
 import { resolvePositionToWorld } from '@osce/3d-viewer';
-import { computeRoadFollowingSegmentsAsync } from '../lib/route-path-computation';
+import {
+  computeRoadFollowingSegmentsAsync,
+  computeLaneChangeAwareSegmentsAsync,
+} from '../lib/route-path-computation';
 import type { WaypointWorldPos } from '../lib/route-path-computation';
 import type { RoadManagerClient } from '../lib/wasm/road-manager-client';
 
@@ -45,20 +48,46 @@ export function useRouteEdit(
 
     const route = store.editingRoute;
     if (positions.length >= 2) {
-      computeRoadFollowingSegmentsAsync(route, positions, odrDoc, rmClient).then(
-        (segments) => {
-          if (!cancelled) store.setPathSegments(segments);
-        },
-      );
+      if (store.laneChangeAware && rmClient) {
+        computeLaneChangeAwareSegmentsAsync(
+          route,
+          positions,
+          odrDoc,
+          rmClient,
+          store.routeCalcStrategy,
+        ).then(({ segments, markers }) => {
+          if (!cancelled) {
+            store.setPathSegments(segments);
+            store.setLaneChangeMarkers(markers);
+          }
+        });
+      } else {
+        computeRoadFollowingSegmentsAsync(route, positions, odrDoc, rmClient).then(
+          (segments) => {
+            if (!cancelled) {
+              store.setPathSegments(segments);
+              store.setLaneChangeMarkers([]);
+            }
+          },
+        );
+      }
     } else {
       store.setPathSegments([]);
+      store.setLaneChangeMarkers([]);
     }
 
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [store.editingRoute, odrDoc, store.active, rmClient]);
+  }, [
+    store.editingRoute,
+    odrDoc,
+    store.active,
+    rmClient,
+    store.laneChangeAware,
+    store.routeCalcStrategy,
+  ]);
 
   // ---------------------------------------------------------------------------
   // Start route editing
@@ -166,6 +195,9 @@ export function useRouteEdit(
     selectedWaypointIndex: store.selectedWaypointIndex,
     waypointWorldPositions: store.waypointWorldPositions,
     pathSegments: store.pathSegments,
+    laneChangeAware: store.laneChangeAware,
+    routeCalcStrategy: store.routeCalcStrategy,
+    laneChangeMarkers: store.laneChangeMarkers,
     warnings: store.warnings,
     hasChanges:
       store.editingRoute !== null &&
@@ -184,6 +216,8 @@ export function useRouteEdit(
     updateRouteName: store.updateRouteName,
     updateRouteClosed: store.updateRouteClosed,
     selectWaypoint: store.selectWaypoint,
+    setLaneChangeAware: store.setLaneChangeAware,
+    setRouteCalcStrategy: store.setRouteCalcStrategy,
     canUndo: store.canUndo,
     canRedo: store.canRedo,
     undoRouteEdit: store.undoRouteEdit,
