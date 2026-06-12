@@ -18,7 +18,6 @@ export type * from './types/project.js';
 // FRACTIONAL_CLOUD_COVER_VALUES used to derive UI option lists)
 export * from './enums/osc-enums.js';
 export type * from './enums/odr-enums.js';
-export type * from './enums/editor-enums.js';
 
 // Utils
 export * from './utils/entity-color.js';

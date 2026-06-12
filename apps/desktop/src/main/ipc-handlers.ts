@@ -31,11 +31,6 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     }
   });
 
-  // Window title
-  ipcMain.on('window:setTitle', (_event, title: string) => {
-    mainWindow.setTitle(title);
-  });
-
   // Window controls (custom titlebar)
   ipcMain.on('window:minimize', () => {
     mainWindow.minimize();
@@ -81,7 +76,6 @@ export function unregisterIpcHandlers(): void {
   ipcMain.removeHandler('recent:get');
   ipcMain.removeHandler('presets:get');
   ipcMain.removeAllListeners('presets:save');
-  ipcMain.removeAllListeners('window:setTitle');
   ipcMain.removeAllListeners('window:minimize');
   ipcMain.removeAllListeners('window:maximize');
   ipcMain.removeAllListeners('window:close');

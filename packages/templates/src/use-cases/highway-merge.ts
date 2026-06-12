@@ -108,7 +108,4 @@ export const highwayMergeUseCase: UseCaseComponent = {
       },
     };
   },
-  reconcile(params) {
-    return { ...params };
-  },
 };

@@ -112,7 +112,4 @@ export const laneChangeUseCase: UseCaseComponent = {
       },
     };
   },
-  reconcile(params) {
-    return { ...params };
-  },
 };

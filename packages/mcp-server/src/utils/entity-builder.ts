@@ -76,7 +76,7 @@ const DEFAULT_AXLES: Axles = {
   additionalAxles: [],
 };
 
-export function buildVehicleDefinition(
+function buildVehicleDefinition(
   name: string,
   category: VehicleCategory = 'car',
 ): VehicleDefinition {
@@ -93,7 +93,7 @@ export function buildVehicleDefinition(
   };
 }
 
-export function buildPedestrianDefinition(
+function buildPedestrianDefinition(
   name: string,
   category: PedestrianCategory = 'pedestrian',
 ): PedestrianDefinition {
@@ -112,7 +112,7 @@ export function buildPedestrianDefinition(
   };
 }
 
-export function buildMiscObjectDefinition(
+function buildMiscObjectDefinition(
   name: string,
   category: MiscObjectCategory = 'obstacle',
 ): MiscObjectDefinition {

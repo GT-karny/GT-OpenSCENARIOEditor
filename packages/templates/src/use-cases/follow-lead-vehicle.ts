@@ -118,7 +118,4 @@ export const followLeadVehicleUseCase: UseCaseComponent = {
       },
     };
   },
-  reconcile(params) {
-    return { ...params };
-  },
 };

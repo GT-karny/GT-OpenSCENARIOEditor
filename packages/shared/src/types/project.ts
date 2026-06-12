@@ -1,7 +1,7 @@
-/** GT_Sim互換のファイル分類 */
+/** File classification compatible with GT_Sim */
 export type ProjectFileType = 'xosc' | 'xodr' | 'model' | 'config' | 'doc' | 'other';
 
-/** プロジェクト内のファイルエントリ */
+/** A file entry within a project */
 export interface ProjectFileEntry {
   name: string;
   relativePath: string;
@@ -10,7 +10,7 @@ export interface ProjectFileEntry {
   modifiedAt: string;
 }
 
-/** プロジェクトメタデータ（project.json に保存） */
+/** Project metadata (persisted to project.json) */
 export interface ProjectMeta {
   id: string;
   name: string;
@@ -20,7 +20,7 @@ export interface ProjectMeta {
   defaultScenario?: string;
 }
 
-/** プロジェクト一覧用の軽量サマリー */
+/** Lightweight summary for the project list view */
 export interface ProjectSummary {
   id: string;
   name: string;
@@ -30,25 +30,25 @@ export interface ProjectSummary {
   scenarioCount: number;
 }
 
-/** プロジェクト詳細（メタ + ファイル一覧） */
+/** Full project detail (metadata + file list) */
 export interface ProjectDetail {
   meta: ProjectMeta;
   files: ProjectFileEntry[];
 }
 
-/** プロジェクト作成リクエスト */
+/** Project creation request */
 export interface ProjectCreateRequest {
   name: string;
   description?: string;
   template?: 'empty' | 'basic';
 }
 
-/** プロジェクト更新リクエスト */
+/** Project update request */
 export interface ProjectUpdateRequest {
   name?: string;
   description?: string;
   defaultScenario?: string;
 }
 
-/** アプリケーション画面状態 */
+/** Top-level application view */
 export type AppView = 'home' | 'editor';

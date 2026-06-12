@@ -23,9 +23,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     };
   },
 
-  // Window title
-  setTitle: (title: string) => ipcRenderer.send('window:setTitle', title),
-
   // Window controls (custom titlebar)
   windowMinimize: () => ipcRenderer.send('window:minimize'),
   windowMaximize: () => ipcRenderer.send('window:maximize'),

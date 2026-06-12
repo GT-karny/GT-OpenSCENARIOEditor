@@ -103,7 +103,4 @@ export const emergencyBrakeUseCase: UseCaseComponent = {
       },
     };
   },
-  reconcile(params) {
-    return { ...params };
-  },
 };

@@ -1,4 +1,4 @@
-import type { UseCaseComponent, ActionComponent } from '@osce/shared';
+import type { UseCaseComponent } from '@osce/shared';
 
 // Import all use-case components
 import { cutInUseCase } from './use-cases/cut-in.js';
@@ -9,14 +9,6 @@ import { followLeadVehicleUseCase } from './use-cases/follow-lead-vehicle.js';
 import { laneChangeUseCase } from './use-cases/lane-change.js';
 import { highwayMergeUseCase } from './use-cases/highway-merge.js';
 import { decelerationToStopUseCase } from './use-cases/deceleration-to-stop.js';
-
-// Import all action components
-import { speedActionComponent } from './action-components/speed-action.js';
-import { laneChangeActionComponent } from './action-components/lane-change-action.js';
-import { teleportActionComponent } from './action-components/teleport-action.js';
-import { longitudinalDistanceActionComponent } from './action-components/longitudinal-distance-action.js';
-import { lateralDistanceActionComponent } from './action-components/lateral-distance-action.js';
-import { followTrajectoryActionComponent } from './action-components/follow-trajectory-action.js';
 
 // --- Registry arrays ---
 
@@ -31,15 +23,6 @@ export const useCaseComponents: UseCaseComponent[] = [
   decelerationToStopUseCase,
 ];
 
-export const actionComponents: ActionComponent[] = [
-  speedActionComponent,
-  laneChangeActionComponent,
-  teleportActionComponent,
-  longitudinalDistanceActionComponent,
-  lateralDistanceActionComponent,
-  followTrajectoryActionComponent,
-];
-
 // --- Lookup functions ---
 
 export function getUseCaseById(id: string): UseCaseComponent | undefined {
@@ -48,14 +31,6 @@ export function getUseCaseById(id: string): UseCaseComponent | undefined {
 
 export function getUseCasesByCategory(category: string): UseCaseComponent[] {
   return useCaseComponents.filter((uc) => uc.category === category);
-}
-
-export function getActionComponentById(id: string): ActionComponent | undefined {
-  return actionComponents.find((ac) => ac.id === id);
-}
-
-export function getActionComponentByType(actionType: string): ActionComponent | undefined {
-  return actionComponents.find((ac) => ac.actionType === actionType);
 }
 
 // --- Re-export individual components ---
@@ -68,13 +43,6 @@ export { followLeadVehicleUseCase } from './use-cases/follow-lead-vehicle.js';
 export { laneChangeUseCase } from './use-cases/lane-change.js';
 export { highwayMergeUseCase } from './use-cases/highway-merge.js';
 export { decelerationToStopUseCase } from './use-cases/deceleration-to-stop.js';
-
-export { speedActionComponent } from './action-components/speed-action.js';
-export { laneChangeActionComponent } from './action-components/lane-change-action.js';
-export { teleportActionComponent } from './action-components/teleport-action.js';
-export { longitudinalDistanceActionComponent } from './action-components/longitudinal-distance-action.js';
-export { lateralDistanceActionComponent } from './action-components/lateral-distance-action.js';
-export { followTrajectoryActionComponent } from './action-components/follow-trajectory-action.js';
 
 // --- Re-export helper utilities ---
 

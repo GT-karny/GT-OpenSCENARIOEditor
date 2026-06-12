@@ -159,7 +159,4 @@ export const pedestrianCrossingUseCase: UseCaseComponent = {
       },
     };
   },
-  reconcile(params) {
-    return { ...params };
-  },
 };

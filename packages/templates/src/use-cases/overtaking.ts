@@ -139,7 +139,4 @@ export const overtakingUseCase: UseCaseComponent = {
       },
     };
   },
-  reconcile(params) {
-    return { ...params };
-  },
 };

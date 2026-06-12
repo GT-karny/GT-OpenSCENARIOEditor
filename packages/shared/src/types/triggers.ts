@@ -7,11 +7,13 @@
 import type { Position } from './positions.js';
 import type {
   ConditionEdge,
+  CoordinateSystem,
   Rule,
   RelativeDistanceType,
   DirectionalDimension,
   StoryboardElementType,
   StoryboardElementState,
+  TriggeringEntitiesRule,
 } from '../enums/osc-enums.js';
 
 // --- Trigger structure ---
@@ -43,7 +45,7 @@ export interface ByEntityCondition {
 }
 
 export interface TriggeringEntities {
-  triggeringEntitiesRule: 'any' | 'all';
+  triggeringEntitiesRule: TriggeringEntitiesRule;
   entityRefs: string[];
 }
 
@@ -235,4 +237,5 @@ export interface UserDefinedValueCondition {
   rule: Rule;
 }
 
-export type CoordinateSystemCond = 'entity' | 'lane' | 'road' | 'trajectory';
+/** Alias for CoordinateSystem — kept for backward compatibility with existing dependents. */
+export type CoordinateSystemCond = CoordinateSystem;

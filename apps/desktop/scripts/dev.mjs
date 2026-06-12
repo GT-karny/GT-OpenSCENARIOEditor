@@ -40,10 +40,6 @@ setTimeout(() => {
     stdio: 'inherit',
     shell: true,
     cwd: desktopDir,
-    env: {
-      ...process.env,
-      ELECTRON_DEV: 'true',
-    },
   });
 
   electronProc.on('close', () => {
