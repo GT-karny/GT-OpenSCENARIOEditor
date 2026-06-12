@@ -240,6 +240,21 @@ export const common = {
     xodrLoadFailed: 'Failed to load road network: {{path}}',
     catalogLoadFailed: 'Failed to load catalog: {{path}}',
   },
+  fileErrors: {
+    openXoscFailed: 'Failed to open scenario: {{message}}',
+    openXodrFailed: 'Failed to open road network: {{message}}',
+    catalogAutoLoadFailed: 'Some catalogs could not be loaded: {{files}}',
+  },
+  recentFiles: {
+    title: 'Open Recent',
+    empty: 'No recent files',
+    clear: 'Clear Recent',
+  },
+  dnd: {
+    dropToOpen: 'Drop to open',
+    dropHint: 'Release to open the .xosc or .xodr file',
+    unsupportedFile: 'Unsupported file type. Drop a .xosc or .xodr file.',
+  },
   featureGate: {
     versionRequired: 'Requires OpenSCENARIO v{{version}}',
     simulatorUnsupported: 'Not supported by {{simulator}}',
@@ -260,5 +275,15 @@ export const common = {
     overwriteAll: 'Overwrite all',
     overwriteUnsetOnly: 'Only unset entities',
     overwriteCancel: 'Cancel',
+  },
+  autosave: {
+    recoveryTitle: 'Unsaved work found',
+    recoveryMessage:
+      'The editor closed unexpectedly. Restore your most recent unsaved work, or discard it.',
+    savedAt: 'Saved at',
+    fileLabel: 'File',
+    untitled: 'Untitled',
+    restore: 'Restore',
+    discard: 'Discard',
   },
 } as const;

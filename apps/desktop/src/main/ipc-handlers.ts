@@ -3,6 +3,7 @@ import { ipcMain, dialog } from 'electron';
 import fs from 'node:fs/promises';
 import { getRecentFiles, addRecentFile, clearRecentFiles } from './recent-files.js';
 import { getAssemblyPresets, saveAssemblyPresets } from './assembly-presets.js';
+import { createMenu } from './menu.js';
 
 export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   // File dialogs
@@ -57,10 +58,17 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     mainWindow.webContents.send('window:maximized-changed', false);
   });
 
-  // Recent files
+  // Recent files. Rebuild the native menu after mutations so the
+  // "Open Recent" submenu stays in sync.
   ipcMain.handle('recent:get', () => getRecentFiles());
-  ipcMain.on('recent:add', (_event, filePath: string) => addRecentFile(filePath));
-  ipcMain.on('recent:clear', () => clearRecentFiles());
+  ipcMain.on('recent:add', (_event, filePath: string) => {
+    addRecentFile(filePath);
+    createMenu(mainWindow);
+  });
+  ipcMain.on('recent:clear', () => {
+    clearRecentFiles();
+    createMenu(mainWindow);
+  });
 
   // Assembly presets (editor-wide)
   ipcMain.handle('presets:get', () => getAssemblyPresets());

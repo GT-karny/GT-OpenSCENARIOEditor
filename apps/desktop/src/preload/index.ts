@@ -1,5 +1,5 @@
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
   // File dialogs
@@ -13,6 +13,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   writeFile: (filePath: string, content: string) =>
     ipcRenderer.invoke('fs:writeFile', filePath, content),
   readDir: (dirPath: string) => ipcRenderer.invoke('fs:readDir', dirPath),
+
+  // Resolve the absolute path of a dropped File (drag-and-drop open).
+  getPathForFile: (file: File) => webUtils.getPathForFile(file),
 
   // Menu commands (renderer listens for these)
   onMenuAction: (callback: (action: string) => void) => {
@@ -40,6 +43,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getRecentFiles: () => ipcRenderer.invoke('recent:get'),
   addRecentFile: (filePath: string) => ipcRenderer.send('recent:add', filePath),
   clearRecentFiles: () => ipcRenderer.send('recent:clear'),
+
+  // Unsaved-changes close guard. The main process asks the renderer whether the
+  // document is dirty before closing; the renderer replies via the callbacks below.
+  onCloseRequested: (callback: () => void) => {
+    const handler = () => callback();
+    ipcRenderer.on('app:close-requested', handler);
+    return () => {
+      ipcRenderer.removeListener('app:close-requested', handler);
+    };
+  },
+  respondCloseDecision: (isDirty: boolean) =>
+    ipcRenderer.send('app:close-decision', isDirty),
+  onRunSave: (callback: () => void) => {
+    const handler = () => callback();
+    ipcRenderer.on('app:run-save', handler);
+    return () => {
+      ipcRenderer.removeListener('app:run-save', handler);
+    };
+  },
+  respondSaveComplete: (ok: boolean) => ipcRenderer.send('app:save-complete', ok),
 
   // Assembly presets (editor-wide)
   getAssemblyPresets: () => ipcRenderer.invoke('presets:get'),

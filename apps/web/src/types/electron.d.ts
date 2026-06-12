@@ -39,6 +39,13 @@ interface ElectronAPI {
   getRecentFiles: () => Promise<string[]>;
   addRecentFile: (filePath: string) => void;
   clearRecentFiles: () => void;
+  /** Open a file by absolute path (drag-and-drop / recent files). */
+  getPathForFile?: (file: File) => string;
+  // Unsaved-changes close guard
+  onCloseRequested: (callback: () => void) => () => void;
+  respondCloseDecision: (isDirty: boolean) => void;
+  onRunSave: (callback: () => void) => () => void;
+  respondSaveComplete: (ok: boolean) => void;
   getAssemblyPresets: () => Promise<unknown[]>;
   saveAssemblyPresets: (presets: unknown[]) => void;
   platform: string;

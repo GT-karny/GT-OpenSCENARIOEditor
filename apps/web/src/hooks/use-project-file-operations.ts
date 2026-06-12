@@ -216,10 +216,12 @@ export function useProjectFileOperations() {
           useProjectStore.setState({ currentXodrPath: null });
         }
       } catch (err) {
-        toast.error(`Failed to open scenario: ${relativePath}`);
+        const message = err instanceof Error ? err.message : String(err);
+        console.error('Open scenario failed:', err);
+        toast.error(t('fileErrors.openXoscFailed', { message }));
       }
     },
-    [resetForNewFile, scenarioStoreApi, autoLoadXodr],
+    [resetForNewFile, scenarioStoreApi, autoLoadXodr, t],
   );
 
   const openCatalogFromProject = useCallback(

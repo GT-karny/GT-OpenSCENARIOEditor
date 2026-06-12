@@ -20,6 +20,8 @@ import { editorMetadataStoreApi } from '../stores/editor-metadata-store-instance
 import { useAppLifecycle } from './use-app-lifecycle';
 import * as api from '../lib/project-api';
 import { resolveCatalogEntityTypes } from '../lib/resolve-catalog-entity-types';
+import { addWebRecentFile } from '../lib/recent-files/recent-files-db';
+import type { RecentFileKind } from '../lib/recent-files/recent-list';
 
 // File picker type definitions for File System Access API
 interface FilePickerOptions {
@@ -45,6 +47,50 @@ interface ReadResult {
   handle?: FileSystemFileHandle;
 }
 
+/**
+ * Error thrown when the user cancels a file picker / dialog.
+ * Callers treat this as a silent no-op (no toast), matching the native
+ * `AbortError` raised by the File System Access API.
+ */
+class FilePickerCancelledError extends Error {
+  constructor() {
+    super('Cancelled');
+    this.name = 'AbortError';
+  }
+}
+
+/** True when an error represents a user-cancelled picker (must stay silent). */
+function isCancelError(err: unknown): boolean {
+  return err instanceof Error && err.name === 'AbortError';
+}
+
+/** Extract a concise, displayable message from an unknown error. */
+function errorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  return String(err);
+}
+
+/**
+ * Register a successfully-opened file into the recents list.
+ * Electron tracks absolute paths via IPC; web persists FileSystemFileHandles
+ * (when available) in IndexedDB so re-save can reuse the handle.
+ */
+function registerRecentFile(
+  read: Pick<ReadResult, 'name' | 'filePath' | 'handle'>,
+  kind: RecentFileKind,
+): void {
+  if (window.electronAPI?.isElectron) {
+    if (read.filePath) window.electronAPI.addRecentFile(read.filePath);
+    return;
+  }
+  void addWebRecentFile({
+    name: read.name,
+    kind,
+    timestamp: Date.now(),
+    handle: read.handle,
+  });
+}
+
 /** Result from writing a file */
 interface WriteResult {
   handle?: FileSystemFileHandle;
@@ -61,11 +107,12 @@ async function readFileFromDisk(accept: string, extensions: string[]): Promise<R
       ],
       properties: ['openFile'],
     });
-    if (result.canceled || !result.filePaths[0]) throw new Error('Cancelled');
+    if (result.canceled || !result.filePaths[0]) throw new FilePickerCancelledError();
     const filePath = result.filePaths[0];
     const text = await window.electronAPI.readFile(filePath);
     const name = filePath.split(/[/\\]/).pop() ?? 'file';
-    window.electronAPI.addRecentFile(filePath);
+    // Recent-file registration happens centrally after a successful parse
+    // (covers menu open, drag-and-drop, and recent reopen uniformly).
     return { text, name, filePath };
   }
 
@@ -92,12 +139,13 @@ async function readFileFromDisk(accept: string, extensions: string[]): Promise<R
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) {
-        reject(new Error('No file selected'));
+        reject(new FilePickerCancelledError());
         return;
       }
       const text = await file.text();
       resolve({ text, name: file.name });
     };
+    input.oncancel = () => reject(new FilePickerCancelledError());
     input.click();
   });
 }
@@ -128,7 +176,7 @@ async function writeFileToDisk(
       defaultPath: defaultName,
       filters: [{ name: `${extension} file`, extensions: [extension.replace('.', '')] }],
     });
-    if (result.canceled || !result.filePath) throw new Error('Cancelled');
+    if (result.canceled || !result.filePath) throw new FilePickerCancelledError();
     await window.electronAPI.writeFile(result.filePath, content);
     window.electronAPI.addRecentFile(result.filePath);
     const fileName = result.filePath.split(/[/\\]/).pop() ?? defaultName;
@@ -210,14 +258,20 @@ function convertPathsForSerialization(
   };
 }
 
+/**
+ * Auto-load catalog .xosc files referenced by CatalogLocations (Electron only).
+ * Returns the list of catalog files that failed to read/parse so the caller can
+ * surface a non-blocking warning toast.
+ */
 async function autoLoadCatalogs(
   xoscFilePath: string,
   catalogLocations: CatalogLocations,
-): Promise<void> {
+): Promise<{ failed: string[] }> {
   const electronApi = window.electronAPI;
-  if (!electronApi) return;
+  if (!electronApi) return { failed: [] };
 
   const xoscDir = xoscFilePath.replace(/[/\\][^/\\]+$/, '');
+  const failed: string[] = [];
 
   for (const loc of Object.values(catalogLocations)) {
     if (!loc?.directory) continue;
@@ -234,12 +288,15 @@ async function autoLoadCatalogs(
           useCatalogStore.getState().loadCatalog(xml, `${catalogDir}/${fileName}`);
         } catch {
           console.warn(`[autoLoadCatalogs] Failed to read: ${catalogDir}/${fileName}`);
+          failed.push(fileName);
         }
       }
     } catch {
       console.warn(`[autoLoadCatalogs] Failed to read directory: ${catalogDir}`);
     }
   }
+
+  return { failed };
 }
 
 export function useFileOperations() {
@@ -278,33 +335,64 @@ export function useFileOperations() {
     useEditorStore.getState().setXoscFilePath(null);
   }, [storeApi, resetForNewFile, setCurrentFileName, setDirty, setValidationResult, setRoadNetwork]);
 
-  const openXosc = useCallback(async () => {
-    try {
-      const { text, name, filePath, handle } = await readFileFromDisk('OpenSCENARIO', ['.xosc']);
-      const parser = new XoscParser();
-      const doc = parser.parse(text);
+  /**
+   * Load an already-read .xosc source into the editor. Shared by the menu
+   * picker (openXosc) and drag-and-drop. Parse/IO failures surface a toast;
+   * the caller handles picker-cancellation separately.
+   * Returns true on success so callers can switch to the editor view.
+   */
+  const loadXoscFromRead = useCallback(
+    async ({ text, name, filePath, handle }: ReadResult): Promise<boolean> => {
+      try {
+        const parser = new XoscParser();
+        const doc = parser.parse(text);
 
-      // Reset all transient state and load parsed document
-      resetForNewFile();
-      storeApi.getState().createScenario();
-      storeApi.setState({ document: doc });
-      setCurrentFileName(name);
-      setDirty(false);
-      setValidationResult(null);
+        // Reset all transient state and load parsed document
+        resetForNewFile();
+        storeApi.getState().createScenario();
+        storeApi.setState({ document: doc });
+        setCurrentFileName(name);
+        setDirty(false);
+        setValidationResult(null);
 
-      // Store handle/path for overwrite-save
-      useEditorStore.getState().setXoscFileHandle(handle ?? null);
-      useEditorStore.getState().setXoscFilePath(filePath ?? null);
+        // Store handle/path for overwrite-save
+        useEditorStore.getState().setXoscFileHandle(handle ?? null);
+        useEditorStore.getState().setXoscFilePath(filePath ?? null);
 
-      // Electron: auto-load catalogs from CatalogLocations
-      if (filePath && window.electronAPI?.isElectron) {
-        await autoLoadCatalogs(filePath, doc.catalogLocations);
-        resolveCatalogEntityTypes(storeApi);
+        // Electron: auto-load catalogs from CatalogLocations
+        if (filePath && window.electronAPI?.isElectron) {
+          const { failed } = await autoLoadCatalogs(filePath, doc.catalogLocations);
+          resolveCatalogEntityTypes(storeApi);
+          if (failed.length > 0) {
+            toast.warning(t('fileErrors.catalogAutoLoadFailed', { files: failed.join(', ') }));
+          }
+        }
+
+        registerRecentFile({ name, filePath, handle }, 'xosc');
+        return true;
+      } catch (err) {
+        console.error('Open .xosc failed:', err);
+        toast.error(t('fileErrors.openXoscFailed', { message: errorMessage(err) }));
+        return false;
       }
-    } catch {
-      // User cancelled the file picker
+    },
+    [storeApi, resetForNewFile, setCurrentFileName, setDirty, setValidationResult, t],
+  );
+
+  const openXosc = useCallback(async () => {
+    let read: ReadResult;
+    try {
+      read = await readFileFromDisk('OpenSCENARIO', ['.xosc']);
+    } catch (err) {
+      // Picker cancellation stays silent; real failures are surfaced below.
+      if (!isCancelError(err)) {
+        console.error('Open .xosc failed:', err);
+        toast.error(t('fileErrors.openXoscFailed', { message: errorMessage(err) }));
+      }
+      return;
     }
-  }, [storeApi, resetForNewFile, setCurrentFileName, setDirty, setValidationResult]);
+    await loadXoscFromRead(read);
+  }, [loadXoscFromRead, t]);
 
   const saveXosc = useCallback(async () => {
     const currentProject = useProjectStore.getState().currentProject;
@@ -433,30 +521,56 @@ export function useFileOperations() {
     useEditorStore.getState().setXodrFilePath(null);
   }, [resetForNewRoadNetwork, setRoadNetwork]);
 
-  const loadXodr = useCallback(async () => {
-    try {
-      const { text, name, filePath, handle } = await readFileFromDisk('OpenDRIVE', ['.xodr']);
-      const parser = new XodrParser();
-      const doc = parser.parse(text);
-      resetForNewRoadNetwork();
-      setRoadNetwork(doc, text);
-      useEditorStore.getState().setRoadNetworkFileName(name);
-      useEditorStore.getState().setRoadNetworkDirty(false);
-      useEditorStore.getState().setXodrFileHandle(handle ?? null);
-      useEditorStore.getState().setXodrFilePath(filePath ?? null);
-      // Reconstruct signal assemblies from signal→object references
-      const assemblies = buildAssembliesFromDocument(doc);
-      if (assemblies.length > 0) {
-        const meta = editorMetadataStoreApi.getState().getMetadata();
-        editorMetadataStoreApi.getState().loadMetadata({
-          ...meta,
-          signalAssemblies: assemblies,
-        });
+  /**
+   * Load an already-read .xodr source into the editor. Shared by the menu
+   * picker (loadXodr) and drag-and-drop. Parse/IO failures surface a toast.
+   * Returns true on success so callers can switch to the editor view.
+   */
+  const loadXodrFromRead = useCallback(
+    async ({ text, name, filePath, handle }: ReadResult): Promise<boolean> => {
+      try {
+        const parser = new XodrParser();
+        const doc = parser.parse(text);
+        resetForNewRoadNetwork();
+        setRoadNetwork(doc, text);
+        useEditorStore.getState().setRoadNetworkFileName(name);
+        useEditorStore.getState().setRoadNetworkDirty(false);
+        useEditorStore.getState().setXodrFileHandle(handle ?? null);
+        useEditorStore.getState().setXodrFilePath(filePath ?? null);
+        // Reconstruct signal assemblies from signal→object references
+        const assemblies = buildAssembliesFromDocument(doc);
+        if (assemblies.length > 0) {
+          const meta = editorMetadataStoreApi.getState().getMetadata();
+          editorMetadataStoreApi.getState().loadMetadata({
+            ...meta,
+            signalAssemblies: assemblies,
+          });
+        }
+
+        registerRecentFile({ name, filePath, handle }, 'xodr');
+        return true;
+      } catch (err) {
+        console.error('Open .xodr failed:', err);
+        toast.error(t('fileErrors.openXodrFailed', { message: errorMessage(err) }));
+        return false;
       }
-    } catch {
-      // User cancelled the file picker
+    },
+    [resetForNewRoadNetwork, setRoadNetwork, t],
+  );
+
+  const loadXodr = useCallback(async () => {
+    let read: ReadResult;
+    try {
+      read = await readFileFromDisk('OpenDRIVE', ['.xodr']);
+    } catch (err) {
+      if (!isCancelError(err)) {
+        console.error('Open .xodr failed:', err);
+        toast.error(t('fileErrors.openXodrFailed', { message: errorMessage(err) }));
+      }
+      return;
     }
-  }, [resetForNewRoadNetwork, setRoadNetwork]);
+    await loadXodrFromRead(read);
+  }, [loadXodrFromRead, t]);
 
   const saveXodr = useCallback(async () => {
     const roadNetwork = useEditorStore.getState().roadNetwork;
@@ -588,5 +702,8 @@ export function useFileOperations() {
     handleSaveAs,
     handleSaveAsXodr,
     newOpenDrive,
+    // Lower-level loaders shared with drag-and-drop and recent-files reopen.
+    loadXoscFromRead,
+    loadXodrFromRead,
   };
 }

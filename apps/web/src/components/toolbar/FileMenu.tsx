@@ -1,5 +1,6 @@
+import { useCallback, useState } from 'react';
 import { useTranslation } from '@osce/i18n';
-import { FilePlus, FolderOpen, Save, SaveAll } from 'lucide-react';
+import { FilePlus, FolderOpen, Save, SaveAll, Clock, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import {
   DropdownMenu,
@@ -7,9 +8,13 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import { useFileOperations } from '../../hooks/use-file-operations';
+import { useRecentFiles } from '../../hooks/use-recent-files';
 import { useEditorStore } from '../../stores/editor-store';
 
 export function FileMenu() {
@@ -25,11 +30,21 @@ export function FileMenu() {
     saveXodr,
     saveAsXodr,
   } = useFileOperations();
+  const { items: recentFiles, refresh, openRecent, clearRecent } = useRecentFiles();
 
   const isRoadNetwork = editorMode === 'roadNetwork';
+  const [open, setOpen] = useState(false);
+
+  const handleOpenChange = useCallback(
+    (next: boolean) => {
+      setOpen(next);
+      if (next) void refresh();
+    },
+    [refresh],
+  );
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className="text-xs">
           File
@@ -46,6 +61,34 @@ export function FileMenu() {
           Open {isRoadNetwork ? '.xodr' : '.xosc'}
           <DropdownMenuShortcut>Ctrl+O</DropdownMenuShortcut>
         </DropdownMenuItem>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <Clock />
+            {t('recentFiles.title')}
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            {recentFiles.length === 0 ? (
+              <DropdownMenuItem disabled>{t('recentFiles.empty')}</DropdownMenuItem>
+            ) : (
+              <>
+                {recentFiles.map((item) => (
+                  <DropdownMenuItem
+                    key={item.id}
+                    onClick={() => void openRecent(item)}
+                    title={item.path ?? item.name}
+                  >
+                    <span className="truncate max-w-[220px]">{item.name}</span>
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => void clearRecent()}>
+                  <Trash2 />
+                  {t('recentFiles.clear')}
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
         <DropdownMenuItem onClick={isRoadNetwork ? saveXodr : saveXosc}>
           <Save />
           {t('buttons.save')} {isRoadNetwork ? '.xodr' : '.xosc'}

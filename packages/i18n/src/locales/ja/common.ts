@@ -239,6 +239,22 @@ export const common = {
     xodrLoadFailed: 'ロードネットワークの読み込みに失敗しました: {{path}}',
     catalogLoadFailed: 'カタログの読み込みに失敗しました: {{path}}',
   },
+  fileErrors: {
+    openXoscFailed: 'シナリオを開けませんでした: {{message}}',
+    openXodrFailed: 'ロードネットワークを開けませんでした: {{message}}',
+    catalogAutoLoadFailed: '一部のカタログを読み込めませんでした: {{files}}',
+  },
+  recentFiles: {
+    title: '最近使用したファイル',
+    empty: '最近使用したファイルはありません',
+    clear: '履歴をクリア',
+  },
+  dnd: {
+    dropToOpen: 'ドロップして開く',
+    dropHint: '.xosc または .xodr ファイルをドロップして開きます',
+    unsupportedFile:
+      '対応していないファイル形式です。.xosc または .xodr ファイルをドロップしてください。',
+  },
   featureGate: {
     versionRequired: 'OpenSCENARIO v{{version}} が必要です',
     simulatorUnsupported: '{{simulator}} では対応していません',
@@ -259,5 +275,14 @@ export const common = {
     overwriteAll: 'すべて上書き',
     overwriteUnsetOnly: '未設定のみ',
     overwriteCancel: 'キャンセル',
+  },
+  autosave: {
+    recoveryTitle: '未保存の作業が見つかりました',
+    recoveryMessage: 'エディタが予期せず終了しました。最新の未保存データを復元するか、破棄してください。',
+    savedAt: '保存日時',
+    fileLabel: 'ファイル',
+    untitled: '無題',
+    restore: '復元',
+    discard: '破棄',
   },
 } as const;

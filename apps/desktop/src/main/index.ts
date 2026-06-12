@@ -4,6 +4,7 @@ import { startServer, stopServer } from './server.js';
 import { createMenu } from './menu.js';
 import { registerIpcHandlers, unregisterIpcHandlers } from './ipc-handlers.js';
 import { restoreWindowState, saveWindowState } from './window-state.js';
+import { installCloseGuard } from './close-guard.js';
 
 const IS_DEV = !app.isPackaged;
 
@@ -32,6 +33,7 @@ async function createWindow() {
 
   registerIpcHandlers(mainWindow);
   createMenu(mainWindow);
+  installCloseGuard(mainWindow);
 
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show();
