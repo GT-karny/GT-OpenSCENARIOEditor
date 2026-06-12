@@ -44,11 +44,12 @@ export function applyUseCaseComponent(
 
 /**
  * Reconcile component parameters after external changes.
+ * Falls back to returning params unchanged if the component has no reconcile function.
  */
 export function reconcileComponent(
   component: UseCaseComponent,
   params: Record<string, unknown>,
   context: ReconciliationContext,
 ): Record<string, unknown> {
-  return component.reconcile(params, context);
+  return component.reconcile ? component.reconcile(params, context) : { ...params };
 }

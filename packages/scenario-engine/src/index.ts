@@ -29,30 +29,9 @@ export {
 
 // Command History
 export { CommandHistory } from './commands/command-history.js';
-export { BaseCommand } from './commands/base-command.js';
-
-// Update Commands
-export {
-  UpdateStoryCommand,
-  UpdateActCommand,
-  UpdateManeuverGroupCommand,
-  UpdateManeuverCommand,
-  UpdateEventCommand,
-  UpdateActionCommand,
-  UpdateConditionCommand,
-} from './commands/update-commands.js';
-
-// Scenario-level Commands
-export {
-  UpdateFileHeaderCommand,
-  UpdateRoadNetworkCommand,
-  UpdateCatalogLocationsCommand,
-} from './commands/scenario-commands.js';
 
 // Operations
 export { getElementById, getParentOf } from './operations/tree-traversal.js';
-export { deepReplaceParamRef, deepReplaceDirectRef, replaceInBindings, escapeRegex } from './operations/parameter-rename-utils.js';
-export { deepReplaceEntityRef, deepRemoveEntityRef } from './operations/entity-rename-utils.js';
 export { findEntityRefUsages } from './operations/entity-ref-utils.js';
 export type { EntityRefUsage } from './operations/entity-ref-utils.js';
 export { deepCloneWithNewIds } from './operations/deep-clone.js';
@@ -61,7 +40,7 @@ export type { EntityCleanupOption } from './commands/entity-commands.js';
 export { findManeuverGroupForAction } from './operations/storyboard-operations.js';
 
 // Component Engine
-export { applyUseCaseComponent, reconcileComponent } from './components/component-engine.js';
+export { applyUseCaseComponent } from './components/component-engine.js';
 
 // Compatibility / Feature Gating
 export {
