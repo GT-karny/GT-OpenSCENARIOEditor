@@ -1,3 +1,5 @@
+> **Implemented as of 2026-06**: `TrafficSignalController` initialization is wired in the GT_Sim esmini fork (`Thirdparty/GT_Sim/`). The WASM build now initializes and steps signal controllers each frame; state is exposed via `getTrafficLightStatesOnly()` in `apps/web/src/lib/wasm/esmini-worker.ts`. Proposal archived.
+
 # Bug Fix: esminiJS missing TrafficSignalController initialization
 
 ## Summary

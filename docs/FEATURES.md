@@ -1,6 +1,7 @@
 # Feature Ledger — OpenSCENARIO Editor
 
-> Generated: 2026-03-04 | Method: Code review + owner Q&A
+> Generated: 2026-06-13 | Method: Code review + owner Q&A
+> Changelog: 2026-06-13 — updated for refactor+feature wave (commits d3d0c7f..HEAD): file UX (drag-drop, recent files, autosave/crash recovery, unsaved-changes guard, file-error toasts); round-trip fixes (ParameterAction/VariableAction modify, VariableDeclarations order, AnimationAction/LightStateAction, FollowTrajectoryAction trajectoryRef, EnvironmentAction catalog ref, RandomRouteAction, TrajectoryPosition, ClothoidSpline); OpenDRIVE roadMark typeDef + userData/dataQuality round-trip; opendrive-engine redo wired; server file/scenario/simulation REST+WS API removed; WASM streaming path removed; MCP tool count 24→26 (import_xosc lossless, add_lane_change_action relative); templates action-components deleted; ESLint no-any now error.
 > Purpose: PM management ledger (internal tracking)
 > Competitor targets: IPG CarMaker, MathWorks RoadRunner
 > Release: Full-stack OSS
@@ -22,14 +23,14 @@
 
 | Category | ✅ | ⚠️ | 🟡 | 🔲 | ❌ | 🚫 | Total |
 |----------|----|----|----|----|----|----|-------|
-| File & Project | 4 | 3 | 0 | 1 | 2 | 0 | 10 |
+| File & Project | 4 | 8 | 0 | 0 | 1 | 0 | 13 |
 | Scenario Editing | 18 | 20 | 2 | 0 | 4 | 1 | 45 |
-| 3D & Visualization | 5 | 14 | 0 | 0 | 2 | 0 | 21 |
+| 3D & Visualization | 5 | 15 | 0 | 0 | 1 | 0 | 21 |
 | Simulation | 0 | 1 | 6 | 0 | 3 | 1 | 11 |
 | AI Integration | 0 | 1 | 0 | 0 | 2 | 0 | 3 |
 | Validation & Quality | 3 | 0 | 0 | 0 | 3 | 0 | 6 |
 | Infrastructure | 8 | 5 | 2 | 0 | 1 | 0 | 16 |
-| **Total** | **38** | **44** | **10** | **1** | **17** | **2** | **112** |
+| **Total** | **38** | **50** | **10** | **0** | **15** | **2** | **115** |
 
 ---
 
@@ -44,9 +45,12 @@
 | 1.5 | Project CRUD | ⚠️ | REST API: list, create, update, delete projects | Unit: `project-routes`, `project-service` |
 | 1.6 | File tree browser | ⚠️ | Backend file service, project file navigation | Unit: `file-routes`, `file-service` |
 | 1.7 | ZIP export/import | ⚠️ | GET /api/projects/:id/export, POST /api/projects/import | -- |
-| 1.8 | Recent files | 🔲 | Store supports `recentProjectIds`, no UI yet | -- |
-| 1.9 | Drag & drop file open | ❌ | — | -- |
+| 1.8 | Recent files | ⚠️ | FileMenu "Open Recent" (web) + Electron native menu; IndexedDB handle persistence (`recent-files-db.ts`); `use-recent-files.ts` hook | -- |
+| 1.9 | Drag & drop file open | ⚠️ | `.xosc`/`.xodr` drag-and-drop with overlay (`DropOverlay.tsx`, `use-file-drag-drop.ts`); wired in `EditorLayout.tsx` | -- |
 | 1.10 | Export as other format | ❌ | No export to JSON, PDF, image, etc. | -- |
+| 1.11 | Autosave & crash recovery | ⚠️ | Auto-save to IndexedDB on change (default ON); `AutosaveRecoveryDialog` on next open; `use-autosave.ts` hook | Unit: `autosave-debounce-scheduler`, `autosave-snapshot-mapping` |
+| 1.12 | Unsaved-changes guard | ⚠️ | Browser `beforeunload` prompt + Electron native "Save / Don't Save / Cancel" close dialog (`use-unsaved-changes-guard.ts`) | -- |
+| 1.13 | File-open/parse error toasts | ⚠️ | Parse errors and catalog auto-load warnings surfaced as toast notifications (`use-file-operations.ts`) | -- |
 
 ---
 
@@ -118,7 +122,7 @@
 | # | Feature | Status | Notes | Tests |
 |---|---------|--------|-------|-------|
 | 2.5.1 | Undo (Ctrl+Z) | ⚠️ | 14+ command types: Entity, Story, Act, ManeuverGroup, Maneuver, Event, Action, Trigger, Condition, Init, Parameter, Scenario | Unit: `command-history` |
-| 2.5.2 | Redo (Ctrl+Y / Ctrl+Shift+Z) | ⚠️ | Full redo stack | Unit: `command-history` |
+| 2.5.2 | Redo (Ctrl+Y / Ctrl+Shift+Z) | ⚠️ | Full redo stack. OpenDRIVE-side redo now wired (command classes in `opendrive-engine` connected to `CommandHistory`) | Unit: `command-history` |
 | 2.5.3 | Command history (max 100) | ⚠️ | All edit operations tracked, UI buttons reactive | Unit: `command-history` |
 
 ### 2.6 Templates
@@ -151,9 +155,9 @@
 | 3.16 | Traffic signal 3D rendering | ⚠️ | Type-specific geometry (traffic lights, stop signs, speed limits). InstancedMesh for poles/heads. Canvas texture baking | Unit: `signal-catalog`, `signal-geometry`, `signal-shapes`, `parse-traffic-light-state` |
 | 3.17 | Traffic signal selection | ⚠️ | Hover highlight, click to select, property panel integration | -- |
 | 3.18 | Traffic signal state display | ⚠️ | Connected to esmini simulation state. Real-time bulb color updates | Unit: `signal-position-resolver` |
-| 3.19 | Route editing overlay | ⚠️ | Visual waypoint placement, drag editing, connection lines in 3D viewport | -- |
+| 3.19 | Route editing overlay | ⚠️ | Visual waypoint placement, drag editing, connection lines in 3D viewport; `LaneChangeMarker` added for lane-change waypoints; lane-link tracking across internal lane-section boundaries now correct | -- |
 | 3.20 | Measurement tools | ❌ | No distance/angle measurement | -- |
-| 3.21 | Trajectory visualization | ❌ | Path preview. **Priority upgraded** — needed for scenario authoring UX | -- |
+| 3.21 | Trajectory visualization | ⚠️ | `packages/3d-viewer/src/trajectory/` exists: `TrajectoryOverlay`, `TrajectoryEditOverlay`, `TrajectoryPreviewOverlay`, `TrajectoryPointMarker`, `TrajectoryPointGizmo`, `TrajectoryConnectionLine`. No property-panel editor yet (read-only display for ClothoidSpline shape; typed TrajectoryPosition parsed but no UI editor) | -- |
 
 ---
 
@@ -182,9 +186,11 @@
 ### 4.3 Server-side Simulation
 
 > 🚫 **Server-side simulation (REST/gRPC) is DISCONTINUED.** WASM esmini is the sole simulation engine.
-> Server-side code preserved in `packages/esmini/` (REST/gRPC client) and `apps/server/` (routes)
-> for potential future revival with GT_Sim integration.
-> E2E tests in `e2e/gt-sim/` are gated behind `USE_GT_SIM` env var.
+> The server file API (`/api/files/*`), scenario API (`/api/scenario/*`), simulation API (`/api/simulation/*`),
+> and associated WS file-open/save handlers have been **deleted** from `apps/server/` (code lives in git history).
+> `@osce/esmini` package (REST/gRPC client) is **preserved** but no longer wired into `apps/server/`.
+> E2E tests in `e2e/gt-sim/` remain gated behind `USE_GT_SIM` env var; suite repair is in progress.
+> WASM streaming path (`{type:'step'}/frame/completed`) also deleted; batch mode is now the sole WASM path.
 
 ---
 
@@ -192,7 +198,7 @@
 
 | # | Feature | Status | Notes | Tests |
 |---|---------|--------|-------|-------|
-| 5.1 | MCP Server (24 tools) | ⚠️ | Scenario, Entity, Action, Trigger, Init, Storyboard, Template, Undo/Redo tools. stdio transport | Unit: 9 test files in `mcp-server` |
+| 5.1 | MCP Server (26 tools) | ⚠️ | Scenario, Entity, Action, Trigger, Init, Storyboard, Template, Undo/Redo tools. stdio transport. `add_lane_change_action` now supports relative targets; `import_xosc` now lossless via `loadDocument` (preserves fileHeader, roadNetwork, catalogLocations, parameters, stopTrigger) | Unit: 9 test files in `mcp-server` |
 | 5.2 | NL → Scenario generation | ❌ | Natural language to scenario creation (planned) | -- |
 | 5.3 | Other AI integrations | ❌ | Exploring additional AI-assisted features | -- |
 
@@ -222,8 +228,8 @@
 | `@osce/opendrive` | 10 files: arc, lane-boundary, line, reference-line, spiral, lane-offset, parse-and-mesh, junction-surface-builder, road-mesh-generator, xodr-parser | -- |
 | `@osce/mcp-server` | 9 files: action-tools, entity-tools, init-tools, integration, scenario-tools, storyboard-tools, template-tools, trigger-tools, undo-redo-tools | -- |
 | `@osce/esmini` | 3 files: ground-truth-converter, gt-sim-rest-client, gt-sim-service | -- |
-| `apps/server` | 9 files: file-routes, scenario-routes, simulation-routes, project-routes, file-service, scenario-service, mock-esmini-service, project-service, ws-handler | -- |
-| `apps/web` | 1 file: editor-store | 6 specs + 3 GT_Sim specs |
+| `apps/server` | 3 files: project-routes, project-service, ws-handler (file/scenario/simulation-routes deleted with server API removal) | -- |
+| `apps/web` | unit: autosave-snapshot-mapping, autosave-debounce-scheduler, recent-list + editor-store | E2E: 6 specs + 3 GT_Sim specs (suite repair in progress) |
 
 ---
 
@@ -294,23 +300,23 @@
 | Private Actions -- Longitudinal | 6 | 6 | 0 | 0 |
 | Private Actions -- Lateral | 8 | 8 | 0 | 0 |
 | Private Actions -- Controller | 7 | 7 | 0 | 0 |
-| Private Actions -- Routing | 6 | 6 | 0 | 0 |
+| Private Actions -- Routing | 8 | 6 | 2 | 0 |
 | Private Actions -- Appearance | 8 | 7 | 1 | 0 |
 | Private Actions -- Other | 5 | 5 | 0 | 0 |
 | Global Actions | 14 | 8 | 2 | 4 |
 | Entity Conditions (ByEntity) | 16 | 16 | 0 | 0 |
 | Value Conditions (ByValue) | 8 | 7 | 0 | 1 |
 | Trigger Structure | 4 | 4 | 0 | 0 |
-| Position Types | 10 | 9 | 0 | 1 |
+| Position Types | 10 | 9 | 1 | 0 |
 | Parameter / Variable | 8 | 8 | 0 | 0 |
 | Catalog System | 11 | 9 | 0 | 2 |
 | Road Network | 6 | 4 | 0 | 2 |
 | Environment / Weather | 8 | 8 | 0 | 0 |
 | Dynamics / Supporting | 8 | 8 | 0 | 0 |
 | Distribution / Stochastic | 14 | 0 | 0 | 14 |
-| **TOTAL** | **172** | **143** | **3** | **26** |
+| **TOTAL** | **174** | **143** | **6** | **25** |
 
-**Overall: ~83% fully covered, ~85% including partial.**
+**Overall: ~82% fully covered, ~86% including partial.**
 
 ---
 
@@ -321,7 +327,7 @@
 | OpenScenario | Document | ✅ | ✅ | Root element `<OpenSCENARIO>` |
 | FileHeader | Document | ✅ | ✅ | revMajor, revMinor, date, description, author. `License` child element not parsed. |
 | ParameterDeclarations | Document | ✅ | ✅ | With ConstraintGroup / ValueConstraint support |
-| VariableDeclarations | Document | ✅ | ✅ | v1.2 addition; variableType, name, value |
+| VariableDeclarations | Document | ✅ | ✅ | v1.2 addition; variableType, name, value. **Serialized in correct XSD order** (before CatalogLocations; was emitted after Storyboard) |
 | ScenarioDefinition (group) | Document | ✅ | ✅ | All children: ParameterDeclarations, VariableDeclarations, CatalogLocations, RoadNetwork, Entities, Storyboard |
 
 ### A.2 Entity / Object Types
@@ -394,12 +400,14 @@
 
 | XSD Element/Type | Category | Parser | Serializer | Notes |
 |---|---|---|---|---|
-| RoutingAction | Action | ✅ | ✅ | Wrapper: AssignRouteAction, FollowTrajectoryAction, AcquirePositionAction |
+| RoutingAction | Action | ✅ | ✅ | Wrapper: AssignRouteAction, FollowTrajectoryAction, AcquirePositionAction, RandomRouteAction |
 | AssignRouteAction | Action | ✅ | ✅ | Route with Waypoint[]; CatalogReference route ref partially handled |
-| FollowTrajectoryAction | Action | ✅ | ✅ | Trajectory (Polyline/Clothoid/Nurbs) + TimeReference + TrajectoryFollowingMode + initialDistanceOffset |
+| FollowTrajectoryAction | Action | ✅ | ✅ | Trajectory (Polyline/Clothoid/Nurbs/ClothoidSpline) + TimeReference + TrajectoryFollowingMode + initialDistanceOffset; **TrajectoryRef (catalog reference) now fully parsed and serialized** |
 | AcquirePositionAction | Action | ✅ | ✅ | Position |
 | Trajectory (Shape: Polyline/Clothoid/Nurbs) | Action | ✅ | ✅ | All 3 shape types with vertices, control points, knots |
+| ClothoidSpline (trajectory shape) | Action | ⚠️ | ⚠️ | v1.3 ClothoidSplineSegment[] parsed and serialized; read-only notice shown in UI (no editor) |
 | TimeReference (None / Timing) | Action | ✅ | ✅ | Both None and Timing (domainAbsoluteRelative, offset, scale) |
+| RandomRouteAction | Action | ⚠️ | ⚠️ | XSD empty element; preserved as typed passthrough `{ routeAction: 'randomRoute' }` for lossless round-trip |
 
 ### A.8 Private Actions -- Appearance / Animation / Visibility
 
@@ -407,9 +415,9 @@
 |---|---|---|---|---|
 | VisibilityAction | Action | ✅ | ✅ | graphics, traffic, sensors, entityRef |
 | AppearanceAction | Action | ⚠️ | ⚠️ | XSD defines as wrapper for LightStateAction + AnimationAction; parser treats as generic pass-through. Individual LightStateAction/AnimationAction handled as direct PrivateAction children instead. |
-| AnimationAction | Action | ✅ | ✅ | AnimationType (VehicleComponent/Pedestrian/File/UserDefined), state, duration, loop |
+| AnimationAction | Action | ✅ | ✅ | AnimationType (VehicleComponent/Pedestrian/File/UserDefined), state, duration, loop. **XSD-compliant round-trip fixed** |
 | AnimationType | Action | ✅ | ✅ | Dispatches VehicleComponentAnimation, PedestrianAnimation, AnimationFile, UserDefinedAnimation |
-| LightStateAction | Action | ✅ | ✅ | LightType + LightState (mode, intensity, Color RGB) + transitionTime |
+| LightStateAction | Action | ✅ | ✅ | LightType + LightState (mode, intensity, Color RGB) + transitionTime. **XSD-compliant round-trip fixed** |
 | LightType / VehicleLight / UserDefinedLight | Action | ✅ | ✅ | VehicleLightType and UserDefinedLightType parsed |
 | ConnectTrailerAction | Action | ✅ | ✅ | trailerRef (via TrailerAction wrapper or direct) |
 | DisconnectTrailerAction | Action | ✅ | ✅ | Empty element |
@@ -429,10 +437,10 @@
 | XSD Element/Type | Category | Parser | Serializer | Notes |
 |---|---|---|---|---|
 | GlobalAction | Action | ✅ | ✅ | All 6 sub-types dispatched |
-| EnvironmentAction | Action | ✅ | ✅ | Full Environment with TimeOfDay, Weather, RoadCondition |
+| EnvironmentAction | Action | ✅ | ✅ | Full Environment with TimeOfDay, Weather, RoadCondition; **CatalogReference choice now parsed and serialized** |
 | EntityAction | Action | ✅ | ✅ | AddEntityAction (with Position) and DeleteEntityAction |
-| ParameterAction | Action | ✅ | ✅ | SetAction + ModifyAction (AddValue / MultiplyByValue) |
-| VariableAction | Action | ✅ | ✅ | SetAction + ModifyAction (AddValue / MultiplyByValue) |
+| ParameterAction | Action | ✅ | ✅ | SetAction + ModifyAction (AddValue / MultiplyByValue). **modify rule round-trip fixed** (was emitting wrong XML structure) |
+| VariableAction | Action | ✅ | ✅ | SetAction + ModifyAction (AddValue / MultiplyByValue). **modify rule round-trip fixed** |
 | InfrastructureAction | Action | ✅ | ✅ | TrafficSignalAction wrapper |
 | TrafficSignalAction | Action | ✅ | ✅ | TrafficSignalControllerAction + TrafficSignalStateAction |
 | TrafficAction | Action | ⚠️ | ⚠️ | Generic pass-through `[key: string]: unknown`; no typed sub-models |
@@ -502,7 +510,7 @@
 | RelativeWorldPosition | Position | ✅ | ✅ | entityRef, dx, dy, dz, Orientation |
 | RoutePosition | Position | ✅ | ✅ | RouteRef + InRoutePosition (PositionInRoadCoordinates, PositionInLaneCoordinates, FromCurrentEntity, PositionOfCurrentEntity) |
 | GeoPosition | Position | ✅ | ✅ | latitude, longitude, altitude, Orientation |
-| TrajectoryPosition | Position | ❌ | ❌ | Falls back to default WorldPosition(0,0); no typed model |
+| TrajectoryPosition | Position | ⚠️ | ⚠️ | Typed model added (`parse-positions.ts`, `build-positions.ts`); s/t/orientation + TrajectoryRef (inline or CatalogReference) parsed and serialized. No UI editor yet. |
 
 ### A.15 Parameter / Variable System
 
@@ -598,19 +606,21 @@
 **Well-Covered Areas:**
 - All 14 EntityCondition sub-types are fully parsed and serialized (100%).
 - 7 of 8 ByValueCondition sub-types are implemented (88%). Only TimeOfDayCondition missing.
-- 9 of 10 Position types are covered (90%). Only TrajectoryPosition missing (graceful fallback).
+- 10 of 10 Position types now have typed models (100%); TrajectoryPosition parser/serializer added (no UI editor yet).
 - Full Storyboard hierarchy with proper trigger support (100%).
-- 18 of 19 PrivateAction sub-types are fully handled (95%).
+- 18 of 19 PrivateAction sub-types are fully handled (95%). FollowTrajectoryAction TrajectoryRef (catalog ref) now supported.
 - Complete entity model for Vehicle, Pedestrian, MiscObject with all child elements.
-- All 8 catalog location types supported.
+- All 8 catalog location types supported. EnvironmentAction CatalogReference choice now handled.
 
 **Partial Implementations:**
 - **TrafficAction** is captured as generic `[key: string]: unknown` -- preserves data on round-trip but sub-actions (Source, Sink, Swarm, Stop) have no typed models.
 - **AppearanceAction** XSD wrapper structure is flattened; LightStateAction and AnimationAction are parsed as direct PrivateAction children instead.
+- **ClothoidSpline** trajectory shape: parsed and serialized losslessly; no property-panel editor (read-only notice shown in UI).
+- **RandomRouteAction**: typed passthrough (`routeAction: 'randomRoute'`); no property-panel editor.
+- **TrajectoryPosition**: typed model added; no property-panel editor.
 
 **Not Implemented:**
 - **Distribution/Stochastic** (14 types): Entire parameter distribution subsystem for automated test variation. Future consideration.
-- **TrajectoryPosition**: The only position type without a typed model.
 - **TimeOfDayCondition**: The only ByValueCondition variant not dispatched.
 - **Catalog definition files**: Standalone catalog parsing added for Vehicle, Pedestrian, MiscObject, Maneuver, Route types. Environment and Trajectory catalogs not yet.
 - **ExternalObjectReference**, **EntitySelection**, **DomeImage**, **SensorReference/SensorReferenceSet**, **Color/ColorCmyk** (detailed color model), **License** (FileHeader child), **UsedArea**.

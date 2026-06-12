@@ -1,3 +1,13 @@
+## 進捗 (2026-06-13)
+
+**Phase 0 完了（A表 全10件）:** A1 雲量 enum を shared の XSD 由来配列に統一・A2 SynchronizeActionEditor 新設・A3 ParameterAction/VariableAction modify 往復修正・A4 VariableDeclarations 順序修正・A5 roadMark typeDef 往復修正・A6 OpenDRIVE Redo 配線（コマンドクラス採用）・A7 MCP lane-change relative 修正・A8 MCP import_xosc ロスレス化・A9 サーバー 127.0.0.1 バインド + CORS 制限・A10 Windows スクリプト修正 + ESLint no-any error 化。
+
+**Phase 1 完了（B表 削除 約10,000行）:** サーバーファイル/シナリオ/シミュレーション REST+WS API・WASM ストリーミングパス・サーバー WS 自動接続・templates action-components・.osce.json 操作・esmini 生成物 2.3MB・node-editor PropertyPanel/Timeline クラスタ・3d-viewer 孤児群・shared editor-enums ほか。userData/dataQuality/include は削除でなく配線（往復対応）。
+
+**Track A 完了:** 往復修正続編（AnimationAction/LightStateAction・TrajectoryRef・EnvironmentAction CatalogReference・ClothoidSpline・RandomRouteAction・TrajectoryPosition）、A2 エラー可視化・A3 自動保存+クラッシュ復旧・A4 未保存ガード・A6 ドラッグ&ドロップ+最近使ったファイル。E2E スイートを HomeScreen フローに合わせて全面修復（31 passed）。残: A1 WASM 完遂・A5 帳簿（本更新で対応）。
+
+---
+
 # 技術的負債監査レポート & リファクタリング・ロードマップ（2026-06）
 
 > 実施: 2026-06-13 | 手法: マルチエージェント監査（領域別14 + 横断スイープ6、計97エージェント）

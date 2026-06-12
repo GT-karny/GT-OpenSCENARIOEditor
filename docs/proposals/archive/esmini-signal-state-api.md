@@ -1,3 +1,5 @@
+> **Implemented as of 2026-06**: `getTrafficLightStatesOnly()` is exposed via Emscripten and called in `apps/web/src/lib/wasm/esmini-worker.ts`; `WasmTrafficLightState` type defined in `apps/web/src/lib/wasm/types.ts`. Proposal archived.
+
 # esmini C-API 拡張提案: 信号状態取得 API
 
 ## 背景

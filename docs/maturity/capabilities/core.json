@@ -55,13 +55,14 @@
           "packages/openscenario/src/serializer/build-actions.ts"
         ],
         "tests": [
-          "packages/openscenario/src/__tests__/round-trip/round-trip.test.ts"
+          "packages/openscenario/src/__tests__/round-trip/round-trip.test.ts",
+          "packages/openscenario/src/__tests__/round-trip/action-position-round-trip.test.ts"
         ],
         "e2e": [],
         "ops": []
       },
       "gaps_ja": [
-        "modify rule名の表現揺れを解消する必要がある"
+        "2026-06-13 証跡追記: ParameterAction/VariableAction modify rule (AddValue/MultiplyByValue) の往復バグ修正済み (build-actions.ts:386付近)。L1→L2昇格条件は充足しているがowner確認が必要"
       ],
       "owner": "core-team",
       "target_date": "2026-03-12",
@@ -196,7 +197,9 @@
       ],
       "evidence": {
         "impl": [
-          "apps/web/src/hooks/use-file-operations.ts"
+          "apps/web/src/hooks/use-file-operations.ts",
+          "apps/web/src/components/editor/AutosaveRecoveryDialog.tsx",
+          "apps/web/src/hooks/use-unsaved-changes-guard.ts"
         ],
         "tests": [
           "apps/web/src/__tests__/hooks/use-file-operations.test.tsx"
@@ -205,7 +208,7 @@
         "ops": []
       },
       "gaps_ja": [
-        "失敗時の代替操作導線を拡張する必要がある"
+        "2026-06-13 証跡追記: ファイルopen/parseエラーtoast実装済み; autosave crash recoveryダイアログ追加 (AutosaveRecoveryDialog); unsaved-changes guard実装済み。E2Eカバレッジ追加で L3昇格可能"
       ],
       "owner": "core-team",
       "target_date": "2026-03-28",
@@ -233,7 +236,9 @@
       ],
       "evidence": {
         "impl": [
-          "packages/scenario-engine/src/store/scenario-store.ts"
+          "packages/scenario-engine/src/store/scenario-store.ts",
+          "packages/opendrive-engine/src/store/opendrive-store.ts",
+          "packages/opendrive-engine/src/commands/command-history.ts"
         ],
         "tests": [
           "packages/scenario-engine/src/__tests__/command-history.test.ts"
@@ -242,7 +247,7 @@
         "ops": []
       },
       "gaps_ja": [
-        "複合編集ケースの回帰網羅を増やす必要がある"
+        "2026-06-13 証跡追記: OpenDRIVE側redoがコマンドクラス配線により修正済み (opendrive-store.ts)。複合編集ケースの回帰網羅を増やす必要がある"
       ],
       "owner": "core-team",
       "target_date": "2026-03-14",

@@ -192,16 +192,21 @@
       ],
       "evidence": {
         "impl": [
-          "apps/web/src/components/ErrorBoundary.tsx"
+          "apps/web/src/components/ErrorBoundary.tsx",
+          "apps/web/src/components/editor/AutosaveRecoveryDialog.tsx",
+          "apps/web/src/hooks/use-unsaved-changes-guard.ts",
+          "apps/web/src/hooks/use-autosave.ts"
         ],
         "tests": [
-          "apps/web/src/__tests__/hooks/use-file-operations.test.tsx"
+          "apps/web/src/__tests__/hooks/use-file-operations.test.tsx",
+          "apps/web/src/__tests__/lib/autosave-snapshot-mapping.test.ts",
+          "apps/web/src/__tests__/lib/autosave-debounce-scheduler.test.ts"
         ],
         "e2e": [],
         "ops": []
       },
       "gaps_ja": [
-        "エラー時の回復フローは運用上の不足が残っている"
+        "2026-06-13 証跡追記: autosave crash recovery dialog, unsaved-changes guard (browser beforeunload + Electron native dialog), file-open/parseエラーtoast が実装済み。E2E カバレッジ追加でL3昇格可能"
       ],
       "owner": "web-team",
       "target_date": "2026-03-25",
