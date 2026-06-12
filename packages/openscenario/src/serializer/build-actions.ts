@@ -381,13 +381,11 @@ export function buildGlobalAction(action: GlobalAction, elementBindings: Record<
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const modifyAction: any = {};
         if (action.rule && action.modifyValue !== undefined) {
-          modifyAction.Rule = {
-            ByValue: {
-              ...(action.rule === 'add'
-                ? { AddValue: buildAttrs({ value: action.modifyValue }) }
-                : { MultiplyByValue: buildAttrs({ value: action.modifyValue }) }),
-            },
-          };
+          // XSD ParameterModifyAction → Rule (ModifyRule) → AddValue | MultiplyByValue.
+          modifyAction.Rule =
+            action.rule === 'addValue'
+              ? { AddValue: buildAttrs({ value: action.modifyValue }) }
+              : { MultiplyByValue: buildAttrs({ value: action.modifyValue }) };
         }
         return {
           ParameterAction: {
@@ -410,13 +408,11 @@ export function buildGlobalAction(action: GlobalAction, elementBindings: Record<
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const modifyAction: any = {};
         if (action.rule && action.modifyValue !== undefined) {
-          modifyAction.Rule = {
-            ByValue: {
-              ...(action.rule === 'add'
-                ? { AddValue: buildAttrs({ value: action.modifyValue }) }
-                : { MultiplyByValue: buildAttrs({ value: action.modifyValue }) }),
-            },
-          };
+          // XSD VariableModifyAction → Rule (VariableModifyRule) → AddValue | MultiplyByValue.
+          modifyAction.Rule =
+            action.rule === 'addValue'
+              ? { AddValue: buildAttrs({ value: action.modifyValue }) }
+              : { MultiplyByValue: buildAttrs({ value: action.modifyValue }) };
         }
         return {
           VariableAction: {

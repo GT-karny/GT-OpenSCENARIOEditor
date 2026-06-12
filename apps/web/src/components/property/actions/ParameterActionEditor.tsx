@@ -1,11 +1,15 @@
-import type { ScenarioAction, ParameterAction } from '@osce/shared';
+import type { ScenarioAction, ParameterAction, ModifyRule } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { SegmentedControl } from '../SegmentedControl';
-import { EnumSelect } from '../EnumSelect';
 
 const ACTION_TYPES = ['set', 'modify'] as const;
-const MODIFY_RULES = ['add', 'multiply'] as const;
+// Values match the XSD ModifyRule choice (AddValue | MultiplyByValue).
+const MODIFY_RULES: readonly ModifyRule[] = ['addValue', 'multiplyByValue'];
+const MODIFY_RULE_LABELS: Record<ModifyRule, string> = {
+  addValue: 'Add',
+  multiplyByValue: 'Multiply',
+};
 
 interface ParameterActionEditorProps {
   action: ScenarioAction;
@@ -53,7 +57,7 @@ export function ParameterActionEditor({ action, onUpdate }: ParameterActionEdito
                 action: {
                   ...rest,
                   actionType,
-                  rule: inner.rule ?? 'add',
+                  rule: inner.rule ?? 'addValue',
                   modifyValue: inner.modifyValue ?? 0,
                 },
               } as Partial<ScenarioAction>);
@@ -81,11 +85,12 @@ export function ParameterActionEditor({ action, onUpdate }: ParameterActionEdito
         <div className="grid grid-cols-[1fr_1.5fr] gap-2">
           <div className="grid gap-1">
             <Label className="text-xs">Rule</Label>
-            <EnumSelect
-              value={inner.rule ?? 'add'}
-              options={[...MODIFY_RULES]}
+            <SegmentedControl
+              value={inner.rule ?? 'addValue'}
+              options={MODIFY_RULES}
               onValueChange={(v) => updateInner({ rule: v })}
-              className="h-8 text-sm"
+              labels={MODIFY_RULE_LABELS}
+              className="h-8"
             />
           </div>
           <div className="grid gap-1">

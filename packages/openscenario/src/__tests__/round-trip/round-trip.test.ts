@@ -4,7 +4,13 @@ import { resolve } from 'node:path';
 import { XoscParser } from '../../parser/xosc-parser.js';
 import { XoscSerializer } from '../../serializer/xosc-serializer.js';
 import type { ScenarioDocument } from '@osce/shared';
-import { EXAMPLES_DIR, XOSC_DIR, THIRDPARTY_DIR, GT_SIM_AVAILABLE } from '../test-helpers.js';
+import {
+  EXAMPLES_DIR,
+  XOSC_DIR,
+  THIRDPARTY_DIR,
+  GT_SIM_AVAILABLE,
+  FIXTURES_AVAILABLE,
+} from '../test-helpers.js';
 
 const parser = new XoscParser();
 const serializer = new XoscSerializer();
@@ -23,10 +29,39 @@ function stripVolatile(doc: ScenarioDocument): any {
   );
 }
 
-describe('Round-trip: parse → serialize → parse', () => {
-  // OpenSCENARIO v1.2.0 official examples
-  // Excluded: CloseVehicleCrossing (Polyline trajectory not yet supported)
-  // Excluded: SynchronizedArrivalToIntersection (AssignRouteAction not yet supported)
+/**
+ * Run a parse → serialize → parse round-trip and assert structural equality.
+ * A missing fixture is a hard failure (not a silent pass) so that fixture drift
+ * is caught instead of masked.
+ */
+function expectRoundTrip(dir: string, file: string): void {
+  const path = resolve(dir, file);
+  let xml: string;
+  try {
+    xml = readFileSync(path, 'utf-8');
+  } catch (err) {
+    throw new Error(
+      `Round-trip fixture missing: ${path}. ` +
+        `Expected a committed test fixture. Original error: ${(err as Error).message}`,
+    );
+  }
+
+  const doc1 = parser.parse(xml);
+  const xml2 = serializer.serializeFormatted(doc1);
+  const doc2 = parser.parse(xml2);
+
+  expect(stripVolatile(doc1)).toEqual(stripVolatile(doc2));
+}
+
+describe.skipIf(!FIXTURES_AVAILABLE)('Round-trip: parse → serialize → parse', () => {
+  // OpenSCENARIO v1.2.0 official examples.
+  // Excluded: CloseVehicleCrossing.xosc — uses FollowTrajectoryAction with a
+  //   catalog-referenced trajectory (<TrajectoryRef><CatalogReference/>). The
+  //   model (FollowTrajectoryAction.trajectory) only holds an inline Trajectory
+  //   and drops the catalog ref on parse, so the serializer emits an empty
+  //   inline <Polyline/>, which fails to re-parse. Re-including requires a
+  //   FollowTrajectoryAction trajectory-vs-catalog-ref model change (out of
+  //   scope for the modify-rule fix).
   const exampleFiles = [
     'CutIn.xosc',
     'SimpleOvertake.xosc',
@@ -42,22 +77,12 @@ describe('Round-trip: parse → serialize → parse', () => {
     'SlowPrecedingVehicleDeterministicParameterSet.xosc',
     'SlowPrecedingVehicleStochasticParameterSet.xosc',
     'TrafficJam.xosc',
+    'SynchronizedArrivalToIntersection.xosc',
   ];
 
   for (const file of exampleFiles) {
     it(`round-trips ${file}`, () => {
-      let xml: string;
-      try {
-        xml = readFileSync(resolve(EXAMPLES_DIR, file), 'utf-8');
-      } catch {
-        return;
-      }
-
-      const doc1 = parser.parse(xml);
-      const xml2 = serializer.serializeFormatted(doc1);
-      const doc2 = parser.parse(xml2);
-
-      expect(stripVolatile(doc1)).toEqual(stripVolatile(doc2));
+      expectRoundTrip(EXAMPLES_DIR, file);
     });
   }
 
@@ -66,18 +91,7 @@ describe('Round-trip: parse → serialize → parse', () => {
 
   for (const file of esminiFiles) {
     it(`round-trips esmini/${file}`, () => {
-      let xml: string;
-      try {
-        xml = readFileSync(resolve(XOSC_DIR, file), 'utf-8');
-      } catch {
-        return;
-      }
-
-      const doc1 = parser.parse(xml);
-      const xml2 = serializer.serializeFormatted(doc1);
-      const doc2 = parser.parse(xml2);
-
-      expect(stripVolatile(doc1)).toEqual(stripVolatile(doc2));
+      expectRoundTrip(XOSC_DIR, file);
     });
   }
 
@@ -91,20 +105,10 @@ describe('Round-trip: parse → serialize → parse', () => {
       'cut-in_environment.xosc',
     ];
 
+    const gtSimDir = resolve(THIRDPARTY_DIR, 'GT_Sim_v0.6.0-rc/resources/xosc');
     for (const file of gtSimFiles) {
       it(`round-trips GT_Sim/${file}`, () => {
-        let xml: string;
-        try {
-          xml = readFileSync(resolve(THIRDPARTY_DIR, 'GT_Sim_v0.6.0-rc/resources/xosc', file), 'utf-8');
-        } catch {
-          return;
-        }
-
-        const doc1 = parser.parse(xml);
-        const xml2 = serializer.serializeFormatted(doc1);
-        const doc2 = parser.parse(xml2);
-
-        expect(stripVolatile(doc1)).toEqual(stripVolatile(doc2));
+        expectRoundTrip(gtSimDir, file);
       });
     }
   });

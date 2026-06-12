@@ -259,12 +259,18 @@ export interface EntityAction {
   position?: Position;
 }
 
+/**
+ * Modify rule for ParameterAction/VariableAction modify actions.
+ * Matches the XSD element names ModifyRule/VariableModifyRule → AddValue | MultiplyByValue.
+ */
+export type ModifyRule = 'addValue' | 'multiplyByValue';
+
 export interface ParameterAction {
   type: 'parameterAction';
   parameterRef: string;
   actionType: 'set' | 'modify';
   value?: string;
-  rule?: string;
+  rule?: ModifyRule;
   modifyValue?: number;
 }
 
@@ -273,7 +279,7 @@ export interface VariableAction {
   variableRef: string;
   actionType: 'set' | 'modify';
   value?: string;
-  rule?: string;
+  rule?: ModifyRule;
   modifyValue?: number;
 }
 
