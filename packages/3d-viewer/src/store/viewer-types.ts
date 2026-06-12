@@ -3,7 +3,6 @@
  */
 
 import type { Vector3 } from 'three';
-import type { SimulationFrame } from '@osce/shared';
 
 /**
  * Minimal interface for OrbitControls-like objects from @react-three/drei.
@@ -24,13 +23,6 @@ export type CameraMode = 'orbit' | 'topDown';
 export type ViewerMode = 'edit' | 'play';
 export type GizmoMode = 'translate' | 'rotate' | 'place' | 'off';
 export type MinimapSize = 'small' | 'medium' | 'large';
-
-export interface PlaybackState {
-  status: 'idle' | 'playing' | 'paused';
-  currentTime: number;
-  duration: number;
-  frames: SimulationFrame[];
-}
 
 /** Information about the lane under the mouse cursor during hover */
 export interface HoverLaneInfo {
@@ -54,7 +46,6 @@ export interface ViewerState {
   showRoadIds: boolean;
   showEntityLabels: boolean;
   showTrafficSignals: boolean;
-  playback: PlaybackState;
 
   /** Top-level viewer interaction mode (edit = full editing, play = view-only) */
   viewerMode: ViewerMode;
@@ -99,10 +90,6 @@ export interface ViewerActions {
   toggleRoadIds: () => void;
   toggleEntityLabels: () => void;
   toggleTrafficSignals: () => void;
-  setPlaybackFrames: (frames: SimulationFrame[]) => void;
-  setPlaybackStatus: (status: PlaybackState['status']) => void;
-  setPlaybackTime: (time: number) => void;
-  resetPlayback: () => void;
 
   setGizmoMode: (mode: GizmoMode) => void;
   toggleReverseDirection: () => void;

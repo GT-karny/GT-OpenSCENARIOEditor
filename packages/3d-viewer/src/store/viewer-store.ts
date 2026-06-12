@@ -1,26 +1,18 @@
 /**
- * Zustand store for viewer-local state (camera mode, display toggles, playback).
+ * Zustand store for viewer-local state (camera mode, display toggles).
  */
 
 import { createStore } from 'zustand/vanilla';
 import { useStore } from 'zustand';
-import type { EditorPreferences, SimulationFrame } from '@osce/shared';
+import type { EditorPreferences } from '@osce/shared';
 import type {
   CameraMode,
   GizmoMode,
   HoverLaneInfo,
   MinimapSize,
-  PlaybackState,
   ViewerMode,
   ViewerStore,
 } from './viewer-types.js';
-
-const DEFAULT_PLAYBACK: PlaybackState = {
-  status: 'idle',
-  currentTime: 0,
-  duration: 0,
-  frames: [],
-};
 
 /**
  * Create a new viewer store with optional initial preferences.
@@ -34,7 +26,6 @@ export function createViewerStore(preferences?: Partial<EditorPreferences>) {
     showRoadIds: preferences?.showRoadIds ?? false,
     showEntityLabels: true,
     showTrafficSignals: true,
-    playback: { ...DEFAULT_PLAYBACK },
 
     viewerMode: 'edit' as ViewerMode,
     gizmoMode: 'translate' as GizmoMode,
@@ -64,24 +55,6 @@ export function createViewerStore(preferences?: Partial<EditorPreferences>) {
     toggleRoadIds: () => set((s) => ({ showRoadIds: !s.showRoadIds })),
     toggleEntityLabels: () => set((s) => ({ showEntityLabels: !s.showEntityLabels })),
     toggleTrafficSignals: () => set((s) => ({ showTrafficSignals: !s.showTrafficSignals })),
-
-    setPlaybackFrames: (frames: SimulationFrame[]) =>
-      set({
-        playback: {
-          status: 'idle',
-          currentTime: 0,
-          duration: frames.length > 0 ? frames[frames.length - 1].time : 0,
-          frames,
-        },
-      }),
-
-    setPlaybackStatus: (status: PlaybackState['status']) =>
-      set((s) => ({ playback: { ...s.playback, status } })),
-
-    setPlaybackTime: (time: number) =>
-      set((s) => ({ playback: { ...s.playback, currentTime: time } })),
-
-    resetPlayback: () => set({ playback: { ...DEFAULT_PLAYBACK } }),
 
     setGizmoMode: (mode: GizmoMode) => set({ gizmoMode: mode }),
     toggleReverseDirection: () => set((s) => ({ reverseDirection: !s.reverseDirection })),

@@ -8,7 +8,6 @@ import type * as THREE from 'three';
 import type { ScenarioEntity } from '@osce/shared';
 import { getEntityGeometry, resolveEntityColor } from '../utils/entity-geometry.js';
 import type { WorldCoords } from '../utils/position-resolver.js';
-// import { ApexGlassMaterial } from '../materials/ApexGlassMaterial.js';
 import { EntityLabel } from './EntityLabel.js';
 import { HOVER_MATERIAL } from '../constants/selection-theme.js';
 import { SelectionFeedback } from '../interaction/primitives/SelectionFeedback.js';

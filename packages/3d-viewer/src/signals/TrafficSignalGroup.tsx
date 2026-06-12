@@ -169,30 +169,6 @@ export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
     }, [signalStateMap]);
     const flashOn = useFlashingClock(anyFlashing);
 
-    // DEBUG: log which overlay layers are active
-    if (process.env.NODE_ENV !== 'production') {
-      const hlCount = highlightedSignalIds
-        ? trafficLightSignals.filter((rs) => highlightedSignalIds.has(rs.signal.id)).length
-        : 0;
-      const pickCount = pickCategoryMap
-        ? trafficLightSignals.filter((rs) => {
-            const c = pickCategoryMap.get(rs.signal.id);
-            return c && c !== 'incompatible';
-          }).length
-        : 0;
-      if (hlCount > 0 || pickCount > 0) {
-        console.debug(
-          '[TrafficSignalGroup] overlays:',
-          `highlight=${hlCount}`,
-          `pick=${pickCount}`,
-          `selectedKey=${selectedSignalKey}`,
-          pickCategoryMap
-            ? `categories=${JSON.stringify(Object.fromEntries(pickCategoryMap))}`
-            : '',
-        );
-      }
-    }
-
     if (resolvedSignals.length === 0) return null;
 
     return (
@@ -237,7 +213,7 @@ export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
           trafficLightSignals
             .filter((rs) => highlightedSignalIds.has(rs.signal.id) && rs.key !== selectedSignalKey)
             .map((rs) => (
-              <SignalHighlightOverlay key={`hl-${rs.key}`} signal={rs} />
+              <SignalGlowOverlay key={`hl-${rs.key}`} signal={rs} material={GLOW_MATERIAL} />
             ))}
 
         {/* Pick mode category overlays (currentTrack only) */}
@@ -245,10 +221,10 @@ export const TrafficSignalGroup: React.FC<TrafficSignalGroupProps> = React.memo(
           trafficLightSignals
             .filter((rs) => pickCategoryMap.get(rs.signal.id) === 'currentTrack')
             .map((rs) => (
-              <SignalPickCategoryOverlay
+              <SignalGlowOverlay
                 key={`pick-${rs.key}`}
                 signal={rs}
-                category="currentTrack"
+                material={PICK_GLOW_CURRENT_TRACK}
               />
             ))}
 
@@ -314,8 +290,25 @@ const GLOW_MATERIAL = new THREE.MeshBasicMaterial({
   blending: THREE.AdditiveBlending,
 });
 
-const SignalHighlightOverlay: React.FC<{ signal: ResolvedSignal }> = React.memo(
-  ({ signal: rs }) => {
+// ---------------------------------------------------------------------------
+// Pick mode glow materials
+// ---------------------------------------------------------------------------
+
+const PICK_GLOW_CURRENT_TRACK = new THREE.MeshBasicMaterial({
+  color: new THREE.Color(...GLOW_COLORS.pickCurrent),
+  transparent: true,
+  opacity: GLOW_OPACITY,
+  side: THREE.DoubleSide,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+});
+
+// ---------------------------------------------------------------------------
+// Unified glow overlay — used for both highlight and pick-mode overlays
+// ---------------------------------------------------------------------------
+
+const SignalGlowOverlay: React.FC<{ signal: ResolvedSignal; material: THREE.MeshBasicMaterial }> = React.memo(
+  ({ signal: rs, material }) => {
     const { signal, position } = rs;
     const signalHeight = signal.zOffset ?? DEFAULT_SIGNAL_HEIGHT;
     const poleHeight = signalHeight;
@@ -340,93 +333,15 @@ const SignalHighlightOverlay: React.FC<{ signal: ResolvedSignal }> = React.memo(
         position={[position.x, position.y, position.z - signalHeight]}
         rotation={[position.pitch ?? 0, position.roll ?? 0, position.h]}
       >
-        {/* Glow box covering the housing */}
         <mesh
           position={[0, 0, poleHeight + headHeight / 2]}
           rotation={rotation}
           geometry={boxGeo}
-          material={GLOW_MATERIAL}
+          material={material}
         />
       </group>
     );
   },
 );
 
-SignalHighlightOverlay.displayName = 'SignalHighlightOverlay';
-
-// ---------------------------------------------------------------------------
-// Pick mode category overlay — colored glow per category
-// ---------------------------------------------------------------------------
-
-const PICK_GLOW_CURRENT_TRACK = new THREE.MeshBasicMaterial({
-  color: new THREE.Color(...GLOW_COLORS.pickCurrent),
-  transparent: true,
-  opacity: GLOW_OPACITY,
-  side: THREE.DoubleSide,
-  depthWrite: false,
-  blending: THREE.AdditiveBlending,
-});
-
-const PICK_GLOW_OTHER_TRACK = new THREE.MeshBasicMaterial({
-  color: new THREE.Color(...GLOW_COLORS.pickOther),
-  transparent: true,
-  opacity: GLOW_OPACITY,
-  side: THREE.DoubleSide,
-  depthWrite: false,
-  blending: THREE.AdditiveBlending,
-});
-
-const PICK_GLOW_AVAILABLE = new THREE.MeshBasicMaterial({
-  color: new THREE.Color(...GLOW_COLORS.pickAvailable),
-  transparent: true,
-  opacity: GLOW_OPACITY,
-  side: THREE.DoubleSide,
-  depthWrite: false,
-  blending: THREE.AdditiveBlending,
-});
-
-const PICK_CATEGORY_MATERIALS: Record<Exclude<PickCategory, 'incompatible'>, THREE.MeshBasicMaterial> = {
-  currentTrack: PICK_GLOW_CURRENT_TRACK,
-  otherTrack: PICK_GLOW_OTHER_TRACK,
-  available: PICK_GLOW_AVAILABLE,
-};
-
-const SignalPickCategoryOverlay: React.FC<{
-  signal: ResolvedSignal;
-  category: Exclude<PickCategory, 'incompatible'>;
-}> = React.memo(({ signal: rs, category }) => {
-  const { signal, position } = rs;
-  const signalHeight = signal.zOffset ?? DEFAULT_SIGNAL_HEIGHT;
-  const poleHeight = signalHeight;
-  const descriptor = resolveSignalDescriptor(signal);
-  if (!descriptor) return null;
-
-  const { housing } = descriptor;
-  const headHeight = housing.height;
-  const isHorizontal = descriptor.orientation === 'horizontal';
-  const rotation: [number, number, number] = isHorizontal
-    ? [0, Math.PI / 2, Math.PI / 2]
-    : [0, Math.PI / 2, 0];
-
-  const pad = 0.06;
-  const boxGeo = isHorizontal
-    ? getSharedBox(housing.width + pad, housing.height + pad, housing.depth + pad)
-    : getSharedBox(housing.height + pad, housing.width + pad, housing.depth + pad);
-  const material = PICK_CATEGORY_MATERIALS[category];
-
-  return (
-    <group
-      position={[position.x, position.y, position.z - signalHeight]}
-      rotation={[position.pitch ?? 0, position.roll ?? 0, position.h]}
-    >
-      <mesh
-        position={[0, 0, poleHeight + headHeight / 2]}
-        rotation={rotation}
-        geometry={boxGeo}
-        material={material}
-      />
-    </group>
-  );
-});
-
-SignalPickCategoryOverlay.displayName = 'SignalPickCategoryOverlay';
+SignalGlowOverlay.displayName = 'SignalGlowOverlay';
