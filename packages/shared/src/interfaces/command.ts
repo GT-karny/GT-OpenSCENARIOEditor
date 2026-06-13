@@ -18,4 +18,10 @@ export interface ICommandHistory {
   clear(): void;
   getUndoStack(): readonly ICommand[];
   getRedoStack(): readonly ICommand[];
+  /**
+   * Replace the most recent `count` commands on the undo stack with a single
+   * replacement command, clearing the redo stack. Used by batch operations to
+   * collapse multiple individual commands into one undo step.
+   */
+  collapseUndo(count: number, replacement: ICommand): void;
 }

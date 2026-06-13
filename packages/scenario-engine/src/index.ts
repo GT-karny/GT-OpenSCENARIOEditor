@@ -27,8 +27,10 @@ export {
   createInitPrivateAction,
 } from './store/defaults.js';
 
-// Command History
+// Command infrastructure (single source for undo/redo; opendrive-engine re-exports)
+export { BaseCommand } from './commands/base-command.js';
 export { CommandHistory } from './commands/command-history.js';
+export { CompoundCommand } from './commands/compound-command.js';
 
 // Operations
 export { getElementById, getParentOf } from './operations/tree-traversal.js';

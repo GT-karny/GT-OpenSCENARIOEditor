@@ -129,4 +129,58 @@ describe('CommandHistory', () => {
     expect(history.getUndoStack()).toHaveLength(2);
     expect(history.getRedoStack()).toHaveLength(1);
   });
+
+  describe('collapseUndo', () => {
+    it('replaces the last N commands with a single replacement', () => {
+      const log: string[] = [];
+      const history = new CommandHistory();
+      history.execute(createMockCommand(log));
+      history.execute(createMockCommand(log));
+      history.execute(createMockCommand(log));
+      expect(history.getUndoStack()).toHaveLength(3);
+
+      const replacement = createMockCommand(log);
+      history.collapseUndo(2, replacement);
+
+      expect(history.getUndoStack()).toHaveLength(2);
+      expect(history.getUndoStack()[1]).toBe(replacement);
+    });
+
+    it('clears the redo stack', () => {
+      const log: string[] = [];
+      const history = new CommandHistory();
+      history.execute(createMockCommand(log));
+      history.undo();
+      expect(history.canRedo()).toBe(true);
+
+      history.execute(createMockCommand(log));
+      history.collapseUndo(1, createMockCommand(log));
+
+      expect(history.canRedo()).toBe(false);
+      expect(history.getRedoStack()).toHaveLength(0);
+    });
+
+    it('clamps count to the undo stack size', () => {
+      const log: string[] = [];
+      const history = new CommandHistory();
+      history.execute(createMockCommand(log));
+
+      const replacement = createMockCommand(log);
+      history.collapseUndo(5, replacement);
+
+      expect(history.getUndoStack()).toHaveLength(1);
+      expect(history.getUndoStack()[0]).toBe(replacement);
+    });
+
+    it('pushes the replacement onto an empty undo stack when count is 0', () => {
+      const log: string[] = [];
+      const history = new CommandHistory();
+
+      const replacement = createMockCommand(log);
+      history.collapseUndo(0, replacement);
+
+      expect(history.getUndoStack()).toHaveLength(1);
+      expect(history.getUndoStack()[0]).toBe(replacement);
+    });
+  });
 });

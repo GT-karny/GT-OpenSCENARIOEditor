@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { OpenDriveDocument } from '@osce/shared';
 import { AddRoadCommand, RemoveRoadCommand, UpdateRoadCommand } from '../../commands/road-commands.js';
-import { CommandHistory } from '../../commands/command-history.js';
+import { CommandHistory } from '@osce/scenario-engine';
 import { createDefaultDocument } from '../../store/defaults.js';
 
 describe('Road Commands', () => {

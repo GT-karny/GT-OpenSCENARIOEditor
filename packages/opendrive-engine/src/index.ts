@@ -38,8 +38,9 @@ export {
 } from './store/defaults.js';
 
 // Commands
-export { BaseCommand } from './commands/base-command.js';
-export { CommandHistory } from './commands/command-history.js';
+// Undo/redo infrastructure is single-sourced in @osce/scenario-engine and
+// re-exported here so opendrive-engine's public surface stays unchanged.
+export { BaseCommand, CommandHistory, CompoundCommand } from '@osce/scenario-engine';
 export { AddRoadCommand, RemoveRoadCommand, UpdateRoadCommand } from './commands/road-commands.js';
 export type { GetDoc, SetDoc, MarkDirtyRoad } from './commands/road-commands.js';
 export { UpdateHeaderCommand } from './commands/header-commands.js';
@@ -78,7 +79,6 @@ export {
   UpdateControllerCommand,
 } from './commands/controller-commands.js';
 export { AddObjectCommand, RemoveObjectCommand } from './commands/object-commands.js';
-export { CompoundCommand } from './commands/compound-command.js';
 
 // Operations
 export { generateRoadId, findRoadById, findRoadIndex } from './operations/road-operations.js';

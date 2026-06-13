@@ -4,7 +4,7 @@
 
 import { produce } from 'immer';
 import type { OdrHeader } from '@osce/shared';
-import { BaseCommand } from './base-command.js';
+import { BaseCommand } from '@osce/scenario-engine';
 import type { GetDoc, SetDoc } from './road-commands.js';
 
 export class UpdateHeaderCommand extends BaseCommand {

@@ -56,8 +56,8 @@ describe('CompoundCommand', () => {
   });
 
   it('description is passed through correctly', () => {
-    const compound = new CompoundCommand('Create junction with 3 roads', []);
-    expect(compound.description).toBe('Create junction with 3 roads');
+    const compound = new CompoundCommand('Delete 3 entities', []);
+    expect(compound.description).toBe('Delete 3 entities');
   });
 
   it('getSubCommands returns the sub-commands', () => {

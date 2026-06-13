@@ -19,7 +19,7 @@ import type {
 } from '@osce/shared';
 import type { OpenDriveState } from './store-types.js';
 import { createDefaultDocument } from './defaults.js';
-import { CommandHistory } from '../commands/command-history.js';
+import { CommandHistory, CompoundCommand } from '@osce/scenario-engine';
 import { AddRoadCommand, RemoveRoadCommand, UpdateRoadCommand } from '../commands/road-commands.js';
 import { UpdateHeaderCommand } from '../commands/header-commands.js';
 import { SetRoadLinkCommand } from '../commands/road-link-commands.js';
@@ -45,7 +45,6 @@ import {
   RemoveControllerCommand,
   UpdateControllerCommand,
 } from '../commands/controller-commands.js';
-import { CompoundCommand } from '../commands/compound-command.js';
 
 export interface OpenDriveStore extends OpenDriveState {
   // Command history

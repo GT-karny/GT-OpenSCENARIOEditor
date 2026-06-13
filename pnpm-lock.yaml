@@ -90,18 +90,6 @@ importers:
       '@fastify/websocket':
         specifier: ^11.0.0
         version: 11.2.0
-      '@osce/esmini':
-        specifier: workspace:*
-        version: link:../../packages/esmini
-      '@osce/mcp-server':
-        specifier: workspace:*
-        version: link:../../packages/mcp-server
-      '@osce/opendrive':
-        specifier: workspace:*
-        version: link:../../packages/opendrive
-      '@osce/openscenario':
-        specifier: workspace:*
-        version: link:../../packages/openscenario
       '@osce/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -389,9 +377,6 @@ importers:
       '@xyflow/react':
         specifier: ^12.0.0
         version: 12.10.1(@types/react@19.2.14)(immer@10.2.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      lucide-react:
-        specifier: ^0.468.0
-        version: 0.468.0(react@19.2.4)
       react:
         specifier: ^19.0.0
         version: 19.2.4
@@ -408,9 +393,6 @@ importers:
       '@types/react-dom':
         specifier: ^19.0.0
         version: 19.2.3(@types/react@19.2.14)
-      jsdom:
-        specifier: ^25.0.0
-        version: 25.0.1
       vitest:
         specifier: ^3.0.0
         version: 3.2.4(@types/debug@4.1.12)(@types/node@22.19.13)(jiti@2.6.1)(jsdom@25.0.1)(lightningcss@1.31.1)(tsx@4.21.0)
@@ -429,6 +411,9 @@ importers:
       '@osce/opendrive':
         specifier: workspace:*
         version: link:../opendrive
+      '@osce/scenario-engine':
+        specifier: workspace:*
+        version: link:../scenario-engine
       '@osce/shared':
         specifier: workspace:*
         version: link:../shared
@@ -478,6 +463,9 @@ importers:
 
   packages/templates:
     dependencies:
+      '@osce/scenario-engine':
+        specifier: workspace:*
+        version: link:../scenario-engine
       '@osce/shared':
         specifier: workspace:*
         version: link:../shared
@@ -496,18 +484,12 @@ importers:
       '@fontsource/orbitron':
         specifier: ^5.2.8
         version: 5.2.8
-      clsx:
-        specifier: ^2.1.0
-        version: 2.1.1
       react:
         specifier: ^19.0.0
         version: 19.2.4
       react-dom:
         specifier: ^19.0.0
         version: 19.2.4(react@19.2.4)
-      tailwind-merge:
-        specifier: ^2.6.0
-        version: 2.6.1
     devDependencies:
       '@types/react':
         specifier: ^19.0.0

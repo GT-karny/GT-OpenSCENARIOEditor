@@ -59,4 +59,18 @@ export class CommandHistory implements ICommandHistory {
   getRedoStack(): readonly ICommand[] {
     return this.redoStack;
   }
+
+  /**
+   * Replace the most recent `count` commands on the undo stack with a single
+   * replacement command. Used by batch operations to collapse multiple
+   * individual commands into one undo step.
+   */
+  collapseUndo(count: number, replacement: ICommand): void {
+    const removeCount = Math.min(count, this.undoStack.length);
+    if (removeCount > 0) {
+      this.undoStack.splice(this.undoStack.length - removeCount, removeCount);
+    }
+    this.undoStack.push(replacement);
+    this.redoStack = [];
+  }
 }

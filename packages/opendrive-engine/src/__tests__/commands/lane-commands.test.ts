@@ -7,7 +7,7 @@ import {
   SplitLaneSectionCommand,
 } from '../../commands/lane-commands.js';
 import { AddRoadCommand } from '../../commands/road-commands.js';
-import { CommandHistory } from '../../commands/command-history.js';
+import { CommandHistory } from '@osce/scenario-engine';
 import { createDefaultDocument } from '../../store/defaults.js';
 
 describe('Lane Commands', () => {

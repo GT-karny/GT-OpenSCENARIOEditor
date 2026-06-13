@@ -4,7 +4,7 @@
 
 import { produce } from 'immer';
 import type { OpenDriveDocument, OdrJunction, OdrJunctionConnection } from '@osce/shared';
-import { BaseCommand } from './base-command.js';
+import { BaseCommand } from '@osce/scenario-engine';
 import type { GetDoc, SetDoc } from './road-commands.js';
 import { nextNumericId } from '../utils/id-generator.js';
 import {

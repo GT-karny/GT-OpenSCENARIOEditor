@@ -12,7 +12,7 @@ import type {
   OdrGeometry,
   OdrLaneSection,
 } from '@osce/shared';
-import { BaseCommand } from './base-command.js';
+import { BaseCommand } from '@osce/scenario-engine';
 
 export type GetDoc = () => OpenDriveDocument;
 export type SetDoc = (doc: OpenDriveDocument) => void;

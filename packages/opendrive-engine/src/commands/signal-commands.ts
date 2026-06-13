@@ -5,7 +5,7 @@
 
 import { produce } from 'immer';
 import type { OdrSignal } from '@osce/shared';
-import { BaseCommand } from './base-command.js';
+import { BaseCommand } from '@osce/scenario-engine';
 import type { GetDoc, SetDoc, MarkDirtyRoad } from './road-commands.js';
 import { findRoadIndex } from '../operations/road-operations.js';
 import { createSignalFromDefaults } from '../store/defaults.js';

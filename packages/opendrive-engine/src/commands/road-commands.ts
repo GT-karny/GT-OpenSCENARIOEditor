@@ -4,7 +4,7 @@
 
 import { produce } from 'immer';
 import type { OpenDriveDocument, OdrRoad, OdrRoadLinkElement } from '@osce/shared';
-import { BaseCommand } from './base-command.js';
+import { BaseCommand } from '@osce/scenario-engine';
 import { createRoadFromPartial } from '../builders/road-builder.js';
 import { findRoadIndex } from '../operations/road-operations.js';
 

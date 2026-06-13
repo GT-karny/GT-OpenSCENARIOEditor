@@ -1,8 +1,7 @@
 /**
  * A compound command that groups multiple sub-commands into a single
- * undo/redo unit. Used for complex operations like junction creation
- * which involve road splitting, connecting road generation, and
- * junction + connection creation.
+ * undo/redo unit. Used for complex operations whose individual steps must
+ * commit and revert together as one history entry.
  */
 
 import type { ICommand } from '@osce/shared';
