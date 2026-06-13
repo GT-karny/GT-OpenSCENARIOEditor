@@ -197,6 +197,13 @@ export * from './signal/signal-shape-paths.js';
 export * from './signal/signal-head-renderer.js';
 export * from './signal/signal-preset-persistence.js';
 
+// Descriptor-based Canvas2D icon renderer (used by apps/web SignalIcon2D)
+export {
+  renderSignalToCanvas,
+  getBulbMode,
+} from './signal/signal-icon-renderer.js';
+export type { BulbMode } from './signal/signal-icon-renderer.js';
+
 // Signal assembly
 export * from './signal/signal-assembly-operations.js';
 export * from './signal/signal-preset-store.js';
