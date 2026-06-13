@@ -16,7 +16,7 @@ import { EnumSelect } from '../property/EnumSelect';
 import { ActionPropertyEditor } from '../property/ActionPropertyEditor';
 import { TriggerSectionEditor } from '../property/TriggerSectionEditor';
 import { EVENT_PRIORITIES } from '../../constants/osc-enum-values';
-import { getActionSummary } from '../scene-composer/action-summary';
+import { getActionSummary } from '@osce/node-editor';
 import { TriggerSummaryBadges } from '../scene-composer/TriggerSummaryBadges';
 import { actionIcons } from '../scene-composer/ActionItem';
 import {
@@ -312,7 +312,7 @@ export function ManeuverEventPanel({
                     >
                       <Icon className="h-3 w-3 shrink-0 text-[var(--color-accent-1)]" />
                       <span className="text-[11px] text-[var(--color-text-primary)] truncate flex-1">
-                        {getActionSummary(action, bindings)}
+                        {getActionSummary(action.action, bindings?.[action.id])}
                       </span>
                       <div className="flex items-center gap-0.5 opacity-0 group-hover/action:opacity-100 transition-opacity shrink-0">
                         <button

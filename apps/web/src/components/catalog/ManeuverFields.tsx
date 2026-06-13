@@ -11,7 +11,7 @@ import {
   removeEventAction,
 } from '../../lib/maneuver-helpers';
 import { TriggerSummaryBadges } from '../scene-composer/TriggerSummaryBadges';
-import { getActionSummary } from '../scene-composer/action-summary';
+import { getActionSummary } from '@osce/node-editor';
 import { actionIcons } from '../scene-composer/ActionItem';
 import { useScenarioStore } from '../../stores/use-scenario-store';
 
@@ -179,7 +179,7 @@ export function ManeuverFields({
                     >
                       <Icon className="h-3 w-3 shrink-0 text-[var(--color-accent-1)]" />
                       <span className="text-[11px] text-[var(--color-text-primary)] truncate flex-1">
-                        {getActionSummary(action, bindings)}
+                        {getActionSummary(action.action, bindings?.[action.id])}
                       </span>
                       <button
                         type="button"

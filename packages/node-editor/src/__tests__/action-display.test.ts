@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { getActionTypeLabel, getPrivateActionSummary, getActionSummary } from '../utils/action-display.js';
-import type { PrivateAction } from '@osce/shared';
+import {
+  getActionTypeLabel,
+  getPrivateActionSummary,
+  getGlobalActionSummary,
+  getActionSummary,
+} from '../utils/action-display.js';
+import type { PrivateAction, GlobalAction } from '@osce/shared';
 
 describe('getActionTypeLabel', () => {
   it('should return label for known action types', () => {
@@ -11,6 +16,10 @@ describe('getActionTypeLabel', () => {
 
   it('should return raw type for unknown types', () => {
     expect(getActionTypeLabel('unknownAction')).toBe('unknownAction');
+  });
+
+  it('should use the canonical Longitudinal Distance label (not Follow Distance)', () => {
+    expect(getActionTypeLabel('longitudinalDistanceAction')).toBe('Longitudinal Distance');
   });
 });
 
@@ -39,6 +48,65 @@ describe('getPrivateActionSummary', () => {
       position: { type: 'worldPosition', x: 0, y: 0 },
     };
     expect(getPrivateActionSummary(action)).toBe('Teleport: worldPosition');
+  });
+
+  it('should include the controller name for assignControllerAction (ported from web)', () => {
+    const action: PrivateAction = {
+      type: 'assignControllerAction',
+      controller: { name: 'ACC', properties: [] },
+    };
+    expect(getPrivateActionSummary(action)).toBe('Assign Controller: ACC');
+  });
+
+  it('should fall back to a bare label when assignControllerAction has no controller', () => {
+    const action: PrivateAction = { type: 'assignControllerAction' };
+    expect(getPrivateActionSummary(action)).toBe('Assign Controller');
+  });
+
+  it('should resolve bindings for the longitudinal distance summary', () => {
+    const action: PrivateAction = {
+      type: 'longitudinalDistanceAction',
+      entityRef: 'Ego',
+      distance: 5,
+      freespace: true,
+      continuous: false,
+    };
+    expect(getPrivateActionSummary(action, { 'action.distance': '${$gap}' })).toBe(
+      'Long. Dist: $gap to Ego',
+    );
+  });
+});
+
+describe('getGlobalActionSummary', () => {
+  it('should show the parameter value (ported from web)', () => {
+    const action: GlobalAction = {
+      type: 'parameterAction',
+      parameterRef: 'speedLimit',
+      actionType: 'set',
+      value: '30',
+    };
+    expect(getGlobalActionSummary(action)).toBe('Param: speedLimit = 30');
+  });
+
+  it('should show the variable modify value (ported from web)', () => {
+    const action: GlobalAction = {
+      type: 'variableAction',
+      variableRef: 'counter',
+      actionType: 'modify',
+      rule: 'addValue',
+      modifyValue: 2,
+    };
+    expect(getGlobalActionSummary(action)).toBe('Var: counter = 2');
+  });
+
+  it('should resolve bindings for parameter values', () => {
+    const action: GlobalAction = {
+      type: 'parameterAction',
+      parameterRef: 'speedLimit',
+      actionType: 'set',
+      value: '30',
+    };
+    expect(getGlobalActionSummary(action, { value: '${$limit}' })).toBe('Param: speedLimit = $limit');
   });
 });
 

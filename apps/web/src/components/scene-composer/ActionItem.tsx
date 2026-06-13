@@ -24,7 +24,7 @@ import { cn } from '../../lib/utils';
 import { useFlashState } from '../../hooks/use-flash-state';
 import { useCopyPaste } from '../../hooks/use-clipboard';
 import { useScenarioStore } from '../../stores/use-scenario-store';
-import { getActionSummary } from './action-summary';
+import { getActionSummary } from '@osce/node-editor';
 import { ComposerContextMenu } from './ComposerContextMenu';
 import type { ComposerMenuPosition } from './ComposerContextMenu';
 import { isCustomName } from './name-utils';
@@ -78,7 +78,7 @@ export const actionIcons: Record<string, React.ComponentType<{ className?: strin
 export function ActionItem({ action, selected, running, onSelect, onRemove, dragHandleProps }: ActionItemProps) {
   const bindings = useScenarioStore((s) => s.document._editor.parameterBindings);
   const Icon = actionIcons[action.action.type] ?? Settings;
-  const summary = getActionSummary(action, bindings);
+  const summary = getActionSummary(action.action, bindings?.[action.id]);
   const flash = useFlashState(running ?? false);
   const [ctxMenu, setCtxMenu] = useState<ComposerMenuPosition | null>(null);
   const { copyElement, duplicateElement } = useCopyPaste();

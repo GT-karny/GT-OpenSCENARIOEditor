@@ -83,7 +83,7 @@ export function getPrivateActionSummary(action: PrivateAction, eb?: ElementBindi
     case 'routingAction':
       return `Route: ${action.routeAction}`;
     case 'assignControllerAction':
-      return 'Assign Controller';
+      return action.controller ? `Assign Controller: ${action.controller.name}` : 'Assign Controller';
     case 'activateControllerAction':
       return 'Activate Controller';
     case 'overrideControllerAction':
@@ -103,16 +103,18 @@ export function getPrivateActionSummary(action: PrivateAction, eb?: ElementBindi
   }
 }
 
-export function getGlobalActionSummary(action: GlobalAction): string {
+export function getGlobalActionSummary(action: GlobalAction, eb?: ElementBindings): string {
+  const v = (val: number | string | undefined | null, field: string) => rv(val, field, eb);
+
   switch (action.type) {
     case 'environmentAction':
       return `Environment: ${action.environment?.name ?? action.catalogReference?.entryName ?? ''}`;
     case 'entityAction':
       return `Entity: ${action.actionType} ${action.entityRef}`;
     case 'parameterAction':
-      return `Param: ${action.actionType} ${action.parameterRef}`;
+      return `Param: ${action.parameterRef} = ${v(action.value ?? action.modifyValue, action.actionType === 'set' ? 'value' : 'modifyValue')}`;
     case 'variableAction':
-      return `Var: ${action.actionType} ${action.variableRef}`;
+      return `Var: ${action.variableRef} = ${v(action.value ?? action.modifyValue, action.actionType === 'set' ? 'value' : 'modifyValue')}`;
     case 'infrastructureAction':
       return 'Infrastructure';
     case 'trafficAction':
@@ -125,7 +127,7 @@ export function getActionSummary(action: PrivateAction | GlobalAction | { type: 
     return `Custom: ${(action as { customCommandAction: string }).customCommandAction}`;
   }
   if (isGlobalAction(action.type)) {
-    return getGlobalActionSummary(action as GlobalAction);
+    return getGlobalActionSummary(action as GlobalAction, eb);
   }
   return getPrivateActionSummary(action as PrivateAction, eb);
 }

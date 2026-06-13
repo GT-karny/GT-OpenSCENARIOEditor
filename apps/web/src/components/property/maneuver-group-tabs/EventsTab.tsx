@@ -5,7 +5,7 @@ import { ParameterAwareInput } from '../ParameterAwareInput';
 import { useScenarioStore, useScenarioStoreApi } from '../../../stores/use-scenario-store';
 import { useEditorStore } from '../../../stores/editor-store';
 import { EVENT_PRIORITIES } from '../../../constants/osc-enum-values';
-import { getActionSummary, getActionTypeLabel } from '../../scene-composer/action-summary';
+import { getActionSummary, getActionTypeLabel } from '@osce/node-editor';
 
 interface EventsTabProps {
   events: ScenarioEvent[];
@@ -48,7 +48,8 @@ export function EventsTab({ events }: EventsTabProps) {
             {/* Action summary (read-only) */}
             {firstAction && (
               <p className="text-[10px] text-muted-foreground truncate px-1">
-                {getActionTypeLabel(firstAction)}: {getActionSummary(firstAction, bindings)}
+                {getActionTypeLabel(firstAction.action.type)}:{' '}
+                {getActionSummary(firstAction.action, bindings?.[firstAction.id])}
               </p>
             )}
 

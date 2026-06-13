@@ -1,5 +1,21 @@
-import type { ScenarioEntity, ScenarioEvent, ScenarioAction, Story, Act, ManeuverGroup, Trigger, EntityInitActions } from '@osce/shared';
+import type {
+  ScenarioEntity,
+  ScenarioEvent,
+  ScenarioAction,
+  Story,
+  Act,
+  ManeuverGroup,
+  Trigger,
+  EntityInitActions,
+} from '@osce/shared';
+import { detectElementType as detectNodeType } from '@osce/node-editor';
 
+/**
+ * Web-side discriminated union consumed by PropertyEditor. The detection rules
+ * are single-sourced in `@osce/node-editor`'s `detectElementType`; this module is
+ * a thin typed wrapper that maps the canonical string result onto this union and
+ * adds the web-only `entityInit` case (which has no node-editor equivalent).
+ */
 export type DetectedElementType =
   | { kind: 'entity'; element: ScenarioEntity }
   | { kind: 'event'; element: ScenarioEvent }
@@ -18,48 +34,30 @@ export function detectElementType(element: unknown): DetectedElementType {
 
   const obj = element as Record<string, unknown>;
 
-  // ScenarioEntity: has type ('vehicle'|'pedestrian'|'miscObject') and definition
-  if ('type' in obj && 'definition' in obj && 'name' in obj) {
-    const t = obj.type;
-    if (t === 'vehicle' || t === 'pedestrian' || t === 'miscObject') {
-      return { kind: 'entity', element: element as ScenarioEntity };
-    }
-  }
-
-  // EntityInitActions: has entityRef and privateActions
+  // EntityInitActions has no node-editor concept, so detect it web-side first.
   if ('entityRef' in obj && 'privateActions' in obj && Array.isArray(obj.privateActions)) {
     return { kind: 'entityInit', element: element as EntityInitActions };
   }
 
-  // ScenarioEvent: has priority, actions array, and startTrigger
-  if ('priority' in obj && 'actions' in obj && 'startTrigger' in obj) {
-    return { kind: 'event', element: element as ScenarioEvent };
+  // Delegate to the canonical node-editor detector and map onto this union.
+  switch (detectNodeType(element)) {
+    case 'entity':
+      return { kind: 'entity', element: element as ScenarioEntity };
+    case 'event':
+      return { kind: 'event', element: element as ScenarioEvent };
+    case 'action':
+      return { kind: 'action', element: element as ScenarioAction };
+    case 'story':
+      return { kind: 'story', element: element as Story };
+    case 'act':
+      return { kind: 'act', element: element as Act };
+    case 'maneuverGroup':
+      return { kind: 'maneuverGroup', element: element as ManeuverGroup };
+    case 'trigger':
+      return { kind: 'trigger', element: element as Trigger };
+    default:
+      // storyboard | init | maneuver | condition | null are not handled by
+      // PropertyEditor and fall through to the unknown branch.
+      return { kind: 'unknown', element };
   }
-
-  // ScenarioAction: has action field
-  if ('action' in obj && 'name' in obj && !('acts' in obj) && !('events' in obj)) {
-    return { kind: 'action', element: element as ScenarioAction };
-  }
-
-  // ManeuverGroup: has maneuvers + actors, no startTrigger
-  if ('maneuvers' in obj && 'actors' in obj && !('startTrigger' in obj)) {
-    return { kind: 'maneuverGroup', element: element as ManeuverGroup };
-  }
-
-  // Story: has acts array
-  if ('acts' in obj && 'name' in obj) {
-    return { kind: 'story', element: element as Story };
-  }
-
-  // Act: has maneuverGroups array
-  if ('maneuverGroups' in obj && 'startTrigger' in obj) {
-    return { kind: 'act', element: element as Act };
-  }
-
-  // Trigger: has conditionGroups array
-  if ('conditionGroups' in obj && !('startTrigger' in obj)) {
-    return { kind: 'trigger', element: element as Trigger };
-  }
-
-  return { kind: 'unknown', element };
 }
