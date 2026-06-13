@@ -21,7 +21,7 @@ import type {
 } from '@osce/shared';
 import { parseTrajectory } from './parse-actions.js';
 import { ensureArray } from '../utils/ensure-array.js';
-import { generateId } from '../utils/uuid.js';
+import { generateId } from '@osce/shared';
 import { parseParameterDeclarations } from './parse-parameters.js';
 import { numAttr, strAttr, optNumAttr, optStrAttr, boolAttr, pushBindingFieldPrefix, popBindingFieldPrefix } from '../utils/xml-helpers.js';
 

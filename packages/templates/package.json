@@ -13,6 +13,7 @@
     "dev": "tsc --project tsconfig.json --watch"
   },
   "dependencies": {
-    "@osce/shared": "workspace:*"
+    "@osce/shared": "workspace:*",
+    "@osce/scenario-engine": "workspace:*"
   }
 }

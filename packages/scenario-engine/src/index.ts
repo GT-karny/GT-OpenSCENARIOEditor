@@ -27,6 +27,16 @@ export {
   createInitPrivateAction,
 } from './store/defaults.js';
 
+// Canonical default entity definitions (single source of truth)
+export {
+  VEHICLE_DEFAULTS,
+  DEFAULT_AXLES,
+  DEFAULT_PEDESTRIAN_MODEL,
+  createDefaultVehicleDefinition,
+  createDefaultPedestrianDefinition,
+  createDefaultMiscObjectDefinition,
+} from './store/entity-defaults.js';
+
 // Command infrastructure (single source for undo/redo; opendrive-engine re-exports)
 export { BaseCommand } from './commands/base-command.js';
 export { CommandHistory } from './commands/command-history.js';

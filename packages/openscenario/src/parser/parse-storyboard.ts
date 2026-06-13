@@ -14,7 +14,7 @@ import { parseTrigger } from './parse-triggers.js';
 import { parseParameterDeclarations } from './parse-parameters.js';
 import { parseInit } from './parse-init.js';
 import { ensureArray } from '../utils/ensure-array.js';
-import { generateId } from '../utils/uuid.js';
+import { generateId } from '@osce/shared';
 import { numAttr, strAttr, boolAttr, optNumAttr, setBindingElementId } from '../utils/xml-helpers.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

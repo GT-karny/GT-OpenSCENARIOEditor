@@ -2,6 +2,11 @@ import { useState } from 'react';
 import { useTranslation } from '@osce/i18n';
 import type { EntityType, CatalogReference } from '@osce/shared';
 import {
+  createDefaultVehicleDefinition,
+  createDefaultPedestrianDefinition,
+  createDefaultMiscObjectDefinition,
+} from '@osce/scenario-engine';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -173,62 +178,12 @@ export function AddEntityDialog({ open, onOpenChange }: AddEntityDialogProps) {
 }
 
 function createDefaultDefinition(type: EntityType, name: string) {
-  const defaultBoundingBox = {
-    center: { x: 1.4, y: 0, z: 0.9 },
-    dimensions: { width: 2.0, length: 4.5, height: 1.8 },
-  };
-
   switch (type) {
     case 'vehicle':
-      return {
-        kind: 'vehicle' as const,
-        name,
-        vehicleCategory: 'car' as const,
-        performance: { maxSpeed: 69.444, maxAcceleration: 200, maxDeceleration: 10 },
-        boundingBox: defaultBoundingBox,
-        axles: {
-          frontAxle: {
-            maxSteering: 0.5,
-            wheelDiameter: 0.6,
-            trackWidth: 1.8,
-            positionX: 3.1,
-            positionZ: 0.3,
-          },
-          rearAxle: {
-            maxSteering: 0,
-            wheelDiameter: 0.6,
-            trackWidth: 1.8,
-            positionX: 0,
-            positionZ: 0.3,
-          },
-          additionalAxles: [],
-        },
-        parameterDeclarations: [],
-        properties: [],
-      };
+      return createDefaultVehicleDefinition(name);
     case 'pedestrian':
-      return {
-        kind: 'pedestrian' as const,
-        name,
-        pedestrianCategory: 'pedestrian' as const,
-        mass: 75,
-        model: 'walker',
-        parameterDeclarations: [],
-        boundingBox: {
-          center: { x: 0, y: 0, z: 0.9 },
-          dimensions: { width: 0.5, length: 0.3, height: 1.8 },
-        },
-        properties: [],
-      };
+      return createDefaultPedestrianDefinition(name);
     case 'miscObject':
-      return {
-        kind: 'miscObject' as const,
-        name,
-        miscObjectCategory: 'obstacle' as const,
-        mass: 100,
-        parameterDeclarations: [],
-        boundingBox: defaultBoundingBox,
-        properties: [],
-      };
+      return createDefaultMiscObjectDefinition(name);
   }
 }

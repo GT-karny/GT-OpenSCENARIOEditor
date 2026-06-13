@@ -6,7 +6,7 @@ import type {
 } from '@osce/shared';
 import { parsePrivateAction, parseGlobalAction } from './parse-actions.js';
 import { ensureArray } from '../utils/ensure-array.js';
-import { generateId } from '../utils/uuid.js';
+import { generateId } from '@osce/shared';
 import { strAttr, setBindingElementId } from '../utils/xml-helpers.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -21,6 +21,7 @@ export type * from './enums/odr-enums.js';
 
 // Utils
 export * from './utils/entity-color.js';
+export { generateId } from './utils/generate-id.js';
 
 // Interfaces
 export type * from './interfaces/scenario-service.js';

@@ -10,7 +10,7 @@ import {
 import { parseEnvironment, parseTrajectory } from './parse-actions.js';
 import { parseManeuver } from './parse-storyboard.js';
 import { parseRoute } from './parse-positions.js';
-import { generateId } from '../utils/uuid.js';
+import { generateId } from '@osce/shared';
 import { strAttr, startBindingCollection, setBindingElementId, finishBindingCollection } from '../utils/xml-helpers.js';
 import { ensureArray } from '../utils/ensure-array.js';
 

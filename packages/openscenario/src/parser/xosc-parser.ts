@@ -6,7 +6,7 @@ import { parseCatalogLocations } from './parse-catalog-locations.js';
 import { parseRoadNetwork } from './parse-road-network.js';
 import { parseEntities } from './parse-entities.js';
 import { parseStoryboard } from './parse-storyboard.js';
-import { generateId } from '../utils/uuid.js';
+import { generateId } from '@osce/shared';
 import { createDefaultEditorMetadata } from '../utils/defaults.js';
 import { startBindingCollection, finishBindingCollection } from '../utils/xml-helpers.js';
 import type { XMLParser } from 'fast-xml-parser';

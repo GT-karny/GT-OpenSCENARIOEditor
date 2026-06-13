@@ -6,7 +6,7 @@ import type {
   ParameterType,
 } from '@osce/shared';
 import { ensureArray } from '../utils/ensure-array.js';
-import { generateId } from '../utils/uuid.js';
+import { generateId } from '@osce/shared';
 import { strAttr } from '../utils/xml-helpers.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

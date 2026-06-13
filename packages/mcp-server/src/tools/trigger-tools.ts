@@ -13,6 +13,7 @@ import type {
   StoryboardElementState,
   StoryboardElementType,
 } from '@osce/shared';
+import { generateId } from '@osce/shared';
 import { successResult, errorResult } from '../utils/response-helpers.js';
 import { buildPositionFromInput } from '../utils/entity-builder.js';
 import type { ToolDefinition } from './tool-registry.js';
@@ -20,10 +21,6 @@ import type { ToolDefinition } from './tool-registry.js';
 interface ConditionSpec {
   type: string;
   [key: string]: unknown;
-}
-
-function generateId(): string {
-  return crypto.randomUUID();
 }
 
 function buildConditionFromSpec(spec: ConditionSpec): Condition {

@@ -6,7 +6,7 @@ import type {
 } from '@osce/shared';
 import { parseConditionBody } from './parse-conditions.js';
 import { ensureArray } from '../utils/ensure-array.js';
-import { generateId } from '../utils/uuid.js';
+import { generateId } from '@osce/shared';
 import { numAttr, strAttr, setBindingElementId } from '../utils/xml-helpers.js';
 
 /**
