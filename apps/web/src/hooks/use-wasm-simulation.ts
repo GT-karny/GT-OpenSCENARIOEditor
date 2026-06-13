@@ -5,10 +5,13 @@
  */
 
 import { useRef, useEffect, useCallback } from 'react';
-import { EsminiWasmService } from '../lib/wasm/index.js';
+import { toast } from 'sonner';
+import { useTranslation } from '@osce/i18n';
+import { EsminiWasmService, classifySimError, toErrorMessage } from '../lib/wasm/index.js';
 import { useSimulationStore } from '../stores/simulation-store.js';
 
 export function useWasmSimulation() {
+  const { t } = useTranslation('common');
   const serviceRef = useRef<EsminiWasmService | null>(null);
 
   // Lazily create the service (not during render)
@@ -19,6 +22,19 @@ export function useWasmSimulation() {
     return serviceRef.current;
   }, []);
 
+  // Surface a worker/runtime error to the user as a toast + store error state.
+  // This is the single funnel for ALL simulation failures (load, init, runtime,
+  // timeout, worker crash) so nothing is left as a console-only message.
+  const surfaceError = useCallback(
+    (raw: unknown) => {
+      const { key, message } = classifySimError(raw);
+      console.error('[useWasmSimulation] Simulation error:', message);
+      useSimulationStore.getState().setError(message);
+      toast.error(t(key, { message }));
+    },
+    [t],
+  );
+
   // Register store callbacks on mount.
   // Batch mode: frames and events are collected in the service/worker
   // and delivered all at once via onComplete / onBatch* callbacks.
@@ -28,6 +44,12 @@ export function useWasmSimulation() {
 
     const unsubComplete = service.onComplete((result) => {
       store().setCompleted(result);
+      // A "completed" run that produced no frames is effectively a failure
+      // (esmini initialized but the scenario was empty/invalid).
+      if (result.frames.length === 0) {
+        surfaceError(t('simulation.noFrames'));
+        return;
+      }
       // Auto-play after batch completion
       store().play();
     });
@@ -40,8 +62,7 @@ export function useWasmSimulation() {
       store().setConditionEvents(events);
     });
     const unsubError = service.onError((errorMessage) => {
-      console.error('[useWasmSimulation] Simulation error:', errorMessage);
-      store().setError(errorMessage);
+      surfaceError(errorMessage);
     });
 
     return () => {
@@ -52,7 +73,7 @@ export function useWasmSimulation() {
       service.dispose();
       serviceRef.current = null;
     };
-  }, [getService]);
+  }, [getService, surfaceError, t]);
 
   const startSimulation = useCallback(
     async (xml: string, xodrData?: string, catalogXmls?: Record<string, string>) => {
@@ -67,9 +88,10 @@ export function useWasmSimulation() {
           catalogXmls,
         });
       } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        useSimulationStore.getState().setError(message);
-        throw err; // Re-throw so SimulationButtons catch can show toast
+        // Load-phase failures (init error / timeout) reject here. They are ALSO
+        // dispatched through onError → surfaceError, so toasting again would
+        // duplicate. Just ensure the store reflects the error and swallow.
+        useSimulationStore.getState().setError(toErrorMessage(err));
       }
     },
     [getService],

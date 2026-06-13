@@ -86,12 +86,12 @@ export function SimulationButtons({ compact }: { compact?: boolean }) {
 
       // Block simulation if catalogs are still missing
       if (hasCatalogLocations && Object.keys(catalogXmls).length === 0) {
-        toast.error(
-          'Scenario references catalogs but none could be loaded. Check project catalog files.',
-        );
+        toast.error(t('simulation.missingCatalogs'));
         return;
       }
 
+      // Runtime/load failures are surfaced via the WASM service onError funnel
+      // (see useWasmSimulation). This catch only covers pre-flight serialization.
       await startSimulation(xml, xodrXml ?? undefined, catalogXmls);
     } catch (err) {
       toast.error(

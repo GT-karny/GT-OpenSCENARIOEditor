@@ -65,3 +65,40 @@ The CMake cache is already configured in the repo, so `ninja` alone rebuilds onl
 - **Expected warnings:** `-Winconsistent-missing-override` from esmini headers. No errors should appear.
 - **Do not edit `apps/web/public/wasm/` files directly** — they are build outputs.
 - **CI does not rebuild WASM** — the artifact is a manually-committed binary.
+
+## Known issues (require a rebuild to fix)
+
+### Entities stay frozen during simulation (per-step dirty bits not cleared)
+
+**Symptom:** Running any scenario completes and produces frames with a correctly
+advancing simulation time, but every entity stays pinned to its `Init` position.
+Inspecting a frame shows the entity's `speed` is set correctly (e.g. 30 m/s) while
+its `s` / `x` / `y` never change.
+
+**Root cause:** The standalone esmini player clears each object's per-step dirty
+bits once per frame via `ScenarioEngine::SwapAndClearDirtyBits()` (see
+`Modules/PlayerBase/playerbase.cpp`, in the main loop around the
+`ScenarioFrame()` calls). The WASM binding `OpenScenario::step()` in
+`esminijs.cpp` calls `scenarioEngine->step(dt)` + `prepareGroundTruth(dt)` but
+**never clears the dirty bits**. The `Init` `SpeedAction` sets the `LONGITUDINAL`
+dirty bit on frame 0; because it is never cleared, `ScenarioEngine::defaultController()`
+sees `obj->dirty_.Check(DirtyBit::LONGITUDINAL) == true` on every subsequent frame
+and skips `MoveAlongS()`, so the object never advances along the road. The batch
+APIs (`get_object_state`, `get_object_state_by_second`) have the same omission.
+
+**Fix (in `esminijs.cpp`):** clear dirty bits at the end of each step, mirroring
+the standalone player. In `OpenScenario::step(double dt)`, after
+`this->scenarioEngine->prepareGroundTruth(dt);`, add:
+
+```cpp
+// Mirror ScenarioPlayer::ScenarioFrame — clear per-step dirty bits so the
+// default controller moves entities on the next frame.
+this->scenarioEngine->SwapAndClearDirtyBits();
+```
+
+Apply the same call inside the `get_object_state` batch loop (after each
+`prepareGroundTruth`). Then rebuild per the procedure above and redeploy
+`esmini.js`. This is the blocker for full WASM-simulation parity (roadmap A1);
+until it lands, the editor's playback pipeline is fully wired but entity motion
+is absent. The store→viewer wiring, error surfacing, and playback transport are
+verified independently by `apps/web/e2e/wasm-simulation.spec.ts`.

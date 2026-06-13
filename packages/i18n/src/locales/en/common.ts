@@ -80,6 +80,20 @@ export const common = {
     definitionTab: 'Definition',
     initialStateTab: 'Initial State',
   },
+  simulation: {
+    started: 'Simulation started',
+    completed: 'Simulation completed',
+    failed: 'Simulation failed',
+    loadFailed: 'Could not start simulation: {{message}}',
+    initFailed: 'esmini could not initialize the scenario: {{message}}',
+    runtimeError: 'Simulation error: {{message}}',
+    timeout: 'Simulation timed out while loading the scenario',
+    workerError: 'Simulation engine crashed: {{message}}',
+    noFrames: 'Simulation produced no frames — the scenario may be invalid or empty',
+    missingRoad: 'Scenario references a road network (.xodr) that is not available',
+    missingCatalogs:
+      'Scenario references catalogs but none could be loaded. Check project catalog files.',
+  },
   units: {
     mps: 'm/s',
     kmph: 'km/h',

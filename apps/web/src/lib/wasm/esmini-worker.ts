@@ -25,6 +25,35 @@ import type {
   WasmGTLaneChange,
 } from './types.js';
 
+// NOTE: This file runs as a CLASSIC web worker (it uses importScripts to load
+// the esmini glue). Classic workers cannot use runtime ES `import`, so the VFS
+// path logic below is inlined here and kept in sync with (and unit-tested via)
+// ./vfs-paths.ts. Only `import type` is allowed in this file.
+
+const VFS = {
+  scenarioDir: '/scenarios',
+  scenarioFile: '/scenarios/scenario.xosc',
+  roadFile: '/scenarios/road.xodr',
+  catalogDir: '/catalogs',
+} as const;
+
+/** Catalog filename esmini expects: derived from internal <Catalog name="...">. */
+function catalogVfsPath(xml: string, fallbackKey: string): string {
+  const m = xml.match(/<Catalog\b[^>]*\bname\s*=\s*"([^"]+)"/);
+  return `${VFS.catalogDir}/${m ? m[1] : fallbackKey}.xosc`;
+}
+
+function rewriteLogicFilePath(xosc: string): string {
+  return xosc.replace(/(<LogicFile\s+filepath\s*=\s*")([^"]*?)(")/, `$1${VFS.roadFile}$3`);
+}
+
+function rewriteCatalogDirectories(xosc: string): string {
+  return xosc.replace(
+    /(<(?:Vehicle|Controller|Pedestrian|MiscObject|Environment|Maneuver|Trajectory|Route)Catalog>\s*<Directory\s+path\s*=\s*")([^"]*?)(")/g,
+    `$1${VFS.catalogDir}/$3`,
+  );
+}
+
 // Emscripten module factory type
 interface EsminiModule {
   FS: {
@@ -180,33 +209,28 @@ async function handleLoad(
     }
 
     // Write files to Emscripten virtual filesystem
-    ensureDir(mod.FS, '/scenarios');
+    ensureDir(mod.FS, VFS.scenarioDir);
 
     let finalXosc = xoscXml;
 
     // Write xodr and rewrite LogicFile path
     if (xodrData) {
-      mod.FS.writeFile('/scenarios/road.xodr', xodrData);
-      finalXosc = finalXosc.replace(
-        /(<LogicFile\s+filepath\s*=\s*")([^"]*?)(")/,
-        '$1/scenarios/road.xodr$3',
-      );
+      mod.FS.writeFile(VFS.roadFile, xodrData);
+      finalXosc = rewriteLogicFilePath(finalXosc);
     }
 
-    // Write catalog files and rewrite CatalogLocations paths
+    // Write catalog files and rewrite CatalogLocations paths.
+    // Catalog files are named after their INTERNAL <Catalog name="...">, which
+    // is how esmini resolves CatalogReference (dir/<catalogName>.xosc).
     if (catalogs && Object.keys(catalogs).length > 0) {
-      ensureDir(mod.FS, '/catalogs');
-      for (const [name, xml] of Object.entries(catalogs)) {
-        mod.FS.writeFile(`/catalogs/${name}.xosc`, xml);
+      ensureDir(mod.FS, VFS.catalogDir);
+      for (const [key, xml] of Object.entries(catalogs)) {
+        mod.FS.writeFile(catalogVfsPath(xml, key), xml);
       }
-      // Rewrite all CatalogLocation Directory paths to /catalogs/
-      finalXosc = finalXosc.replace(
-        /(<(?:Vehicle|Controller|Pedestrian|MiscObject|Environment|Maneuver|Trajectory|Route)Catalog>\s*<Directory\s+path\s*=\s*")([^"]*?)(")/g,
-        '$1/catalogs/$3',
-      );
+      finalXosc = rewriteCatalogDirectories(finalXosc);
     }
 
-    mod.FS.writeFile('/scenarios/scenario.xosc', finalXosc);
+    mod.FS.writeFile(VFS.scenarioFile, finalXosc);
 
     const wasmConfig: WasmOpenScenarioConfig = {
       max_loop: config?.max_loop ?? 100000,
@@ -215,7 +239,7 @@ async function handleLoad(
       dt: config?.dt ?? 0,
     };
 
-    scenario = new mod.OpenScenario('/scenarios/scenario.xosc', wasmConfig);
+    scenario = new mod.OpenScenario(VFS.scenarioFile, wasmConfig);
 
     post({
       type: 'loaded',

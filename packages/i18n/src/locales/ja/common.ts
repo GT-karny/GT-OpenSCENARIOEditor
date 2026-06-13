@@ -80,6 +80,20 @@ export const common = {
     definitionTab: '定義',
     initialStateTab: '初期状態',
   },
+  simulation: {
+    started: 'シミュレーションを開始しました',
+    completed: 'シミュレーションが完了しました',
+    failed: 'シミュレーションに失敗しました',
+    loadFailed: 'シミュレーションを開始できませんでした: {{message}}',
+    initFailed: 'esmini がシナリオを初期化できませんでした: {{message}}',
+    runtimeError: 'シミュレーションエラー: {{message}}',
+    timeout: 'シナリオの読み込み中にシミュレーションがタイムアウトしました',
+    workerError: 'シミュレーションエンジンがクラッシュしました: {{message}}',
+    noFrames: 'シミュレーションのフレームが生成されませんでした。シナリオが無効または空の可能性があります',
+    missingRoad: 'シナリオが参照する道路ネットワーク(.xodr)が見つかりません',
+    missingCatalogs:
+      'シナリオはカタログを参照していますが、読み込めませんでした。プロジェクトのカタログファイルを確認してください。',
+  },
   units: {
     mps: 'm/s',
     kmph: 'km/h',

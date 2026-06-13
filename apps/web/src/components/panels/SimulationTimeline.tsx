@@ -231,6 +231,14 @@ function PlaybackControls() {
   const currentTime = totalFrames > 0 ? (frames[currentFrameIndex]?.time ?? 0) : 0;
   const totalTime = totalFrames > 0 ? (frames[totalFrames - 1]?.time ?? 0) : 0;
 
+  // DOM-observable mirror of the lead entity's simulated position at the current
+  // frame. Lets E2E tests assert that frames actually flow to the viewer (the
+  // value changes as playback advances) without reaching into the Three.js canvas.
+  const leadObject = totalFrames > 0 ? frames[currentFrameIndex]?.objects[0] : undefined;
+  const leadPos = leadObject
+    ? `${leadObject.x.toFixed(3)},${leadObject.y.toFixed(3)}`
+    : '';
+
   // Build reverse map (element ID → fullPath) for interval lookup
   const idToFullPath = useMemo(() => {
     if (storyBoardEvents.length === 0) return new Map<string, string>();
@@ -336,6 +344,11 @@ function PlaybackControls() {
       {/* Time display */}
       <span data-testid="time-display" className="text-[10px] tabular-nums text-[var(--color-text-tertiary)] min-w-[100px] text-center">
         {formatTime(currentTime)} / {formatTime(totalTime)}
+      </span>
+
+      {/* Hidden DOM mirror of the lead entity position (E2E observability only) */}
+      <span data-testid="sim-lead-position" data-frame-index={currentFrameIndex} className="sr-only">
+        {leadPos}
       </span>
 
       {/* Speed selector */}
