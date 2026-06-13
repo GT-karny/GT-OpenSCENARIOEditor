@@ -69,6 +69,13 @@ export { buildJunctionSurfaceMesh } from './mesh/junction-surface-builder.js';
 
 // Utilities
 export { convertGeometryType } from './utils/convert-geometry-type.js';
+export {
+  normalizeAngle,
+  evalCubic,
+  ensureArray,
+  findRecordAtS,
+  findLaneSectionAtS,
+} from './utils/math.js';
 
 // Types
 export type { Vec3, Pose2D } from './geometry/types.js';

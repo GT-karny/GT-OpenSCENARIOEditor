@@ -3,7 +3,7 @@
  * Converts between road coordinates (roadId, laneId, s) and world coordinates.
  */
 
-import type { OpenDriveDocument, OdrRoad, OdrLaneSection } from '@osce/shared';
+import type { OpenDriveDocument } from '@osce/shared';
 import {
   evaluateReferenceLineAtS,
   evaluateElevation,
@@ -14,6 +14,7 @@ import {
   computeLaneOuterT,
   stToXyz,
   computeDrivingHeading,
+  findLaneSectionAtS,
 } from '@osce/opendrive';
 
 export interface RoadProjectionResult {
@@ -46,7 +47,7 @@ export function roadCoordsToWorld(
 
   const clampedS = Math.max(0, Math.min(s, road.length));
 
-  const laneSection = findLaneSectionAtS(road, clampedS);
+  const laneSection = findLaneSectionAtS(road.lanes, clampedS);
   if (!laneSection) return null;
 
   const dsFromSection = clampedS - laneSection.s;
@@ -93,7 +94,7 @@ export function getDrivingLaneIds(
   const road = odrDoc.roads.find((r) => r.id === roadId);
   if (!road) return [];
 
-  const laneSection = findLaneSectionAtS(road, s);
+  const laneSection = findLaneSectionAtS(road.lanes, s);
   if (!laneSection) return [];
 
   const ids: number[] = [];
@@ -107,14 +108,4 @@ export function getDrivingLaneIds(
   // Sort: positive (left) descending, then negative (right) ascending
   ids.sort((a, b) => b - a);
   return ids;
-}
-
-function findLaneSectionAtS(road: OdrRoad, s: number): OdrLaneSection | null {
-  for (let i = 0; i < road.lanes.length; i++) {
-    const sEnd = i + 1 < road.lanes.length ? road.lanes[i + 1].s : road.length;
-    if (s >= road.lanes[i].s && s <= sEnd) {
-      return road.lanes[i];
-    }
-  }
-  return road.lanes.length > 0 ? road.lanes[road.lanes.length - 1] : null;
 }

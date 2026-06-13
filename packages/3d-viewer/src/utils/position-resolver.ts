@@ -6,8 +6,6 @@
 import type {
   Position,
   OpenDriveDocument,
-  OdrRoad,
-  OdrLaneSection,
   Route,
   RoutePosition,
 } from '@osce/shared';
@@ -21,6 +19,7 @@ import {
   computeLaneOuterT,
   stToXyz,
   computeDrivingHeading,
+  findLaneSectionAtS,
   resolveRoute,
   type RouteSegment,
 } from '@osce/opendrive';
@@ -116,7 +115,7 @@ function resolveLanePosition(
   const road = odrDoc.roads.find((r) => r.id === pos.roadId);
   if (!road) return null;
 
-  const laneSection = findLaneSectionAtS(road, pos.s);
+  const laneSection = findLaneSectionAtS(road.lanes, pos.s);
   if (!laneSection) return null;
 
   const laneId = parseInt(pos.laneId, 10);
@@ -188,17 +187,6 @@ function resolveRoadPosition(
     pitch,
     roll,
   };
-}
-
-function findLaneSectionAtS(road: OdrRoad, s: number): OdrLaneSection | null {
-  for (let i = 0; i < road.lanes.length; i++) {
-    const sEnd = i + 1 < road.lanes.length ? road.lanes[i + 1].s : road.length;
-    if (s >= road.lanes[i].s && s <= sEnd) {
-      return road.lanes[i];
-    }
-  }
-  // Fallback to last section
-  return road.lanes.length > 0 ? road.lanes[road.lanes.length - 1] : null;
 }
 
 /**

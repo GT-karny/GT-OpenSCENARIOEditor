@@ -2,6 +2,8 @@
  * Math utilities for OpenDRIVE geometry calculations.
  */
 
+import type { OdrLaneSection } from '@osce/shared';
+
 /** Evaluate cubic polynomial: a + b*ds + c*ds^2 + d*ds^3 */
 export function evalCubic(a: number, b: number, c: number, d: number, ds: number): number {
   return a + ds * (b + ds * (c + ds * d));
@@ -17,11 +19,17 @@ export function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
-/** Normalize angle to [-PI, PI] */
+/**
+ * Normalize an angle to the half-open range (-PI, PI].
+ *
+ * The upper bound is inclusive and the lower bound is exclusive, so PI stays PI
+ * and -PI maps to +PI. This is the canonical convention used across the engine
+ * for heading differences and comparisons.
+ */
 export function normalizeAngle(angle: number): number {
   let a = angle % (2 * Math.PI);
   if (a > Math.PI) a -= 2 * Math.PI;
-  if (a < -Math.PI) a += 2 * Math.PI;
+  if (a <= -Math.PI) a += 2 * Math.PI;
   return a;
 }
 
@@ -51,6 +59,19 @@ export function findRecordAtS<T>(
   }
 
   return records[result];
+}
+
+/**
+ * Find the lane section that contains a given s coordinate.
+ *
+ * Returns the last section whose `s` is <= the target. Sections must be sorted
+ * ascending by `s`. Returns undefined when there are no sections.
+ */
+export function findLaneSectionAtS(
+  laneSections: readonly OdrLaneSection[],
+  s: number,
+): OdrLaneSection | undefined {
+  return findRecordAtS(laneSections, s, (section) => section.s);
 }
 
 /** Ensure a value is an array */

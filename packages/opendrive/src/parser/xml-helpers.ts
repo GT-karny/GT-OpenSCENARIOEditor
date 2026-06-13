@@ -2,6 +2,10 @@
  * fast-xml-parser configuration for OpenDRIVE (.xodr) files.
  */
 import { XMLParser } from 'fast-xml-parser';
+import { ensureArray } from '../utils/math.js';
+
+// Re-exported to keep this module's public surface stable for existing callers.
+export { ensureArray };
 
 const ALWAYS_ARRAY_TAGS = new Set([
   // Road & geometry
@@ -90,12 +94,6 @@ export function createXodrXmlParser(): XMLParser {
     },
     trimValues: true,
   });
-}
-
-/** Ensure a value is an array. Handles null/undefined and single-value cases. */
-export function ensureArray<T>(val: T | T[] | undefined | null): T[] {
-  if (val == null) return [];
-  return Array.isArray(val) ? val : [val];
 }
 
 /** Safe number conversion with fallback */

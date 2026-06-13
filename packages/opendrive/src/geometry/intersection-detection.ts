@@ -5,9 +5,10 @@
  * then line-segment intersection for narrow-phase.
  */
 
-import type { OdrRoad, OdrLaneSection } from '@osce/shared';
+import type { OdrRoad } from '@osce/shared';
 import { evaluateReferenceLineAtS } from './reference-line.js';
 import { computeLaneOuterT } from './lane-boundary.js';
+import { findLaneSectionAtS, normalizeAngle } from '../utils/math.js';
 
 /**
  * Result of detecting an intersection between two roads.
@@ -67,20 +68,6 @@ function computeRoadHalfWidth(road: OdrRoad, s: number): number {
   }
 
   return Math.max(maxLeft, maxRight, 1.75); // minimum half-width of 1.75m
-}
-
-function findLaneSectionAtS(
-  lanes: readonly OdrLaneSection[],
-  s: number,
-): OdrLaneSection | undefined {
-  if (lanes.length === 0) return undefined;
-
-  let result = lanes[0];
-  for (const ls of lanes) {
-    if (ls.s <= s) result = ls;
-    else break;
-  }
-  return result;
 }
 
 /**
@@ -220,15 +207,6 @@ function checkBandIntersection(
   }
 
   return null;
-}
-
-/**
- * Normalize an angle to [-PI, PI).
- */
-function normalizeAngle(angle: number): number {
-  while (angle > Math.PI) angle -= 2 * Math.PI;
-  while (angle <= -Math.PI) angle += 2 * Math.PI;
-  return angle;
 }
 
 /**

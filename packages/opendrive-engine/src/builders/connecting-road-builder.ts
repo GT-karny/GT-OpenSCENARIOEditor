@@ -17,6 +17,7 @@ import type {
 import type { LaneRoutingConfig, EndpointLaneRouting } from '../store/editor-metadata-types.js';
 import { createRoadFromPartial } from './road-builder.js';
 import { nextNumericId } from '../utils/id-generator.js';
+import { normalizeAngle, evaluateArc as evaluateArcGeometry } from '@osce/opendrive';
 
 export type TurnType = 'straight' | 'left' | 'right';
 
@@ -338,13 +339,6 @@ function computeReceivingLaneCenterT(
   return sign * (offset + 1.75); // fallback
 }
 
-/** Normalize angle to [-PI, PI]. */
-function normalizeAngle(a: number): number {
-  while (a > Math.PI) a -= 2 * Math.PI;
-  while (a <= -Math.PI) a += 2 * Math.PI;
-  return a;
-}
-
 /**
  * Build the set of directed (incoming→outgoing) road pairs whose outermost
  * connecting-road lane traces the junction's outer perimeter.
@@ -418,22 +412,23 @@ function buildOuterEdgePairs(
 
 /**
  * Evaluate an arc at a given arc-length distance from its start.
+ *
+ * Thin wrapper over the canonical `evaluateArc` from `@osce/opendrive`: it
+ * builds the minimal arc geometry object that evaluator expects (only origin,
+ * heading and curvature matter for a single segment).
  */
 function evaluateArc(
   x: number, y: number, hdg: number, curvature: number, ds: number,
 ): { x: number; y: number; hdg: number } {
-  if (Math.abs(curvature) < 1e-12) {
-    return { x: x + ds * Math.cos(hdg), y: y + ds * Math.sin(hdg), hdg };
-  }
-  const r = 1 / curvature;
-  const theta = ds * curvature;
-  const cx = x - r * Math.sin(hdg);
-  const cy = y + r * Math.cos(hdg);
-  return {
-    x: cx + r * Math.sin(hdg + theta),
-    y: cy - r * Math.cos(hdg + theta),
-    hdg: hdg + theta,
-  };
+  return evaluateArcGeometry(ds, {
+    s: 0,
+    x,
+    y,
+    hdg,
+    length: ds,
+    type: 'arc',
+    curvature,
+  });
 }
 
 /**

@@ -5,16 +5,7 @@
 
 import type { OdrRoad } from '@osce/shared';
 import { evaluateReferenceLineAtS } from './reference-line.js';
-
-/**
- * Normalize an angle to the range (-π, π].
- */
-function normalizeAngle(angle: number): number {
-  let a = angle % (2 * Math.PI);
-  if (a > Math.PI) a -= 2 * Math.PI;
-  if (a <= -Math.PI) a += 2 * Math.PI;
-  return a;
-}
+import { normalizeAngle } from '../utils/math.js';
 
 /**
  * Compute the driving direction heading for a vehicle placed on a lane.
