@@ -1,6 +1,7 @@
 import type { Condition, ByEntityCondition, OffroadCondition } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
+import { entityConditionUpdate } from '../lib/typed-updates';
 
 interface OffroadConditionEditorProps {
   condition: Condition;
@@ -12,9 +13,7 @@ export function OffroadConditionEditor({ condition, onUpdate }: OffroadCondition
   const cond = inner.entityCondition as OffroadCondition;
 
   const update = (updates: Partial<OffroadCondition>) => {
-    onUpdate(condition.id, {
-      condition: { ...inner, entityCondition: { ...cond, ...updates } },
-    } as Partial<Condition>);
+    onUpdate(condition.id, entityConditionUpdate(inner, cond, updates));
   };
 
   return (

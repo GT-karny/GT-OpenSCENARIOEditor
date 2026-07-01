@@ -2,6 +2,7 @@ import type { ScenarioAction, AnimationAction } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
+import { actionBody, actionUpdate } from '../lib/typed-updates';
 
 interface AnimationActionEditorProps {
   action: ScenarioAction;
@@ -14,9 +15,7 @@ export function AnimationActionEditor({ action, onUpdate }: AnimationActionEdito
   const inner = action.action as AnimationAction;
 
   const updateInner = (updates: Partial<AnimationAction>) => {
-    onUpdate({
-      action: { ...inner, ...updates },
-    } as Partial<ScenarioAction>);
+    onUpdate(actionUpdate(inner, updates));
   };
 
   return (
@@ -51,7 +50,7 @@ export function AnimationActionEditor({ action, onUpdate }: AnimationActionEdito
             const n = parseFloat(v);
             if (isNaN(n) || v === '') {
               const { duration: _, ...rest } = inner;
-              onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
+              onUpdate(actionBody(rest));
             } else {
               updateInner({ duration: n });
             }

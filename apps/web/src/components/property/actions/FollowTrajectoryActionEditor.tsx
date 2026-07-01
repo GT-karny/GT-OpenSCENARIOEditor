@@ -26,6 +26,7 @@ import { TrajectoryVertexListItem } from './TrajectoryVertexListItem';
 import { NurbsControlPointListItem } from './NurbsControlPointListItem';
 import { KnotVectorEditor } from './KnotVectorEditor';
 import { generateClampedUniformKnots } from '../../../lib/nurbs-knot-utils';
+import { actionBody, actionUpdate } from '../lib/typed-updates';
 import { useTrajectoryEditStore } from '../../../stores/trajectory-edit-store';
 import { useRouteEditStore } from '../../../stores/route-edit-store';
 import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
@@ -75,9 +76,7 @@ export function FollowTrajectoryActionEditor({
   };
 
   const updateInner = (updates: Partial<FollowTrajectoryAction>) => {
-    onUpdate({
-      action: { ...inner, ...updates },
-    } as Partial<ScenarioAction>);
+    onUpdate(actionUpdate(inner, updates));
   };
 
   const timeRefMode: 'none' | 'timing' = inner.timeReference.timing ? 'timing' : 'none';
@@ -393,7 +392,7 @@ export function FollowTrajectoryActionEditor({
         hasValue={inner.initialDistanceOffset !== undefined}
         onClear={() => {
           const { initialDistanceOffset: _, ...rest } = inner;
-          onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
+          onUpdate(actionBody(rest));
         }}
       >
         <ParameterAwareInput
@@ -404,7 +403,7 @@ export function FollowTrajectoryActionEditor({
           onValueChange={(v) => {
             if (v === '') {
               const { initialDistanceOffset: _, ...rest } = inner;
-              onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
+              onUpdate(actionBody(rest));
             } else {
               updateInner({ initialDistanceOffset: parseFloat(v) || 0 });
             }

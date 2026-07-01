@@ -8,6 +8,7 @@ import type {
 import { Label } from '../../ui/label';
 import { EnumSelect } from '../EnumSelect';
 import { StoryboardElementRefSelect } from '../StoryboardElementRefSelect';
+import { valueConditionUpdate } from '../lib/typed-updates';
 
 const STORYBOARD_ELEMENT_TYPES: readonly StoryboardElementType[] = [
   'story',
@@ -38,9 +39,7 @@ export function StoryboardElementStateConditionEditor({ condition, onUpdate }: S
   const cond = inner.valueCondition as StoryboardElementStateCondition;
 
   const update = (updates: Partial<StoryboardElementStateCondition>) => {
-    onUpdate(condition.id, {
-      condition: { ...inner, valueCondition: { ...cond, ...updates } },
-    } as Partial<Condition>);
+    onUpdate(condition.id, valueConditionUpdate(inner, cond, updates));
   };
 
   return (

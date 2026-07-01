@@ -9,6 +9,7 @@ import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefSelect } from '../EntityRefSelect';
 import { RuleSegmentedControl } from '../RuleSegmentedControl';
 import { SegmentedControl } from '../SegmentedControl';
+import { entityConditionUpdate } from '../lib/typed-updates';
 
 const RELATIVE_DISTANCE_TYPES = ['longitudinal', 'lateral', 'euclidianDistance'] as const;
 
@@ -25,9 +26,7 @@ export function RelativeDistanceConditionEditor({
   const cond = inner.entityCondition as RelativeDistanceCondition;
 
   const update = (updates: Partial<RelativeDistanceCondition>) => {
-    onUpdate(condition.id, {
-      condition: { ...inner, entityCondition: { ...cond, ...updates } },
-    } as Partial<Condition>);
+    onUpdate(condition.id, entityConditionUpdate(inner, cond, updates));
   };
 
   return (

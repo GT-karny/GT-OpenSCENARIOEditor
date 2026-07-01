@@ -1,6 +1,7 @@
 import type { Condition, ByEntityCondition, StandStillCondition } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
+import { entityConditionUpdate } from '../lib/typed-updates';
 
 interface StandStillConditionEditorProps {
   condition: Condition;
@@ -12,9 +13,7 @@ export function StandStillConditionEditor({ condition, onUpdate }: StandStillCon
   const cond = inner.entityCondition as StandStillCondition;
 
   const update = (updates: Partial<StandStillCondition>) => {
-    onUpdate(condition.id, {
-      condition: { ...inner, entityCondition: { ...cond, ...updates } },
-    } as Partial<Condition>);
+    onUpdate(condition.id, entityConditionUpdate(inner, cond, updates));
   };
 
   return (

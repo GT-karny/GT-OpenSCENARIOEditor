@@ -2,6 +2,7 @@ import type { Condition, ByEntityCondition, ReachPositionCondition } from '@osce
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { PositionEditor } from '../PositionEditor';
+import { entityConditionUpdate } from '../lib/typed-updates';
 
 interface ReachPositionConditionEditorProps {
   condition: Condition;
@@ -13,9 +14,7 @@ export function ReachPositionConditionEditor({ condition, onUpdate }: ReachPosit
   const cond = inner.entityCondition as ReachPositionCondition;
 
   const update = (updates: Partial<ReachPositionCondition>) => {
-    onUpdate(condition.id, {
-      condition: { ...inner, entityCondition: { ...cond, ...updates } },
-    } as Partial<Condition>);
+    onUpdate(condition.id, entityConditionUpdate(inner, cond, updates));
   };
 
   return (

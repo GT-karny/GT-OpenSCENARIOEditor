@@ -4,6 +4,7 @@ import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefSelect } from '../EntityRefSelect';
 import { SegmentedControl } from '../SegmentedControl';
 import { TransitionDynamicsEditor } from '../TransitionDynamicsEditor';
+import { actionUpdate } from '../lib/typed-updates';
 import { useSpeedUnit } from '../../../hooks/use-speed-unit';
 
 interface SpeedActionEditorProps {
@@ -20,9 +21,7 @@ export function SpeedActionEditor({ action, onUpdate }: SpeedActionEditorProps) 
       : null;
 
   const updateInner = (updates: Partial<SpeedAction>) => {
-    onUpdate({
-      action: { ...inner, ...updates },
-    } as Partial<ScenarioAction>);
+    onUpdate(actionUpdate(inner, updates));
   };
 
   return (

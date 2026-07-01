@@ -1,6 +1,7 @@
 import type { ScenarioAction, ConnectTrailerAction } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { EntityRefSelect } from '../EntityRefSelect';
+import { actionUpdate } from '../lib/typed-updates';
 
 interface ConnectTrailerActionEditorProps {
   action: ScenarioAction;
@@ -11,9 +12,7 @@ export function ConnectTrailerActionEditor({ action, onUpdate }: ConnectTrailerA
   const inner = action.action as ConnectTrailerAction;
 
   const updateInner = (updates: Partial<ConnectTrailerAction>) => {
-    onUpdate({
-      action: { ...inner, ...updates },
-    } as Partial<ScenarioAction>);
+    onUpdate(actionUpdate(inner, updates));
   };
 
   return (

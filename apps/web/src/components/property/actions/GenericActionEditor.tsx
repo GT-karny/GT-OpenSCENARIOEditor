@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { ScenarioAction } from '@osce/shared';
 import { Label } from '../../ui/label';
+import { actionReplace } from '../lib/typed-updates';
 
 interface GenericActionEditorProps {
   action: ScenarioAction;
@@ -20,7 +21,7 @@ export function GenericActionEditor({ action, onUpdate }: GenericActionEditorPro
     try {
       const parsed = JSON.parse(text) as ScenarioAction['action'];
       setError(null);
-      onUpdate({ action: parsed } as Partial<ScenarioAction>);
+      onUpdate(actionReplace(parsed));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Invalid JSON');
     }

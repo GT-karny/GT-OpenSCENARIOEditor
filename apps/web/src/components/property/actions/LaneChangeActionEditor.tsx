@@ -6,6 +6,7 @@ import { EntityRefSelect } from '../EntityRefSelect';
 import { SegmentedControl } from '../SegmentedControl';
 import { TransitionDynamicsEditor } from '../TransitionDynamicsEditor';
 import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
+import { actionUpdate } from '../lib/typed-updates';
 
 interface LaneChangeActionEditorProps {
   action: ScenarioAction;
@@ -16,9 +17,7 @@ export function LaneChangeActionEditor({ action, onUpdate }: LaneChangeActionEdi
   const inner = action.action as LaneChangeAction;
 
   const updateInner = (updates: Partial<LaneChangeAction>) => {
-    onUpdate({
-      action: { ...inner, ...updates },
-    } as Partial<ScenarioAction>);
+    onUpdate(actionUpdate(inner, updates));
   };
 
   const relValue = inner.target.kind === 'relative' ? inner.target.value : 0;

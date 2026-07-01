@@ -6,6 +6,7 @@ import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefSelect } from '../EntityRefSelect';
 import { SegmentedControl } from '../SegmentedControl';
 import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
+import { actionBody, actionUpdate } from '../lib/typed-updates';
 import { useSpeedUnit } from '../../../hooks/use-speed-unit';
 
 interface SynchronizeActionEditorProps {
@@ -23,14 +24,18 @@ export function SynchronizeActionEditor({ action, onUpdate }: SynchronizeActionE
   const { label: speedLabel, toDisplay, toInternal } = useSpeedUnit();
 
   const updateInner = (updates: Partial<SynchronizeAction>) => {
-    onUpdate({ action: { ...inner, ...updates } } as Partial<ScenarioAction>);
+    onUpdate(actionUpdate(inner, updates));
   };
 
   const handlePositionChange = (
     field: 'targetPositionMaster' | 'targetPosition',
     position: Position,
   ) => {
-    updateInner({ [field]: position } as Partial<SynchronizeAction>);
+    updateInner(
+      field === 'targetPositionMaster'
+        ? { targetPositionMaster: position }
+        : { targetPosition: position },
+    );
   };
 
   // Optional numeric tolerance fields ----------------------------------------
@@ -40,15 +45,15 @@ export function SynchronizeActionEditor({ action, onUpdate }: SynchronizeActionE
     const n = parseFloat(value);
     if (value === '' || isNaN(n)) {
       const { [field]: _omit, ...rest } = inner;
-      onUpdate({ action: rest } as Partial<ScenarioAction>);
+      onUpdate(actionBody(rest));
     } else {
-      updateInner({ [field]: n } as Partial<SynchronizeAction>);
+      updateInner(field === 'tolerance' ? { tolerance: n } : { toleranceMaster: n });
     }
   };
 
   const clearTolerance = () => {
     const { tolerance: _t, toleranceMaster: _tm, ...rest } = inner;
-    onUpdate({ action: rest } as Partial<ScenarioAction>);
+    onUpdate(actionBody(rest));
   };
 
   // Optional FinalSpeed ------------------------------------------------------
@@ -59,7 +64,7 @@ export function SynchronizeActionEditor({ action, onUpdate }: SynchronizeActionE
   const setFinalSpeed = (next: FinalSpeed | undefined) => {
     if (next === undefined) {
       const { finalSpeed: _fs, ...rest } = inner;
-      onUpdate({ action: rest } as Partial<ScenarioAction>);
+      onUpdate(actionBody(rest));
     } else {
       updateInner({ finalSpeed: next });
     }

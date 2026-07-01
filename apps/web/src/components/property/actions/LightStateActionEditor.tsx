@@ -4,6 +4,7 @@ import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
 import { SegmentedControl } from '../SegmentedControl';
 import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
+import { actionBody, actionUpdate } from '../lib/typed-updates';
 
 interface LightStateActionEditorProps {
   action: ScenarioAction;
@@ -30,9 +31,7 @@ export function LightStateActionEditor({ action, onUpdate }: LightStateActionEdi
   const inner = action.action as LightStateAction;
 
   const updateInner = (updates: Partial<LightStateAction>) => {
-    onUpdate({
-      action: { ...inner, ...updates },
-    } as Partial<ScenarioAction>);
+    onUpdate(actionUpdate(inner, updates));
   };
 
   const lightCategory = inner.lightType.startsWith('vehicleLight:') ? 'vehicleLight' : 'userDefinedLight';
@@ -103,7 +102,7 @@ export function LightStateActionEditor({ action, onUpdate }: LightStateActionEdi
           hasValue={inner.intensity !== undefined}
           onClear={() => {
             const { intensity: _, ...rest } = inner;
-            onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
+            onUpdate(actionBody(rest));
           }}
         >
           <ParameterAwareInput
@@ -115,7 +114,7 @@ export function LightStateActionEditor({ action, onUpdate }: LightStateActionEdi
               const n = parseFloat(v);
               if (isNaN(n) || v === '') {
                 const { intensity: _, ...rest } = inner;
-                onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
+                onUpdate(actionBody(rest));
               } else {
                 updateInner({ intensity: n });
               }
@@ -130,7 +129,7 @@ export function LightStateActionEditor({ action, onUpdate }: LightStateActionEdi
           hasValue={inner.transitionTime !== undefined}
           onClear={() => {
             const { transitionTime: _, ...rest } = inner;
-            onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
+            onUpdate(actionBody(rest));
           }}
         >
           <ParameterAwareInput
@@ -142,7 +141,7 @@ export function LightStateActionEditor({ action, onUpdate }: LightStateActionEdi
               const n = parseFloat(v);
               if (isNaN(n) || v === '') {
                 const { transitionTime: _, ...rest } = inner;
-                onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
+                onUpdate(actionBody(rest));
               } else {
                 updateInner({ transitionTime: n });
               }

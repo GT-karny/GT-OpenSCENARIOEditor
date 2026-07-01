@@ -37,6 +37,7 @@ import { LateralDistanceActionEditor } from './actions/LateralDistanceActionEdit
 import { ParameterActionEditor } from './actions/ParameterActionEditor';
 import { VariableActionEditor } from './actions/VariableActionEditor';
 import { GenericActionEditor } from './actions/GenericActionEditor';
+import { actionReplace } from './lib/typed-updates';
 import { useFeatureGate } from '../../hooks/use-feature-gate';
 import { cn } from '@/lib/utils';
 
@@ -109,26 +110,20 @@ export function ActionPropertyEditor({ action, onUpdate }: ActionPropertyEditorP
         : newCategory === 'global'
           ? GLOBAL_ACTION_ORDER[0]
           : 'userDefinedAction';
-    onUpdate(action.id, {
-      action: defaultActionByType(firstType),
-    } as Partial<ScenarioAction>);
+    onUpdate(action.id, actionReplace(defaultActionByType(firstType)));
   };
 
   const handleSubcategoryChange = (newSubKey: string) => {
     if (newSubKey === subcategory) return;
     const sub = PRIVATE_ACTION_SUBCATEGORIES.find((s) => s.key === newSubKey);
     if (sub) {
-      onUpdate(action.id, {
-        action: defaultActionByType(sub.types[0]),
-      } as Partial<ScenarioAction>);
+      onUpdate(action.id, actionReplace(defaultActionByType(sub.types[0])));
     }
   };
 
   const handleTypeChange = (newType: string) => {
     if (newType === actionType) return;
-    onUpdate(action.id, {
-      action: defaultActionByType(newType),
-    } as Partial<ScenarioAction>);
+    onUpdate(action.id, actionReplace(defaultActionByType(newType)));
   };
 
   return (

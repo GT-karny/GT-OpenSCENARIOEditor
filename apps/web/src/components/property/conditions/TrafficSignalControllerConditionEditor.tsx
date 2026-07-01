@@ -9,6 +9,7 @@ import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { RefSelect } from '../RefSelect';
 import type { RefSelectItem } from '../RefSelect';
+import { valueConditionUpdate } from '../lib/typed-updates';
 import { useScenarioStore } from '../../../stores/use-scenario-store';
 
 const EMPTY_SIGNALS: TrafficSignalController[] = [];
@@ -36,9 +37,7 @@ export function TrafficSignalControllerConditionEditor({
   );
 
   const update = (updates: Partial<TrafficSignalControllerCondition>) => {
-    onUpdate(condition.id, {
-      condition: { ...inner, valueCondition: { ...cond, ...updates } },
-    } as Partial<Condition>);
+    onUpdate(condition.id, valueConditionUpdate(inner, cond, updates));
   };
 
   return (

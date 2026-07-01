@@ -4,6 +4,7 @@ import { ParameterAwareInput } from '../ParameterAwareInput';
 import { RuleSegmentedControl } from '../RuleSegmentedControl';
 import { SegmentedControl } from '../SegmentedControl';
 import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
+import { entityConditionReplace, entityConditionUpdate } from '../lib/typed-updates';
 
 const DIRECTIONAL_DIMENSIONS = ['longitudinal', 'lateral', 'vertical'] as const;
 
@@ -17,16 +18,12 @@ export function AccelerationConditionEditor({ condition, onUpdate }: Acceleratio
   const cond = inner.entityCondition as AccelerationCondition;
 
   const update = (updates: Partial<AccelerationCondition>) => {
-    onUpdate(condition.id, {
-      condition: { ...inner, entityCondition: { ...cond, ...updates } },
-    } as Partial<Condition>);
+    onUpdate(condition.id, entityConditionUpdate(inner, cond, updates));
   };
 
   const clearDirection = () => {
     const { direction: _d, ...rest } = cond;
-    onUpdate(condition.id, {
-      condition: { ...inner, entityCondition: rest as AccelerationCondition },
-    } as Partial<Condition>);
+    onUpdate(condition.id, entityConditionReplace(inner, rest));
   };
 
   return (

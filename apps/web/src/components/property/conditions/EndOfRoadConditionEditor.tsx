@@ -1,6 +1,7 @@
 import type { Condition, ByEntityCondition, EndOfRoadCondition } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
+import { entityConditionUpdate } from '../lib/typed-updates';
 
 interface EndOfRoadConditionEditorProps {
   condition: Condition;
@@ -12,9 +13,7 @@ export function EndOfRoadConditionEditor({ condition, onUpdate }: EndOfRoadCondi
   const cond = inner.entityCondition as EndOfRoadCondition;
 
   const update = (updates: Partial<EndOfRoadCondition>) => {
-    onUpdate(condition.id, {
-      condition: { ...inner, entityCondition: { ...cond, ...updates } },
-    } as Partial<Condition>);
+    onUpdate(condition.id, entityConditionUpdate(inner, cond, updates));
   };
 
   return (

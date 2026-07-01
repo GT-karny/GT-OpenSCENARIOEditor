@@ -5,6 +5,7 @@ import { ParameterAwareInput } from '../ParameterAwareInput';
 import { RuleSegmentedControl } from '../RuleSegmentedControl';
 import { RefSelect } from '../RefSelect';
 import type { RefSelectItem } from '../RefSelect';
+import { valueConditionUpdate } from '../lib/typed-updates';
 import { useScenarioStore } from '../../../stores/use-scenario-store';
 
 interface VariableConditionEditorProps {
@@ -23,9 +24,7 @@ export function VariableConditionEditor({ condition, onUpdate }: VariableConditi
   );
 
   const update = (updates: Partial<VariableCondition>) => {
-    onUpdate(condition.id, {
-      condition: { ...inner, valueCondition: { ...cond, ...updates } },
-    } as Partial<Condition>);
+    onUpdate(condition.id, valueConditionUpdate(inner, cond, updates));
   };
 
   return (

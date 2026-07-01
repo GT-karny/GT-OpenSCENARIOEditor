@@ -3,6 +3,7 @@ import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefMultiSelect } from '../EntityRefMultiSelect';
 import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
+import { entityConditionReplace, entityConditionUpdate } from '../lib/typed-updates';
 
 interface RelativeClearanceConditionEditorProps {
   condition: Condition;
@@ -17,9 +18,7 @@ export function RelativeClearanceConditionEditor({
   const cond = inner.entityCondition as RelativeClearanceCondition;
 
   const update = (updates: Partial<RelativeClearanceCondition>) => {
-    onUpdate(condition.id, {
-      condition: { ...inner, entityCondition: { ...cond, ...updates } },
-    } as Partial<Condition>);
+    onUpdate(condition.id, entityConditionUpdate(inner, cond, updates));
   };
 
   return (
@@ -55,9 +54,7 @@ export function RelativeClearanceConditionEditor({
         hasValue={cond.distanceForward !== undefined || cond.distanceBackward !== undefined}
         onClear={() => {
           const { distanceForward: _df, distanceBackward: _db, ...rest } = cond;
-          onUpdate(condition.id, {
-            condition: { ...inner, entityCondition: rest as RelativeClearanceCondition },
-          } as Partial<Condition>);
+          onUpdate(condition.id, entityConditionReplace(inner, rest));
         }}
       >
         <div className="grid grid-cols-2 gap-2">
@@ -72,9 +69,7 @@ export function RelativeClearanceConditionEditor({
                 const num = parseFloat(v);
                 if (v === '' || isNaN(num)) {
                   const { distanceForward: _df, ...rest } = cond;
-                  onUpdate(condition.id, {
-                    condition: { ...inner, entityCondition: rest as RelativeClearanceCondition },
-                  } as Partial<Condition>);
+                  onUpdate(condition.id, entityConditionReplace(inner, rest));
                 } else {
                   update({ distanceForward: num });
                 }
@@ -94,9 +89,7 @@ export function RelativeClearanceConditionEditor({
                 const num = parseFloat(v);
                 if (v === '' || isNaN(num)) {
                   const { distanceBackward: _db, ...rest } = cond;
-                  onUpdate(condition.id, {
-                    condition: { ...inner, entityCondition: rest as RelativeClearanceCondition },
-                  } as Partial<Condition>);
+                  onUpdate(condition.id, entityConditionReplace(inner, rest));
                 } else {
                   update({ distanceBackward: num });
                 }

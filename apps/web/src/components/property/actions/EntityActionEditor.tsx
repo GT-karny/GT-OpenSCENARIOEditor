@@ -3,6 +3,7 @@ import { Label } from '../../ui/label';
 import { EnumSelect } from '../EnumSelect';
 import { EntityRefSelect } from '../EntityRefSelect';
 import { PositionEditor } from '../PositionEditor';
+import { actionBody, actionUpdate } from '../lib/typed-updates';
 
 interface EntityActionEditorProps {
   action: ScenarioAction;
@@ -23,9 +24,7 @@ export function EntityActionEditor({ action, onUpdate }: EntityActionEditorProps
   const inner = action.action as EntityAction;
 
   const updateInner = (updates: Partial<EntityAction>) => {
-    onUpdate({
-      action: { ...inner, ...updates },
-    } as Partial<ScenarioAction>);
+    onUpdate(actionUpdate(inner, updates));
   };
 
   return (
@@ -49,9 +48,7 @@ export function EntityActionEditor({ action, onUpdate }: EntityActionEditorProps
               updateInner({ actionType, position: inner.position ?? DEFAULT_WORLD_POSITION });
             } else {
               const { position: _, ...rest } = inner;
-              onUpdate({
-                action: { ...rest, actionType },
-              } as Partial<ScenarioAction>);
+              onUpdate(actionBody({ ...rest, actionType }));
             }
           }}
           className="h-8 text-sm"

@@ -2,6 +2,7 @@ import type { Condition, ByValueCondition, SimulationTimeCondition } from '@osce
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { RuleSegmentedControl } from '../RuleSegmentedControl';
+import { valueConditionUpdate } from '../lib/typed-updates';
 
 interface SimulationTimeConditionEditorProps {
   condition: Condition;
@@ -13,9 +14,7 @@ export function SimulationTimeConditionEditor({ condition, onUpdate }: Simulatio
   const cond = inner.valueCondition as SimulationTimeCondition;
 
   const update = (updates: Partial<SimulationTimeCondition>) => {
-    onUpdate(condition.id, {
-      condition: { ...inner, valueCondition: { ...cond, ...updates } },
-    } as Partial<Condition>);
+    onUpdate(condition.id, valueConditionUpdate(inner, cond, updates));
   };
 
   return (

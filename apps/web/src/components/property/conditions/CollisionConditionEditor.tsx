@@ -8,6 +8,7 @@ import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefSelect } from '../EntityRefSelect';
 import { SegmentedControl } from '../SegmentedControl';
+import { entityConditionUpdate } from '../lib/typed-updates';
 
 const TARGET_KINDS = ['entity', 'objectType'] as const;
 
@@ -24,9 +25,7 @@ export function CollisionConditionEditor({
   const cond = inner.entityCondition as CollisionCondition;
 
   const updateTarget = (newTarget: CollisionTarget) => {
-    onUpdate(condition.id, {
-      condition: { ...inner, entityCondition: { ...cond, target: newTarget } },
-    } as Partial<Condition>);
+    onUpdate(condition.id, entityConditionUpdate(inner, cond, { target: newTarget }));
   };
 
   const handleKindChange = (newKind: string) => {

@@ -10,6 +10,7 @@ import { Input } from '../../ui/input';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
 import { SegmentedControl } from '../SegmentedControl';
+import { actionUpdate } from '../lib/typed-updates';
 import { useSpeedUnit } from '../../../hooks/use-speed-unit';
 
 interface EnvironmentActionEditorProps {
@@ -45,9 +46,7 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
   const env = inner.environment;
 
   const updateEnv = (updates: Partial<typeof env>) => {
-    onUpdate({
-      action: { ...inner, environment: { ...env, ...updates } },
-    } as Partial<ScenarioAction>);
+    onUpdate(actionUpdate(inner, { environment: { ...env, ...updates } }));
   };
 
   const updateWeather = (updates: Partial<Weather>) => {

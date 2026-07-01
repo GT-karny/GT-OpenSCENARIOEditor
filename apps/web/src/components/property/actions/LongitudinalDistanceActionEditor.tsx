@@ -11,6 +11,7 @@ import { SegmentedControl } from '../SegmentedControl';
 import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
 import { EnumSelect } from '../EnumSelect';
 import { Label } from '../../ui/label';
+import { actionBody, actionUpdate } from '../lib/typed-updates';
 import { useSpeedUnit } from '../../../hooks/use-speed-unit';
 
 const LONGITUDINAL_DISPLACEMENTS = ['any', 'trailingReferencedEntity', 'leadingReferencedEntity'] as const;
@@ -29,9 +30,7 @@ export function LongitudinalDistanceActionEditor({ action, onUpdate }: Longitudi
   const { label: speedLabel, toDisplay: toDisplaySpeed, toInternal: toInternalSpeed } = useSpeedUnit();
 
   const updateInner = (updates: Partial<LongitudinalDistanceAction>) => {
-    onUpdate({
-      action: { ...inner, ...updates },
-    } as Partial<ScenarioAction>);
+    onUpdate(actionUpdate(inner, updates));
   };
 
   const dynamics = inner.dynamics ?? {};
@@ -43,10 +42,10 @@ export function LongitudinalDistanceActionEditor({ action, onUpdate }: Longitudi
   const handleDistanceModeChange = (mode: DistanceMode) => {
     if (mode === 'distance') {
       const { timeGap: _t, ...rest } = inner;
-      onUpdate({ action: { ...rest, distance: inner.distance ?? 0 } } as Partial<ScenarioAction>);
+      onUpdate(actionBody({ ...rest, distance: inner.distance ?? 0 }));
     } else {
       const { distance: _d, ...rest } = inner;
-      onUpdate({ action: { ...rest, timeGap: inner.timeGap ?? 0 } } as Partial<ScenarioAction>);
+      onUpdate(actionBody({ ...rest, timeGap: inner.timeGap ?? 0 }));
     }
   };
 
@@ -70,7 +69,7 @@ export function LongitudinalDistanceActionEditor({ action, onUpdate }: Longitudi
 
   const clearDynamics = () => {
     const { dynamics: _d, ...rest } = inner;
-    onUpdate({ action: rest } as Partial<ScenarioAction>);
+    onUpdate(actionBody(rest));
   };
 
   return (
@@ -140,7 +139,7 @@ export function LongitudinalDistanceActionEditor({ action, onUpdate }: Longitudi
           hasValue={inner.coordinateSystem !== undefined}
           onClear={() => {
             const { coordinateSystem: _cs, ...rest } = inner;
-            onUpdate({ action: rest } as Partial<ScenarioAction>);
+            onUpdate(actionBody(rest));
           }}
         >
           <SegmentedControl
@@ -149,7 +148,7 @@ export function LongitudinalDistanceActionEditor({ action, onUpdate }: Longitudi
             onValueChange={(v) => {
               if (v === '') {
                 const { coordinateSystem: _cs, ...rest } = inner;
-                onUpdate({ action: rest } as Partial<ScenarioAction>);
+                onUpdate(actionBody(rest));
               } else {
                 updateInner({ coordinateSystem: v as CoordinateSystem });
               }
@@ -162,7 +161,7 @@ export function LongitudinalDistanceActionEditor({ action, onUpdate }: Longitudi
           hasValue={inner.displacement !== undefined}
           onClear={() => {
             const { displacement: _dp, ...rest } = inner;
-            onUpdate({ action: rest } as Partial<ScenarioAction>);
+            onUpdate(actionBody(rest));
           }}
         >
           <EnumSelect
@@ -171,7 +170,7 @@ export function LongitudinalDistanceActionEditor({ action, onUpdate }: Longitudi
             onValueChange={(v) => {
               if (v === '') {
                 const { displacement: _dp, ...rest } = inner;
-                onUpdate({ action: rest } as Partial<ScenarioAction>);
+                onUpdate(actionBody(rest));
               } else {
                 updateInner({ displacement: v as LongitudinalDisplacement });
               }

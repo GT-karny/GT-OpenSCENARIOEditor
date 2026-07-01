@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Condition, ByEntityCondition, ByValueCondition } from '@osce/shared';
 import { Label } from '../../ui/label';
+import { conditionReplace } from '../lib/typed-updates';
 
 interface GenericConditionEditorProps {
   condition: Condition;
@@ -30,9 +31,7 @@ export function GenericConditionEditor({ condition, onUpdate }: GenericCondition
       } else {
         newConditionBody = { ...inner, valueCondition: parsed } as ByValueCondition;
       }
-      onUpdate(condition.id, {
-        condition: newConditionBody,
-      } as Partial<Condition>);
+      onUpdate(condition.id, conditionReplace(newConditionBody));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Invalid JSON');
     }

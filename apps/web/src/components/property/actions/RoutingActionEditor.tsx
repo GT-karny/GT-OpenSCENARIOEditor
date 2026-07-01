@@ -8,6 +8,7 @@ import { EnumSelect } from '../EnumSelect';
 import { PositionEditor } from '../PositionEditor';
 import { WaypointListItem } from './WaypointListItem';
 import { RouteSourceSelector } from './RouteSourceSelector';
+import { actionUpdate } from '../lib/typed-updates';
 import { useRouteEditStore } from '../../../stores/route-edit-store';
 
 type RouteSourceMode = 'inline' | 'catalogRef';
@@ -58,9 +59,7 @@ export function RoutingActionEditor({ action, onUpdate }: RoutingActionEditorPro
   const routeSourceMode: RouteSourceMode = inner.catalogReference ? 'catalogRef' : 'inline';
 
   const updateInner = (updates: Partial<RoutingAction>) => {
-    onUpdate({
-      action: { ...inner, ...updates },
-    } as Partial<ScenarioAction>);
+    onUpdate(actionUpdate(inner, updates));
   };
 
   const handleVariantChange = (variant: string) => {

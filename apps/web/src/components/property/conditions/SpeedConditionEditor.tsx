@@ -4,6 +4,7 @@ import { ParameterAwareInput } from '../ParameterAwareInput';
 import { RuleSegmentedControl } from '../RuleSegmentedControl';
 import { SegmentedControl } from '../SegmentedControl';
 import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
+import { entityConditionReplace, entityConditionUpdate } from '../lib/typed-updates';
 import { useSpeedUnit } from '../../../hooks/use-speed-unit';
 
 const DIRECTIONAL_DIMENSIONS = ['longitudinal', 'lateral', 'vertical'] as const;
@@ -19,16 +20,12 @@ export function SpeedConditionEditor({ condition, onUpdate }: SpeedConditionEdit
   const { label: speedLabel, toDisplay, toInternal } = useSpeedUnit();
 
   const update = (updates: Partial<SpeedCondition>) => {
-    onUpdate(condition.id, {
-      condition: { ...inner, entityCondition: { ...cond, ...updates } },
-    } as Partial<Condition>);
+    onUpdate(condition.id, entityConditionUpdate(inner, cond, updates));
   };
 
   const clearDirection = () => {
     const { direction: _d, ...rest } = cond;
-    onUpdate(condition.id, {
-      condition: { ...inner, entityCondition: rest as SpeedCondition },
-    } as Partial<Condition>);
+    onUpdate(condition.id, entityConditionReplace(inner, rest));
   };
 
   return (

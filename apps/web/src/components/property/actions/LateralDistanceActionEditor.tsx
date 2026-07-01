@@ -11,6 +11,7 @@ import { SegmentedControl } from '../SegmentedControl';
 import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
 import { EnumSelect } from '../EnumSelect';
 import { Label } from '../../ui/label';
+import { actionBody, actionUpdate } from '../lib/typed-updates';
 import { useSpeedUnit } from '../../../hooks/use-speed-unit';
 
 const LATERAL_DISPLACEMENTS = ['any', 'leftToReferencedEntity', 'rightToReferencedEntity'] as const;
@@ -26,9 +27,7 @@ export function LateralDistanceActionEditor({ action, onUpdate }: LateralDistanc
   const { label: speedLabel, toDisplay: toDisplaySpeed, toInternal: toInternalSpeed } = useSpeedUnit();
 
   const updateInner = (updates: Partial<LateralDistanceAction>) => {
-    onUpdate({
-      action: { ...inner, ...updates },
-    } as Partial<ScenarioAction>);
+    onUpdate(actionUpdate(inner, updates));
   };
 
   const dynamics = inner.dynamics ?? {};
@@ -41,7 +40,7 @@ export function LateralDistanceActionEditor({ action, onUpdate }: LateralDistanc
       );
       if (entries.length === 0) {
         const { dynamics: _d, ...outerRest } = inner;
-        updateInner(outerRest as LateralDistanceAction);
+        updateInner(outerRest);
       } else {
         updateInner({ dynamics: Object.fromEntries(entries) as DynamicConstraints });
       }
@@ -54,7 +53,7 @@ export function LateralDistanceActionEditor({ action, onUpdate }: LateralDistanc
 
   const clearDynamics = () => {
     const { dynamics: _d, ...rest } = inner;
-    onUpdate({ action: rest } as Partial<ScenarioAction>);
+    onUpdate(actionBody(rest));
   };
 
   return (
@@ -77,7 +76,7 @@ export function LateralDistanceActionEditor({ action, onUpdate }: LateralDistanc
           onValueChange={(v) => {
             if (v === '') {
               const { distance: _d, ...rest } = inner;
-              onUpdate({ action: rest } as Partial<ScenarioAction>);
+              onUpdate(actionBody(rest));
             } else {
               updateInner({ distance: parseFloat(v) || 0 });
             }
@@ -112,7 +111,7 @@ export function LateralDistanceActionEditor({ action, onUpdate }: LateralDistanc
           hasValue={inner.coordinateSystem !== undefined}
           onClear={() => {
             const { coordinateSystem: _cs, ...rest } = inner;
-            onUpdate({ action: rest } as Partial<ScenarioAction>);
+            onUpdate(actionBody(rest));
           }}
         >
           <SegmentedControl
@@ -121,7 +120,7 @@ export function LateralDistanceActionEditor({ action, onUpdate }: LateralDistanc
             onValueChange={(v) => {
               if (v === '') {
                 const { coordinateSystem: _cs, ...rest } = inner;
-                onUpdate({ action: rest } as Partial<ScenarioAction>);
+                onUpdate(actionBody(rest));
               } else {
                 updateInner({ coordinateSystem: v as CoordinateSystem });
               }
@@ -134,7 +133,7 @@ export function LateralDistanceActionEditor({ action, onUpdate }: LateralDistanc
           hasValue={inner.displacement !== undefined}
           onClear={() => {
             const { displacement: _dp, ...rest } = inner;
-            onUpdate({ action: rest } as Partial<ScenarioAction>);
+            onUpdate(actionBody(rest));
           }}
         >
           <EnumSelect
@@ -143,7 +142,7 @@ export function LateralDistanceActionEditor({ action, onUpdate }: LateralDistanc
             onValueChange={(v) => {
               if (v === '') {
                 const { displacement: _dp, ...rest } = inner;
-                onUpdate({ action: rest } as Partial<ScenarioAction>);
+                onUpdate(actionBody(rest));
               } else {
                 updateInner({ displacement: v as LateralDisplacement });
               }

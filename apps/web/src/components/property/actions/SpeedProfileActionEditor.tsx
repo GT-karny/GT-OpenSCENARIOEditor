@@ -11,6 +11,7 @@ import { EntityRefSelect } from '../EntityRefSelect';
 import { SegmentedControl } from '../SegmentedControl';
 import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
 import { Plus, Trash2 } from 'lucide-react';
+import { actionBody, actionUpdate } from '../lib/typed-updates';
 import { useSpeedUnit } from '../../../hooks/use-speed-unit';
 
 const FOLLOWING_MODES = ['follow', 'position'] as const;
@@ -26,9 +27,7 @@ export function SpeedProfileActionEditor({ action, onUpdate }: SpeedProfileActio
   const { label: speedLabel, toDisplay, toInternal } = useSpeedUnit();
 
   const updateInner = (updates: Partial<SpeedProfileAction>) => {
-    onUpdate({
-      action: { ...inner, ...updates },
-    } as Partial<ScenarioAction>);
+    onUpdate(actionUpdate(inner, updates));
   };
 
   const updateEntry = (index: number, updates: Partial<SpeedProfileEntry>) => {
@@ -62,7 +61,7 @@ export function SpeedProfileActionEditor({ action, onUpdate }: SpeedProfileActio
         hasValue={inner.entityRef !== undefined}
         onClear={() => {
           const { entityRef: _, ...rest } = inner;
-          onUpdate({ action: rest } as Partial<ScenarioAction>);
+          onUpdate(actionBody(rest));
         }}
       >
         <EntityRefSelect
@@ -76,7 +75,7 @@ export function SpeedProfileActionEditor({ action, onUpdate }: SpeedProfileActio
         hasValue={inner.dynamicsDimension !== undefined}
         onClear={() => {
           const { dynamicsDimension: _, ...rest } = inner;
-          onUpdate({ action: rest } as Partial<ScenarioAction>);
+          onUpdate(actionBody(rest));
         }}
       >
         <SegmentedControl

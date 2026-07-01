@@ -11,6 +11,7 @@ import { RuleSegmentedControl } from '../RuleSegmentedControl';
 import { SegmentedControl } from '../SegmentedControl';
 import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
 import { PositionEditor } from '../PositionEditor';
+import { entityConditionReplace, entityConditionUpdate } from '../lib/typed-updates';
 
 const RELATIVE_DISTANCE_TYPES = ['longitudinal', 'lateral', 'euclidianDistance'] as const;
 const COORDINATE_SYSTEMS = ['entity', 'lane', 'road', 'trajectory'] as const;
@@ -25,17 +26,13 @@ export function DistanceConditionEditor({ condition, onUpdate }: DistanceConditi
   const cond = inner.entityCondition as DistanceCondition;
 
   const update = (updates: Partial<DistanceCondition>) => {
-    onUpdate(condition.id, {
-      condition: { ...inner, entityCondition: { ...cond, ...updates } },
-    } as Partial<Condition>);
+    onUpdate(condition.id, entityConditionUpdate(inner, cond, updates));
   };
 
   const clearField = (field: 'coordinateSystem' | 'relativeDistanceType') => {
     const next = { ...cond };
     delete next[field];
-    onUpdate(condition.id, {
-      condition: { ...inner, entityCondition: next },
-    } as Partial<Condition>);
+    onUpdate(condition.id, entityConditionReplace(inner, next));
   };
 
   return (

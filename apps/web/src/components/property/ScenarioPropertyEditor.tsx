@@ -64,9 +64,9 @@ export function ScenarioPropertyEditor() {
   };
 
   const handleCatalogChange = (key: CatalogKey, directory: string) => {
-    storeApi.getState().updateCatalogLocations({
-      [key]: directory ? { directory } : undefined,
-    } as Partial<CatalogLocations>);
+    const update: Partial<CatalogLocations> = {};
+    update[key] = directory ? { directory } : undefined;
+    storeApi.getState().updateCatalogLocations(update);
   };
 
   // ── StopTrigger callbacks ──────────────────────────────────────

@@ -3,6 +3,7 @@ import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { SegmentedControl } from '../SegmentedControl';
+import { actionBody, actionUpdate } from '../lib/typed-updates';
 
 type SourceMode = 'inline' | 'catalog';
 
@@ -17,23 +18,22 @@ export function AssignControllerActionEditor({ action, onUpdate }: AssignControl
   const sourceMode: SourceMode = inner.controller ? 'inline' : inner.catalogReference ? 'catalog' : 'inline';
 
   const updateInner = (updates: Partial<AssignControllerAction>) => {
-    onUpdate({
-      action: { ...inner, ...updates },
-    } as Partial<ScenarioAction>);
+    onUpdate(actionUpdate(inner, updates));
   };
 
   const handleSourceModeChange = (mode: string) => {
     const newMode = mode as SourceMode;
     if (newMode === 'inline') {
       const { catalogReference: _, ...rest } = inner;
-      onUpdate({
-        action: { ...rest, controller: inner.controller ?? { name: '', properties: [] } },
-      } as Partial<ScenarioAction>);
+      onUpdate(actionBody({ ...rest, controller: inner.controller ?? { name: '', properties: [] } }));
     } else {
       const { controller: _, ...rest } = inner;
-      onUpdate({
-        action: { ...rest, catalogReference: inner.catalogReference ?? { catalogName: '', entryName: '' } },
-      } as Partial<ScenarioAction>);
+      onUpdate(
+        actionBody({
+          ...rest,
+          catalogReference: inner.catalogReference ?? { catalogName: '', entryName: '' },
+        }),
+      );
     }
   };
 

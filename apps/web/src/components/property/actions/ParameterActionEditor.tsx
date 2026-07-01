@@ -2,6 +2,7 @@ import type { ScenarioAction, ParameterAction, ModifyRule } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { SegmentedControl } from '../SegmentedControl';
+import { actionBody, actionUpdate } from '../lib/typed-updates';
 
 const ACTION_TYPES = ['set', 'modify'] as const;
 // Values match the XSD ModifyRule choice (AddValue | MultiplyByValue).
@@ -20,9 +21,7 @@ export function ParameterActionEditor({ action, onUpdate }: ParameterActionEdito
   const inner = action.action as ParameterAction;
 
   const updateInner = (updates: Partial<ParameterAction>) => {
-    onUpdate({
-      action: { ...inner, ...updates },
-    } as Partial<ScenarioAction>);
+    onUpdate(actionUpdate(inner, updates));
   };
 
   return (
@@ -48,19 +47,17 @@ export function ParameterActionEditor({ action, onUpdate }: ParameterActionEdito
             const actionType = v as ParameterAction['actionType'];
             if (actionType === 'set') {
               const { rule: _r, modifyValue: _m, ...rest } = inner;
-              onUpdate({
-                action: { ...rest, actionType, value: inner.value ?? '' },
-              } as Partial<ScenarioAction>);
+              onUpdate(actionBody({ ...rest, actionType, value: inner.value ?? '' }));
             } else {
               const { value: _v, ...rest } = inner;
-              onUpdate({
-                action: {
+              onUpdate(
+                actionBody({
                   ...rest,
                   actionType,
                   rule: inner.rule ?? 'addValue',
                   modifyValue: inner.modifyValue ?? 0,
-                },
-              } as Partial<ScenarioAction>);
+                }),
+              );
             }
           }}
           labels={{ set: 'Set', modify: 'Modify' }}

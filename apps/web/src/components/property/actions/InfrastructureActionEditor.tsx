@@ -10,6 +10,7 @@ import { ParameterAwareInput } from '../ParameterAwareInput';
 import { cn } from '@/lib/utils';
 import { RefSelect } from '../RefSelect';
 import type { RefSelectItem } from '../RefSelect';
+import { actionUpdate } from '../lib/typed-updates';
 import { useScenarioStore } from '../../../stores/use-scenario-store';
 
 const EMPTY_SIGNALS: TrafficSignalController[] = [];
@@ -54,33 +55,29 @@ export function InfrastructureActionEditor({
   const [mode, setMode] = useState<SignalActionMode>(() => detectMode(tsa));
 
   const updateTsa = (updates: Partial<TrafficSignalAction>) => {
-    onUpdate({
-      action: { ...inner, trafficSignalAction: { ...tsa, ...updates } },
-    } as Partial<ScenarioAction>);
+    onUpdate(actionUpdate(inner, { trafficSignalAction: { ...tsa, ...updates } }));
   };
 
   const handleModeChange = (newMode: SignalActionMode) => {
     if (newMode === mode) return;
     setMode(newMode);
     if (newMode === 'controller') {
-      onUpdate({
-        action: {
-          ...inner,
+      onUpdate(
+        actionUpdate(inner, {
           trafficSignalAction: {
             controllerRef: tsa.controllerRef ?? '',
             controllerAction: tsa.controllerAction ?? { phase: '' },
           },
-        },
-      } as Partial<ScenarioAction>);
+        }),
+      );
     } else {
-      onUpdate({
-        action: {
-          ...inner,
+      onUpdate(
+        actionUpdate(inner, {
           trafficSignalAction: {
             stateAction: tsa.stateAction ?? { name: '', state: '' },
           },
-        },
-      } as Partial<ScenarioAction>);
+        }),
+      );
     }
   };
 

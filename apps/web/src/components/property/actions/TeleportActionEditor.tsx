@@ -1,6 +1,7 @@
 import type { ScenarioAction, Position } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { PositionEditor } from '../PositionEditor';
+import { actionReplace } from '../lib/typed-updates';
 
 interface TeleportActionEditorProps {
   action: ScenarioAction;
@@ -34,9 +35,12 @@ export function TeleportActionEditor({ action, onUpdate }: TeleportActionEditorP
   const fields = getPositionFields(action.action);
 
   const handlePositionChange = (fieldName: string, newPosition: Position) => {
-    onUpdate({
-      action: { ...inner, [fieldName]: newPosition },
-    } as Partial<ScenarioAction>);
+    // This editor is type-agnostic: `fieldName` is resolved at runtime from
+    // `getPositionFields`, so the spread loses the discriminated-union type.
+    // The single narrowing cast (not a `Partial` cast) is sound because
+    // `fieldName` is always an existing Position field of the current action.
+    const merged = { ...inner, [fieldName]: newPosition } as ScenarioAction['action'];
+    onUpdate(actionReplace(merged));
   };
 
   return (

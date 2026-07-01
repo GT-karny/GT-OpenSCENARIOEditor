@@ -1,5 +1,6 @@
 import type { ScenarioAction, AcquirePositionAction, Position } from '@osce/shared';
 import { PositionEditor } from '../PositionEditor';
+import { actionUpdate } from '../lib/typed-updates';
 
 interface AcquirePositionActionEditorProps {
   action: ScenarioAction;
@@ -10,9 +11,7 @@ export function AcquirePositionActionEditor({ action, onUpdate }: AcquirePositio
   const inner = action.action as AcquirePositionAction;
 
   const updateInner = (updates: Partial<AcquirePositionAction>) => {
-    onUpdate({
-      action: { ...inner, ...updates },
-    } as Partial<ScenarioAction>);
+    onUpdate(actionUpdate(inner, updates));
   };
 
   return (

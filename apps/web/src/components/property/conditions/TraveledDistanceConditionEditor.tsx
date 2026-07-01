@@ -1,6 +1,7 @@
 import type { Condition, ByEntityCondition, TraveledDistanceCondition } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
+import { entityConditionUpdate } from '../lib/typed-updates';
 
 interface TraveledDistanceConditionEditorProps {
   condition: Condition;
@@ -12,9 +13,7 @@ export function TraveledDistanceConditionEditor({ condition, onUpdate }: Travele
   const cond = inner.entityCondition as TraveledDistanceCondition;
 
   const update = (updates: Partial<TraveledDistanceCondition>) => {
-    onUpdate(condition.id, {
-      condition: { ...inner, entityCondition: { ...cond, ...updates } },
-    } as Partial<Condition>);
+    onUpdate(condition.id, entityConditionUpdate(inner, cond, updates));
   };
 
   return (

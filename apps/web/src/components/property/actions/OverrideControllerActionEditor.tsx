@@ -1,6 +1,7 @@
 import type { ScenarioAction, OverrideControllerAction, OverrideValue, OverrideGearValue } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
+import { actionUpdate } from '../lib/typed-updates';
 
 interface OverrideControllerActionEditorProps {
   action: ScenarioAction;
@@ -155,9 +156,7 @@ export function OverrideControllerActionEditor({ action, onUpdate }: OverrideCon
   const inner = action.action as OverrideControllerAction;
 
   const updateInner = (updates: Partial<OverrideControllerAction>) => {
-    onUpdate({
-      action: { ...inner, ...updates },
-    } as Partial<ScenarioAction>);
+    onUpdate(actionUpdate(inner, updates));
   };
 
   return (

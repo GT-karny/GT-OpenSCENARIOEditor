@@ -5,6 +5,7 @@ import { EntityRefSelect } from '../EntityRefSelect';
 import { RuleSegmentedControl } from '../RuleSegmentedControl';
 import { SegmentedControl } from '../SegmentedControl';
 import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
+import { entityConditionReplace, entityConditionUpdate } from '../lib/typed-updates';
 
 const COORDINATE_SYSTEMS = ['entity', 'lane', 'road', 'trajectory'] as const;
 
@@ -18,17 +19,13 @@ export function TimeHeadwayConditionEditor({ condition, onUpdate }: TimeHeadwayC
   const cond = inner.entityCondition as TimeHeadwayCondition;
 
   const update = (updates: Partial<TimeHeadwayCondition>) => {
-    onUpdate(condition.id, {
-      condition: { ...inner, entityCondition: { ...cond, ...updates } },
-    } as Partial<Condition>);
+    onUpdate(condition.id, entityConditionUpdate(inner, cond, updates));
   };
 
   const clearField = (...keys: (keyof TimeHeadwayCondition)[]) => {
     const next = { ...cond };
     for (const k of keys) delete next[k];
-    onUpdate(condition.id, {
-      condition: { ...inner, entityCondition: next },
-    } as Partial<Condition>);
+    onUpdate(condition.id, entityConditionReplace(inner, next));
   };
 
   return (

@@ -3,6 +3,7 @@ import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
 import { GenericActionEditor } from './GenericActionEditor';
+import { actionBody, actionUpdate } from '../lib/typed-updates';
 
 interface TrafficActionEditorProps {
   action: ScenarioAction;
@@ -27,11 +28,9 @@ export function TrafficActionEditor({ action, onUpdate }: TrafficActionEditorPro
           onValueChange={(v) => {
             if (v === '') {
               const { trafficName: _, ...rest } = inner;
-              onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
+              onUpdate(actionBody(rest));
             } else {
-              onUpdate({
-                action: { ...inner, trafficName: v },
-              } as Partial<ScenarioAction>);
+              onUpdate(actionUpdate(inner, { trafficName: v }));
             }
           }}
           acceptedTypes={['string']}
@@ -45,9 +44,7 @@ export function TrafficActionEditor({ action, onUpdate }: TrafficActionEditorPro
           value={trafficSubType || TRAFFIC_ACTION_TYPES[0]}
           options={[...TRAFFIC_ACTION_TYPES]}
           onValueChange={(v) => {
-            onUpdate({
-              action: { ...inner, trafficActionType: v },
-            } as Partial<ScenarioAction>);
+            onUpdate(actionUpdate(inner, { trafficActionType: v }));
           }}
           className="h-8 text-sm"
         />

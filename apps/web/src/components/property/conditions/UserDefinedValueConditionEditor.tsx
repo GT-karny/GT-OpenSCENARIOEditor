@@ -2,6 +2,7 @@ import type { Condition, ByValueCondition, UserDefinedValueCondition } from '@os
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { RuleSegmentedControl } from '../RuleSegmentedControl';
+import { valueConditionUpdate } from '../lib/typed-updates';
 
 interface UserDefinedValueConditionEditorProps {
   condition: Condition;
@@ -16,9 +17,7 @@ export function UserDefinedValueConditionEditor({
   const cond = inner.valueCondition as UserDefinedValueCondition;
 
   const update = (updates: Partial<UserDefinedValueCondition>) => {
-    onUpdate(condition.id, {
-      condition: { ...inner, valueCondition: { ...cond, ...updates } },
-    } as Partial<Condition>);
+    onUpdate(condition.id, valueConditionUpdate(inner, cond, updates));
   };
 
   return (

@@ -12,6 +12,7 @@ import { ParameterAwareInput } from '../ParameterAwareInput';
 import { SegmentedControl } from '../SegmentedControl';
 import { SHAPE_PATHS, SHAPE_LABELS } from '../TransitionDynamicsEditor';
 import { DYNAMICS_SHAPES } from '../../../constants/osc-enum-values';
+import { actionUpdate } from '../lib/typed-updates';
 import { useSpeedUnit } from '../../../hooks/use-speed-unit';
 
 const SHAPE_OPTIONS = DYNAMICS_SHAPES;
@@ -40,9 +41,7 @@ export function LaneOffsetActionEditor({ action, onUpdate }: LaneOffsetActionEdi
   const { label: speedLabel, toDisplay: toDisplaySpeed, toInternal: toInternalSpeed } = useSpeedUnit();
 
   const updateInner = (updates: Partial<LaneOffsetAction>) => {
-    onUpdate({
-      action: { ...inner, ...updates },
-    } as Partial<ScenarioAction>);
+    onUpdate(actionUpdate(inner, updates));
   };
 
   const isRight = inner.target.value < 0 || Object.is(inner.target.value, -0);

@@ -7,6 +7,7 @@ import type {
 import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
 import { RefSelect } from '../RefSelect';
 import type { RefSelectItem } from '../RefSelect';
+import { actionBody, actionUpdate } from '../lib/typed-updates';
 import { useScenarioStore } from '../../../stores/use-scenario-store';
 
 const EMPTY_SIGNALS: TrafficSignalController[] = [];
@@ -26,9 +27,7 @@ export function ActivateControllerActionEditor({ action, onUpdate }: ActivateCon
   );
 
   const updateInner = (updates: Partial<ActivateControllerAction>) => {
-    onUpdate({
-      action: { ...inner, ...updates },
-    } as Partial<ScenarioAction>);
+    onUpdate(actionUpdate(inner, updates));
   };
 
   return (
@@ -76,7 +75,7 @@ export function ActivateControllerActionEditor({ action, onUpdate }: ActivateCon
         hasValue={inner.controllerRef !== undefined}
         onClear={() => {
           const { controllerRef: _, ...rest } = inner;
-          onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
+          onUpdate(actionBody(rest));
         }}
       >
         <RefSelect
@@ -84,7 +83,7 @@ export function ActivateControllerActionEditor({ action, onUpdate }: ActivateCon
           onValueChange={(v) => {
             if (v === '') {
               const { controllerRef: _, ...rest } = inner;
-              onUpdate({ action: { ...rest } } as Partial<ScenarioAction>);
+              onUpdate(actionBody(rest));
             } else {
               updateInner({ controllerRef: v });
             }

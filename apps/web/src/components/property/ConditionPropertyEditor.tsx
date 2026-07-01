@@ -50,6 +50,12 @@ import { CollisionConditionEditor } from './conditions/CollisionConditionEditor'
 import { OffroadConditionEditor } from './conditions/OffroadConditionEditor';
 import { RelativeClearanceConditionEditor } from './conditions/RelativeClearanceConditionEditor';
 import { UserDefinedValueConditionEditor } from './conditions/UserDefinedValueConditionEditor';
+import {
+  conditionReplace,
+  entityConditionUpdate,
+  triggeringEntitiesUpdate,
+  valueConditionUpdate,
+} from './lib/typed-updates';
 
 // Condition types that have dedicated editors (suppress shared rule/position editors)
 const DEDICATED_EDITOR_TYPES = new Set([
@@ -168,9 +174,7 @@ export function ConditionItem({ condition, onUpdateCondition }: ConditionItemPro
         valueCondition: defaultValueConditionByType(newType as ValueCondition['type']),
       };
     }
-    onUpdateCondition(condition.id, {
-      condition: newConditionBody,
-    } as Partial<Condition>);
+    onUpdateCondition(condition.id, conditionReplace(newConditionBody));
   };
 
   const handleSubcategoryChange = (newSubKey: string) => {
@@ -181,27 +185,23 @@ export function ConditionItem({ condition, onUpdateCondition }: ConditionItemPro
     }
   };
 
-  const handleRuleChange = (value: string) => {
+  const handleRuleChange = (value: Rule) => {
     const inner = condition.condition;
     if (inner.kind === 'byEntity') {
       const entityCondition = inner.entityCondition;
       if ('rule' in entityCondition) {
-        onUpdateCondition(condition.id, {
-          condition: {
-            ...inner,
-            entityCondition: { ...entityCondition, rule: value },
-          },
-        } as Partial<Condition>);
+        onUpdateCondition(
+          condition.id,
+          entityConditionUpdate(inner, entityCondition, { rule: value }),
+        );
       }
     } else if (inner.kind === 'byValue') {
       const valueCondition = inner.valueCondition;
       if ('rule' in valueCondition) {
-        onUpdateCondition(condition.id, {
-          condition: {
-            ...inner,
-            valueCondition: { ...valueCondition, rule: value },
-          },
-        } as Partial<Condition>);
+        onUpdateCondition(
+          condition.id,
+          valueConditionUpdate(inner, valueCondition, { rule: value }),
+        );
       }
     }
   };
@@ -212,12 +212,10 @@ export function ConditionItem({ condition, onUpdateCondition }: ConditionItemPro
 
     const entityCondition = inner.entityCondition;
     if ('position' in entityCondition) {
-      onUpdateCondition(condition.id, {
-        condition: {
-          ...inner,
-          entityCondition: { ...entityCondition, position: newPosition },
-        },
-      } as Partial<Condition>);
+      onUpdateCondition(
+        condition.id,
+        entityConditionUpdate(inner, entityCondition, { position: newPosition }),
+      );
     }
   };
 
@@ -247,12 +245,7 @@ export function ConditionItem({ condition, onUpdateCondition }: ConditionItemPro
   const handleTriggeringEntitiesUpdate = (updates: Partial<TriggeringEntities>) => {
     const inner = condition.condition;
     if (inner.kind !== 'byEntity') return;
-    onUpdateCondition(condition.id, {
-      condition: {
-        ...inner,
-        triggeringEntities: { ...inner.triggeringEntities, ...updates },
-      },
-    } as Partial<Condition>);
+    onUpdateCondition(condition.id, triggeringEntitiesUpdate(inner, updates));
   };
 
   const handleAddEntityRef = () => {

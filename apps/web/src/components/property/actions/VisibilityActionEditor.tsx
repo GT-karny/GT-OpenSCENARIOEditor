@@ -1,6 +1,7 @@
 import type { ScenarioAction, VisibilityAction } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { EntityRefSelect } from '../EntityRefSelect';
+import { actionBody, actionUpdate } from '../lib/typed-updates';
 
 interface VisibilityActionEditorProps {
   action: ScenarioAction;
@@ -11,9 +12,7 @@ export function VisibilityActionEditor({ action, onUpdate }: VisibilityActionEdi
   const inner = action.action as VisibilityAction;
 
   const updateInner = (updates: Partial<VisibilityAction>) => {
-    onUpdate({
-      action: { ...inner, ...updates },
-    } as Partial<ScenarioAction>);
+    onUpdate(actionUpdate(inner, updates));
   };
 
   return (
@@ -55,9 +54,7 @@ export function VisibilityActionEditor({ action, onUpdate }: VisibilityActionEdi
           onValueChange={(v) => {
             if (v === '') {
               const { entityRef: _, ...rest } = inner;
-              onUpdate({
-                action: { ...rest },
-              } as Partial<ScenarioAction>);
+              onUpdate(actionBody(rest));
             } else {
               updateInner({ entityRef: v });
             }
