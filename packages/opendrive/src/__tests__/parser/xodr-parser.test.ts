@@ -141,8 +141,10 @@ describe('XodrParser', () => {
         </road>
       </OpenDRIVE>`;
       const doc = parser.parse(xml);
-      expect(doc.roads[0].planView[0].type).toBe('arc');
-      expect(doc.roads[0].planView[0].curvature).toBe(0.01);
+      const g = doc.roads[0].planView[0];
+      expect(g.type).toBe('arc');
+      if (g.type !== 'arc') throw new Error('expected arc');
+      expect(g.curvature).toBe(0.01);
     });
 
     it('should parse spiral geometry', () => {
@@ -158,9 +160,11 @@ describe('XodrParser', () => {
         </road>
       </OpenDRIVE>`;
       const doc = parser.parse(xml);
-      expect(doc.roads[0].planView[0].type).toBe('spiral');
-      expect(doc.roads[0].planView[0].curvStart).toBe(0);
-      expect(doc.roads[0].planView[0].curvEnd).toBe(0.02);
+      const g = doc.roads[0].planView[0];
+      expect(g.type).toBe('spiral');
+      if (g.type !== 'spiral') throw new Error('expected spiral');
+      expect(g.curvStart).toBe(0);
+      expect(g.curvEnd).toBe(0.02);
     });
 
     it('should parse paramPoly3 geometry', () => {
@@ -178,6 +182,7 @@ describe('XodrParser', () => {
       const doc = parser.parse(xml);
       const g = doc.roads[0].planView[0];
       expect(g.type).toBe('paramPoly3');
+      if (g.type !== 'paramPoly3') throw new Error('expected paramPoly3');
       expect(g.aU).toBe(0);
       expect(g.bU).toBe(1);
       expect(g.cV).toBe(0.001);

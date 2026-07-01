@@ -81,7 +81,7 @@ function makeArcRoad(id: string, x: number, y: number, hdg: number, length: numb
     id,
     name: `Arc_${id}`,
     length,
-    planView: [{ s: 0, x, y, hdg, length, type: 'arc', curvature } as never],
+    planView: [{ s: 0, x, y, hdg, length, type: 'arc', curvature }],
     lanes: [
       {
         s: 0,

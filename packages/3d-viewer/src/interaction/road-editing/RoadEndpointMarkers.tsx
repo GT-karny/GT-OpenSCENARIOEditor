@@ -35,7 +35,7 @@ function computeRoadEndPosition(road: OdrRoad): { x: number; y: number; hdg: num
   }
 
   // For arc type, compute endpoint along the arc
-  if (last.type === 'arc' && last.curvature !== undefined) {
+  if (last.type === 'arc') {
     const c = last.curvature;
     if (Math.abs(c) < 1e-10) {
       // Effectively a line

@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useStore } from 'zustand';
 import { createPortal } from 'react-dom';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import type { OdrRoad, OdrRoadLinkElement, OdrLane, OdrSignal, OdrJunction, OdrHeader, OpenDriveDocument } from '@osce/shared';
+import type { OdrRoad, OdrRoadLinkElement, OdrLane, OdrSignal, OdrJunction, OdrHeader, OdrGeometry, OpenDriveDocument } from '@osce/shared';
 import {
   createRoadFromPartial,
   syncLaneLinksForDirectConnections,
@@ -435,7 +435,8 @@ export function RoadNetworkEditorLayout() {
       if (!road) return;
       const updatedPlanView = [...road.planView];
       const geo = updatedPlanView[geometryIndex];
-      if (geo) {
+      // Curvature only applies to arc segments (the drag handle only renders on arcs).
+      if (geo && geo.type === 'arc') {
         updatedPlanView[geometryIndex] = { ...geo, curvature: newCurvature };
         odrStoreApi.getState().updateRoad(roadId, { planView: updatedPlanView });
         checkForIntersections(odrStoreApi.getState().document);
@@ -610,17 +611,29 @@ export function RoadNetworkEditorLayout() {
       const preset = DEFAULT_PRESETS.find((p) => p.name === presetName);
       const template = createRoadFromPartial({}, preset);
 
+      const newGeometry: OdrGeometry =
+        arc.type === 'arc'
+          ? {
+              s: 0,
+              x: startX,
+              y: startY,
+              hdg: arc.hdg,
+              length: arc.arcLength,
+              type: 'arc',
+              curvature: arc.curvature,
+            }
+          : {
+              s: 0,
+              x: startX,
+              y: startY,
+              hdg: arc.hdg,
+              length: arc.arcLength,
+              type: 'line',
+            };
+
       const newRoad = odrStoreApi.getState().addRoad({
         name: `Road ${odrDocument.roads.length + 1}`,
-        planView: [{
-          s: 0,
-          x: startX,
-          y: startY,
-          hdg: arc.hdg,
-          length: arc.arcLength,
-          type: arc.type,
-          ...(arc.type === 'arc' ? { curvature: arc.curvature } : {}),
-        }],
+        planView: [newGeometry],
         lanes: template.lanes,
       });
 

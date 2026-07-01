@@ -89,7 +89,8 @@ describe('XodrSerializer roundtrip', () => {
       const reArc = reRoad.planView.find((g) => g.type === 'arc');
       expect(arc).toBeDefined();
       expect(reArc).toBeDefined();
-      expect(reArc!.curvature).toBeCloseTo(arc!.curvature!, 8);
+      if (arc?.type !== 'arc' || reArc?.type !== 'arc') throw new Error('expected arc');
+      expect(reArc.curvature).toBeCloseTo(arc.curvature, 8);
       expect(reArc!.s).toBeCloseTo(arc!.s, 6);
       expect(reArc!.x).toBeCloseTo(arc!.x, 6);
       expect(reArc!.y).toBeCloseTo(arc!.y, 6);

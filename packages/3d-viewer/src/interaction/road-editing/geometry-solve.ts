@@ -9,7 +9,7 @@ const MAX_CURVATURE = 1.0;
 
 /** Compute the endpoint of a geometry segment */
 export function computeEndpoint(geo: OdrGeometry): [number, number] {
-  if (geo.type === 'arc' && geo.curvature !== undefined && Math.abs(geo.curvature) > 1e-10) {
+  if (geo.type === 'arc' && Math.abs(geo.curvature) > 1e-10) {
     const k = geo.curvature;
     const endHdg = geo.hdg + k * geo.length;
     const r = 1 / k;
@@ -135,7 +135,7 @@ export function solveFromStartpointWithHeading(
 
   // Compute end heading from existing geometry
   let existingEndHdg: number;
-  if (geo.type === 'arc' && geo.curvature !== undefined && Math.abs(geo.curvature) > 1e-10) {
+  if (geo.type === 'arc' && Math.abs(geo.curvature) > 1e-10) {
     existingEndHdg = geo.hdg + geo.curvature * geo.length;
   } else {
     existingEndHdg = geo.hdg;
@@ -197,7 +197,7 @@ export function solveFromStartpoint(
 
   if (geo.type === 'arc') {
     // Preserve end heading: endHdg = geo.hdg + k * geo.length
-    const endHdg = geo.hdg + (geo.curvature ?? 0) * geo.length;
+    const endHdg = geo.hdg + geo.curvature * geo.length;
     const chordAngle = Math.atan2(dy, dx);
 
     // For circular arc: chordAngle = (startHdg + endHdg) / 2

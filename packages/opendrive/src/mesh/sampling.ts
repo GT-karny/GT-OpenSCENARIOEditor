@@ -126,7 +126,7 @@ export function generateCurvatureAdaptiveSamples(
       // ~2 degrees per step: step = radius * 0.035 rad
       step = Math.max(opts.minStep, Math.min(opts.maxStep, radius * 0.035));
     } else if (geom.type === 'spiral') {
-      const maxK = Math.max(Math.abs(geom.curvStart ?? 0), Math.abs(geom.curvEnd ?? 0));
+      const maxK = Math.max(Math.abs(geom.curvStart), Math.abs(geom.curvEnd));
       if (maxK > 1e-6) {
         const minRadius = 1 / maxK;
         step = Math.max(opts.minStep, Math.min(opts.maxStep, minRadius * 0.035));

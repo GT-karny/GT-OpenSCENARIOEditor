@@ -5,6 +5,8 @@ import type {
   OdrSignal,
   OdrJunction,
   OdrHeader,
+  OdrGeometry,
+  OdrGeometryUpdate,
 } from '@osce/shared';
 import { OdrHeaderPropertyEditor } from './OdrHeaderPropertyEditor';
 import { OdrRoadPropertyEditor } from './OdrRoadPropertyEditor';
@@ -108,7 +110,7 @@ export function OdrPropertyEditor({
             index={selectedGeometryIndex}
             onUpdate={(updates) => {
               const updatedPlanView = [...road.planView];
-              updatedPlanView[selectedGeometryIndex] = { ...geometry, ...updates };
+              updatedPlanView[selectedGeometryIndex] = applyGeometryUpdate(geometry, updates);
               onUpdateRoad(road.id, { planView: updatedPlanView });
             }}
           />
@@ -132,6 +134,59 @@ export function OdrPropertyEditor({
       <OdrHeaderPropertyEditor header={document.header} onUpdate={onUpdateHeader} />
     </div>
   );
+}
+
+/**
+ * Merge a flat geometry patch into an existing segment, rebuilding the correct
+ * discriminated-union variant (the patch may switch the type, e.g. via
+ * convertGeometryType, or just tweak fields of the current variant).
+ */
+function applyGeometryUpdate(geometry: OdrGeometry, updates: OdrGeometryUpdate): OdrGeometry {
+  const merged: OdrGeometryUpdate = { ...geometry, ...updates };
+  const base = {
+    s: merged.s ?? geometry.s,
+    x: merged.x ?? geometry.x,
+    y: merged.y ?? geometry.y,
+    hdg: merged.hdg ?? geometry.hdg,
+    length: merged.length ?? geometry.length,
+  };
+  switch (merged.type ?? geometry.type) {
+    case 'arc':
+      return { ...base, type: 'arc', curvature: merged.curvature ?? 0 };
+    case 'spiral':
+      return {
+        ...base,
+        type: 'spiral',
+        curvStart: merged.curvStart ?? 0,
+        curvEnd: merged.curvEnd ?? 0,
+      };
+    case 'poly3':
+      return {
+        ...base,
+        type: 'poly3',
+        a: merged.a ?? 0,
+        b: merged.b ?? 0,
+        c: merged.c ?? 0,
+        d: merged.d ?? 0,
+      };
+    case 'paramPoly3':
+      return {
+        ...base,
+        type: 'paramPoly3',
+        aU: merged.aU ?? 0,
+        bU: merged.bU ?? 0,
+        cU: merged.cU ?? 0,
+        dU: merged.dU ?? 0,
+        aV: merged.aV ?? 0,
+        bV: merged.bV ?? 0,
+        cV: merged.cV ?? 0,
+        dV: merged.dV ?? 0,
+        pRange: merged.pRange ?? 'arcLength',
+      };
+    case 'line':
+    default:
+      return { ...base, type: 'line' };
+  }
 }
 
 /**

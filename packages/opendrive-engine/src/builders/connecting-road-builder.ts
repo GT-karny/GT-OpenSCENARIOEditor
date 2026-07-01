@@ -9,6 +9,7 @@
 import type {
   OdrRoad,
   OdrGeometry,
+  OdrGeometryArc,
   OdrLane,
   OdrLaneSection,
   OdrJunctionConnection,
@@ -441,7 +442,7 @@ function evaluateArc(
 function solveTwoPointArc(
   startX: number, startY: number, startHdg: number,
   endX: number, endY: number, endHdg: number,
-): OdrGeometry | null {
+): OdrGeometryArc | null {
   const dx = endX - startX;
   const dy = endY - startY;
   const dist = Math.sqrt(dx * dx + dy * dy);
@@ -461,7 +462,7 @@ function tryArcWithSign(
   endX: number, endY: number, _endHdg: number,
   dx: number, dy: number,
   sign: 1 | -1,
-): OdrGeometry | null {
+): OdrGeometryArc | null {
   // Normal directions (perpendicular to heading, pointing toward center)
   const n1x = -sign * Math.sin(startHdg);
   const n1y = sign * Math.cos(startHdg);
@@ -550,7 +551,7 @@ function solveConnectingGeometry(
     // Verify endpoint position accuracy
     const arcEnd = evaluateArc(
       twoPointArc.x, twoPointArc.y, twoPointArc.hdg,
-      twoPointArc.curvature ?? 0, twoPointArc.length,
+      twoPointArc.curvature, twoPointArc.length,
     );
     const posError = Math.sqrt((arcEnd.x - endX) ** 2 + (arcEnd.y - endY) ** 2);
     if (posError < 0.5) {

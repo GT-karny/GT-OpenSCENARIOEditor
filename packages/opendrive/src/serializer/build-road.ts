@@ -214,33 +214,33 @@ function buildGeometry(geom: OdrGeometry): XmlNode {
       node.line = '';
       break;
     case 'arc':
-      node.arc = { '@_curvature': fmtNum(geom.curvature ?? 0) };
+      node.arc = { '@_curvature': fmtNum(geom.curvature) };
       break;
     case 'spiral':
       node.spiral = {
-        '@_curvStart': fmtNum(geom.curvStart ?? 0),
-        '@_curvEnd': fmtNum(geom.curvEnd ?? 0),
+        '@_curvStart': fmtNum(geom.curvStart),
+        '@_curvEnd': fmtNum(geom.curvEnd),
       };
       break;
     case 'poly3':
       node.poly3 = {
-        '@_a': fmtNum(geom.a ?? 0),
-        '@_b': fmtNum(geom.b ?? 0),
-        '@_c': fmtNum(geom.c ?? 0),
-        '@_d': fmtNum(geom.d ?? 0),
+        '@_a': fmtNum(geom.a),
+        '@_b': fmtNum(geom.b),
+        '@_c': fmtNum(geom.c),
+        '@_d': fmtNum(geom.d),
       };
       break;
     case 'paramPoly3':
       node.paramPoly3 = {
-        '@_aU': fmtNum(geom.aU ?? 0),
-        '@_bU': fmtNum(geom.bU ?? 0),
-        '@_cU': fmtNum(geom.cU ?? 0),
-        '@_dU': fmtNum(geom.dU ?? 0),
-        '@_aV': fmtNum(geom.aV ?? 0),
-        '@_bV': fmtNum(geom.bV ?? 0),
-        '@_cV': fmtNum(geom.cV ?? 0),
-        '@_dV': fmtNum(geom.dV ?? 0),
-        '@_pRange': geom.pRange ?? 'arcLength',
+        '@_aU': fmtNum(geom.aU),
+        '@_bU': fmtNum(geom.bU),
+        '@_cU': fmtNum(geom.cU),
+        '@_dU': fmtNum(geom.dU),
+        '@_aV': fmtNum(geom.aV),
+        '@_bV': fmtNum(geom.bV),
+        '@_cV': fmtNum(geom.cV),
+        '@_dV': fmtNum(geom.dV),
+        '@_pRange': geom.pRange,
       };
       break;
   }

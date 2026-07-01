@@ -1,7 +1,14 @@
 /**
  * Parse OpenDRIVE geometry and profile elements.
  */
-import type { OdrGeometry, OdrElevation, OdrSuperelevation, OdrLaneOffset, OdrShape } from '@osce/shared';
+import type {
+  OdrGeometry,
+  OdrGeometryBase,
+  OdrElevation,
+  OdrSuperelevation,
+  OdrLaneOffset,
+  OdrShape,
+} from '@osce/shared';
 import { ensureArray, attr, attrNum } from './xml-helpers.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -13,7 +20,7 @@ export function parsePlanView(raw: Raw | undefined): OdrGeometry[] {
 }
 
 export function parseGeometry(raw: Raw): OdrGeometry {
-  const base = {
+  const base: OdrGeometryBase = {
     s: attrNum(raw, 's'),
     x: attrNum(raw, 'x'),
     y: attrNum(raw, 'y'),

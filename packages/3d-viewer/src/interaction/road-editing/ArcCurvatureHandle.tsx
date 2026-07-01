@@ -10,9 +10,17 @@ import * as THREE from 'three';
 import type { OdrGeometry } from '@osce/shared';
 import { useDragWithDeadZone } from '../primitives/useDragWithDeadZone.js';
 
+/** Minimal arc-shaped input for local arc evaluation. */
+interface ArcEval {
+  x: number;
+  y: number;
+  hdg: number;
+  curvature: number;
+}
+
 /** Evaluate arc at distance ds from start (same as packages/opendrive/src/geometry/arc.ts) */
-function evaluateArcLocal(ds: number, geom: OdrGeometry): { x: number; y: number } {
-  const k = geom.curvature ?? 0;
+function evaluateArcLocal(ds: number, geom: ArcEval): { x: number; y: number } {
+  const k = geom.curvature;
   const cosH0 = Math.cos(geom.hdg);
   const sinH0 = Math.sin(geom.hdg);
 
@@ -57,7 +65,8 @@ export function ArcCurvatureHandle({
 
   const midpoint = useMemo(() => {
     const ds = geometry.length / 2;
-    return evaluateArcLocal(ds, geometry);
+    const curvature = geometry.type === 'arc' ? geometry.curvature : 0;
+    return evaluateArcLocal(ds, { ...geometry, curvature });
   }, [geometry]);
 
   const propsRef = useRef({ geometry, index, onCurvatureChange });

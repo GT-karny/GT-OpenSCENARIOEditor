@@ -1,4 +1,11 @@
-import type { OdrGeometry } from '@osce/shared';
+import type {
+  OdrGeometry,
+  OdrGeometryUpdate,
+  OdrGeometryArc,
+  OdrGeometrySpiral,
+  OdrGeometryPoly3,
+  OdrGeometryParamPoly3,
+} from '@osce/shared';
 import { convertGeometryType } from '@osce/opendrive';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
@@ -8,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 interface OdrGeometryPropertyEditorProps {
   geometry: OdrGeometry;
   index: number;
-  onUpdate: (updates: Partial<OdrGeometry>) => void;
+  onUpdate: (updates: OdrGeometryUpdate) => void;
 }
 
 const CONVERTIBLE_TYPES = ['line', 'arc', 'spiral'] as const;
@@ -145,8 +152,8 @@ function ArcFields({
   geometry,
   onUpdate,
 }: {
-  geometry: OdrGeometry;
-  onUpdate: (updates: Partial<OdrGeometry>) => void;
+  geometry: OdrGeometryArc;
+  onUpdate: (updates: OdrGeometryUpdate) => void;
 }) {
   return (
     <div className="pb-3 border-b border-[var(--color-glass-edge)]">
@@ -158,7 +165,7 @@ function ArcFields({
         <Input
           type="number"
           step="0.001"
-          value={geometry.curvature ?? 0}
+          value={geometry.curvature}
           onChange={(e) => onUpdate({ curvature: Number(e.target.value) })}
           className="h-7 text-xs"
         />
@@ -171,8 +178,8 @@ function SpiralFields({
   geometry,
   onUpdate,
 }: {
-  geometry: OdrGeometry;
-  onUpdate: (updates: Partial<OdrGeometry>) => void;
+  geometry: OdrGeometrySpiral;
+  onUpdate: (updates: OdrGeometryUpdate) => void;
 }) {
   return (
     <div className="pb-3 border-b border-[var(--color-glass-edge)]">
@@ -185,7 +192,7 @@ function SpiralFields({
           <Input
             type="number"
             step="0.001"
-            value={geometry.curvStart ?? 0}
+            value={geometry.curvStart}
             onChange={(e) => onUpdate({ curvStart: Number(e.target.value) })}
             className="h-7 text-xs"
           />
@@ -195,7 +202,7 @@ function SpiralFields({
           <Input
             type="number"
             step="0.001"
-            value={geometry.curvEnd ?? 0}
+            value={geometry.curvEnd}
             onChange={(e) => onUpdate({ curvEnd: Number(e.target.value) })}
             className="h-7 text-xs"
           />
@@ -205,7 +212,7 @@ function SpiralFields({
   );
 }
 
-function Poly3Fields({ geometry }: { geometry: OdrGeometry }) {
+function Poly3Fields({ geometry }: { geometry: OdrGeometryPoly3 }) {
   return (
     <div className="pb-3 border-b border-[var(--color-glass-edge)]">
       <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
@@ -217,7 +224,7 @@ function Poly3Fields({ geometry }: { geometry: OdrGeometry }) {
             <Label className="text-[var(--color-text-secondary)] text-xs">{coeff}</Label>
             <Input
               type="number"
-              value={geometry[coeff] ?? 0}
+              value={geometry[coeff]}
               readOnly
               className="h-7 text-xs bg-[var(--color-glass-1)] opacity-60"
             />
@@ -228,7 +235,7 @@ function Poly3Fields({ geometry }: { geometry: OdrGeometry }) {
   );
 }
 
-function ParamPoly3Fields({ geometry }: { geometry: OdrGeometry }) {
+function ParamPoly3Fields({ geometry }: { geometry: OdrGeometryParamPoly3 }) {
   return (
     <div className="space-y-4">
       <div className="pb-3 border-b border-[var(--color-glass-edge)]">
@@ -241,7 +248,7 @@ function ParamPoly3Fields({ geometry }: { geometry: OdrGeometry }) {
               <Label className="text-[var(--color-text-secondary)] text-xs">{coeff}</Label>
               <Input
                 type="number"
-                value={geometry[coeff] ?? 0}
+                value={geometry[coeff]}
                 readOnly
                 className="h-7 text-xs bg-[var(--color-glass-1)] opacity-60"
               />
@@ -260,7 +267,7 @@ function ParamPoly3Fields({ geometry }: { geometry: OdrGeometry }) {
               <Label className="text-[var(--color-text-secondary)] text-xs">{coeff}</Label>
               <Input
                 type="number"
-                value={geometry[coeff] ?? 0}
+                value={geometry[coeff]}
                 readOnly
                 className="h-7 text-xs bg-[var(--color-glass-1)] opacity-60"
               />
@@ -273,7 +280,7 @@ function ParamPoly3Fields({ geometry }: { geometry: OdrGeometry }) {
         <div className="grid gap-1">
           <Label className="text-[var(--color-text-secondary)] text-xs">pRange</Label>
           <Input
-            value={geometry.pRange ?? 'normalized'}
+            value={geometry.pRange}
             readOnly
             className="h-7 text-xs bg-[var(--color-glass-1)] opacity-60"
           />

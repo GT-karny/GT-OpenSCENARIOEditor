@@ -3,7 +3,12 @@
  */
 
 import { produce } from 'immer';
-import type { OpenDriveDocument, OdrGeometry } from '@osce/shared';
+import type {
+  OpenDriveDocument,
+  OdrGeometry,
+  OdrGeometryBase,
+  OdrGeometryUpdate,
+} from '@osce/shared';
 import { BaseCommand } from '@osce/scenario-engine';
 
 export type GetDoc = () => OpenDriveDocument;
@@ -19,32 +24,57 @@ function findRoadIndex(doc: OpenDriveDocument, roadId: string): number {
 
 /**
  * Create a default geometry segment with sensible defaults.
+ *
+ * Builds a concrete discriminated-union variant from the partial input,
+ * filling type-specific parameters with neutral (straight) defaults so the
+ * result always satisfies the variant's required fields.
  */
-function createDefaultGeometry(partial: Partial<OdrGeometry>): OdrGeometry {
-  return {
+function createDefaultGeometry(partial: OdrGeometryUpdate): OdrGeometry {
+  const base: OdrGeometryBase = {
     s: partial.s ?? 0,
     x: partial.x ?? 0,
     y: partial.y ?? 0,
     hdg: partial.hdg ?? 0,
     length: partial.length ?? 10,
-    type: partial.type ?? 'line',
-    curvature: partial.curvature,
-    curvStart: partial.curvStart,
-    curvEnd: partial.curvEnd,
-    a: partial.a,
-    b: partial.b,
-    c: partial.c,
-    d: partial.d,
-    aU: partial.aU,
-    bU: partial.bU,
-    cU: partial.cU,
-    dU: partial.dU,
-    aV: partial.aV,
-    bV: partial.bV,
-    cV: partial.cV,
-    dV: partial.dV,
-    pRange: partial.pRange,
   };
+
+  switch (partial.type) {
+    case 'arc':
+      return { ...base, type: 'arc', curvature: partial.curvature ?? 0 };
+    case 'spiral':
+      return {
+        ...base,
+        type: 'spiral',
+        curvStart: partial.curvStart ?? 0,
+        curvEnd: partial.curvEnd ?? 0,
+      };
+    case 'poly3':
+      return {
+        ...base,
+        type: 'poly3',
+        a: partial.a ?? 0,
+        b: partial.b ?? 0,
+        c: partial.c ?? 0,
+        d: partial.d ?? 0,
+      };
+    case 'paramPoly3':
+      return {
+        ...base,
+        type: 'paramPoly3',
+        aU: partial.aU ?? 0,
+        bU: partial.bU ?? 0,
+        cU: partial.cU ?? 0,
+        dU: partial.dU ?? 0,
+        aV: partial.aV ?? 0,
+        bV: partial.bV ?? 0,
+        cV: partial.cV ?? 0,
+        dV: partial.dV ?? 0,
+        pRange: partial.pRange ?? 'arcLength',
+      };
+    case 'line':
+    default:
+      return { ...base, type: 'line' };
+  }
 }
 
 /**
@@ -60,7 +90,7 @@ export class AddGeometryCommand extends BaseCommand {
 
   constructor(
     roadId: string,
-    partial: Partial<OdrGeometry>,
+    partial: OdrGeometryUpdate,
     getDoc: GetDoc,
     setDoc: SetDoc,
     markDirtyRoad: MarkDirtyRoad,
@@ -177,7 +207,7 @@ export class RemoveGeometryCommand extends BaseCommand {
 export class UpdateGeometryCommand extends BaseCommand {
   private readonly roadId: string;
   private readonly geometryIndex: number;
-  private readonly updates: Partial<OdrGeometry>;
+  private readonly updates: OdrGeometryUpdate;
   private previousGeometry: OdrGeometry | null = null;
   private readonly getDoc: GetDoc;
   private readonly setDoc: SetDoc;
@@ -186,7 +216,7 @@ export class UpdateGeometryCommand extends BaseCommand {
   constructor(
     roadId: string,
     geometryIndex: number,
-    updates: Partial<OdrGeometry>,
+    updates: OdrGeometryUpdate,
     getDoc: GetDoc,
     setDoc: SetDoc,
     markDirtyRoad: MarkDirtyRoad,
