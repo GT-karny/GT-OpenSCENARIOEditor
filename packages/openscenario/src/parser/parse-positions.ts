@@ -19,63 +19,71 @@ import type {
   Route,
   RouteStrategy,
 } from '@osce/shared';
+import type { RawXml } from '../utils/xml-helpers.js';
 import { parseTrajectory } from './parse-actions.js';
-import { ensureArray } from '../utils/ensure-array.js';
 import { generateId } from '@osce/shared';
 import { parseParameterDeclarations } from './parse-parameters.js';
-import { numAttr, strAttr, optNumAttr, optStrAttr, boolAttr, pushBindingFieldPrefix, popBindingFieldPrefix } from '../utils/xml-helpers.js';
+import { numAttr, strAttr, optNumAttr, optStrAttr, boolAttr, pushBindingFieldPrefix, popBindingFieldPrefix, child, children } from '../utils/xml-helpers.js';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function parsePosition(raw: any): Position {
+export function parsePosition(raw: RawXml | undefined): Position {
   if (!raw) throw new Error('Position element is missing');
 
-  if (raw.WorldPosition) return parseWorldPosition(raw.WorldPosition);
-  if (raw.LanePosition) return parseLanePosition(raw.LanePosition);
-  if (raw.RelativeLanePosition) return parseRelativeLanePosition(raw.RelativeLanePosition);
-  if (raw.RoadPosition) return parseRoadPosition(raw.RoadPosition);
-  if (raw.RelativeRoadPosition) return parseRelativeRoadPosition(raw.RelativeRoadPosition);
-  if (raw.RelativeObjectPosition) return parseRelativeObjectPosition(raw.RelativeObjectPosition);
-  if (raw.RelativeWorldPosition) return parseRelativeWorldPosition(raw.RelativeWorldPosition);
-  if (raw.RoutePosition) return parseRoutePosition(raw.RoutePosition);
-  if (raw.GeoPosition) return parseGeoPosition(raw.GeoPosition);
-  if (raw.TrajectoryPosition) return parseTrajectoryPosition(raw.TrajectoryPosition);
+  const worldPosition = child(raw, 'WorldPosition');
+  if (worldPosition) return parseWorldPosition(worldPosition);
+  const lanePosition = child(raw, 'LanePosition');
+  if (lanePosition) return parseLanePosition(lanePosition);
+  const relativeLanePosition = child(raw, 'RelativeLanePosition');
+  if (relativeLanePosition) return parseRelativeLanePosition(relativeLanePosition);
+  const roadPosition = child(raw, 'RoadPosition');
+  if (roadPosition) return parseRoadPosition(roadPosition);
+  const relativeRoadPosition = child(raw, 'RelativeRoadPosition');
+  if (relativeRoadPosition) return parseRelativeRoadPosition(relativeRoadPosition);
+  const relativeObjectPosition = child(raw, 'RelativeObjectPosition');
+  if (relativeObjectPosition) return parseRelativeObjectPosition(relativeObjectPosition);
+  const relativeWorldPosition = child(raw, 'RelativeWorldPosition');
+  if (relativeWorldPosition) return parseRelativeWorldPosition(relativeWorldPosition);
+  const routePosition = child(raw, 'RoutePosition');
+  if (routePosition) return parseRoutePosition(routePosition);
+  const geoPosition = child(raw, 'GeoPosition');
+  if (geoPosition) return parseGeoPosition(geoPosition);
+  const trajectoryPosition = child(raw, 'TrajectoryPosition');
+  if (trajectoryPosition) return parseTrajectoryPosition(trajectoryPosition);
 
   // Fallback for unsupported position types.
   // Return a default WorldPosition since @osce/shared doesn't define these types
   return { type: 'worldPosition', x: 0, y: 0 };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseTrajectoryPosition(raw: any): TrajectoryPosition {
+function parseTrajectoryPosition(raw: RawXml): TrajectoryPosition {
   return {
     type: 'trajectoryPosition',
-    trajectoryRef: parseTrajectoryPositionRef(raw.TrajectoryRef),
+    trajectoryRef: parseTrajectoryPositionRef(child(raw, 'TrajectoryRef')),
     s: numAttr(raw, 's'),
     t: optNumAttr(raw, 't'),
-    orientation: parseOrientationWithPrefix(raw.Orientation),
+    orientation: parseOrientationWithPrefix(child(raw, 'Orientation')),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseTrajectoryPositionRef(raw: any): TrajectoryPositionRef {
+function parseTrajectoryPositionRef(raw: RawXml | undefined): TrajectoryPositionRef {
   // XSD TrajectoryRef: choice(Trajectory | CatalogReference).
   if (!raw) return {};
-  if (raw.Trajectory) {
-    return { trajectory: parseTrajectory(raw.Trajectory) };
+  const trajectory = child(raw, 'Trajectory');
+  if (trajectory) {
+    return { trajectory: parseTrajectory(trajectory) };
   }
-  if (raw.CatalogReference) {
+  const catalogReference = child(raw, 'CatalogReference');
+  if (catalogReference) {
     return {
       catalogReference: {
-        catalogName: strAttr(raw.CatalogReference, 'catalogName'),
-        entryName: strAttr(raw.CatalogReference, 'entryName'),
+        catalogName: strAttr(catalogReference, 'catalogName'),
+        entryName: strAttr(catalogReference, 'entryName'),
       },
     };
   }
   return {};
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseWorldPosition(raw: any): WorldPosition {
+function parseWorldPosition(raw: RawXml): WorldPosition {
   return {
     type: 'worldPosition',
     x: numAttr(raw, 'x'),
@@ -87,20 +95,18 @@ function parseWorldPosition(raw: any): WorldPosition {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseLanePosition(raw: any): LanePosition {
+function parseLanePosition(raw: RawXml): LanePosition {
   return {
     type: 'lanePosition',
     roadId: strAttr(raw, 'roadId'),
     laneId: strAttr(raw, 'laneId'),
     s: numAttr(raw, 's'),
     offset: optNumAttr(raw, 'offset'),
-    orientation: parseOrientationWithPrefix(raw.Orientation),
+    orientation: parseOrientationWithPrefix(child(raw, 'Orientation')),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseRelativeLanePosition(raw: any): RelativeLanePosition {
+function parseRelativeLanePosition(raw: RawXml): RelativeLanePosition {
   return {
     type: 'relativeLanePosition',
     entityRef: strAttr(raw, 'entityRef'),
@@ -108,79 +114,72 @@ function parseRelativeLanePosition(raw: any): RelativeLanePosition {
     ds: optNumAttr(raw, 'ds'),
     dsLane: optNumAttr(raw, 'dsLane'),
     offset: optNumAttr(raw, 'offset'),
-    orientation: parseOrientationWithPrefix(raw.Orientation),
+    orientation: parseOrientationWithPrefix(child(raw, 'Orientation')),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseRoadPosition(raw: any): RoadPosition {
+function parseRoadPosition(raw: RawXml): RoadPosition {
   return {
     type: 'roadPosition',
     roadId: strAttr(raw, 'roadId'),
     s: numAttr(raw, 's'),
     t: numAttr(raw, 't'),
-    orientation: parseOrientationWithPrefix(raw.Orientation),
+    orientation: parseOrientationWithPrefix(child(raw, 'Orientation')),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseRelativeRoadPosition(raw: any): RelativeRoadPosition {
+function parseRelativeRoadPosition(raw: RawXml): RelativeRoadPosition {
   return {
     type: 'relativeRoadPosition',
     entityRef: strAttr(raw, 'entityRef'),
     ds: numAttr(raw, 'ds'),
     dt: numAttr(raw, 'dt'),
-    orientation: parseOrientationWithPrefix(raw.Orientation),
+    orientation: parseOrientationWithPrefix(child(raw, 'Orientation')),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseRelativeObjectPosition(raw: any): RelativeObjectPosition {
+function parseRelativeObjectPosition(raw: RawXml): RelativeObjectPosition {
   return {
     type: 'relativeObjectPosition',
     entityRef: strAttr(raw, 'entityRef'),
     dx: numAttr(raw, 'dx'),
     dy: numAttr(raw, 'dy'),
     dz: optNumAttr(raw, 'dz'),
-    orientation: parseOrientationWithPrefix(raw.Orientation),
+    orientation: parseOrientationWithPrefix(child(raw, 'Orientation')),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseRelativeWorldPosition(raw: any): RelativeWorldPosition {
+function parseRelativeWorldPosition(raw: RawXml): RelativeWorldPosition {
   return {
     type: 'relativeWorldPosition',
     entityRef: strAttr(raw, 'entityRef'),
     dx: numAttr(raw, 'dx'),
     dy: numAttr(raw, 'dy'),
     dz: optNumAttr(raw, 'dz'),
-    orientation: parseOrientationWithPrefix(raw.Orientation),
+    orientation: parseOrientationWithPrefix(child(raw, 'Orientation')),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseRoutePosition(raw: any): RoutePosition {
+function parseRoutePosition(raw: RawXml): RoutePosition {
   return {
     type: 'routePosition',
-    routeRef: parseRouteRef(raw.RouteRef),
-    inRoutePosition: parseInRoutePosition(raw.InRoutePosition),
-    orientation: parseOrientationWithPrefix(raw.Orientation),
+    routeRef: parseRouteRef(child(raw, 'RouteRef')),
+    inRoutePosition: parseInRoutePosition(child(raw, 'InRoutePosition')),
+    orientation: parseOrientationWithPrefix(child(raw, 'Orientation')),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseGeoPosition(raw: any): GeoPosition {
+function parseGeoPosition(raw: RawXml): GeoPosition {
   return {
     type: 'geoPosition',
     latitude: numAttr(raw, 'latitude'),
     longitude: numAttr(raw, 'longitude'),
     altitude: optNumAttr(raw, 'altitude'),
-    orientation: parseOrientationWithPrefix(raw.Orientation),
+    orientation: parseOrientationWithPrefix(child(raw, 'Orientation')),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function parseOrientation(raw: any): Orientation {
+export function parseOrientation(raw: RawXml | undefined): Orientation {
   return {
     type: optStrAttr(raw, 'type') as OrientationType | undefined,
     h: optNumAttr(raw, 'h'),
@@ -189,8 +188,7 @@ export function parseOrientation(raw: any): Orientation {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseOrientationWithPrefix(raw: any): Orientation | undefined {
+function parseOrientationWithPrefix(raw: RawXml | undefined): Orientation | undefined {
   if (!raw) return undefined;
   pushBindingFieldPrefix('orientation');
   const o = parseOrientation(raw);
@@ -198,47 +196,45 @@ function parseOrientationWithPrefix(raw: any): Orientation | undefined {
   return o;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseRouteRef(raw: any): RouteRef {
+function parseRouteRef(raw: RawXml | undefined): RouteRef {
   if (!raw) return {};
+  const route = child(raw, 'Route');
+  const catalogReference = child(raw, 'CatalogReference');
   return {
-    route: raw.Route ? parseRoute(raw.Route) : undefined,
-    catalogReference: raw.CatalogReference
+    route: route ? parseRoute(route) : undefined,
+    catalogReference: catalogReference
       ? {
-          catalogName: strAttr(raw.CatalogReference, 'catalogName'),
-          entryName: strAttr(raw.CatalogReference, 'entryName'),
+          catalogName: strAttr(catalogReference, 'catalogName'),
+          entryName: strAttr(catalogReference, 'entryName'),
         }
       : undefined,
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function parseRoute(raw: any): Route {
+export function parseRoute(raw: RawXml): Route {
   return {
     id: generateId(),
     name: strAttr(raw, 'name'),
     closed: boolAttr(raw, 'closed'),
-    parameterDeclarations: parseParameterDeclarations(raw.ParameterDeclarations),
-    waypoints: ensureArray(raw?.Waypoint).map(parseWaypoint),
+    parameterDeclarations: parseParameterDeclarations(child(raw, 'ParameterDeclarations')),
+    waypoints: children(raw, 'Waypoint').map(parseWaypoint),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseWaypoint(raw: any): Waypoint {
+function parseWaypoint(raw: RawXml): Waypoint {
   return {
-    position: parsePosition(raw?.Position),
+    position: parsePosition(child(raw, 'Position')),
     routeStrategy: strAttr(raw, 'routeStrategy', 'shortest') as RouteStrategy,
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseInRoutePosition(raw: any): InRoutePosition {
+function parseInRoutePosition(raw: RawXml | undefined): InRoutePosition {
   if (!raw) return {};
 
   // XSD element names: FromCurrentEntity, FromRoadCoordinates, FromLaneCoordinates
-  const fromCurrent = raw.FromCurrentEntity;
-  const fromRoad = raw.FromRoadCoordinates;
-  const fromLane = raw.FromLaneCoordinates;
+  const fromCurrent = child(raw, 'FromCurrentEntity');
+  const fromRoad = child(raw, 'FromRoadCoordinates');
+  const fromLane = child(raw, 'FromLaneCoordinates');
 
   return {
     fromCurrentEntity: fromCurrent

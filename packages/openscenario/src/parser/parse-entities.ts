@@ -15,19 +15,17 @@ import type {
   Property,
   ControllerType,
 } from '@osce/shared';
+import type { RawXml } from '../utils/xml-helpers.js';
 import { parseParameterDeclarations } from './parse-parameters.js';
-import { ensureArray } from '../utils/ensure-array.js';
 import { generateId } from '@osce/shared';
-import { numAttr, strAttr, optNumAttr, optStrAttr, pushBindingFieldPrefix, popBindingFieldPrefix } from '../utils/xml-helpers.js';
+import { numAttr, strAttr, optNumAttr, optStrAttr, pushBindingFieldPrefix, popBindingFieldPrefix, child, children } from '../utils/xml-helpers.js';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function parseEntities(raw: any): ScenarioEntity[] {
+export function parseEntities(raw: RawXml | undefined): ScenarioEntity[] {
   if (!raw) return [];
-  return ensureArray(raw.ScenarioObject).map(parseScenarioObject);
+  return children(raw, 'ScenarioObject').map(parseScenarioObject);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseScenarioObject(raw: any): ScenarioEntity {
+function parseScenarioObject(raw: RawXml): ScenarioEntity {
   const name = strAttr(raw, 'name');
   const { type, definition } = parseEntityDefinition(raw);
 
@@ -38,26 +36,30 @@ function parseScenarioObject(raw: any): ScenarioEntity {
     definition,
   };
 
-  if (raw.ObjectController) {
-    entity.controller = parseObjectController(raw.ObjectController);
+  const objectController = child(raw, 'ObjectController');
+  if (objectController) {
+    entity.controller = parseObjectController(objectController);
   }
 
   return entity;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseEntityDefinition(raw: any): { type: EntityType; definition: ScenarioEntity['definition'] } {
-  if (raw.Vehicle) {
-    return { type: 'vehicle', definition: parseVehicleDefinition(raw.Vehicle) };
+function parseEntityDefinition(raw: RawXml): { type: EntityType; definition: ScenarioEntity['definition'] } {
+  const vehicle = child(raw, 'Vehicle');
+  if (vehicle) {
+    return { type: 'vehicle', definition: parseVehicleDefinition(vehicle) };
   }
-  if (raw.Pedestrian) {
-    return { type: 'pedestrian', definition: parsePedestrianDefinition(raw.Pedestrian) };
+  const pedestrian = child(raw, 'Pedestrian');
+  if (pedestrian) {
+    return { type: 'pedestrian', definition: parsePedestrianDefinition(pedestrian) };
   }
-  if (raw.MiscObject) {
-    return { type: 'miscObject', definition: parseMiscObjectDefinition(raw.MiscObject) };
+  const miscObject = child(raw, 'MiscObject');
+  if (miscObject) {
+    return { type: 'miscObject', definition: parseMiscObjectDefinition(miscObject) };
   }
-  if (raw.CatalogReference) {
-    return { type: 'vehicle', definition: parseCatalogReference(raw.CatalogReference) };
+  const catalogReference = child(raw, 'CatalogReference');
+  if (catalogReference) {
+    return { type: 'vehicle', definition: parseCatalogReference(catalogReference) };
   }
   // Fallback: should not happen in valid OpenSCENARIO
   return {
@@ -73,18 +75,17 @@ function parseEntityDefinition(raw: any): { type: EntityType; definition: Scenar
 
 // ─── Vehicle ─────────────────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function parseVehicleDefinition(raw: any): VehicleDefinition {
+export function parseVehicleDefinition(raw: RawXml): VehicleDefinition {
   pushBindingFieldPrefix('performance');
-  const performance = parsePerformance(raw.Performance);
+  const performance = parsePerformance(child(raw, 'Performance'));
   popBindingFieldPrefix();
 
   pushBindingFieldPrefix('boundingBox');
-  const boundingBox = parseBoundingBox(raw.BoundingBox);
+  const boundingBox = parseBoundingBox(child(raw, 'BoundingBox'));
   popBindingFieldPrefix();
 
   pushBindingFieldPrefix('axles');
-  const axles = parseAxles(raw.Axles);
+  const axles = parseAxles(child(raw, 'Axles'));
   popBindingFieldPrefix();
 
   return {
@@ -93,68 +94,63 @@ export function parseVehicleDefinition(raw: any): VehicleDefinition {
     vehicleCategory: strAttr(raw, 'vehicleCategory', 'car') as VehicleDefinition['vehicleCategory'],
     mass: optNumAttr(raw, 'mass'),
     role: optStrAttr(raw, 'role') as VehicleDefinition['role'],
-    parameterDeclarations: parseParameterDeclarations(raw.ParameterDeclarations),
+    parameterDeclarations: parseParameterDeclarations(child(raw, 'ParameterDeclarations')),
     performance,
     boundingBox,
     axles,
-    properties: parseProperties(raw.Properties),
+    properties: parseProperties(child(raw, 'Properties')),
     model3d: optStrAttr(raw, 'model3d'),
   };
 }
 
 // ─── Pedestrian ──────────────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function parsePedestrianDefinition(raw: any): PedestrianDefinition {
+export function parsePedestrianDefinition(raw: RawXml): PedestrianDefinition {
   return {
     kind: 'pedestrian',
     name: strAttr(raw, 'name'),
     pedestrianCategory: strAttr(raw, 'pedestrianCategory', 'pedestrian') as PedestrianDefinition['pedestrianCategory'],
     mass: numAttr(raw, 'mass'),
     model: strAttr(raw, 'model'),
-    parameterDeclarations: parseParameterDeclarations(raw.ParameterDeclarations),
-    boundingBox: parseBoundingBox(raw.BoundingBox),
-    properties: parseProperties(raw.Properties),
+    parameterDeclarations: parseParameterDeclarations(child(raw, 'ParameterDeclarations')),
+    boundingBox: parseBoundingBox(child(raw, 'BoundingBox')),
+    properties: parseProperties(child(raw, 'Properties')),
     model3d: optStrAttr(raw, 'model3d'),
   };
 }
 
 // ─── MiscObject ──────────────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function parseMiscObjectDefinition(raw: any): MiscObjectDefinition {
+export function parseMiscObjectDefinition(raw: RawXml): MiscObjectDefinition {
   return {
     kind: 'miscObject',
     name: strAttr(raw, 'name'),
     miscObjectCategory: strAttr(raw, 'miscObjectCategory', 'none') as MiscObjectDefinition['miscObjectCategory'],
     mass: numAttr(raw, 'mass'),
-    parameterDeclarations: parseParameterDeclarations(raw.ParameterDeclarations),
-    boundingBox: parseBoundingBox(raw.BoundingBox),
-    properties: parseProperties(raw.Properties),
+    parameterDeclarations: parseParameterDeclarations(child(raw, 'ParameterDeclarations')),
+    boundingBox: parseBoundingBox(child(raw, 'BoundingBox')),
+    properties: parseProperties(child(raw, 'Properties')),
     model3d: optStrAttr(raw, 'model3d'),
   };
 }
 
 // ─── CatalogReference ────────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseCatalogReference(raw: any): CatalogReference {
+function parseCatalogReference(raw: RawXml): CatalogReference {
   return {
     kind: 'catalogReference',
     catalogName: strAttr(raw, 'catalogName'),
     entryName: strAttr(raw, 'entryName'),
-    parameterAssignments: parseParameterAssignments(raw.ParameterAssignments),
+    parameterAssignments: parseParameterAssignments(child(raw, 'ParameterAssignments')),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseParameterAssignments(raw: any): ParameterAssignment[] {
+function parseParameterAssignments(raw: RawXml | undefined): ParameterAssignment[] {
   if (!raw) return [];
-  return ensureArray(raw.ParameterAssignment).map(parseParameterAssignment);
+  return children(raw, 'ParameterAssignment').map(parseParameterAssignment);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseParameterAssignment(raw: any): ParameterAssignment {
+function parseParameterAssignment(raw: RawXml): ParameterAssignment {
   return {
     parameterRef: strAttr(raw, 'parameterRef'),
     value: strAttr(raw, 'value'),
@@ -163,8 +159,7 @@ function parseParameterAssignment(raw: any): ParameterAssignment {
 
 // ─── Shared Sub-Elements ─────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parsePerformance(raw: any): Performance {
+function parsePerformance(raw: RawXml | undefined): Performance {
   if (!raw) return { maxSpeed: 0, maxAcceleration: 0, maxDeceleration: 0 };
   return {
     maxSpeed: numAttr(raw, 'maxSpeed'),
@@ -174,8 +169,7 @@ function parsePerformance(raw: any): Performance {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseBoundingBox(raw: any): BoundingBox {
+function parseBoundingBox(raw: RawXml | undefined): BoundingBox {
   if (!raw) {
     return {
       center: { x: 0, y: 0, z: 0 },
@@ -183,49 +177,49 @@ function parseBoundingBox(raw: any): BoundingBox {
     };
   }
 
+  const centerEl = child(raw, 'Center');
   pushBindingFieldPrefix('center');
   const center = {
-    x: numAttr(raw.Center, 'x'),
-    y: numAttr(raw.Center, 'y'),
-    z: numAttr(raw.Center, 'z'),
+    x: numAttr(centerEl, 'x'),
+    y: numAttr(centerEl, 'y'),
+    z: numAttr(centerEl, 'z'),
   };
   popBindingFieldPrefix();
 
+  const dimensionsEl = child(raw, 'Dimensions');
   pushBindingFieldPrefix('dimensions');
   const dimensions = {
-    width: numAttr(raw.Dimensions, 'width'),
-    length: numAttr(raw.Dimensions, 'length'),
-    height: numAttr(raw.Dimensions, 'height'),
+    width: numAttr(dimensionsEl, 'width'),
+    length: numAttr(dimensionsEl, 'length'),
+    height: numAttr(dimensionsEl, 'height'),
   };
   popBindingFieldPrefix();
 
   return { center, dimensions };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseAxles(raw: any): Axles {
+function parseAxles(raw: RawXml | undefined): Axles {
   if (!raw) {
     const defaultAxle: Axle = { maxSteering: 0, wheelDiameter: 0, trackWidth: 0, positionX: 0, positionZ: 0 };
     return { frontAxle: { ...defaultAxle }, rearAxle: { ...defaultAxle }, additionalAxles: [] };
   }
 
   pushBindingFieldPrefix('frontAxle');
-  const frontAxle = parseAxle(raw.FrontAxle);
+  const frontAxle = parseAxle(child(raw, 'FrontAxle'));
   popBindingFieldPrefix();
 
   pushBindingFieldPrefix('rearAxle');
-  const rearAxle = parseAxle(raw.RearAxle);
+  const rearAxle = parseAxle(child(raw, 'RearAxle'));
   popBindingFieldPrefix();
 
   return {
     frontAxle,
     rearAxle,
-    additionalAxles: ensureArray(raw.AdditionalAxle).map(parseAxle),
+    additionalAxles: children(raw, 'AdditionalAxle').map(parseAxle),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseAxle(raw: any): Axle {
+function parseAxle(raw: RawXml | undefined): Axle {
   if (!raw) return { maxSteering: 0, wheelDiameter: 0, trackWidth: 0, positionX: 0, positionZ: 0 };
   return {
     maxSteering: numAttr(raw, 'maxSteering'),
@@ -236,14 +230,12 @@ function parseAxle(raw: any): Axle {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseProperties(raw: any): Property[] {
+function parseProperties(raw: RawXml | undefined): Property[] {
   if (!raw) return [];
-  return ensureArray(raw.Property).map(parseProperty);
+  return children(raw, 'Property').map(parseProperty);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseProperty(raw: any): Property {
+function parseProperty(raw: RawXml): Property {
   return {
     name: strAttr(raw, 'name'),
     value: strAttr(raw, 'value'),
@@ -252,16 +244,17 @@ function parseProperty(raw: any): Property {
 
 // ─── ObjectController ────────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseObjectController(raw: any): ObjectController {
-  if (raw.Controller) {
+function parseObjectController(raw: RawXml): ObjectController {
+  const controller = child(raw, 'Controller');
+  if (controller) {
     return {
-      controller: parseControllerDefinition(raw.Controller),
+      controller: parseControllerDefinition(controller),
     };
   }
-  if (raw.CatalogReference) {
+  const catalogReference = child(raw, 'CatalogReference');
+  if (catalogReference) {
     return {
-      controller: parseCatalogReference(raw.CatalogReference),
+      controller: parseCatalogReference(catalogReference),
     };
   }
   // Fallback
@@ -270,13 +263,12 @@ function parseObjectController(raw: any): ObjectController {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function parseControllerDefinition(raw: any): ControllerDefinition {
+export function parseControllerDefinition(raw: RawXml): ControllerDefinition {
   return {
     kind: 'controller',
     name: strAttr(raw, 'name'),
     controllerType: optStrAttr(raw, 'controllerType') as ControllerType | undefined,
-    parameterDeclarations: parseParameterDeclarations(raw.ParameterDeclarations),
-    properties: parseProperties(raw.Properties),
+    parameterDeclarations: parseParameterDeclarations(child(raw, 'ParameterDeclarations')),
+    properties: parseProperties(child(raw, 'Properties')),
   };
 }

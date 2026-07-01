@@ -9,16 +9,24 @@ import type {
   ScenarioAction,
   EventPriority,
 } from '@osce/shared';
+import type { RawXml } from '../utils/xml-helpers.js';
 import { parsePrivateAction, parseGlobalAction, parseUserDefinedAction } from './parse-actions.js';
 import { parseTrigger } from './parse-triggers.js';
 import { parseParameterDeclarations } from './parse-parameters.js';
 import { parseInit } from './parse-init.js';
-import { ensureArray } from '../utils/ensure-array.js';
 import { generateId } from '@osce/shared';
-import { numAttr, strAttr, boolAttr, optNumAttr, setBindingElementId } from '../utils/xml-helpers.js';
+import {
+  numAttr,
+  strAttr,
+  boolAttr,
+  optNumAttr,
+  setBindingElementId,
+  child,
+  children,
+  rawKeys,
+} from '../utils/xml-helpers.js';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function parseStoryboard(raw: any): Storyboard {
+export function parseStoryboard(raw: RawXml | undefined): Storyboard {
   if (!raw) {
     return {
       id: generateId(),
@@ -30,93 +38,87 @@ export function parseStoryboard(raw: any): Storyboard {
 
   return {
     id: generateId(),
-    init: parseInit(raw.Init),
-    stories: ensureArray(raw.Story).map(parseStory),
-    stopTrigger: parseTrigger(raw.StopTrigger),
+    init: parseInit(child(raw, 'Init')),
+    stories: children(raw, 'Story').map(parseStory),
+    stopTrigger: parseTrigger(child(raw, 'StopTrigger')),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseStory(raw: any): Story {
+function parseStory(raw: RawXml): Story {
   return {
     id: generateId(),
     name: strAttr(raw, 'name'),
-    parameterDeclarations: parseParameterDeclarations(raw.ParameterDeclarations),
-    acts: ensureArray(raw.Act).map(parseAct),
+    parameterDeclarations: parseParameterDeclarations(child(raw, 'ParameterDeclarations')),
+    acts: children(raw, 'Act').map(parseAct),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseAct(raw: any): Act {
+function parseAct(raw: RawXml): Act {
+  const stopTrigger = child(raw, 'StopTrigger');
   return {
     id: generateId(),
     name: strAttr(raw, 'name'),
-    maneuverGroups: ensureArray(raw.ManeuverGroup).map(parseManeuverGroup),
-    startTrigger: parseTrigger(raw.StartTrigger),
-    stopTrigger: raw.StopTrigger ? parseTrigger(raw.StopTrigger) : undefined,
+    maneuverGroups: children(raw, 'ManeuverGroup').map(parseManeuverGroup),
+    startTrigger: parseTrigger(child(raw, 'StartTrigger')),
+    stopTrigger: stopTrigger ? parseTrigger(stopTrigger) : undefined,
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseManeuverGroup(raw: any): ManeuverGroup {
+function parseManeuverGroup(raw: RawXml): ManeuverGroup {
   return {
     id: generateId(),
     name: strAttr(raw, 'name'),
     maximumExecutionCount: numAttr(raw, 'maximumExecutionCount', 1),
-    actors: parseActors(raw.Actors),
-    maneuvers: ensureArray(raw.Maneuver).map(parseManeuver),
+    actors: parseActors(child(raw, 'Actors')),
+    maneuvers: children(raw, 'Maneuver').map(parseManeuver),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseActors(raw: any): Actors {
+function parseActors(raw: RawXml | undefined): Actors {
   if (!raw) return { selectTriggeringEntities: false, entityRefs: [] };
   return {
     selectTriggeringEntities: boolAttr(raw, 'selectTriggeringEntities'),
-    entityRefs: ensureArray(raw.EntityRef).map(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (e: any) => strAttr(e, 'entityRef'),
-    ),
+    entityRefs: children(raw, 'EntityRef').map((e) => strAttr(e, 'entityRef')),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function parseManeuver(raw: any): Maneuver {
+export function parseManeuver(raw: RawXml): Maneuver {
   return {
     id: generateId(),
     name: strAttr(raw, 'name'),
-    parameterDeclarations: parseParameterDeclarations(raw.ParameterDeclarations),
-    events: ensureArray(raw.Event).map(parseEvent),
+    parameterDeclarations: parseParameterDeclarations(child(raw, 'ParameterDeclarations')),
+    events: children(raw, 'Event').map(parseEvent),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseEvent(raw: any): ScenarioEvent {
+function parseEvent(raw: RawXml): ScenarioEvent {
   return {
     id: generateId(),
     name: strAttr(raw, 'name'),
     priority: strAttr(raw, 'priority', 'override') as EventPriority,
     maximumExecutionCount: optNumAttr(raw, 'maximumExecutionCount'),
-    actions: ensureArray(raw.Action).map(parseScenarioAction),
-    startTrigger: parseTrigger(raw.StartTrigger),
+    actions: children(raw, 'Action').map(parseScenarioAction),
+    startTrigger: parseTrigger(child(raw, 'StartTrigger')),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseScenarioAction(raw: any): ScenarioAction {
+function parseScenarioAction(raw: RawXml): ScenarioAction {
   const name = strAttr(raw, 'name');
   const id = generateId();
   setBindingElementId(id);
 
-  if (raw.PrivateAction) {
-    return { id, name, action: parsePrivateAction(raw.PrivateAction) };
+  const privateAction = child(raw, 'PrivateAction');
+  if (privateAction) {
+    return { id, name, action: parsePrivateAction(privateAction) };
   }
-  if (raw.GlobalAction) {
-    return { id, name, action: parseGlobalAction(raw.GlobalAction) };
+  const globalAction = child(raw, 'GlobalAction');
+  if (globalAction) {
+    return { id, name, action: parseGlobalAction(globalAction) };
   }
-  if (raw.UserDefinedAction) {
-    return { id, name, action: parseUserDefinedAction(raw.UserDefinedAction) };
+  const userDefinedAction = child(raw, 'UserDefinedAction');
+  if (userDefinedAction) {
+    return { id, name, action: parseUserDefinedAction(userDefinedAction) };
   }
 
-  throw new Error(`Unknown Action type in Event: ${Object.keys(raw).join(', ')}`);
+  throw new Error(`Unknown Action type in Event: ${rawKeys(raw).join(', ')}`);
 }

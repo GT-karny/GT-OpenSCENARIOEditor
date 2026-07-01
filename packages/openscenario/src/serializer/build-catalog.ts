@@ -16,8 +16,7 @@ import { buildAttrs } from '../utils/xml-helpers.js';
 export function serializeCatalog(doc: CatalogDocument, formatted = true): string {
   const builder = createXoscXmlBuilder(formatted);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const catalogContent: any = {
+  const catalogContent: Record<string, unknown> = {
     ...buildAttrs({ name: doc.catalogName }),
   };
 
@@ -69,8 +68,7 @@ export function serializeCatalog(doc: CatalogDocument, formatted = true): string
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const xmlObj: any = {
+  const xmlObj: Record<string, unknown> = {
     OpenSCENARIO: {
       FileHeader: buildFileHeader(doc.fileHeader),
       Catalog: catalogContent,

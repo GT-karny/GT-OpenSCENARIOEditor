@@ -4,10 +4,10 @@ import type {
   Condition,
   ConditionEdge,
 } from '@osce/shared';
+import type { RawXml } from '../utils/xml-helpers.js';
 import { parseConditionBody } from './parse-conditions.js';
-import { ensureArray } from '../utils/ensure-array.js';
 import { generateId } from '@osce/shared';
-import { numAttr, strAttr, setBindingElementId } from '../utils/xml-helpers.js';
+import { numAttr, strAttr, setBindingElementId, children } from '../utils/xml-helpers.js';
 
 /**
  * Parse a <StartTrigger> or <StopTrigger> XML element into the internal
@@ -16,13 +16,12 @@ import { numAttr, strAttr, setBindingElementId } from '../utils/xml-helpers.js';
  * An empty trigger element (e.g. `<StopTrigger/>`) produces a Trigger with
  * an empty conditionGroups array.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function parseTrigger(raw: any): Trigger {
+export function parseTrigger(raw: RawXml | undefined): Trigger {
   if (!raw) {
     return { id: generateId(), conditionGroups: [] };
   }
 
-  const groups = ensureArray(raw.ConditionGroup);
+  const groups = children(raw, 'ConditionGroup');
   if (groups.length === 0) {
     return { id: generateId(), conditionGroups: [] };
   }
@@ -33,16 +32,14 @@ export function parseTrigger(raw: any): Trigger {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseConditionGroup(raw: any): ConditionGroup {
+function parseConditionGroup(raw: RawXml): ConditionGroup {
   return {
     id: generateId(),
-    conditions: ensureArray(raw?.Condition).map(parseCondition),
+    conditions: children(raw, 'Condition').map(parseCondition),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseCondition(raw: any): Condition {
+function parseCondition(raw: RawXml): Condition {
   const id = generateId();
   setBindingElementId(id);
   return {

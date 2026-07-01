@@ -25,8 +25,7 @@ import { buildAttrs, getSubBindings } from '../utils/xml-helpers.js';
 
 // ─── Private Action ──────────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildPrivateAction(action: PrivateAction, elementBindings: Record<string, string> = {}): Record<string, any> {
+export function buildPrivateAction(action: PrivateAction, elementBindings: Record<string, string> = {}): Record<string, unknown> {
   switch (action.type) {
     case 'speedAction':
       return {
@@ -39,8 +38,7 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
       };
 
     case 'speedProfileAction': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const spa: any = buildAttrs({
+      const spa: Record<string, unknown> = buildAttrs({
         entityRef: action.entityRef,
         followingMode: action.followingMode,
       }, elementBindings);
@@ -54,24 +52,21 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
     }
 
     case 'laneChangeAction': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const lca: any = buildAttrs({ targetLaneOffset: action.targetLaneOffset }, elementBindings);
+      const lca: Record<string, unknown> = buildAttrs({ targetLaneOffset: action.targetLaneOffset }, elementBindings);
       lca.LaneChangeActionDynamics = buildTransitionDynamics(action.dynamics, getSubBindings(elementBindings, 'dynamics'));
       lca.LaneChangeTarget = buildLaneChangeTarget(action.target, getSubBindings(elementBindings, 'target'));
       return { LateralAction: { LaneChangeAction: lca } };
     }
 
     case 'laneOffsetAction': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const loa: any = buildAttrs({ continuous: action.continuous }, elementBindings);
+      const loa: Record<string, unknown> = buildAttrs({ continuous: action.continuous }, elementBindings);
       loa.LaneOffsetActionDynamics = buildLaneOffsetDynamics(action.dynamics, getSubBindings(elementBindings, 'dynamics'));
       loa.LaneOffsetTarget = buildLaneOffsetTarget(action.target, getSubBindings(elementBindings, 'target'));
       return { LateralAction: { LaneOffsetAction: loa } };
     }
 
     case 'lateralDistanceAction': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const lda: any = buildAttrs({
+      const lda: Record<string, unknown> = buildAttrs({
         entityRef: action.entityRef,
         distance: action.distance,
         freespace: action.freespace,
@@ -86,8 +81,7 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
     }
 
     case 'longitudinalDistanceAction': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const lda: any = buildAttrs({
+      const lda: Record<string, unknown> = buildAttrs({
         entityRef: action.entityRef,
         distance: action.distance,
         timeGap: action.timeGap,
@@ -108,8 +102,7 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
       };
 
     case 'synchronizeAction': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sa: any = buildAttrs({
+      const sa: Record<string, unknown> = buildAttrs({
         masterEntityRef: action.masterEntityRef,
         toleranceMaster: action.toleranceMaster,
         tolerance: action.tolerance,
@@ -124,8 +117,7 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
     }
 
     case 'followTrajectoryAction': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const fta: any = buildAttrs({
+      const fta: Record<string, unknown> = buildAttrs({
         initialDistanceOffset: action.initialDistanceOffset,
       }, elementBindings);
       // XSD: TrajectoryRef → Trajectory | CatalogReference. Emit a catalog
@@ -198,16 +190,14 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
     }
 
     case 'assignControllerAction': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const aca: any = buildAttrs({
+      const aca: Record<string, unknown> = buildAttrs({
         activateLateral: action.activateLateral,
         activateLongitudinal: action.activateLongitudinal,
         activateAnimation: action.activateAnimation,
         activateLighting: action.activateLighting,
       });
       if (action.controller) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const ctrl: any = buildAttrs({ name: action.controller.name });
+        const ctrl: Record<string, unknown> = buildAttrs({ name: action.controller.name });
         if (action.controller.properties.length > 0) {
           ctrl.Properties = {
             Property: action.controller.properties.map((p) =>
@@ -240,8 +230,7 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
       };
 
     case 'overrideControllerAction': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ocva: any = {};
+      const ocva: Record<string, unknown> = {};
       if (action.throttle) {
         ocva.Throttle = buildOverrideValue(action.throttle);
       }
@@ -284,8 +273,7 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
       // `loop` / `animationDuration` attributes. The model only carries a flat
       // animationType string, so it is emitted as a UserDefinedAnimation
       // (the generic AnimationType choice variant that round-trips a string).
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const aa: any = {
+      const aa: Record<string, unknown> = {
         AnimationType: {
           UserDefinedAnimation: buildAttrs({ userDefinedAnimationType: action.animationType }),
         },
@@ -301,8 +289,7 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
     }
 
     case 'lightStateAction': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const lsa: any = {};
+      const lsa: Record<string, unknown> = {};
 
       // Build XSD-compliant LightType element
       // Internal format: "vehicleLight:indicatorLeft" or "userDefined:customType"
@@ -328,8 +315,7 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
       // XSD LightState: Color? child + mode (required) / luminousIntensity /
       // flashingOnDuration / flashingOffDuration attributes. Intensity is the
       // `luminousIntensity` attribute, not an <Intensity> child element.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const lightState: any = buildAttrs({
+      const lightState: Record<string, unknown> = buildAttrs({
         mode: action.mode,
         luminousIntensity: action.intensity,
       });
@@ -363,8 +349,7 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
 
 // ─── Global Action ───────────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildGlobalAction(action: GlobalAction, elementBindings: Record<string, string> = {}): Record<string, any> {
+export function buildGlobalAction(action: GlobalAction, elementBindings: Record<string, string> = {}): Record<string, unknown> {
   switch (action.type) {
     case 'environmentAction':
       // XSD EnvironmentAction: choice(Environment | CatalogReference).
@@ -385,11 +370,9 @@ export function buildGlobalAction(action: GlobalAction, elementBindings: Record<
       };
 
     case 'entityAction': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ea: any = buildAttrs({ entityRef: action.entityRef }, elementBindings);
+      const ea: Record<string, unknown> = buildAttrs({ entityRef: action.entityRef }, elementBindings);
       if (action.actionType === 'addEntity') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const addEntity: any = {};
+        const addEntity: Record<string, unknown> = {};
         if (action.position) {
           addEntity.Position = buildPosition(action.position);
         }
@@ -409,8 +392,7 @@ export function buildGlobalAction(action: GlobalAction, elementBindings: Record<
           },
         };
       } else {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const modifyAction: any = {};
+        const modifyAction: Record<string, unknown> = {};
         if (action.rule && action.modifyValue !== undefined) {
           // XSD ParameterModifyAction → Rule (ModifyRule) → AddValue | MultiplyByValue.
           modifyAction.Rule =
@@ -436,8 +418,7 @@ export function buildGlobalAction(action: GlobalAction, elementBindings: Record<
           },
         };
       } else {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const modifyAction: any = {};
+        const modifyAction: Record<string, unknown> = {};
         if (action.rule && action.modifyValue !== undefined) {
           // XSD VariableModifyAction → Rule (VariableModifyRule) → AddValue | MultiplyByValue.
           modifyAction.Rule =
@@ -471,8 +452,7 @@ export function buildGlobalAction(action: GlobalAction, elementBindings: Record<
 
 // ─── User-Defined Action ────────────────────────────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildUserDefinedAction(action: UserDefinedAction): Record<string, any> {
+export function buildUserDefinedAction(action: UserDefinedAction): Record<string, unknown> {
   return {
     UserDefinedAction: {
       CustomCommandAction: action.customCommandAction,
@@ -490,8 +470,7 @@ function buildTransitionDynamics(d: TransitionDynamics, bindings: Record<string,
   }, bindings);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildSpeedTarget(target: SpeedTarget, bindings: Record<string, string> = {}): Record<string, any> {
+function buildSpeedTarget(target: SpeedTarget, bindings: Record<string, string> = {}): Record<string, unknown> {
   if (target.kind === 'absolute') {
     return { AbsoluteTargetSpeed: buildAttrs({ value: target.value }, bindings) };
   }
@@ -505,8 +484,7 @@ function buildSpeedTarget(target: SpeedTarget, bindings: Record<string, string> 
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildLaneChangeTarget(target: LaneChangeTarget, bindings: Record<string, string> = {}): Record<string, any> {
+function buildLaneChangeTarget(target: LaneChangeTarget, bindings: Record<string, string> = {}): Record<string, unknown> {
   if (target.kind === 'absolute') {
     return { AbsoluteTargetLane: buildAttrs({ value: target.value }, bindings) };
   }
@@ -518,8 +496,7 @@ function buildLaneChangeTarget(target: LaneChangeTarget, bindings: Record<string
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildLaneOffsetTarget(target: LaneOffsetTarget, bindings: Record<string, string> = {}): Record<string, any> {
+function buildLaneOffsetTarget(target: LaneOffsetTarget, bindings: Record<string, string> = {}): Record<string, unknown> {
   if (target.kind === 'absolute') {
     return { AbsoluteTargetLaneOffset: buildAttrs({ value: target.value }, bindings) };
   }
@@ -547,8 +524,7 @@ function buildDynamicConstraints(d: DynamicConstraints, bindings: Record<string,
   }, bindings);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildFinalSpeed(fs: FinalSpeed): Record<string, any> {
+function buildFinalSpeed(fs: FinalSpeed): Record<string, unknown> {
   if (fs.absoluteSpeed) {
     return {
       AbsoluteSpeed: buildAttrs({
@@ -569,10 +545,8 @@ function buildFinalSpeed(fs: FinalSpeed): Record<string, any> {
   return {};
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildTrajectory(t: Trajectory): Record<string, any> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: any = buildAttrs({ name: t.name, closed: t.closed });
+export function buildTrajectory(t: Trajectory): Record<string, unknown> {
+  const result: Record<string, unknown> = buildAttrs({ name: t.name, closed: t.closed });
   if (t.parameterDeclarations && t.parameterDeclarations.length > 0) {
     result.ParameterDeclarations = buildParameterDeclarations(t.parameterDeclarations);
   }
@@ -580,23 +554,20 @@ export function buildTrajectory(t: Trajectory): Record<string, any> {
   return result;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildTrajectoryShape(shape: Trajectory['shape']): Record<string, any> {
+function buildTrajectoryShape(shape: Trajectory['shape']): Record<string, unknown> {
   switch (shape.type) {
     case 'polyline':
       return {
         Polyline: {
           Vertex: shape.vertices.map((v) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const vertex: any = buildAttrs({ time: v.time });
+            const vertex: Record<string, unknown> = buildAttrs({ time: v.time });
             vertex.Position = buildPosition(v.position);
             return vertex;
           }),
         },
       };
     case 'clothoid': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const c: any = buildAttrs({
+      const c: Record<string, unknown> = buildAttrs({
         curvature: shape.curvature,
         curvatureDot: shape.curvatureDot,
         length: shape.length,
@@ -613,8 +584,7 @@ function buildTrajectoryShape(shape: Trajectory['shape']): Record<string, any> {
         ClothoidSpline: {
           ...buildAttrs({ timeEnd: shape.timeEnd }),
           ClothoidSplineSegment: shape.segments.map((seg) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const segment: any = buildAttrs({
+            const segment: Record<string, unknown> = buildAttrs({
               curvatureStart: seg.curvatureStart,
               curvatureEnd: seg.curvatureEnd,
               length: seg.length,
@@ -633,8 +603,7 @@ function buildTrajectoryShape(shape: Trajectory['shape']): Record<string, any> {
         Nurbs: {
           ...buildAttrs({ order: shape.order }),
           ControlPoint: shape.controlPoints.map((cp) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const point: any = buildAttrs({ time: cp.time, weight: cp.weight });
+            const point: Record<string, unknown> = buildAttrs({ time: cp.time, weight: cp.weight });
             point.Position = buildPosition(cp.position);
             return point;
           }),
@@ -644,8 +613,7 @@ function buildTrajectoryShape(shape: Trajectory['shape']): Record<string, any> {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildTimeReference(tr: TimeReference): Record<string, any> {
+function buildTimeReference(tr: TimeReference): Record<string, unknown> {
   if (tr.timing) {
     return {
       Timing: buildAttrs({
@@ -674,10 +642,8 @@ function buildOverrideGearValue(ogv: OverrideGearValue): Record<string, string> 
   });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildEnvironment(env: Environment): Record<string, any> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: any = buildAttrs({ name: env.name });
+export function buildEnvironment(env: Environment): Record<string, unknown> {
+  const result: Record<string, unknown> = buildAttrs({ name: env.name });
   if (env.parameterDeclarations && env.parameterDeclarations.length > 0) {
     result.ParameterDeclarations = buildParameterDeclarations(env.parameterDeclarations);
   }
@@ -693,10 +659,8 @@ export function buildEnvironment(env: Environment): Record<string, any> {
   return result;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildWeather(w: Weather): Record<string, any> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: any = buildAttrs({
+function buildWeather(w: Weather): Record<string, unknown> {
+  const result: Record<string, unknown> = buildAttrs({
     fractionalCloudCover: w.fractionalCloudCover,
     atmosphericPressure: w.atmosphericPressure,
     temperature: w.temperature,
@@ -709,8 +673,7 @@ function buildWeather(w: Weather): Record<string, any> {
     });
   }
   if (w.fog) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const fog: any = buildAttrs({ visualRange: w.fog.visualRange });
+    const fog: Record<string, unknown> = buildAttrs({ visualRange: w.fog.visualRange });
     if (w.fog.boundingBox) {
       fog.BoundingBox = {
         Center: buildAttrs({
@@ -742,10 +705,8 @@ function buildWeather(w: Weather): Record<string, any> {
   return result;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildTrafficSignalAction(tsa: TrafficSignalAction): Record<string, any> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: any = {};
+function buildTrafficSignalAction(tsa: TrafficSignalAction): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
   if (tsa.controllerRef) {
     result.TrafficSignalControllerAction = buildAttrs({
       trafficSignalControllerRef: tsa.controllerRef,
@@ -766,10 +727,8 @@ export function buildRoute(route: {
   closed: boolean;
   parameterDeclarations?: ParameterDeclaration[];
   waypoints: Array<{ position: Position; routeStrategy: string }>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-}): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: any = {
+}): Record<string, unknown> {
+  const result: Record<string, unknown> = {
     ...buildAttrs({ name: route.name, closed: route.closed }),
   };
   if (route.parameterDeclarations && route.parameterDeclarations.length > 0) {

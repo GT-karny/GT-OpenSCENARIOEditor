@@ -34,13 +34,6 @@ export default tseslint.config(
     },
   },
   {
-    // openscenario parser layer is being retyped in a later phase — keep as warn
-    files: ['packages/openscenario/src/**'],
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'warn',
-    },
-  },
-  {
     files: ['**/*.{ts,tsx}'],
     plugins: { 'react-hooks': reactHooks },
     rules: reactHooks.configs.recommended.rules,

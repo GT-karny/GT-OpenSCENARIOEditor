@@ -8,7 +8,8 @@ import { parseEntities } from './parse-entities.js';
 import { parseStoryboard } from './parse-storyboard.js';
 import { generateId } from '@osce/shared';
 import { createDefaultEditorMetadata } from '../utils/defaults.js';
-import { startBindingCollection, finishBindingCollection } from '../utils/xml-helpers.js';
+import { startBindingCollection, finishBindingCollection, child } from '../utils/xml-helpers.js';
+import type { RawXml } from '../utils/xml-helpers.js';
 import type { XMLParser } from 'fast-xml-parser';
 
 export class XoscParser implements IXoscParser {
@@ -19,8 +20,8 @@ export class XoscParser implements IXoscParser {
   }
 
   parse(xml: string): ScenarioDocument {
-    const raw = this.xmlParser.parse(xml);
-    const root = raw?.OpenSCENARIO;
+    const raw = this.xmlParser.parse(xml) as RawXml;
+    const root = child(raw, 'OpenSCENARIO');
 
     if (!root) {
       throw new Error('Invalid OpenSCENARIO XML: missing <OpenSCENARIO> root element');
@@ -30,13 +31,13 @@ export class XoscParser implements IXoscParser {
 
     const doc: ScenarioDocument = {
       id: generateId(),
-      fileHeader: parseFileHeader(root.FileHeader),
-      parameterDeclarations: parseParameterDeclarations(root.ParameterDeclarations),
-      variableDeclarations: parseVariableDeclarations(root.VariableDeclarations),
-      catalogLocations: parseCatalogLocations(root.CatalogLocations),
-      roadNetwork: parseRoadNetwork(root.RoadNetwork),
-      entities: parseEntities(root.Entities),
-      storyboard: parseStoryboard(root.Storyboard),
+      fileHeader: parseFileHeader(child(root, 'FileHeader')),
+      parameterDeclarations: parseParameterDeclarations(child(root, 'ParameterDeclarations')),
+      variableDeclarations: parseVariableDeclarations(child(root, 'VariableDeclarations')),
+      catalogLocations: parseCatalogLocations(child(root, 'CatalogLocations')),
+      roadNetwork: parseRoadNetwork(child(root, 'RoadNetwork')),
+      entities: parseEntities(child(root, 'Entities')),
+      storyboard: parseStoryboard(child(root, 'Storyboard')),
       _editor: createDefaultEditorMetadata(),
     };
 

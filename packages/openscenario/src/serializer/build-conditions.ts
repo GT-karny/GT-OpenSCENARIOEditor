@@ -32,8 +32,7 @@ import { buildAttrs, getSubBindings } from '../utils/xml-helpers.js';
  * Serialize an internal condition body (ByEntityCondition | ByValueCondition)
  * back into the XML object structure expected by fast-xml-parser.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildConditionBody(condition: ByEntityCondition | ByValueCondition, elementBindings: Record<string, string> = {}): any {
+export function buildConditionBody(condition: ByEntityCondition | ByValueCondition, elementBindings: Record<string, string> = {}): Record<string, unknown> {
   if (condition.kind === 'byEntity') {
     return { ByEntityCondition: buildByEntityCondition(condition, elementBindings) };
   }
@@ -44,8 +43,7 @@ export function buildConditionBody(condition: ByEntityCondition | ByValueConditi
 // ByEntityCondition
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildByEntityCondition(c: ByEntityCondition, elementBindings: Record<string, string>): any {
+function buildByEntityCondition(c: ByEntityCondition, elementBindings: Record<string, string>): Record<string, unknown> {
   return {
     TriggeringEntities: {
       ...buildAttrs({ triggeringEntitiesRule: c.triggeringEntities.triggeringEntitiesRule }),
@@ -57,8 +55,7 @@ function buildByEntityCondition(c: ByEntityCondition, elementBindings: Record<st
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildEntityCondition(ec: EntityCondition, bindings: Record<string, string>): any {
+function buildEntityCondition(ec: EntityCondition, bindings: Record<string, string>): Record<string, unknown> {
   switch (ec.type) {
     case 'distance':
       return { DistanceCondition: buildDistanceCondition(ec, bindings) };
@@ -91,8 +88,7 @@ function buildEntityCondition(ec: EntityCondition, bindings: Record<string, stri
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildDistanceCondition(c: DistanceCondition, bindings: Record<string, string>): any {
+function buildDistanceCondition(c: DistanceCondition, bindings: Record<string, string>): Record<string, unknown> {
   return {
     ...buildAttrs({
       value: c.value,
@@ -126,10 +122,8 @@ function buildTimeHeadwayCondition(c: TimeHeadwayCondition, bindings: Record<str
   }, bindings);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildTimeToCollisionCondition(c: TimeToCollisionCondition, bindings: Record<string, string>): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const target: any = {};
+function buildTimeToCollisionCondition(c: TimeToCollisionCondition, bindings: Record<string, string>): Record<string, unknown> {
+  const target: Record<string, unknown> = {};
   if (c.target.kind === 'entity') {
     target.EntityRef = buildAttrs({ entityRef: c.target.entityRef });
   } else {
@@ -173,8 +167,7 @@ function buildRelativeSpeedCondition(c: RelativeSpeedCondition, bindings: Record
   }, bindings);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildReachPositionCondition(c: ReachPositionCondition, bindings: Record<string, string>): any {
+function buildReachPositionCondition(c: ReachPositionCondition, bindings: Record<string, string>): Record<string, unknown> {
   return {
     ...buildAttrs({ tolerance: c.tolerance }, bindings),
     Position: buildPosition(c.position, getSubBindings(bindings, 'position')),
@@ -193,8 +186,7 @@ function buildEndOfRoadCondition(c: EndOfRoadCondition, bindings: Record<string,
   return buildAttrs({ duration: c.duration }, bindings);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildCollisionCondition(c: CollisionCondition): any {
+function buildCollisionCondition(c: CollisionCondition): Record<string, unknown> {
   if (c.target.kind === 'entity') {
     return { EntityRef: buildAttrs({ entityRef: c.target.entityRef }) };
   }
@@ -205,10 +197,8 @@ function buildOffroadCondition(c: OffroadCondition, bindings: Record<string, str
   return buildAttrs({ duration: c.duration }, bindings);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildRelativeClearanceCondition(c: RelativeClearanceCondition, bindings: Record<string, string>): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: any = buildAttrs({
+function buildRelativeClearanceCondition(c: RelativeClearanceCondition, bindings: Record<string, string>): Record<string, unknown> {
+  const result: Record<string, unknown> = buildAttrs({
     distanceForward: c.distanceForward,
     distanceBackward: c.distanceBackward,
     freeSpace: c.freeSpace,
@@ -232,13 +222,11 @@ function buildRelativeClearanceCondition(c: RelativeClearanceCondition, bindings
 // ByValueCondition
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildByValueCondition(c: ByValueCondition, elementBindings: Record<string, string>): any {
+function buildByValueCondition(c: ByValueCondition, elementBindings: Record<string, string>): Record<string, unknown> {
   return buildValueCondition(c.valueCondition, elementBindings);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildValueCondition(vc: ValueCondition, bindings: Record<string, string>): any {
+function buildValueCondition(vc: ValueCondition, bindings: Record<string, string>): Record<string, unknown> {
   switch (vc.type) {
     case 'simulationTime':
       return { SimulationTimeCondition: buildSimulationTimeCondition(vc, bindings) };

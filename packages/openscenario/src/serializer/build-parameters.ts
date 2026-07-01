@@ -28,13 +28,11 @@ function wrapExpressionValue(v: string, type: ParameterType): string {
   return v;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildParameterDeclarations(params: ParameterDeclaration[]): any {
+export function buildParameterDeclarations(params: ParameterDeclaration[]): Record<string, unknown> | string {
   if (params.length === 0) return '';
   return {
     ParameterDeclaration: params.map((p) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result: any = buildAttrs({
+      const result: Record<string, unknown> = buildAttrs({
         name: p.name,
         parameterType: p.parameterType,
         value: wrapExpressionValue(p.value, p.parameterType),
@@ -51,8 +49,7 @@ export function buildParameterDeclarations(params: ParameterDeclaration[]): any 
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildVariableDeclarations(vars: VariableDeclaration[]): any {
+export function buildVariableDeclarations(vars: VariableDeclaration[]): Record<string, unknown> | undefined {
   if (vars.length === 0) return undefined;
   return {
     VariableDeclaration: vars.map((v) =>

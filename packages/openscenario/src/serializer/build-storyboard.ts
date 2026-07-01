@@ -18,10 +18,8 @@ import { buildAttrs } from '../utils/xml-helpers.js';
 
 type AllBindings = Record<string, Record<string, string>>;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildStoryboard(sb: Storyboard, allBindings: AllBindings = {}): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: any = {
+export function buildStoryboard(sb: Storyboard, allBindings: AllBindings = {}): Record<string, unknown> {
+  const result: Record<string, unknown> = {
     Init: buildInit(sb.init, allBindings),
   };
 
@@ -34,8 +32,7 @@ export function buildStoryboard(sb: Storyboard, allBindings: AllBindings = {}): 
   return result;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildStory(story: Story, allBindings: AllBindings): any {
+function buildStory(story: Story, allBindings: AllBindings): Record<string, unknown> {
   return {
     ...buildAttrs({ name: story.name }),
     ParameterDeclarations: buildParameterDeclarations(story.parameterDeclarations),
@@ -43,10 +40,8 @@ function buildStory(story: Story, allBindings: AllBindings): any {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildAct(act: Act, allBindings: AllBindings): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: any = {
+function buildAct(act: Act, allBindings: AllBindings): Record<string, unknown> {
+  const result: Record<string, unknown> = {
     ...buildAttrs({ name: act.name }),
     ManeuverGroup: act.maneuverGroups.map((mg) => buildManeuverGroup(mg, allBindings)),
     StartTrigger: buildTrigger(act.startTrigger, allBindings),
@@ -57,10 +52,8 @@ function buildAct(act: Act, allBindings: AllBindings): any {
   return result;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildManeuverGroup(mg: ManeuverGroup, allBindings: AllBindings): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const actors: any = buildAttrs({
+function buildManeuverGroup(mg: ManeuverGroup, allBindings: AllBindings): Record<string, unknown> {
+  const actors: Record<string, unknown> = buildAttrs({
     selectTriggeringEntities: mg.actors.selectTriggeringEntities,
   });
   if (mg.actors.entityRefs.length > 0) {
@@ -77,8 +70,7 @@ function buildManeuverGroup(mg: ManeuverGroup, allBindings: AllBindings): any {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildManeuver(m: Maneuver, allBindings: AllBindings): any {
+export function buildManeuver(m: Maneuver, allBindings: AllBindings): Record<string, unknown> {
   return {
     ...buildAttrs({ name: m.name }),
     ParameterDeclarations: buildParameterDeclarations(m.parameterDeclarations),
@@ -86,8 +78,7 @@ export function buildManeuver(m: Maneuver, allBindings: AllBindings): any {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildEvent(e: ScenarioEvent, allBindings: AllBindings): any {
+function buildEvent(e: ScenarioEvent, allBindings: AllBindings): Record<string, unknown> {
   return {
     ...buildAttrs({
       priority: e.priority,
@@ -99,10 +90,8 @@ function buildEvent(e: ScenarioEvent, allBindings: AllBindings): any {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildScenarioAction(sa: ScenarioAction, allBindings: AllBindings): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: any = buildAttrs({ name: sa.name });
+function buildScenarioAction(sa: ScenarioAction, allBindings: AllBindings): Record<string, unknown> {
+  const result: Record<string, unknown> = buildAttrs({ name: sa.name });
   const elementBindings = allBindings[sa.id] ?? {};
 
   const action = sa.action;

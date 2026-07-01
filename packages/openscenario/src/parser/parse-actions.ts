@@ -56,9 +56,9 @@ import type {
   LateralDisplacement,
   LongitudinalDisplacement,
 } from '@osce/shared';
+import type { RawXml } from '../utils/xml-helpers.js';
 import { parsePosition } from './parse-positions.js';
 import { parseParameterDeclarations } from './parse-parameters.js';
-import { ensureArray } from '../utils/ensure-array.js';
 import {
   numAttr,
   strAttr,
@@ -68,6 +68,10 @@ import {
   optBoolAttr,
   pushBindingFieldPrefix,
   popBindingFieldPrefix,
+  child,
+  children,
+  has,
+  rawKeys,
 } from '../utils/xml-helpers.js';
 
 // ---------------------------------------------------------------------------
@@ -79,144 +83,160 @@ import {
  * Handles the intermediate wrapping elements (LongitudinalAction, LateralAction, etc.)
  * and maps them to flat action types.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function parsePrivateAction(raw: any): PrivateAction {
+export function parsePrivateAction(raw: RawXml | undefined): PrivateAction {
   if (!raw) throw new Error('PrivateAction element is missing');
 
   // --- Longitudinal actions ---
-  if (raw.LongitudinalAction) {
-    return parseLongitudinalAction(raw.LongitudinalAction);
+  const longitudinalAction = child(raw, 'LongitudinalAction');
+  if (longitudinalAction) {
+    return parseLongitudinalAction(longitudinalAction);
   }
 
   // --- Lateral actions ---
-  if (raw.LateralAction) {
-    return parseLateralAction(raw.LateralAction);
+  const lateralAction = child(raw, 'LateralAction');
+  if (lateralAction) {
+    return parseLateralAction(lateralAction);
   }
 
   // --- Teleport ---
-  if (raw.TeleportAction) {
-    return parseTeleportAction(raw.TeleportAction);
+  const teleportAction = child(raw, 'TeleportAction');
+  if (teleportAction) {
+    return parseTeleportAction(teleportAction);
   }
 
   // --- Synchronize ---
-  if (raw.SynchronizeAction) {
-    return parseSynchronizeAction(raw.SynchronizeAction);
+  const synchronizeAction = child(raw, 'SynchronizeAction');
+  if (synchronizeAction) {
+    return parseSynchronizeAction(synchronizeAction);
   }
 
   // --- Controller actions (wraps Assign/Activate/Override) ---
-  if (raw.ControllerAction) {
-    return parseControllerAction(raw.ControllerAction);
+  const controllerAction = child(raw, 'ControllerAction');
+  if (controllerAction) {
+    return parseControllerAction(controllerAction);
   }
 
   // --- Routing actions ---
-  if (raw.RoutingAction) {
-    return parseRoutingAction(raw.RoutingAction);
+  const routingAction = child(raw, 'RoutingAction');
+  if (routingAction) {
+    return parseRoutingAction(routingAction);
   }
 
   // --- Visibility ---
-  if (raw.VisibilityAction) {
-    return parseVisibilityAction(raw.VisibilityAction);
+  const visibilityAction = child(raw, 'VisibilityAction');
+  if (visibilityAction) {
+    return parseVisibilityAction(visibilityAction);
   }
 
   // --- Appearance ---
-  if (raw.AppearanceAction) {
-    return parseAppearanceAction(raw.AppearanceAction);
+  const appearanceAction = child(raw, 'AppearanceAction');
+  if (appearanceAction) {
+    return parseAppearanceAction(appearanceAction);
   }
 
   // --- Animation ---
-  if (raw.AnimationAction) {
-    return parseAnimationAction(raw.AnimationAction);
+  const animationAction = child(raw, 'AnimationAction');
+  if (animationAction) {
+    return parseAnimationAction(animationAction);
   }
 
   // --- Light state ---
-  if (raw.LightStateAction) {
-    return parseLightStateAction(raw.LightStateAction);
+  const lightStateAction = child(raw, 'LightStateAction');
+  if (lightStateAction) {
+    return parseLightStateAction(lightStateAction);
   }
 
   // --- Trailer actions ---
-  if (raw.TrailerAction) {
+  const trailerAction = child(raw, 'TrailerAction');
+  if (trailerAction) {
     // TrailerAction wraps Connect/DisconnectTrailerAction
-    const ta = raw.TrailerAction;
-    if (ta.ConnectTrailerAction) {
-      return parseConnectTrailerAction(ta.ConnectTrailerAction);
+    const connectTrailer = child(trailerAction, 'ConnectTrailerAction');
+    if (connectTrailer) {
+      return parseConnectTrailerAction(connectTrailer);
     }
-    if ('DisconnectTrailerAction' in ta) {
+    if (has(trailerAction, 'DisconnectTrailerAction')) {
       return parseDisconnectTrailerAction();
     }
   }
-  if (raw.ConnectTrailerAction) {
-    return parseConnectTrailerAction(raw.ConnectTrailerAction);
+  const connectTrailerAction = child(raw, 'ConnectTrailerAction');
+  if (connectTrailerAction) {
+    return parseConnectTrailerAction(connectTrailerAction);
   }
-  if ('DisconnectTrailerAction' in raw) {
+  if (has(raw, 'DisconnectTrailerAction')) {
     return parseDisconnectTrailerAction();
   }
 
   // --- Direct controller actions (esmini / v1.0 style, without ControllerAction wrapper) ---
-  if (raw.ActivateControllerAction) {
-    return parseActivateControllerAction(raw.ActivateControllerAction);
+  const activateControllerAction = child(raw, 'ActivateControllerAction');
+  if (activateControllerAction) {
+    return parseActivateControllerAction(activateControllerAction);
   }
-  if (raw.AssignControllerAction) {
-    return parseAssignControllerAction(raw.AssignControllerAction);
+  const assignControllerAction = child(raw, 'AssignControllerAction');
+  if (assignControllerAction) {
+    return parseAssignControllerAction(assignControllerAction);
   }
-  if (raw.OverrideControllerValueAction) {
-    return parseOverrideControllerAction(raw.OverrideControllerValueAction);
+  const overrideControllerValueAction = child(raw, 'OverrideControllerValueAction');
+  if (overrideControllerValueAction) {
+    return parseOverrideControllerAction(overrideControllerValueAction);
   }
 
   // --- FollowTrajectoryAction directly under PrivateAction (some files) ---
-  if (raw.FollowTrajectoryAction) {
-    return parseFollowTrajectoryAction(raw.FollowTrajectoryAction);
+  const followTrajectoryAction = child(raw, 'FollowTrajectoryAction');
+  if (followTrajectoryAction) {
+    return parseFollowTrajectoryAction(followTrajectoryAction);
   }
 
   // --- AcquirePositionAction directly under PrivateAction (some files) ---
-  if (raw.AcquirePositionAction) {
-    return parseRoutingAcquirePositionAction(raw.AcquirePositionAction);
+  const acquirePositionAction = child(raw, 'AcquirePositionAction');
+  if (acquirePositionAction) {
+    return parseRoutingAcquirePositionAction(acquirePositionAction);
   }
 
-  throw new Error(
-    `Unknown PrivateAction type: ${Object.keys(raw).join(', ')}`,
-  );
+  throw new Error(`Unknown PrivateAction type: ${rawKeys(raw).join(', ')}`);
 }
 
 /**
  * Parses a GlobalAction XML element into the internal discriminated union.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function parseGlobalAction(raw: any): GlobalAction {
+export function parseGlobalAction(raw: RawXml | undefined): GlobalAction {
   if (!raw) throw new Error('GlobalAction element is missing');
 
-  if (raw.EnvironmentAction) {
-    return parseEnvironmentAction(raw.EnvironmentAction);
+  const environmentAction = child(raw, 'EnvironmentAction');
+  if (environmentAction) {
+    return parseEnvironmentAction(environmentAction);
   }
-  if (raw.EntityAction) {
-    return parseEntityAction(raw.EntityAction);
+  const entityAction = child(raw, 'EntityAction');
+  if (entityAction) {
+    return parseEntityAction(entityAction);
   }
-  if (raw.ParameterAction) {
-    return parseParameterAction(raw.ParameterAction);
+  const parameterAction = child(raw, 'ParameterAction');
+  if (parameterAction) {
+    return parseParameterAction(parameterAction);
   }
-  if (raw.VariableAction) {
-    return parseVariableAction(raw.VariableAction);
+  const variableAction = child(raw, 'VariableAction');
+  if (variableAction) {
+    return parseVariableAction(variableAction);
   }
-  if (raw.InfrastructureAction) {
-    return parseInfrastructureAction(raw.InfrastructureAction);
+  const infrastructureAction = child(raw, 'InfrastructureAction');
+  if (infrastructureAction) {
+    return parseInfrastructureAction(infrastructureAction);
   }
-  if (raw.TrafficAction) {
-    return parseTrafficAction(raw.TrafficAction);
+  const trafficAction = child(raw, 'TrafficAction');
+  if (trafficAction) {
+    return parseTrafficAction(trafficAction);
   }
 
-  throw new Error(
-    `Unknown GlobalAction type: ${Object.keys(raw).join(', ')}`,
-  );
+  throw new Error(`Unknown GlobalAction type: ${rawKeys(raw).join(', ')}`);
 }
 
 /**
  * Parses a UserDefinedAction XML element.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function parseUserDefinedAction(raw: any): UserDefinedAction {
+export function parseUserDefinedAction(raw: RawXml | undefined): UserDefinedAction {
   if (!raw) throw new Error('UserDefinedAction element is missing');
   return {
     type: 'userDefinedAction',
-    customCommandAction: strAttr(raw.CustomCommandAction, 'type', ''),
+    customCommandAction: strAttr(child(raw, 'CustomCommandAction'), 'type', ''),
   };
 }
 
@@ -224,38 +244,36 @@ export function parseUserDefinedAction(raw: any): UserDefinedAction {
 // Longitudinal actions
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseLongitudinalAction(raw: any): PrivateAction {
-  if (raw.SpeedAction) {
-    return parseSpeedAction(raw.SpeedAction);
+function parseLongitudinalAction(raw: RawXml): PrivateAction {
+  const speedAction = child(raw, 'SpeedAction');
+  if (speedAction) {
+    return parseSpeedAction(speedAction);
   }
-  if (raw.SpeedProfileAction) {
-    return parseSpeedProfileAction(raw.SpeedProfileAction);
+  const speedProfileAction = child(raw, 'SpeedProfileAction');
+  if (speedProfileAction) {
+    return parseSpeedProfileAction(speedProfileAction);
   }
-  if (raw.LongitudinalDistanceAction) {
-    return parseLongitudinalDistanceAction(raw.LongitudinalDistanceAction);
+  const longitudinalDistanceAction = child(raw, 'LongitudinalDistanceAction');
+  if (longitudinalDistanceAction) {
+    return parseLongitudinalDistanceAction(longitudinalDistanceAction);
   }
 
-  throw new Error(
-    `Unknown LongitudinalAction type: ${Object.keys(raw).join(', ')}`,
-  );
+  throw new Error(`Unknown LongitudinalAction type: ${rawKeys(raw).join(', ')}`);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseSpeedAction(raw: any): SpeedAction {
+function parseSpeedAction(raw: RawXml): SpeedAction {
   pushBindingFieldPrefix('dynamics');
-  const dynamics = parseTransitionDynamics(raw.SpeedActionDynamics);
+  const dynamics = parseTransitionDynamics(child(raw, 'SpeedActionDynamics'));
   popBindingFieldPrefix();
 
   pushBindingFieldPrefix('target');
-  const target = parseSpeedTarget(raw.SpeedActionTarget);
+  const target = parseSpeedTarget(child(raw, 'SpeedActionTarget'));
   popBindingFieldPrefix();
 
   return { type: 'speedAction', dynamics, target };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseTransitionDynamics(raw: any): TransitionDynamics {
+function parseTransitionDynamics(raw: RawXml | undefined): TransitionDynamics {
   return {
     dynamicsShape: strAttr(raw, 'dynamicsShape', 'linear') as DynamicsShape,
     dynamicsDimension: strAttr(raw, 'dynamicsDimension', 'rate') as DynamicsDimension,
@@ -263,60 +281,57 @@ function parseTransitionDynamics(raw: any): TransitionDynamics {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseSpeedTarget(raw: any): SpeedTarget {
+function parseSpeedTarget(raw: RawXml | undefined): SpeedTarget {
   if (!raw) throw new Error('SpeedActionTarget element is missing');
 
-  if (raw.AbsoluteTargetSpeed) {
+  const absoluteTargetSpeed = child(raw, 'AbsoluteTargetSpeed');
+  if (absoluteTargetSpeed) {
     return {
       kind: 'absolute',
-      value: numAttr(raw.AbsoluteTargetSpeed, 'value'),
+      value: numAttr(absoluteTargetSpeed, 'value'),
     };
   }
-  if (raw.RelativeTargetSpeed) {
+  const relativeTargetSpeed = child(raw, 'RelativeTargetSpeed');
+  if (relativeTargetSpeed) {
     return {
       kind: 'relative',
-      entityRef: strAttr(raw.RelativeTargetSpeed, 'entityRef'),
-      value: numAttr(raw.RelativeTargetSpeed, 'value'),
+      entityRef: strAttr(relativeTargetSpeed, 'entityRef'),
+      value: numAttr(relativeTargetSpeed, 'value'),
       speedTargetValueType: strAttr(
-        raw.RelativeTargetSpeed,
+        relativeTargetSpeed,
         'speedTargetValueType',
         'delta',
       ) as 'delta' | 'factor',
-      continuous: boolAttr(raw.RelativeTargetSpeed, 'continuous'),
+      continuous: boolAttr(relativeTargetSpeed, 'continuous'),
     };
   }
 
-  throw new Error(
-    `Unknown SpeedActionTarget type: ${Object.keys(raw).join(', ')}`,
-  );
+  throw new Error(`Unknown SpeedActionTarget type: ${rawKeys(raw).join(', ')}`);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseSpeedProfileAction(raw: any): SpeedProfileAction {
+function parseSpeedProfileAction(raw: RawXml): SpeedProfileAction {
   return {
     type: 'speedProfileAction',
     entityRef: optStrAttr(raw, 'entityRef'),
     followingMode: strAttr(raw, 'followingMode', 'follow') as FollowingMode,
     dynamicsDimension: optStrAttr(raw, 'dynamicsDimension') as DynamicsDimension | undefined,
-    entries: ensureArray(raw.SpeedProfileEntry).map(parseSpeedProfileEntry),
+    entries: children(raw, 'SpeedProfileEntry').map(parseSpeedProfileEntry),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseSpeedProfileEntry(raw: any): SpeedProfileEntry {
+function parseSpeedProfileEntry(raw: RawXml): SpeedProfileEntry {
   return {
     speed: numAttr(raw, 'speed'),
     time: optNumAttr(raw, 'time'),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseLongitudinalDistanceAction(raw: any): LongitudinalDistanceAction {
+function parseLongitudinalDistanceAction(raw: RawXml): LongitudinalDistanceAction {
   let dynamics: DynamicConstraints | undefined;
-  if (raw.DynamicConstraints) {
+  const dynamicConstraints = child(raw, 'DynamicConstraints');
+  if (dynamicConstraints) {
     pushBindingFieldPrefix('dynamics');
-    dynamics = parseDynamicConstraints(raw.DynamicConstraints);
+    dynamics = parseDynamicConstraints(dynamicConstraints);
     popBindingFieldPrefix();
   }
 
@@ -337,31 +352,30 @@ function parseLongitudinalDistanceAction(raw: any): LongitudinalDistanceAction {
 // Lateral actions
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseLateralAction(raw: any): PrivateAction {
-  if (raw.LaneChangeAction) {
-    return parseLaneChangeAction(raw.LaneChangeAction);
+function parseLateralAction(raw: RawXml): PrivateAction {
+  const laneChangeAction = child(raw, 'LaneChangeAction');
+  if (laneChangeAction) {
+    return parseLaneChangeAction(laneChangeAction);
   }
-  if (raw.LaneOffsetAction) {
-    return parseLaneOffsetAction(raw.LaneOffsetAction);
+  const laneOffsetAction = child(raw, 'LaneOffsetAction');
+  if (laneOffsetAction) {
+    return parseLaneOffsetAction(laneOffsetAction);
   }
-  if (raw.LateralDistanceAction) {
-    return parseLateralDistanceAction(raw.LateralDistanceAction);
+  const lateralDistanceAction = child(raw, 'LateralDistanceAction');
+  if (lateralDistanceAction) {
+    return parseLateralDistanceAction(lateralDistanceAction);
   }
 
-  throw new Error(
-    `Unknown LateralAction type: ${Object.keys(raw).join(', ')}`,
-  );
+  throw new Error(`Unknown LateralAction type: ${rawKeys(raw).join(', ')}`);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseLaneChangeAction(raw: any): LaneChangeAction {
+function parseLaneChangeAction(raw: RawXml): LaneChangeAction {
   pushBindingFieldPrefix('dynamics');
-  const dynamics = parseTransitionDynamics(raw.LaneChangeActionDynamics);
+  const dynamics = parseTransitionDynamics(child(raw, 'LaneChangeActionDynamics'));
   popBindingFieldPrefix();
 
   pushBindingFieldPrefix('target');
-  const target = parseLaneChangeTarget(raw.LaneChangeTarget);
+  const target = parseLaneChangeTarget(child(raw, 'LaneChangeTarget'));
   popBindingFieldPrefix();
 
   return {
@@ -372,44 +386,41 @@ function parseLaneChangeAction(raw: any): LaneChangeAction {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseLaneChangeTarget(raw: any): LaneChangeTarget {
+function parseLaneChangeTarget(raw: RawXml | undefined): LaneChangeTarget {
   if (!raw) throw new Error('LaneChangeTarget element is missing');
 
-  if (raw.AbsoluteTargetLane) {
+  const absoluteTargetLane = child(raw, 'AbsoluteTargetLane');
+  if (absoluteTargetLane) {
     return {
       kind: 'absolute',
-      value: numAttr(raw.AbsoluteTargetLane, 'value'),
+      value: numAttr(absoluteTargetLane, 'value'),
     };
   }
-  if (raw.RelativeTargetLane) {
+  const relativeTargetLane = child(raw, 'RelativeTargetLane');
+  if (relativeTargetLane) {
     return {
       kind: 'relative',
-      entityRef: strAttr(raw.RelativeTargetLane, 'entityRef'),
-      value: numAttr(raw.RelativeTargetLane, 'value'),
+      entityRef: strAttr(relativeTargetLane, 'entityRef'),
+      value: numAttr(relativeTargetLane, 'value'),
     };
   }
 
-  throw new Error(
-    `Unknown LaneChangeTarget type: ${Object.keys(raw).join(', ')}`,
-  );
+  throw new Error(`Unknown LaneChangeTarget type: ${rawKeys(raw).join(', ')}`);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseLaneOffsetAction(raw: any): LaneOffsetAction {
+function parseLaneOffsetAction(raw: RawXml): LaneOffsetAction {
   pushBindingFieldPrefix('dynamics');
-  const dynamics = parseLaneOffsetDynamics(raw.LaneOffsetActionDynamics);
+  const dynamics = parseLaneOffsetDynamics(child(raw, 'LaneOffsetActionDynamics'));
   popBindingFieldPrefix();
 
   pushBindingFieldPrefix('target');
-  const target = parseLaneOffsetTarget(raw.LaneOffsetTarget);
+  const target = parseLaneOffsetTarget(child(raw, 'LaneOffsetTarget'));
   popBindingFieldPrefix();
 
   return { type: 'laneOffsetAction', continuous: boolAttr(raw, 'continuous'), dynamics, target };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseLaneOffsetDynamics(raw: any): LaneOffsetDynamics {
+function parseLaneOffsetDynamics(raw: RawXml | undefined): LaneOffsetDynamics {
   if (!raw) return {};
   return {
     maxSpeed: optNumAttr(raw, 'maxSpeed'),
@@ -418,35 +429,34 @@ function parseLaneOffsetDynamics(raw: any): LaneOffsetDynamics {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseLaneOffsetTarget(raw: any): LaneOffsetTarget {
+function parseLaneOffsetTarget(raw: RawXml | undefined): LaneOffsetTarget {
   if (!raw) throw new Error('LaneOffsetTarget element is missing');
 
-  if (raw.AbsoluteTargetLaneOffset) {
+  const absoluteTargetLaneOffset = child(raw, 'AbsoluteTargetLaneOffset');
+  if (absoluteTargetLaneOffset) {
     return {
       kind: 'absolute',
-      value: numAttr(raw.AbsoluteTargetLaneOffset, 'value'),
+      value: numAttr(absoluteTargetLaneOffset, 'value'),
     };
   }
-  if (raw.RelativeTargetLaneOffset) {
+  const relativeTargetLaneOffset = child(raw, 'RelativeTargetLaneOffset');
+  if (relativeTargetLaneOffset) {
     return {
       kind: 'relative',
-      entityRef: strAttr(raw.RelativeTargetLaneOffset, 'entityRef'),
-      value: numAttr(raw.RelativeTargetLaneOffset, 'value'),
+      entityRef: strAttr(relativeTargetLaneOffset, 'entityRef'),
+      value: numAttr(relativeTargetLaneOffset, 'value'),
     };
   }
 
-  throw new Error(
-    `Unknown LaneOffsetTarget type: ${Object.keys(raw).join(', ')}`,
-  );
+  throw new Error(`Unknown LaneOffsetTarget type: ${rawKeys(raw).join(', ')}`);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseLateralDistanceAction(raw: any): LateralDistanceAction {
+function parseLateralDistanceAction(raw: RawXml): LateralDistanceAction {
   let dynamics: DynamicConstraints | undefined;
-  if (raw.DynamicConstraints) {
+  const dynamicConstraints = child(raw, 'DynamicConstraints');
+  if (dynamicConstraints) {
     pushBindingFieldPrefix('dynamics');
-    dynamics = parseDynamicConstraints(raw.DynamicConstraints);
+    dynamics = parseDynamicConstraints(dynamicConstraints);
     popBindingFieldPrefix();
   }
 
@@ -462,8 +472,7 @@ function parseLateralDistanceAction(raw: any): LateralDistanceAction {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseDynamicConstraints(raw: any): DynamicConstraints {
+function parseDynamicConstraints(raw: RawXml): DynamicConstraints {
   return {
     maxAcceleration: optNumAttr(raw, 'maxAcceleration'),
     maxDeceleration: optNumAttr(raw, 'maxDeceleration'),
@@ -475,10 +484,9 @@ function parseDynamicConstraints(raw: any): DynamicConstraints {
 // Teleport action
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseTeleportAction(raw: any): TeleportAction {
+function parseTeleportAction(raw: RawXml): TeleportAction {
   pushBindingFieldPrefix('position');
-  const position = parsePosition(raw.Position);
+  const position = parsePosition(child(raw, 'Position'));
   popBindingFieldPrefix();
   return { type: 'teleportAction', position };
 }
@@ -487,40 +495,41 @@ function parseTeleportAction(raw: any): TeleportAction {
 // Synchronize action
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseSynchronizeAction(raw: any): SynchronizeAction {
+function parseSynchronizeAction(raw: RawXml): SynchronizeAction {
+  const finalSpeed = child(raw, 'FinalSpeed');
   return {
     type: 'synchronizeAction',
     masterEntityRef: strAttr(raw, 'masterEntityRef'),
     // TargetPositionMaster/TargetPosition contain position elements DIRECTLY
     // (e.g. <LanePosition>), not wrapped in <Position>
-    targetPositionMaster: parsePosition(raw.TargetPositionMaster),
-    targetPosition: parsePosition(raw.TargetPosition),
-    finalSpeed: raw.FinalSpeed ? parseFinalSpeed(raw.FinalSpeed) : undefined,
+    targetPositionMaster: parsePosition(child(raw, 'TargetPositionMaster')),
+    targetPosition: parsePosition(child(raw, 'TargetPosition')),
+    finalSpeed: finalSpeed ? parseFinalSpeed(finalSpeed) : undefined,
     toleranceMaster: optNumAttr(raw, 'toleranceMaster'),
     tolerance: optNumAttr(raw, 'tolerance'),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseFinalSpeed(raw: any): FinalSpeed {
+function parseFinalSpeed(raw: RawXml): FinalSpeed {
   const result: FinalSpeed = {};
 
-  if (raw.AbsoluteSpeed) {
+  const absoluteSpeed = child(raw, 'AbsoluteSpeed');
+  if (absoluteSpeed) {
     result.absoluteSpeed = {
-      value: numAttr(raw.AbsoluteSpeed, 'value'),
-      steadyState: optBoolAttr(raw.AbsoluteSpeed, 'steadyState'),
+      value: numAttr(absoluteSpeed, 'value'),
+      steadyState: optBoolAttr(absoluteSpeed, 'steadyState'),
     };
   }
-  if (raw.RelativeSpeedToMaster) {
+  const relativeSpeedToMaster = child(raw, 'RelativeSpeedToMaster');
+  if (relativeSpeedToMaster) {
     result.relativeSpeedToMaster = {
-      value: numAttr(raw.RelativeSpeedToMaster, 'value'),
+      value: numAttr(relativeSpeedToMaster, 'value'),
       speedTargetValueType: strAttr(
-        raw.RelativeSpeedToMaster,
+        relativeSpeedToMaster,
         'speedTargetValueType',
         'delta',
       ) as 'delta' | 'factor',
-      steadyState: optBoolAttr(raw.RelativeSpeedToMaster, 'steadyState'),
+      steadyState: optBoolAttr(relativeSpeedToMaster, 'steadyState'),
     };
   }
 
@@ -531,25 +540,24 @@ function parseFinalSpeed(raw: any): FinalSpeed {
 // Controller actions
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseControllerAction(raw: any): PrivateAction {
-  if (raw.AssignControllerAction) {
-    return parseAssignControllerAction(raw.AssignControllerAction);
+function parseControllerAction(raw: RawXml): PrivateAction {
+  const assignControllerAction = child(raw, 'AssignControllerAction');
+  if (assignControllerAction) {
+    return parseAssignControllerAction(assignControllerAction);
   }
-  if (raw.ActivateControllerAction) {
-    return parseActivateControllerAction(raw.ActivateControllerAction);
+  const activateControllerAction = child(raw, 'ActivateControllerAction');
+  if (activateControllerAction) {
+    return parseActivateControllerAction(activateControllerAction);
   }
-  if (raw.OverrideControllerValueAction) {
-    return parseOverrideControllerAction(raw.OverrideControllerValueAction);
+  const overrideControllerValueAction = child(raw, 'OverrideControllerValueAction');
+  if (overrideControllerValueAction) {
+    return parseOverrideControllerAction(overrideControllerValueAction);
   }
 
-  throw new Error(
-    `Unknown ControllerAction type: ${Object.keys(raw).join(', ')}`,
-  );
+  throw new Error(`Unknown ControllerAction type: ${rawKeys(raw).join(', ')}`);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseAssignControllerAction(raw: any): AssignControllerAction {
+function parseAssignControllerAction(raw: RawXml): AssignControllerAction {
   const result: AssignControllerAction = {
     type: 'assignControllerAction',
     activateLateral: optBoolAttr(raw, 'activateLateral'),
@@ -558,35 +566,34 @@ function parseAssignControllerAction(raw: any): AssignControllerAction {
     activateLighting: optBoolAttr(raw, 'activateLighting'),
   };
 
-  if (raw.Controller) {
+  const controller = child(raw, 'Controller');
+  if (controller) {
+    const properties = child(controller, 'Properties');
     result.controller = {
-      name: strAttr(raw.Controller, 'name'),
-      properties: raw.Controller.Properties
-        ? ensureArray(raw.Controller.Properties.Property).map(parseProperty)
-        : [],
+      name: strAttr(controller, 'name'),
+      properties: properties ? children(properties, 'Property').map(parseProperty) : [],
     };
   }
 
-  if (raw.CatalogReference) {
+  const catalogReference = child(raw, 'CatalogReference');
+  if (catalogReference) {
     result.catalogReference = {
-      catalogName: strAttr(raw.CatalogReference, 'catalogName'),
-      entryName: strAttr(raw.CatalogReference, 'entryName'),
+      catalogName: strAttr(catalogReference, 'catalogName'),
+      entryName: strAttr(catalogReference, 'entryName'),
     };
   }
 
   return result;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseProperty(raw: any): Property {
+function parseProperty(raw: RawXml): Property {
   return {
     name: strAttr(raw, 'name'),
     value: strAttr(raw, 'value'),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseActivateControllerAction(raw: any): ActivateControllerAction {
+function parseActivateControllerAction(raw: RawXml): ActivateControllerAction {
   return {
     type: 'activateControllerAction',
     lateral: optBoolAttr(raw, 'lateral'),
@@ -597,21 +604,25 @@ function parseActivateControllerAction(raw: any): ActivateControllerAction {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseOverrideControllerAction(raw: any): OverrideControllerAction {
+function parseOverrideControllerAction(raw: RawXml): OverrideControllerAction {
+  const throttle = child(raw, 'Throttle');
+  const brake = child(raw, 'Brake');
+  const clutch = child(raw, 'Clutch');
+  const parkingBrake = child(raw, 'ParkingBrake');
+  const steeringWheel = child(raw, 'SteeringWheel');
+  const gear = child(raw, 'Gear');
   return {
     type: 'overrideControllerAction',
-    throttle: raw.Throttle ? parseOverrideValue(raw.Throttle) : undefined,
-    brake: raw.Brake ? parseOverrideValue(raw.Brake) : undefined,
-    clutch: raw.Clutch ? parseOverrideValue(raw.Clutch) : undefined,
-    parkingBrake: raw.ParkingBrake ? parseOverrideValue(raw.ParkingBrake) : undefined,
-    steeringWheel: raw.SteeringWheel ? parseOverrideValue(raw.SteeringWheel) : undefined,
-    gear: raw.Gear ? parseOverrideGearValue(raw.Gear) : undefined,
+    throttle: throttle ? parseOverrideValue(throttle) : undefined,
+    brake: brake ? parseOverrideValue(brake) : undefined,
+    clutch: clutch ? parseOverrideValue(clutch) : undefined,
+    parkingBrake: parkingBrake ? parseOverrideValue(parkingBrake) : undefined,
+    steeringWheel: steeringWheel ? parseOverrideValue(steeringWheel) : undefined,
+    gear: gear ? parseOverrideGearValue(gear) : undefined,
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseOverrideValue(raw: any): OverrideValue {
+function parseOverrideValue(raw: RawXml): OverrideValue {
   return {
     value: numAttr(raw, 'value'),
     active: boolAttr(raw, 'active'),
@@ -620,8 +631,7 @@ function parseOverrideValue(raw: any): OverrideValue {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseOverrideGearValue(raw: any): OverrideGearValue {
+function parseOverrideGearValue(raw: RawXml): OverrideGearValue {
   return {
     number: optNumAttr(raw, 'number'),
     active: boolAttr(raw, 'active'),
@@ -632,88 +642,86 @@ function parseOverrideGearValue(raw: any): OverrideGearValue {
 // Routing actions
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseRoutingAction(raw: any): PrivateAction {
-  if (raw.AssignRouteAction) {
-    return parseAssignRouteAction(raw.AssignRouteAction);
+function parseRoutingAction(raw: RawXml): PrivateAction {
+  const assignRouteAction = child(raw, 'AssignRouteAction');
+  if (assignRouteAction) {
+    return parseAssignRouteAction(assignRouteAction);
   }
-  if (raw.AcquirePositionAction) {
+  const acquirePositionAction = child(raw, 'AcquirePositionAction');
+  if (acquirePositionAction) {
     // AcquirePositionAction under RoutingAction maps to RoutingAction type
-    return parseRoutingAcquirePositionAction(raw.AcquirePositionAction);
+    return parseRoutingAcquirePositionAction(acquirePositionAction);
   }
-  if (raw.FollowTrajectoryAction) {
-    return parseFollowTrajectoryAction(raw.FollowTrajectoryAction);
+  const followTrajectoryAction = child(raw, 'FollowTrajectoryAction');
+  if (followTrajectoryAction) {
+    return parseFollowTrajectoryAction(followTrajectoryAction);
   }
-  if ('RandomRouteAction' in raw) {
+  if (has(raw, 'RandomRouteAction')) {
     // XSD RandomRouteAction is an empty element; preserve it as a typed
     // passthrough so it survives a round-trip without throwing.
     return { type: 'routingAction', routeAction: 'randomRoute' };
   }
 
-  throw new Error(
-    `Unknown RoutingAction type: ${Object.keys(raw).join(', ')}`,
-  );
+  throw new Error(`Unknown RoutingAction type: ${rawKeys(raw).join(', ')}`);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseAssignRouteAction(raw: any): RoutingAction {
+function parseAssignRouteAction(raw: RawXml): RoutingAction {
   const result: RoutingAction = {
     type: 'routingAction',
     routeAction: 'assignRoute',
   };
 
-  if (raw.Route) {
+  const route = child(raw, 'Route');
+  const catalogReference = child(raw, 'CatalogReference');
+  if (route) {
     result.route = {
-      name: strAttr(raw.Route, 'name'),
-      closed: boolAttr(raw.Route, 'closed'),
-      waypoints: ensureArray(raw.Route.Waypoint).map(parseRouteWaypoint),
+      name: strAttr(route, 'name'),
+      closed: boolAttr(route, 'closed'),
+      waypoints: children(route, 'Waypoint').map(parseRouteWaypoint),
     };
-  } else if (raw.CatalogReference) {
+  } else if (catalogReference) {
     result.catalogReference = {
-      catalogName: strAttr(raw.CatalogReference, 'catalogName'),
-      entryName: strAttr(raw.CatalogReference, 'entryName'),
+      catalogName: strAttr(catalogReference, 'catalogName'),
+      entryName: strAttr(catalogReference, 'entryName'),
     };
   }
 
   return result;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseRouteWaypoint(raw: any): { position: ReturnType<typeof parsePosition>; routeStrategy: string } {
+function parseRouteWaypoint(raw: RawXml): { position: ReturnType<typeof parsePosition>; routeStrategy: string } {
   return {
-    position: parsePosition(raw.Position),
+    position: parsePosition(child(raw, 'Position')),
     routeStrategy: strAttr(raw, 'routeStrategy', 'shortest'),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseRoutingAcquirePositionAction(raw: any): RoutingAction {
+function parseRoutingAcquirePositionAction(raw: RawXml): RoutingAction {
   return {
     type: 'routingAction',
     routeAction: 'acquirePosition',
-    position: parsePosition(raw.Position),
+    position: parsePosition(child(raw, 'Position')),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseFollowTrajectoryAction(raw: any): FollowTrajectoryAction {
+function parseFollowTrajectoryAction(raw: RawXml): FollowTrajectoryAction {
   // XSD FollowTrajectoryAction choice (via TrajectoryRef → Trajectory |
   // CatalogReference), plus deprecated inline Trajectory / CatalogReference
   // directly under the action.
   const result: FollowTrajectoryAction = {
     type: 'followTrajectoryAction',
-    timeReference: parseTimeReference(raw.TimeReference),
+    timeReference: parseTimeReference(child(raw, 'TimeReference')),
     followingMode: strAttr(
-      raw.TrajectoryFollowingMode,
+      child(raw, 'TrajectoryFollowingMode'),
       'followingMode',
       'follow',
     ) as FollowingMode,
     initialDistanceOffset: optNumAttr(raw, 'initialDistanceOffset'),
   };
 
-  const trajectoryRef = raw.TrajectoryRef;
-  const inlineTrajectory = raw.Trajectory ?? trajectoryRef?.Trajectory;
-  const catalogReference = raw.CatalogReference ?? trajectoryRef?.CatalogReference;
+  const trajectoryRef = child(raw, 'TrajectoryRef');
+  const inlineTrajectory = child(raw, 'Trajectory') ?? child(trajectoryRef, 'Trajectory');
+  const catalogReference = child(raw, 'CatalogReference') ?? child(trajectoryRef, 'CatalogReference');
 
   if (inlineTrajectory) {
     result.trajectory = parseTrajectory(inlineTrajectory);
@@ -727,116 +735,106 @@ function parseFollowTrajectoryAction(raw: any): FollowTrajectoryAction {
   return result;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function parseTrajectory(raw: any): Trajectory {
+export function parseTrajectory(raw: RawXml | undefined): Trajectory {
   if (!raw) throw new Error('Trajectory element is missing');
   return {
     name: strAttr(raw, 'name'),
     closed: boolAttr(raw, 'closed'),
-    parameterDeclarations: parseParameterDeclarations(raw.ParameterDeclarations),
-    shape: parseTrajectoryShape(raw.Shape),
+    parameterDeclarations: parseParameterDeclarations(child(raw, 'ParameterDeclarations')),
+    shape: parseTrajectoryShape(child(raw, 'Shape')),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseTrajectoryShape(raw: any): TrajectoryShape {
+function parseTrajectoryShape(raw: RawXml | undefined): TrajectoryShape {
   if (!raw) throw new Error('Shape element is missing in Trajectory');
 
   // `Polyline` may parse as '' or {} when it has no Vertex children
-  // (fast-xml-parser collapses empty elements), so check with `in`.
-  if ('Polyline' in raw) {
-    const polyline = raw.Polyline;
+  // (fast-xml-parser collapses empty elements), so check with `has`.
+  if (has(raw, 'Polyline')) {
+    const polyline = child(raw, 'Polyline');
     return {
       type: 'polyline',
-      vertices:
-        polyline && typeof polyline === 'object'
-          ? ensureArray(polyline.Vertex).map(parseTrajectoryVertex)
-          : [],
+      vertices: polyline ? children(polyline, 'Vertex').map(parseTrajectoryVertex) : [],
     };
   }
-  if (raw.Clothoid) {
+  const clothoid = child(raw, 'Clothoid');
+  if (clothoid) {
+    const position = child(clothoid, 'Position');
     return {
       type: 'clothoid',
-      curvature: numAttr(raw.Clothoid, 'curvature'),
-      curvatureDot: numAttr(raw.Clothoid, 'curvatureDot'),
-      length: numAttr(raw.Clothoid, 'length'),
-      startTime: optNumAttr(raw.Clothoid, 'startTime'),
-      stopTime: optNumAttr(raw.Clothoid, 'stopTime'),
-      position: raw.Clothoid.Position
-        ? parsePosition(raw.Clothoid.Position)
-        : undefined,
+      curvature: numAttr(clothoid, 'curvature'),
+      curvatureDot: numAttr(clothoid, 'curvatureDot'),
+      length: numAttr(clothoid, 'length'),
+      startTime: optNumAttr(clothoid, 'startTime'),
+      stopTime: optNumAttr(clothoid, 'stopTime'),
+      position: position ? parsePosition(position) : undefined,
     };
   }
-  if (raw.ClothoidSpline) {
+  const clothoidSpline = child(raw, 'ClothoidSpline');
+  if (clothoidSpline) {
     return {
       type: 'clothoidSpline',
-      segments: ensureArray(raw.ClothoidSpline.ClothoidSplineSegment).map(parseClothoidSplineSegment),
-      timeEnd: optNumAttr(raw.ClothoidSpline, 'timeEnd'),
+      segments: children(clothoidSpline, 'ClothoidSplineSegment').map(parseClothoidSplineSegment),
+      timeEnd: optNumAttr(clothoidSpline, 'timeEnd'),
     };
   }
-  if (raw.Nurbs) {
+  const nurbs = child(raw, 'Nurbs');
+  if (nurbs) {
     return {
       type: 'nurbs',
-      order: numAttr(raw.Nurbs, 'order'),
-      controlPoints: ensureArray(raw.Nurbs.ControlPoint).map(parseNurbsControlPoint),
-      knots: ensureArray(raw.Nurbs.Knot).map(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (k: any) => numAttr(k, 'value'),
-      ),
+      order: numAttr(nurbs, 'order'),
+      controlPoints: children(nurbs, 'ControlPoint').map(parseNurbsControlPoint),
+      knots: children(nurbs, 'Knot').map((k) => numAttr(k, 'value')),
     };
   }
 
-  throw new Error(
-    `Unknown TrajectoryShape type: ${Object.keys(raw).join(', ')}`,
-  );
+  throw new Error(`Unknown TrajectoryShape type: ${rawKeys(raw).join(', ')}`);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseClothoidSplineSegment(raw: any): ClothoidSplineSegment {
+function parseClothoidSplineSegment(raw: RawXml): ClothoidSplineSegment {
+  const positionStart = child(raw, 'PositionStart');
   return {
     curvatureStart: numAttr(raw, 'curvatureStart'),
     curvatureEnd: numAttr(raw, 'curvatureEnd'),
     length: numAttr(raw, 'length'),
     hOffset: optNumAttr(raw, 'hOffset'),
     timeStart: optNumAttr(raw, 'timeStart'),
-    positionStart: raw.PositionStart ? parsePosition(raw.PositionStart) : undefined,
+    positionStart: positionStart ? parsePosition(positionStart) : undefined,
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseTrajectoryVertex(raw: any): TrajectoryVertex {
+function parseTrajectoryVertex(raw: RawXml): TrajectoryVertex {
   return {
-    position: parsePosition(raw.Position),
+    position: parsePosition(child(raw, 'Position')),
     time: optNumAttr(raw, 'time'),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseNurbsControlPoint(raw: any): NurbsControlPoint {
+function parseNurbsControlPoint(raw: RawXml): NurbsControlPoint {
   return {
-    position: parsePosition(raw.Position),
+    position: parsePosition(child(raw, 'Position')),
     time: optNumAttr(raw, 'time'),
     weight: optNumAttr(raw, 'weight'),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseTimeReference(raw: any): TimeReference {
+function parseTimeReference(raw: RawXml | undefined): TimeReference {
   if (!raw) return { none: true };
 
-  if (raw.None !== undefined) {
+  if (has(raw, 'None')) {
     return { none: true };
   }
-  if (raw.Timing) {
+  const timing = child(raw, 'Timing');
+  if (timing) {
     return {
       timing: {
         domainAbsoluteRelative: strAttr(
-          raw.Timing,
+          timing,
           'domainAbsoluteRelative',
           'absolute',
         ) as 'absolute' | 'relative',
-        offset: numAttr(raw.Timing, 'offset'),
-        scale: numAttr(raw.Timing, 'scale', 1),
+        offset: numAttr(timing, 'offset'),
+        scale: numAttr(timing, 'scale', 1),
       },
     };
   }
@@ -848,8 +846,7 @@ function parseTimeReference(raw: any): TimeReference {
 // Visibility action
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseVisibilityAction(raw: any): VisibilityAction {
+function parseVisibilityAction(raw: RawXml): VisibilityAction {
   return {
     type: 'visibilityAction',
     graphics: boolAttr(raw, 'graphics'),
@@ -863,16 +860,12 @@ function parseVisibilityAction(raw: any): VisibilityAction {
 // Appearance action
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseAppearanceAction(raw: any): AppearanceAction {
+function parseAppearanceAction(raw: RawXml): AppearanceAction {
   // AppearanceAction is a placeholder with [key: string]: unknown
   const result: AppearanceAction = { type: 'appearanceAction' };
-  if (raw && typeof raw === 'object') {
-    for (const key of Object.keys(raw)) {
-      if (!key.startsWith('@_')) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (result as any)[key] = raw[key];
-      }
+  for (const key of Object.keys(raw)) {
+    if (!key.startsWith('@_')) {
+      result[key] = raw[key];
     }
   }
   return result;
@@ -882,44 +875,48 @@ function parseAppearanceAction(raw: any): AppearanceAction {
 // Animation action
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseAnimationAction(raw: any): AnimationAction {
+function parseAnimationAction(raw: RawXml): AnimationAction {
   // XSD AnimationAction: sequence(AnimationType, AnimationState?) with
   // `loop` / `animationDuration` attributes.
-  const animationType = raw.AnimationType
-    ? parseAnimationType(raw.AnimationType)
+  const animationTypeEl = child(raw, 'AnimationType');
+  const animationType = animationTypeEl
+    ? parseAnimationType(animationTypeEl)
     : strAttr(raw, 'animationType', '');
 
+  const animationState = child(raw, 'AnimationState');
   return {
     type: 'animationAction',
     animationType,
-    state: raw.AnimationState ? optStrAttr(raw.AnimationState, 'state') : undefined,
+    state: animationState ? optStrAttr(animationState, 'state') : undefined,
     duration: optNumAttr(raw, 'animationDuration'),
     loop: optBoolAttr(raw, 'loop'),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseAnimationType(raw: any): string {
+function parseAnimationType(raw: RawXml): string {
   // XSD AnimationType: choice(ComponentAnimation | PedestrianAnimation |
   // AnimationFile | UserDefinedAnimation). UserDefinedAnimation is what the
   // serializer emits; the others are read tolerantly for external inputs.
-  if (raw.UserDefinedAnimation) {
-    return strAttr(raw.UserDefinedAnimation, 'userDefinedAnimationType', '') ||
-      strAttr(raw.UserDefinedAnimation, 'type', '');
+  const userDefinedAnimation = child(raw, 'UserDefinedAnimation');
+  if (userDefinedAnimation) {
+    return strAttr(userDefinedAnimation, 'userDefinedAnimationType', '') ||
+      strAttr(userDefinedAnimation, 'type', '');
   }
-  if (raw.ComponentAnimation) {
-    return strAttr(raw.ComponentAnimation.VehicleComponent, 'vehicleComponentType', '') ||
-      strAttr(raw.ComponentAnimation.UserDefinedComponent, 'userDefinedComponentType', '');
+  const componentAnimation = child(raw, 'ComponentAnimation');
+  if (componentAnimation) {
+    return strAttr(child(componentAnimation, 'VehicleComponent'), 'vehicleComponentType', '') ||
+      strAttr(child(componentAnimation, 'UserDefinedComponent'), 'userDefinedComponentType', '');
   }
-  if (raw.PedestrianAnimation) {
+  const pedestrianAnimation = child(raw, 'PedestrianAnimation');
+  if (pedestrianAnimation) {
     // Could be motion or gesture
-    return strAttr(raw.PedestrianAnimation, 'motion', '') ||
-      strAttr(raw.PedestrianAnimation, 'gesture', '');
+    return strAttr(pedestrianAnimation, 'motion', '') ||
+      strAttr(pedestrianAnimation, 'gesture', '');
   }
-  if (raw.AnimationFile) {
-    return strAttr(raw.AnimationFile.File, 'filepath', '') ||
-      strAttr(raw.AnimationFile, 'file', '');
+  const animationFile = child(raw, 'AnimationFile');
+  if (animationFile) {
+    return strAttr(child(animationFile, 'File'), 'filepath', '') ||
+      strAttr(animationFile, 'file', '');
   }
   return '';
 }
@@ -928,10 +925,9 @@ function parseAnimationType(raw: any): string {
 // Light state action
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseLightStateAction(raw: any): LightStateAction {
-  const lightState = raw.LightState;
-  const lightType = raw.LightType;
+function parseLightStateAction(raw: RawXml): LightStateAction {
+  const lightState = child(raw, 'LightState');
+  const lightType = child(raw, 'LightType');
 
   const result: LightStateAction = {
     type: 'lightStateAction',
@@ -943,39 +939,44 @@ function parseLightStateAction(raw: any): LightStateAction {
     transitionTime: optNumAttr(raw, 'transitionTime'),
   };
 
-  if (lightState?.Color) {
+  const color = child(lightState, 'Color');
+  if (color) {
+    const colorRgb = child(color, 'ColorRgb') ?? color;
     result.color = {
-      r: numAttr(lightState.Color.ColorRgb ?? lightState.Color, 'red', 0),
-      g: numAttr(lightState.Color.ColorRgb ?? lightState.Color, 'green', 0),
-      b: numAttr(lightState.Color.ColorRgb ?? lightState.Color, 'blue', 0),
+      r: numAttr(colorRgb, 'red', 0),
+      g: numAttr(colorRgb, 'green', 0),
+      b: numAttr(colorRgb, 'blue', 0),
     };
   }
 
   return result;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseLightType(raw: any): string {
+function parseLightType(raw: RawXml | undefined): string {
   if (!raw) return '';
   // XSD-compliant: <VehicleLight vehicleLightType="..."/>
-  if (raw.VehicleLight) {
-    const vlt = strAttr(raw.VehicleLight, 'vehicleLightType', '');
+  const vehicleLight = child(raw, 'VehicleLight');
+  if (vehicleLight) {
+    const vlt = strAttr(vehicleLight, 'vehicleLightType', '');
     return vlt ? `vehicleLight:${vlt}` : '';
   }
   // Legacy: <VehicleLightType vehicleLightType="..."/>
-  if (raw.VehicleLightType) {
-    const vlt = strAttr(raw.VehicleLightType, 'vehicleLightType', '') ||
-      (typeof raw.VehicleLightType === 'string' ? raw.VehicleLightType : '');
+  const vehicleLightTypeRaw = raw.VehicleLightType;
+  if (vehicleLightTypeRaw) {
+    const vlt = strAttr(child(raw, 'VehicleLightType'), 'vehicleLightType', '') ||
+      (typeof vehicleLightTypeRaw === 'string' ? vehicleLightTypeRaw : '');
     return vlt ? `vehicleLight:${vlt}` : '';
   }
   // XSD-compliant: <UserDefinedLight userDefinedLightType="..."/>
-  if (raw.UserDefinedLight) {
-    const udt = strAttr(raw.UserDefinedLight, 'userDefinedLightType', '');
+  const userDefinedLight = child(raw, 'UserDefinedLight');
+  if (userDefinedLight) {
+    const udt = strAttr(userDefinedLight, 'userDefinedLightType', '');
     return udt ? `userDefined:${udt}` : '';
   }
   // Legacy: <UserDefinedLightType type="..."/>
-  if (raw.UserDefinedLightType) {
-    const udt = strAttr(raw.UserDefinedLightType, 'type', '');
+  const userDefinedLightType = child(raw, 'UserDefinedLightType');
+  if (userDefinedLightType) {
+    const udt = strAttr(userDefinedLightType, 'type', '');
     return udt ? `userDefined:${udt}` : '';
   }
   // Fallback: old format <LightType value="vehicleLight:..."/>
@@ -988,11 +989,10 @@ function parseLightType(raw: any): string {
 // Trailer actions
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseConnectTrailerAction(raw: any): ConnectTrailerAction {
+function parseConnectTrailerAction(raw: RawXml): ConnectTrailerAction {
   return {
     type: 'connectTrailerAction',
-    trailerRef: strAttr(raw, 'trailerRef', '') || strAttr(raw.TrailerRef, 'entityRef', ''),
+    trailerRef: strAttr(raw, 'trailerRef', '') || strAttr(child(raw, 'TrailerRef'), 'entityRef', ''),
   };
 }
 
@@ -1006,38 +1006,36 @@ function parseDisconnectTrailerAction(): DisconnectTrailerAction {
 // Global actions
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseEnvironmentAction(raw: any): EnvironmentAction {
+function parseEnvironmentAction(raw: RawXml): EnvironmentAction {
   // XSD EnvironmentAction: choice(Environment | CatalogReference).
-  if (raw.CatalogReference) {
+  const catalogReference = child(raw, 'CatalogReference');
+  if (catalogReference) {
     return {
       type: 'environmentAction',
       catalogReference: {
-        catalogName: strAttr(raw.CatalogReference, 'catalogName'),
-        entryName: strAttr(raw.CatalogReference, 'entryName'),
+        catalogName: strAttr(catalogReference, 'catalogName'),
+        entryName: strAttr(catalogReference, 'entryName'),
       },
     };
   }
   return {
     type: 'environmentAction',
-    environment: parseEnvironment(raw.Environment),
+    environment: parseEnvironment(child(raw, 'Environment')),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function parseEnvironment(raw: any): Environment {
+export function parseEnvironment(raw: RawXml | undefined): Environment {
   if (!raw) throw new Error('Environment element is missing');
   return {
     name: strAttr(raw, 'name'),
-    parameterDeclarations: parseParameterDeclarations(raw.ParameterDeclarations),
-    timeOfDay: parseTimeOfDay(raw.TimeOfDay),
-    weather: parseWeather(raw.Weather),
-    roadCondition: parseRoadCondition(raw.RoadCondition),
+    parameterDeclarations: parseParameterDeclarations(child(raw, 'ParameterDeclarations')),
+    timeOfDay: parseTimeOfDay(child(raw, 'TimeOfDay')),
+    weather: parseWeather(child(raw, 'Weather')),
+    roadCondition: parseRoadCondition(child(raw, 'RoadCondition')),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseTimeOfDay(raw: any): TimeOfDay {
+function parseTimeOfDay(raw: RawXml | undefined): TimeOfDay {
   if (!raw) return { animation: false, dateTime: '' };
   return {
     animation: boolAttr(raw, 'animation'),
@@ -1045,8 +1043,7 @@ function parseTimeOfDay(raw: any): TimeOfDay {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseWeather(raw: any): Weather {
+function parseWeather(raw: RawXml | undefined): Weather {
   if (!raw) return {};
   const result: Weather = {
     fractionalCloudCover: optStrAttr(raw, 'fractionalCloudCover'),
@@ -1054,53 +1051,59 @@ function parseWeather(raw: any): Weather {
     temperature: optNumAttr(raw, 'temperature'),
   };
 
-  if (raw.Sun) {
+  const sun = child(raw, 'Sun');
+  if (sun) {
     result.sun = {
-      intensity: numAttr(raw.Sun, 'intensity'),
-      azimuth: numAttr(raw.Sun, 'azimuth'),
-      elevation: numAttr(raw.Sun, 'elevation'),
+      intensity: numAttr(sun, 'intensity'),
+      azimuth: numAttr(sun, 'azimuth'),
+      elevation: numAttr(sun, 'elevation'),
     };
   }
 
-  if (raw.Fog) {
+  const fog = child(raw, 'Fog');
+  if (fog) {
+    const boundingBox = child(fog, 'BoundingBox');
+    const center = child(boundingBox, 'Center');
+    const dimensions = child(boundingBox, 'Dimensions');
     result.fog = {
-      visualRange: numAttr(raw.Fog, 'visualRange'),
-      boundingBox: raw.Fog.BoundingBox
+      visualRange: numAttr(fog, 'visualRange'),
+      boundingBox: boundingBox
         ? {
             center: {
-              x: numAttr(raw.Fog.BoundingBox.Center, 'x'),
-              y: numAttr(raw.Fog.BoundingBox.Center, 'y'),
-              z: numAttr(raw.Fog.BoundingBox.Center, 'z'),
+              x: numAttr(center, 'x'),
+              y: numAttr(center, 'y'),
+              z: numAttr(center, 'z'),
             },
             dimensions: {
-              width: numAttr(raw.Fog.BoundingBox.Dimensions, 'width'),
-              length: numAttr(raw.Fog.BoundingBox.Dimensions, 'length'),
-              height: numAttr(raw.Fog.BoundingBox.Dimensions, 'height'),
+              width: numAttr(dimensions, 'width'),
+              length: numAttr(dimensions, 'length'),
+              height: numAttr(dimensions, 'height'),
             },
           }
         : undefined,
     };
   }
 
-  if (raw.Precipitation) {
+  const precipitation = child(raw, 'Precipitation');
+  if (precipitation) {
     result.precipitation = {
-      precipitationType: strAttr(raw.Precipitation, 'precipitationType', 'dry'),
-      precipitationIntensity: numAttr(raw.Precipitation, 'precipitationIntensity'),
+      precipitationType: strAttr(precipitation, 'precipitationType', 'dry'),
+      precipitationIntensity: numAttr(precipitation, 'precipitationIntensity'),
     };
   }
 
-  if (raw.Wind) {
+  const wind = child(raw, 'Wind');
+  if (wind) {
     result.wind = {
-      direction: numAttr(raw.Wind, 'direction'),
-      speed: numAttr(raw.Wind, 'speed'),
+      direction: numAttr(wind, 'direction'),
+      speed: numAttr(wind, 'speed'),
     };
   }
 
   return result;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseRoadCondition(raw: any): RoadCondition {
+function parseRoadCondition(raw: RawXml | undefined): RoadCondition {
   if (!raw) return { frictionScaleFactor: 1.0 };
   return {
     frictionScaleFactor: numAttr(raw, 'frictionScaleFactor', 1.0),
@@ -1108,21 +1111,20 @@ function parseRoadCondition(raw: any): RoadCondition {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseEntityAction(raw: any): EntityAction {
+function parseEntityAction(raw: RawXml): EntityAction {
   const entityRef = strAttr(raw, 'entityRef');
 
-  if (raw.AddEntityAction) {
+  const addEntityAction = child(raw, 'AddEntityAction');
+  if (addEntityAction) {
+    const position = child(addEntityAction, 'Position');
     return {
       type: 'entityAction',
       entityRef,
       actionType: 'addEntity',
-      position: raw.AddEntityAction.Position
-        ? parsePosition(raw.AddEntityAction.Position)
-        : undefined,
+      position: position ? parsePosition(position) : undefined,
     };
   }
-  if (raw.DeleteEntityAction !== undefined) {
+  if (has(raw, 'DeleteEntityAction')) {
     return {
       type: 'entityAction',
       entityRef,
@@ -1130,127 +1132,119 @@ function parseEntityAction(raw: any): EntityAction {
     };
   }
 
-  throw new Error(
-    `Unknown EntityAction type: ${Object.keys(raw).join(', ')}`,
-  );
+  throw new Error(`Unknown EntityAction type: ${rawKeys(raw).join(', ')}`);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseParameterAction(raw: any): ParameterAction {
+function parseParameterAction(raw: RawXml): ParameterAction {
   const parameterRef = strAttr(raw, 'parameterRef');
 
-  if (raw.SetAction) {
+  const setAction = child(raw, 'SetAction');
+  if (setAction) {
     return {
       type: 'parameterAction',
       parameterRef,
       actionType: 'set',
-      value: strAttr(raw.SetAction, 'value'),
+      value: strAttr(setAction, 'value'),
     };
   }
-  if (raw.ModifyAction) {
-    return parseParameterModifyAction(raw.ModifyAction, parameterRef);
+  const modifyAction = child(raw, 'ModifyAction');
+  if (modifyAction) {
+    return parseParameterModifyAction(modifyAction, parameterRef);
   }
 
-  throw new Error(
-    `Unknown ParameterAction type: ${Object.keys(raw).join(', ')}`,
-  );
+  throw new Error(`Unknown ParameterAction type: ${rawKeys(raw).join(', ')}`);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseParameterModifyAction(raw: any, parameterRef: string): ParameterAction {
-  const rule = raw.Rule;
+function parseParameterModifyAction(raw: RawXml, parameterRef: string): ParameterAction {
+  const rule = child(raw, 'Rule');
   if (!rule) throw new Error('ModifyAction missing Rule element');
 
-  if (rule.AddValue) {
+  const addValue = child(rule, 'AddValue');
+  if (addValue) {
     return {
       type: 'parameterAction',
       parameterRef,
       actionType: 'modify',
       rule: 'addValue',
-      modifyValue: numAttr(rule.AddValue, 'value'),
+      modifyValue: numAttr(addValue, 'value'),
     };
   }
-  if (rule.MultiplyByValue) {
+  const multiplyByValue = child(rule, 'MultiplyByValue');
+  if (multiplyByValue) {
     return {
       type: 'parameterAction',
       parameterRef,
       actionType: 'modify',
       rule: 'multiplyByValue',
-      modifyValue: numAttr(rule.MultiplyByValue, 'value'),
+      modifyValue: numAttr(multiplyByValue, 'value'),
     };
   }
 
-  throw new Error(
-    `Unknown ParameterAction ModifyAction Rule type: ${Object.keys(rule).join(', ')}`,
-  );
+  throw new Error(`Unknown ParameterAction ModifyAction Rule type: ${rawKeys(rule).join(', ')}`);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseVariableAction(raw: any): VariableAction {
+function parseVariableAction(raw: RawXml): VariableAction {
   const variableRef = strAttr(raw, 'variableRef');
 
-  if (raw.SetAction) {
+  const setAction = child(raw, 'SetAction');
+  if (setAction) {
     return {
       type: 'variableAction',
       variableRef,
       actionType: 'set',
-      value: strAttr(raw.SetAction, 'value'),
+      value: strAttr(setAction, 'value'),
     };
   }
-  if (raw.ModifyAction) {
-    return parseVariableModifyAction(raw.ModifyAction, variableRef);
+  const modifyAction = child(raw, 'ModifyAction');
+  if (modifyAction) {
+    return parseVariableModifyAction(modifyAction, variableRef);
   }
 
-  throw new Error(
-    `Unknown VariableAction type: ${Object.keys(raw).join(', ')}`,
-  );
+  throw new Error(`Unknown VariableAction type: ${rawKeys(raw).join(', ')}`);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseVariableModifyAction(raw: any, variableRef: string): VariableAction {
-  const rule = raw.Rule;
+function parseVariableModifyAction(raw: RawXml, variableRef: string): VariableAction {
+  const rule = child(raw, 'Rule');
   if (!rule) throw new Error('ModifyAction missing Rule element');
 
-  if (rule.AddValue) {
+  const addValue = child(rule, 'AddValue');
+  if (addValue) {
     return {
       type: 'variableAction',
       variableRef,
       actionType: 'modify',
       rule: 'addValue',
-      modifyValue: numAttr(rule.AddValue, 'value'),
+      modifyValue: numAttr(addValue, 'value'),
     };
   }
-  if (rule.MultiplyByValue) {
+  const multiplyByValue = child(rule, 'MultiplyByValue');
+  if (multiplyByValue) {
     return {
       type: 'variableAction',
       variableRef,
       actionType: 'modify',
       rule: 'multiplyByValue',
-      modifyValue: numAttr(rule.MultiplyByValue, 'value'),
+      modifyValue: numAttr(multiplyByValue, 'value'),
     };
   }
 
-  throw new Error(
-    `Unknown VariableAction ModifyAction Rule type: ${Object.keys(rule).join(', ')}`,
-  );
+  throw new Error(`Unknown VariableAction ModifyAction Rule type: ${rawKeys(rule).join(', ')}`);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseInfrastructureAction(raw: any): InfrastructureAction {
+function parseInfrastructureAction(raw: RawXml): InfrastructureAction {
   return {
     type: 'infrastructureAction',
-    trafficSignalAction: parseTrafficSignalAction(raw.TrafficSignalAction),
+    trafficSignalAction: parseTrafficSignalAction(child(raw, 'TrafficSignalAction')),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseTrafficSignalAction(raw: any): TrafficSignalAction {
+function parseTrafficSignalAction(raw: RawXml | undefined): TrafficSignalAction {
   if (!raw) throw new Error('TrafficSignalAction element is missing');
 
   const result: TrafficSignalAction = {};
 
-  if (raw.TrafficSignalControllerAction) {
-    const ctrl = raw.TrafficSignalControllerAction;
+  const ctrl = child(raw, 'TrafficSignalControllerAction');
+  if (ctrl) {
     result.controllerRef = strAttr(ctrl, 'trafficSignalControllerRef');
     const phase = optStrAttr(ctrl, 'phase');
     if (phase) {
@@ -1258,26 +1252,23 @@ function parseTrafficSignalAction(raw: any): TrafficSignalAction {
     }
   }
 
-  if (raw.TrafficSignalStateAction) {
+  const stateAction = child(raw, 'TrafficSignalStateAction');
+  if (stateAction) {
     result.stateAction = {
-      name: strAttr(raw.TrafficSignalStateAction, 'name'),
-      state: strAttr(raw.TrafficSignalStateAction, 'state'),
+      name: strAttr(stateAction, 'name'),
+      state: strAttr(stateAction, 'state'),
     };
   }
 
   return result;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseTrafficAction(raw: any): TrafficAction {
+function parseTrafficAction(raw: RawXml): TrafficAction {
   // TrafficAction is a placeholder with [key: string]: unknown
   const result: TrafficAction = { type: 'trafficAction' };
-  if (raw && typeof raw === 'object') {
-    for (const key of Object.keys(raw)) {
-      if (!key.startsWith('@_')) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (result as any)[key] = raw[key];
-      }
+  for (const key of Object.keys(raw)) {
+    if (!key.startsWith('@_')) {
+      result[key] = raw[key];
     }
   }
   return result;

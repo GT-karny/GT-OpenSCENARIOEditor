@@ -1,10 +1,8 @@
 import type { RoadNetwork } from '@osce/shared';
 import { buildAttrs } from '../utils/xml-helpers.js';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildRoadNetwork(rn: RoadNetwork): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: any = {};
+export function buildRoadNetwork(rn: RoadNetwork): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
   if (rn.logicFile) {
     result.LogicFile = buildAttrs({ filepath: rn.logicFile.filepath });
   }

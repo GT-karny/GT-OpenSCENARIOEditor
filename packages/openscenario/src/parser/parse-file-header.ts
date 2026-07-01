@@ -1,8 +1,8 @@
 import type { FileHeader } from '@osce/shared';
+import type { RawXml } from '../utils/xml-helpers.js';
 import { numAttr, strAttr } from '../utils/xml-helpers.js';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function parseFileHeader(raw: any): FileHeader {
+export function parseFileHeader(raw: RawXml | undefined): FileHeader {
   if (!raw) {
     return { revMajor: 1, revMinor: 3, date: '', description: '', author: '' };
   }

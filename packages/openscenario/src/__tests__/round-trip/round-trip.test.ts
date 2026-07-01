@@ -19,8 +19,7 @@ const serializer = new XoscSerializer();
  * Deep clone a ScenarioDocument, stripping all `id` fields
  * (since UUIDs are regenerated on each parse) and `_editor` metadata.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function stripVolatile(doc: ScenarioDocument): any {
+function stripVolatile(doc: ScenarioDocument): unknown {
   return JSON.parse(
     JSON.stringify(doc, (key, value) => {
       if (key === 'id' || key === '_editor') return undefined;

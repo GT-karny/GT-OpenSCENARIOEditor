@@ -24,8 +24,7 @@ export class XoscSerializer implements IXoscSerializer {
     // ParameterDeclarations?, VariableDeclarations?, CatalogLocations, RoadNetwork, Entities, Storyboard.
     const variableDecls = buildVariableDeclarations(doc.variableDeclarations);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const xmlObj: any = {
+    const xmlObj: Record<string, unknown> = {
       OpenSCENARIO: {
         '@_xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
         '@_xsi:noNamespaceSchemaLocation': 'OpenSCENARIO.xsd',

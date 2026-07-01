@@ -1,4 +1,4 @@
-import type { ScenarioDocument, ValidationIssue } from '@osce/shared';
+import type { ScenarioDocument, ValidationIssue, Trigger } from '@osce/shared';
 
 export function validateReferenceRules(
   doc: ScenarioDocument,
@@ -64,8 +64,7 @@ export function validateReferenceRules(
 }
 
 function checkTriggerParamRefs(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  trigger: any,
+  trigger: Trigger | undefined,
   paramNames: Set<string>,
   errors: ValidationIssue[],
   path: string,

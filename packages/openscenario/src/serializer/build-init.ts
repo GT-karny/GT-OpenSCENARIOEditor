@@ -4,10 +4,8 @@ import { buildAttrs } from '../utils/xml-helpers.js';
 
 type AllBindings = Record<string, Record<string, string>>;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildInit(init: Init, allBindings: AllBindings = {}): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const actions: any = {};
+export function buildInit(init: Init, allBindings: AllBindings = {}): Record<string, unknown> {
+  const actions: Record<string, unknown> = {};
 
   if (init.globalActions.length > 0) {
     actions.GlobalAction = init.globalActions.map((ga) =>
