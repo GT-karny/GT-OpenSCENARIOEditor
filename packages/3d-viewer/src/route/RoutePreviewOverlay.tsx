@@ -4,8 +4,8 @@
  * to distinguish from the active route editor.
  */
 
-import React, { useMemo } from 'react';
-import { Line } from '@react-three/drei';
+import React from 'react';
+import { EditPreviewLine, EditPreviewMarker } from '../edit-shared/EditPreviewPrimitives.js';
 
 type Point3 = { x: number; y: number; z: number; h?: number };
 
@@ -18,54 +18,7 @@ export interface RoutePreviewOverlayProps {
   previews: RoutePreviewData[];
 }
 
-const PREVIEW_LINE_COLOR = '#4488CC';
-const PREVIEW_MARKER_COLOR = '#4488CC';
-const Z_OFFSET = 0.15;
-
-const PreviewConnectionLine: React.FC<{ points: Point3[]; index: number }> = React.memo(
-  ({ points, index }) => {
-    const linePoints = useMemo(
-      () => points.map((p) => [p.x, p.y, p.z + Z_OFFSET] as [number, number, number]),
-      [points],
-    );
-
-    if (linePoints.length < 2) return null;
-
-    return (
-      <Line
-        key={`preview-line-${index}`}
-        points={linePoints}
-        color={PREVIEW_LINE_COLOR}
-        lineWidth={2}
-        transparent
-        opacity={0.5}
-      />
-    );
-  },
-);
-
-PreviewConnectionLine.displayName = 'PreviewConnectionLine';
-
-const PreviewMarker: React.FC<{
-  position: [number, number, number];
-  heading: number;
-}> = React.memo(({ position, heading }) => {
-  return (
-    <group position={position} rotation={[0, 0, heading]}>
-      <mesh scale={[0.6, 0.9, 0.6]}>
-        <octahedronGeometry args={[0.6, 0]} />
-        <meshBasicMaterial
-          color={PREVIEW_MARKER_COLOR}
-          depthTest={false}
-          transparent
-          opacity={0.4}
-        />
-      </mesh>
-    </group>
-  );
-});
-
-PreviewMarker.displayName = 'PreviewMarker';
+const PREVIEW_COLOR = '#4488CC';
 
 export const RoutePreviewOverlay: React.FC<RoutePreviewOverlayProps> = React.memo(
   ({ previews }) => {
@@ -77,19 +30,20 @@ export const RoutePreviewOverlay: React.FC<RoutePreviewOverlayProps> = React.mem
           <group key={`route-preview-${pIdx}`}>
             {/* Connection lines */}
             {preview.pathSegments.map((segment, sIdx) => (
-              <PreviewConnectionLine
+              <EditPreviewLine
                 key={`preview-seg-${pIdx}-${sIdx}`}
                 points={segment}
-                index={sIdx}
+                color={PREVIEW_COLOR}
               />
             ))}
 
             {/* Waypoint markers */}
             {preview.waypoints.map((wp, wIdx) => (
-              <PreviewMarker
+              <EditPreviewMarker
                 key={`preview-wp-${pIdx}-${wIdx}`}
                 position={[wp.x, wp.y, wp.z]}
                 heading={wp.h}
+                color={PREVIEW_COLOR}
               />
             ))}
           </group>

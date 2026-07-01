@@ -65,6 +65,18 @@ export { SIGNAL_CATALOG, resolveSignalDescriptor } from './utils/signal-catalog.
 export { getBulbMode, hasFlashingBulb, defaultOffState } from './utils/parse-traffic-light-state.js';
 export type { BulbMode } from './utils/parse-traffic-light-state.js';
 
+// Shared route/trajectory edit primitives
+export { EditPointMarker } from './edit-shared/EditPointMarker.js';
+export { EditConnectionLine } from './edit-shared/EditConnectionLine.js';
+export { EditPointGizmo } from './edit-shared/EditPointGizmo.js';
+export type { EditPointDragResult } from './edit-shared/EditPointGizmo.js';
+export { EditPreviewLine, EditPreviewMarker } from './edit-shared/EditPreviewPrimitives.js';
+export {
+  ROUTE_EDIT_THEME,
+  TRAJECTORY_EDIT_THEME,
+} from './edit-shared/edit-theme.js';
+export type { EditPrimitiveTheme } from './edit-shared/edit-theme.js';
+
 // Road editing math (used by apps/web RoadNetworkEditorLayout)
 export { computeAutoArc, computeGeometryEndpoint } from './interaction/road-editing/index.js';
 export type { AutoArcResult } from './interaction/road-editing/index.js';

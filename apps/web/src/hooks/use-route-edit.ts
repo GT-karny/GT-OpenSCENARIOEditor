@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import type { Route, OpenDriveDocument } from '@osce/shared';
 import { useRouteEditStore } from '../stores/route-edit-store';
 import type { RouteEditSource } from '../stores/route-edit-store';
-import { resolvePositionToWorld } from '@osce/3d-viewer';
 import {
   computeRoadFollowingSegmentsAsync,
   computeLaneChangeAwareSegmentsAsync,
+  resolveRouteWaypoints,
 } from '../lib/route-path-computation';
-import type { WaypointWorldPos } from '../lib/route-path-computation';
 import type { RoadManagerClient } from '../lib/wasm/road-manager-client';
+import { useDraftEditKeyboard } from './use-draft-edit-keyboard';
 
 /**
  * Hook that bridges the route-edit-store with the scenario/catalog stores
@@ -22,7 +23,42 @@ export function useRouteEdit(
   odrDoc: OpenDriveDocument | null,
   rmClient: RoadManagerClient | null = null,
 ) {
-  const store = useRouteEditStore();
+  // Subscribe only to the primitive state slices this hook reads. Zustand action
+  // identities are stable, so selecting them individually avoids re-rendering the
+  // consumer (EditorLayout) on every unrelated store change (e.g. during drags).
+  const active = useRouteEditStore((s) => s.active);
+  const source = useRouteEditStore((s) => s.source);
+  const editingRoute = useRouteEditStore((s) => s.editingRoute);
+  const originalRoute = useRouteEditStore((s) => s.originalRoute);
+  const selectedWaypointIndex = useRouteEditStore((s) => s.selectedWaypointIndex);
+  const waypointWorldPositions = useRouteEditStore(useShallow((s) => s.waypointWorldPositions));
+  const pathSegments = useRouteEditStore(useShallow((s) => s.pathSegments));
+  const laneChangeAware = useRouteEditStore((s) => s.laneChangeAware);
+  const routeCalcStrategy = useRouteEditStore((s) => s.routeCalcStrategy);
+  const laneChangeMarkers = useRouteEditStore(useShallow((s) => s.laneChangeMarkers));
+  const warnings = useRouteEditStore(useShallow((s) => s.warnings));
+
+  const enterRouteEditMode = useRouteEditStore((s) => s.enterRouteEditMode);
+  const exitRouteEditMode = useRouteEditStore((s) => s.exitRouteEditMode);
+  const addWaypoint = useRouteEditStore((s) => s.addWaypoint);
+  const insertWaypoint = useRouteEditStore((s) => s.insertWaypoint);
+  const removeWaypoint = useRouteEditStore((s) => s.removeWaypoint);
+  const updateWaypointPosition = useRouteEditStore((s) => s.updateWaypointPosition);
+  const updateWaypointStrategy = useRouteEditStore((s) => s.updateWaypointStrategy);
+  const updateRouteName = useRouteEditStore((s) => s.updateRouteName);
+  const updateRouteClosed = useRouteEditStore((s) => s.updateRouteClosed);
+  const selectWaypoint = useRouteEditStore((s) => s.selectWaypoint);
+  const setWaypointWorldPositions = useRouteEditStore((s) => s.setWaypointWorldPositions);
+  const setPathSegments = useRouteEditStore((s) => s.setPathSegments);
+  const setLaneChangeAware = useRouteEditStore((s) => s.setLaneChangeAware);
+  const setRouteCalcStrategy = useRouteEditStore((s) => s.setRouteCalcStrategy);
+  const setLaneChangeMarkers = useRouteEditStore((s) => s.setLaneChangeMarkers);
+  const commitRoute = useRouteEditStore((s) => s.commitRoute);
+  const canUndo = useRouteEditStore((s) => s.canUndo);
+  const canRedo = useRouteEditStore((s) => s.canRedo);
+  const undoRouteEdit = useRouteEditStore((s) => s.undoRouteEdit);
+  const redoRouteEdit = useRouteEditStore((s) => s.redoRouteEdit);
+
   const odrDocRef = useRef(odrDoc);
   odrDocRef.current = odrDoc;
 
@@ -31,72 +67,55 @@ export function useRouteEdit(
   // Then compute path segments (async when WASM cross-road paths are needed).
   // ---------------------------------------------------------------------------
   useEffect(() => {
-    if (!store.active || !store.editingRoute || !odrDoc) return;
+    if (!active || !editingRoute || !odrDoc) return;
 
     let cancelled = false;
 
-    const positions: WaypointWorldPos[] = [];
-    for (const wp of store.editingRoute.waypoints) {
-      const world = resolvePositionToWorld(wp.position, odrDoc);
-      if (world) {
-        positions.push({ x: world.x, y: world.y, z: world.z, h: world.h });
-      } else {
-        positions.push({ x: 0, y: 0, z: 0, h: 0 });
-      }
-    }
-    store.setWaypointWorldPositions(positions);
+    const positions = resolveRouteWaypoints(editingRoute, odrDoc);
+    setWaypointWorldPositions(positions);
 
-    const route = store.editingRoute;
+    const route = editingRoute;
     if (positions.length >= 2) {
-      if (store.laneChangeAware && rmClient) {
+      if (laneChangeAware && rmClient) {
         computeLaneChangeAwareSegmentsAsync(
           route,
           positions,
           odrDoc,
           rmClient,
-          store.routeCalcStrategy,
+          routeCalcStrategy,
         ).then(({ segments, markers }) => {
           if (!cancelled) {
-            store.setPathSegments(segments);
-            store.setLaneChangeMarkers(markers);
+            setPathSegments(segments);
+            setLaneChangeMarkers(markers);
           }
         });
       } else {
-        computeRoadFollowingSegmentsAsync(route, positions, odrDoc, rmClient).then(
-          (segments) => {
-            if (!cancelled) {
-              store.setPathSegments(segments);
-              store.setLaneChangeMarkers([]);
-            }
-          },
-        );
+        computeRoadFollowingSegmentsAsync(route, positions, odrDoc, rmClient).then((segments) => {
+          if (!cancelled) {
+            setPathSegments(segments);
+            setLaneChangeMarkers([]);
+          }
+        });
       }
     } else {
-      store.setPathSegments([]);
-      store.setLaneChangeMarkers([]);
+      setPathSegments([]);
+      setLaneChangeMarkers([]);
     }
 
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    store.editingRoute,
-    odrDoc,
-    store.active,
-    rmClient,
-    store.laneChangeAware,
-    store.routeCalcStrategy,
-  ]);
+  }, [editingRoute, odrDoc, active, rmClient, laneChangeAware, routeCalcStrategy]);
 
   // ---------------------------------------------------------------------------
   // Start route editing
   // ---------------------------------------------------------------------------
   const startRouteEdit = useCallback(
-    (source: RouteEditSource, route: Route) => {
-      store.enterRouteEditMode(source, route);
+    (src: RouteEditSource, route: Route) => {
+      enterRouteEditMode(src, route);
     },
-    [store],
+    [enterRouteEditMode],
   );
 
   // ---------------------------------------------------------------------------
@@ -107,12 +126,12 @@ export function useRouteEdit(
       updateAction?: (actionId: string, updates: Record<string, unknown>) => void,
       updateCatalogEntry?: (catalogName: string, index: number, route: Route) => void,
     ): Route | null => {
-      const route = store.commitRoute();
-      if (!route || !store.source) return null;
+      const route = commitRoute();
+      if (!route || !source) return null;
 
-      if (store.source.type === 'action' && store.source.actionId && updateAction) {
+      if (source.type === 'action' && source.actionId && updateAction) {
         // Update the RoutingAction in the scenario store
-        updateAction(store.source.actionId, {
+        updateAction(source.actionId, {
           action: {
             type: 'routingAction' as const,
             routeAction: 'assignRoute' as const,
@@ -127,100 +146,81 @@ export function useRouteEdit(
           },
         });
       } else if (
-        store.source.type === 'catalog' &&
-        store.source.catalogName != null &&
-        store.source.entryIndex != null &&
+        source.type === 'catalog' &&
+        source.catalogName != null &&
+        source.entryIndex != null &&
         updateCatalogEntry
       ) {
-        updateCatalogEntry(store.source.catalogName, store.source.entryIndex, route);
+        updateCatalogEntry(source.catalogName, source.entryIndex, route);
       }
 
-      store.exitRouteEditMode();
+      exitRouteEditMode();
       return route;
     },
-    [store],
+    [commitRoute, source, exitRouteEditMode],
   );
 
   // ---------------------------------------------------------------------------
   // Cancel route editing
   // ---------------------------------------------------------------------------
   const cancelRoute = useCallback(() => {
-    store.exitRouteEditMode();
-  }, [store]);
+    exitRouteEditMode();
+  }, [exitRouteEditMode]);
 
   // ---------------------------------------------------------------------------
-  // Keyboard shortcuts (Ctrl+Z / Ctrl+Y for undo/redo, Escape to exit)
+  // Keyboard shortcuts (Ctrl+Z / Ctrl+Y for undo/redo, Delete, Escape)
   // ---------------------------------------------------------------------------
-  useEffect(() => {
-    if (!store.active) return;
+  const onDeleteSelected = useCallback(() => {
+    if (selectedWaypointIndex !== null) {
+      removeWaypoint(selectedWaypointIndex);
+      return true;
+    }
+    return false;
+  }, [selectedWaypointIndex, removeWaypoint]);
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if typing in an input
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-        return;
-      }
-
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        store.undoRouteEdit();
-      } else if (
-        ((e.ctrlKey || e.metaKey) && e.key === 'y') ||
-        ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z')
-      ) {
-        e.preventDefault();
-        store.redoRouteEdit();
-      } else if (e.key === 'Delete' || e.key === 'Backspace') {
-        // Delete selected waypoint
-        if (store.selectedWaypointIndex !== null) {
-          e.preventDefault();
-          store.removeWaypoint(store.selectedWaypointIndex);
-        }
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        store.exitRouteEditMode();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [store.active, store]);
+  useDraftEditKeyboard({
+    active,
+    onUndo: undoRouteEdit,
+    onRedo: redoRouteEdit,
+    onDeleteSelected,
+    onEscape: exitRouteEditMode,
+  });
 
   return {
     // State
-    active: store.active,
-    source: store.source,
-    editingRoute: store.editingRoute,
-    originalRoute: store.originalRoute,
-    selectedWaypointIndex: store.selectedWaypointIndex,
-    waypointWorldPositions: store.waypointWorldPositions,
-    pathSegments: store.pathSegments,
-    laneChangeAware: store.laneChangeAware,
-    routeCalcStrategy: store.routeCalcStrategy,
-    laneChangeMarkers: store.laneChangeMarkers,
-    warnings: store.warnings,
+    active,
+    source,
+    editingRoute,
+    originalRoute,
+    selectedWaypointIndex,
+    waypointWorldPositions,
+    pathSegments,
+    laneChangeAware,
+    routeCalcStrategy,
+    laneChangeMarkers,
+    warnings,
     hasChanges:
-      store.editingRoute !== null &&
-      store.originalRoute !== null &&
-      JSON.stringify(store.editingRoute) !== JSON.stringify(store.originalRoute),
+      editingRoute !== null &&
+      originalRoute !== null &&
+      JSON.stringify(editingRoute) !== JSON.stringify(originalRoute),
 
     // Actions
     startRouteEdit,
     saveRoute,
     cancelRoute,
-    addWaypoint: store.addWaypoint,
-    insertWaypoint: store.insertWaypoint,
-    removeWaypoint: store.removeWaypoint,
-    updateWaypointPosition: store.updateWaypointPosition,
-    updateWaypointStrategy: store.updateWaypointStrategy,
-    updateRouteName: store.updateRouteName,
-    updateRouteClosed: store.updateRouteClosed,
-    selectWaypoint: store.selectWaypoint,
-    setLaneChangeAware: store.setLaneChangeAware,
-    setRouteCalcStrategy: store.setRouteCalcStrategy,
-    canUndo: store.canUndo,
-    canRedo: store.canRedo,
-    undoRouteEdit: store.undoRouteEdit,
-    redoRouteEdit: store.redoRouteEdit,
+    addWaypoint,
+    insertWaypoint,
+    removeWaypoint,
+    updateWaypointPosition,
+    updateWaypointStrategy,
+    updateRouteName,
+    updateRouteClosed,
+    selectWaypoint,
+    setLaneChangeAware,
+    setRouteCalcStrategy,
+    canUndo,
+    canRedo,
+    undoRouteEdit,
+    redoRouteEdit,
   };
 }

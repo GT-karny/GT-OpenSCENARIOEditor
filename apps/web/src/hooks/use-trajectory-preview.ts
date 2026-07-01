@@ -18,10 +18,8 @@ import type {
   FollowTrajectoryAction,
   PrivateAction,
 } from '@osce/shared';
-import { resolvePositionToWorld } from '@osce/3d-viewer';
 import type { WorldCoords } from '@osce/3d-viewer';
-import { computeTrajectoryVisualPoints } from '../lib/trajectory-curve-computation';
-import type { PointWorldPos } from '../stores/trajectory-edit-store';
+import { resolveTrajectoryVisual } from '../lib/edit-preview-computation';
 import { useTrajectoryEditStore } from '../stores/trajectory-edit-store';
 import { useEditorStore } from '../stores/editor-store';
 
@@ -130,46 +128,20 @@ function extractTrajectoryFromAction(action: unknown): Trajectory | null {
 
 /**
  * Resolve trajectory positions to world coordinates and compute curve points.
+ * Delegates position resolution + curve math to the shared helper.
  */
 function resolveTrajectoryPreview(
   trajectory: Trajectory,
   odrDoc: OpenDriveDocument,
   entityPositions?: Map<string, WorldCoords>,
 ): TrajectoryPreviewData | null {
-  const positions: PointWorldPos[] = [];
-  const resolveOpts = entityPositions ? { entityPositions } : undefined;
+  const { points, curvePoints } = resolveTrajectoryVisual(trajectory, odrDoc, entityPositions);
 
-  switch (trajectory.shape.type) {
-    case 'polyline':
-      for (const vertex of trajectory.shape.vertices) {
-        const world = resolvePositionToWorld(vertex.position, odrDoc, resolveOpts);
-        positions.push(world ?? { x: 0, y: 0, z: 0, h: 0 });
-      }
-      break;
-    case 'clothoid':
-      if (trajectory.shape.position) {
-        const world = resolvePositionToWorld(trajectory.shape.position, odrDoc, resolveOpts);
-        positions.push(world ?? { x: 0, y: 0, z: 0, h: 0 });
-      }
-      break;
-    case 'nurbs':
-      for (const cp of trajectory.shape.controlPoints) {
-        const world = resolvePositionToWorld(cp.position, odrDoc, resolveOpts);
-        positions.push(world ?? { x: 0, y: 0, z: 0, h: 0 });
-      }
-      break;
-    case 'clothoidSpline':
-      // ClothoidSpline preview not yet implemented — skip
-      break;
-  }
-
-  if (positions.length === 0 && trajectory.shape.type !== 'clothoidSpline') return null;
-
-  const curvePoints = computeTrajectoryVisualPoints(trajectory, positions);
+  if (points.length === 0 && trajectory.shape.type !== 'clothoidSpline') return null;
 
   return {
     shapeType: trajectory.shape.type,
-    points: positions,
+    points,
     curvePoints,
   };
 }
