@@ -5,6 +5,7 @@ import type {
   CoordinateSystem,
   LateralDisplacement,
 } from '@osce/shared';
+import { COORDINATE_SYSTEMS as OSC_COORDINATE_SYSTEMS, LATERAL_DISPLACEMENTS as OSC_LATERAL_DISPLACEMENTS } from '@osce/shared';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefSelect } from '../EntityRefSelect';
 import { SegmentedControl } from '../SegmentedControl';
@@ -14,8 +15,9 @@ import { Label } from '../../ui/label';
 import { actionBody, actionUpdate } from '../lib/typed-updates';
 import { useSpeedUnit } from '../../../hooks/use-speed-unit';
 
-const LATERAL_DISPLACEMENTS = ['any', 'leftToReferencedEntity', 'rightToReferencedEntity'] as const;
-const COORDINATE_SYSTEMS = ['', 'entity', 'lane', 'road', 'trajectory'] as const;
+const LATERAL_DISPLACEMENTS = OSC_LATERAL_DISPLACEMENTS;
+// Leading '' is the "unset" UI option; enum values come from @osce/shared.
+const COORDINATE_SYSTEMS = ['', ...OSC_COORDINATE_SYSTEMS] as const;
 
 interface LateralDistanceActionEditorProps {
   action: ScenarioAction;

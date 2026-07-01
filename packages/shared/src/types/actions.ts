@@ -14,6 +14,14 @@ import type {
   CoordinateSystem,
   LateralDisplacement,
   LongitudinalDisplacement,
+  CloudState,
+  FractionalCloudCover,
+  PrecipitationType,
+  Wetness,
+  RouteStrategy,
+  SpeedTargetValueType,
+  LightMode,
+  ReferenceContext,
 } from '../enums/osc-enums.js';
 
 // --- Top-level Action wrapper ---
@@ -147,7 +155,11 @@ export interface RoutingAction {
    * FollowTrajectoryAction; `randomRoute` is a typed passthrough.
    */
   routeAction: 'assignRoute' | 'acquirePosition' | 'randomRoute';
-  route?: { name: string; closed: boolean; waypoints: Array<{ position: Position; routeStrategy: string }> };
+  route?: {
+    name: string;
+    closed: boolean;
+    waypoints: Array<{ position: Position; routeStrategy: RouteStrategy }>;
+  };
   catalogReference?: { catalogName: string; entryName: string };
   position?: Position;
 }
@@ -205,8 +217,10 @@ export interface AnimationAction {
 
 export interface LightStateAction {
   type: 'lightStateAction';
+  // Either a VehicleLightType value or a user-defined light name (freeform per
+  // XSD UserDefinedLight), so intentionally kept as a permissive string.
   lightType: string;
-  mode: 'on' | 'off' | 'flashing';
+  mode: LightMode;
   intensity?: number;
   color?: { r: number; g: number; b: number };
   transitionTime?: number;
@@ -257,18 +271,20 @@ export interface TimeOfDay {
 }
 
 export interface Weather {
-  fractionalCloudCover?: string;
+  /** @deprecated Superseded by fractionalCloudCover in v1.3; kept for legacy round-trip. */
+  cloudState?: CloudState;
+  fractionalCloudCover?: FractionalCloudCover;
   atmosphericPressure?: number;
   temperature?: number;
   sun?: { intensity: number; azimuth: number; elevation: number };
   fog?: { visualRange: number; boundingBox?: { center: { x: number; y: number; z: number }; dimensions: { width: number; length: number; height: number } } };
-  precipitation?: { precipitationType: string; precipitationIntensity: number };
+  precipitation?: { precipitationType: PrecipitationType; precipitationIntensity: number };
   wind?: { direction: number; speed: number };
 }
 
 export interface RoadCondition {
   frictionScaleFactor: number;
-  wetness?: string;
+  wetness?: Wetness;
 }
 
 export interface EntityAction {
@@ -337,7 +353,13 @@ export interface TransitionDynamics {
 
 export type SpeedTarget =
   | { kind: 'absolute'; value: number }
-  | { kind: 'relative'; entityRef: string; value: number; speedTargetValueType: 'delta' | 'factor'; continuous: boolean };
+  | {
+      kind: 'relative';
+      entityRef: string;
+      value: number;
+      speedTargetValueType: SpeedTargetValueType;
+      continuous: boolean;
+    };
 
 export type LaneChangeTarget =
   | { kind: 'absolute'; value: number }
@@ -361,7 +383,11 @@ export interface DynamicConstraints {
 
 export interface FinalSpeed {
   absoluteSpeed?: { value: number; steadyState?: boolean };
-  relativeSpeedToMaster?: { value: number; speedTargetValueType: 'delta' | 'factor'; steadyState?: boolean };
+  relativeSpeedToMaster?: {
+    value: number;
+    speedTargetValueType: SpeedTargetValueType;
+    steadyState?: boolean;
+  };
 }
 
 export interface Trajectory {
@@ -403,7 +429,7 @@ export interface NurbsControlPoint {
 
 export interface TimeReference {
   none?: boolean;
-  timing?: { domainAbsoluteRelative: 'absolute' | 'relative'; offset: number; scale: number };
+  timing?: { domainAbsoluteRelative: ReferenceContext; offset: number; scale: number };
 }
 
 export interface OverrideValue {

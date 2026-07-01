@@ -5,6 +5,7 @@ import type {
   CoordinateSystemCond,
   RelativeDistanceType,
 } from '@osce/shared';
+import { COORDINATE_SYSTEMS as OSC_COORDINATE_SYSTEMS, RELATIVE_DISTANCE_TYPES as OSC_RELATIVE_DISTANCE_TYPES } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { RuleSegmentedControl } from '../RuleSegmentedControl';
@@ -13,8 +14,11 @@ import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
 import { PositionEditor } from '../PositionEditor';
 import { entityConditionReplace, entityConditionUpdate } from '../lib/typed-updates';
 
-const RELATIVE_DISTANCE_TYPES = ['longitudinal', 'lateral', 'euclidianDistance'] as const;
-const COORDINATE_SYSTEMS = ['entity', 'lane', 'road', 'trajectory'] as const;
+// Deprecated 'cartesianDistance' is filtered out of the UI; values come from @osce/shared.
+const RELATIVE_DISTANCE_TYPES = OSC_RELATIVE_DISTANCE_TYPES.filter(
+  (t) => t !== 'cartesianDistance',
+);
+const COORDINATE_SYSTEMS = OSC_COORDINATE_SYSTEMS;
 
 interface DistanceConditionEditorProps {
   condition: Condition;

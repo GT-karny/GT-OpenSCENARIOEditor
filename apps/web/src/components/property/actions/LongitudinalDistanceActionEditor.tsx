@@ -5,6 +5,7 @@ import type {
   CoordinateSystem,
   LongitudinalDisplacement,
 } from '@osce/shared';
+import { COORDINATE_SYSTEMS as OSC_COORDINATE_SYSTEMS, LONGITUDINAL_DISPLACEMENTS as OSC_LONGITUDINAL_DISPLACEMENTS } from '@osce/shared';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefSelect } from '../EntityRefSelect';
 import { SegmentedControl } from '../SegmentedControl';
@@ -14,8 +15,9 @@ import { Label } from '../../ui/label';
 import { actionBody, actionUpdate } from '../lib/typed-updates';
 import { useSpeedUnit } from '../../../hooks/use-speed-unit';
 
-const LONGITUDINAL_DISPLACEMENTS = ['any', 'trailingReferencedEntity', 'leadingReferencedEntity'] as const;
-const COORDINATE_SYSTEMS = ['', 'entity', 'lane', 'road', 'trajectory'] as const;
+const LONGITUDINAL_DISPLACEMENTS = OSC_LONGITUDINAL_DISPLACEMENTS;
+// Leading '' is the "unset" UI option; enum values come from @osce/shared.
+const COORDINATE_SYSTEMS = ['', ...OSC_COORDINATE_SYSTEMS] as const;
 const DISTANCE_MODES = ['distance', 'timeGap'] as const;
 
 type DistanceMode = 'distance' | 'timeGap';

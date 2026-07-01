@@ -1,4 +1,5 @@
 import type { ScenarioAction, SynchronizeAction, Position, FinalSpeed } from '@osce/shared';
+import { SPEED_TARGET_VALUE_TYPES } from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
 import { Label } from '../../ui/label';
 import { PositionEditor } from '../PositionEditor';
@@ -16,7 +17,7 @@ interface SynchronizeActionEditorProps {
 
 type FinalSpeedMode = 'absolute' | 'relative';
 const FINAL_SPEED_MODES = ['absolute', 'relative'] as const satisfies readonly FinalSpeedMode[];
-const VALUE_TYPES = ['delta', 'factor'] as const;
+const VALUE_TYPES = SPEED_TARGET_VALUE_TYPES;
 
 export function SynchronizeActionEditor({ action, onUpdate }: SynchronizeActionEditorProps) {
   const { t } = useTranslation('openscenario');

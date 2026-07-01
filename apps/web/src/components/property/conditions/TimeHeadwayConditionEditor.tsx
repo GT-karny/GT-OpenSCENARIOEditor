@@ -1,4 +1,5 @@
 import type { Condition, ByEntityCondition, TimeHeadwayCondition, CoordinateSystemCond } from '@osce/shared';
+import { COORDINATE_SYSTEMS } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefSelect } from '../EntityRefSelect';
@@ -6,8 +7,6 @@ import { RuleSegmentedControl } from '../RuleSegmentedControl';
 import { SegmentedControl } from '../SegmentedControl';
 import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
 import { entityConditionReplace, entityConditionUpdate } from '../lib/typed-updates';
-
-const COORDINATE_SYSTEMS = ['entity', 'lane', 'road', 'trajectory'] as const;
 
 interface TimeHeadwayConditionEditorProps {
   condition: Condition;

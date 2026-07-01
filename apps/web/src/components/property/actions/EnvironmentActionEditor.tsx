@@ -1,4 +1,10 @@
-import type { ScenarioAction, EnvironmentAction, Weather } from '@osce/shared';
+import type {
+  ScenarioAction,
+  EnvironmentAction,
+  Weather,
+  FractionalCloudCover,
+  Wetness,
+} from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
 import {
   FRACTIONAL_CLOUD_COVER_VALUES,
@@ -96,7 +102,9 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
           <EnumSelect
             value={env.weather.fractionalCloudCover ?? 'zeroOktas'}
             options={[...FRACTIONAL_CLOUD_COVER_OPTIONS]}
-            onValueChange={(v) => updateWeather({ fractionalCloudCover: v })}
+            onValueChange={(v) =>
+              updateWeather({ fractionalCloudCover: v as FractionalCloudCover })
+            }
             className="h-8 text-sm"
           />
         </div>
@@ -310,7 +318,9 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
                 const { wetness: _, ...rest } = env.roadCondition;
                 updateEnv({ roadCondition: rest });
               } else {
-                updateEnv({ roadCondition: { ...env.roadCondition, wetness: v } });
+                updateEnv({
+                  roadCondition: { ...env.roadCondition, wetness: v as Wetness },
+                });
               }
             }}
             className="h-8 text-sm"

@@ -1,14 +1,8 @@
 import type { Rule } from '@osce/shared';
+import { RULES } from '@osce/shared';
 import { SegmentedControl } from './SegmentedControl';
 
-const RULE_OPTIONS = [
-  'equalTo',
-  'greaterThan',
-  'lessThan',
-  'greaterOrEqual',
-  'lessOrEqual',
-  'notEqualTo',
-] as const;
+const RULE_OPTIONS = RULES;
 
 const RULE_ICONS: Record<Rule, string> = {
   equalTo: '=',

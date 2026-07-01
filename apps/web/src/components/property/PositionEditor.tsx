@@ -12,6 +12,7 @@ import type {
   GeoPosition,
   Orientation,
 } from '@osce/shared';
+import { REFERENCE_CONTEXTS } from '@osce/shared';
 import { Label } from '../ui/label';
 import { ParameterAwareInput } from './ParameterAwareInput';
 import { EnumSelect } from './EnumSelect';
@@ -742,7 +743,7 @@ export function OrientationFields({
         </Label>
         <EnumSelect
           value={ori.type ?? ''}
-          options={['', 'relative', 'absolute']}
+          options={['', ...REFERENCE_CONTEXTS]}
           onValueChange={(v) =>
             v
               ? update({ type: v as 'relative' | 'absolute' })

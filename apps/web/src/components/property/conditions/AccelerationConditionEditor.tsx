@@ -1,12 +1,11 @@
 import type { Condition, ByEntityCondition, AccelerationCondition, DirectionalDimension } from '@osce/shared';
+import { DIRECTIONAL_DIMENSIONS } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { RuleSegmentedControl } from '../RuleSegmentedControl';
 import { SegmentedControl } from '../SegmentedControl';
 import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
 import { entityConditionReplace, entityConditionUpdate } from '../lib/typed-updates';
-
-const DIRECTIONAL_DIMENSIONS = ['longitudinal', 'lateral', 'vertical'] as const;
 
 interface AccelerationConditionEditorProps {
   condition: Condition;

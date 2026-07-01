@@ -13,6 +13,7 @@ import type {
   WorldPosition,
 } from '@osce/shared';
 import type { FollowingMode } from '@osce/shared';
+import { FOLLOWING_MODES, REFERENCE_CONTEXTS } from '@osce/shared';
 import { MapPin, Plus } from 'lucide-react';
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
@@ -253,7 +254,7 @@ export function FollowTrajectoryActionEditor({
           <p className="text-xs font-medium text-muted-foreground">Following Mode</p>
           <SegmentedControl
             value={inner.followingMode}
-            options={['position', 'follow'] as const}
+            options={FOLLOWING_MODES}
             onValueChange={(v) => updateInner({ followingMode: v as FollowingMode })}
             labels={{ position: 'Position', follow: 'Follow' }}
           />
@@ -280,7 +281,7 @@ export function FollowTrajectoryActionEditor({
           <p className="text-xs font-medium text-muted-foreground">Following Mode</p>
           <SegmentedControl
             value={inner.followingMode}
-            options={['position', 'follow'] as const}
+            options={FOLLOWING_MODES}
             onValueChange={(v) => updateInner({ followingMode: v as FollowingMode })}
             labels={{ position: 'Position', follow: 'Follow' }}
           />
@@ -380,7 +381,7 @@ export function FollowTrajectoryActionEditor({
         <p className="text-xs font-medium text-muted-foreground">Following Mode</p>
         <SegmentedControl
           value={inner.followingMode}
-          options={['position', 'follow'] as const}
+          options={FOLLOWING_MODES}
           onValueChange={(v) => updateInner({ followingMode: v as FollowingMode })}
           labels={{ position: 'Position', follow: 'Follow' }}
         />
@@ -432,7 +433,7 @@ export function FollowTrajectoryActionEditor({
               <Label className="text-xs">Domain</Label>
               <SegmentedControl
                 value={inner.timeReference.timing.domainAbsoluteRelative}
-                options={['absolute', 'relative'] as const}
+                options={REFERENCE_CONTEXTS}
                 onValueChange={(v) =>
                   updateTiming({ domainAbsoluteRelative: v as 'absolute' | 'relative' })
                 }

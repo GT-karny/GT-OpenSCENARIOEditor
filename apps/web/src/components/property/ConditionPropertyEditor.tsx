@@ -11,6 +11,7 @@ import type {
   TriggeringEntities,
   Rule,
 } from '@osce/shared';
+import { TRIGGERING_ENTITIES_RULES } from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
@@ -468,7 +469,7 @@ export function ConditionItem({ condition, onUpdateCondition }: ConditionItemPro
             <Label className="text-[10px]">Triggering Entities</Label>
             <SegmentedControl
               value={condition.condition.triggeringEntities.triggeringEntitiesRule}
-              options={['any', 'all']}
+              options={TRIGGERING_ENTITIES_RULES}
               onValueChange={(v) =>
                 handleTriggeringEntitiesUpdate({
                   triggeringEntitiesRule: v as 'any' | 'all',

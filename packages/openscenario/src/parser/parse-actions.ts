@@ -55,6 +55,11 @@ import type {
   CoordinateSystem,
   LateralDisplacement,
   LongitudinalDisplacement,
+  FractionalCloudCover,
+  PrecipitationType,
+  Wetness,
+  LightMode,
+  RouteStrategy,
 } from '@osce/shared';
 import type { RawXml } from '../utils/xml-helpers.js';
 import { parsePosition } from './parse-positions.js';
@@ -689,10 +694,13 @@ function parseAssignRouteAction(raw: RawXml): RoutingAction {
   return result;
 }
 
-function parseRouteWaypoint(raw: RawXml): { position: ReturnType<typeof parsePosition>; routeStrategy: string } {
+function parseRouteWaypoint(raw: RawXml): {
+  position: ReturnType<typeof parsePosition>;
+  routeStrategy: RouteStrategy;
+} {
   return {
     position: parsePosition(child(raw, 'Position')),
-    routeStrategy: strAttr(raw, 'routeStrategy', 'shortest'),
+    routeStrategy: strAttr(raw, 'routeStrategy', 'shortest') as RouteStrategy,
   };
 }
 
@@ -932,7 +940,7 @@ function parseLightStateAction(raw: RawXml): LightStateAction {
   const result: LightStateAction = {
     type: 'lightStateAction',
     lightType: parseLightType(lightType),
-    mode: strAttr(lightState, 'mode', 'off') as 'on' | 'off' | 'flashing',
+    mode: strAttr(lightState, 'mode', 'off') as LightMode,
     // XSD LightState intensity is the `luminousIntensity` attribute (read the
     // legacy `intensity` attribute too for tolerance).
     intensity: optNumAttr(lightState, 'luminousIntensity') ?? optNumAttr(lightState, 'intensity'),
@@ -1046,7 +1054,9 @@ function parseTimeOfDay(raw: RawXml | undefined): TimeOfDay {
 function parseWeather(raw: RawXml | undefined): Weather {
   if (!raw) return {};
   const result: Weather = {
-    fractionalCloudCover: optStrAttr(raw, 'fractionalCloudCover'),
+    fractionalCloudCover: optStrAttr(raw, 'fractionalCloudCover') as
+      | FractionalCloudCover
+      | undefined,
     atmosphericPressure: optNumAttr(raw, 'atmosphericPressure'),
     temperature: optNumAttr(raw, 'temperature'),
   };
@@ -1087,7 +1097,7 @@ function parseWeather(raw: RawXml | undefined): Weather {
   const precipitation = child(raw, 'Precipitation');
   if (precipitation) {
     result.precipitation = {
-      precipitationType: strAttr(precipitation, 'precipitationType', 'dry'),
+      precipitationType: strAttr(precipitation, 'precipitationType', 'dry') as PrecipitationType,
       precipitationIntensity: numAttr(precipitation, 'precipitationIntensity'),
     };
   }
@@ -1107,7 +1117,7 @@ function parseRoadCondition(raw: RawXml | undefined): RoadCondition {
   if (!raw) return { frictionScaleFactor: 1.0 };
   return {
     frictionScaleFactor: numAttr(raw, 'frictionScaleFactor', 1.0),
-    wetness: optStrAttr(raw, 'wetness'),
+    wetness: optStrAttr(raw, 'wetness') as Wetness | undefined,
   };
 }
 

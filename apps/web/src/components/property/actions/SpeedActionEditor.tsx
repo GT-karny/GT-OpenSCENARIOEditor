@@ -1,4 +1,5 @@
 import type { ScenarioAction, SpeedAction, SpeedTarget } from '@osce/shared';
+import { SPEED_TARGET_VALUE_TYPES } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefSelect } from '../EntityRefSelect';
@@ -69,7 +70,7 @@ export function SpeedActionEditor({ action, onUpdate }: SpeedActionEditorProps) 
             {relTarget !== null && (
               <SegmentedControl
                 value={relTarget.speedTargetValueType}
-                options={['delta', 'factor'] as const}
+                options={SPEED_TARGET_VALUE_TYPES}
                 onValueChange={(v) =>
                   updateInner({
                     target: { ...relTarget, speedTargetValueType: v },

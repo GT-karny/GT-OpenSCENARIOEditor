@@ -1,4 +1,5 @@
 import type { ScenarioAction, LightStateAction } from '@osce/shared';
+import { LIGHT_MODES } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EnumSelect } from '../EnumSelect';
@@ -91,7 +92,7 @@ export function LightStateActionEditor({ action, onUpdate }: LightStateActionEdi
           <Label className="text-xs">Mode</Label>
           <SegmentedControl
             value={inner.mode}
-            options={['on', 'off', 'flashing'] as const}
+            options={LIGHT_MODES}
             onValueChange={(v) => updateInner({ mode: v as LightStateAction['mode'] })}
             labels={{ on: 'On', off: 'Off', flashing: 'Flashing' }}
           />

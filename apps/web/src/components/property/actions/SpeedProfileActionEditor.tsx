@@ -5,6 +5,7 @@ import type {
   DynamicsDimension,
   FollowingMode,
 } from '@osce/shared';
+import { FOLLOWING_MODES, DYNAMICS_DIMENSIONS } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefSelect } from '../EntityRefSelect';
@@ -13,9 +14,6 @@ import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
 import { Plus, Trash2 } from 'lucide-react';
 import { actionBody, actionUpdate } from '../lib/typed-updates';
 import { useSpeedUnit } from '../../../hooks/use-speed-unit';
-
-const FOLLOWING_MODES = ['follow', 'position'] as const;
-const DYNAMICS_DIMENSIONS = ['time', 'distance', 'rate'] as const;
 
 interface SpeedProfileActionEditorProps {
   action: ScenarioAction;

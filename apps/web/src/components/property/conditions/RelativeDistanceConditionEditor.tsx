@@ -4,6 +4,7 @@ import type {
   RelativeDistanceCondition,
   RelativeDistanceType,
 } from '@osce/shared';
+import { RELATIVE_DISTANCE_TYPES as OSC_RELATIVE_DISTANCE_TYPES } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefSelect } from '../EntityRefSelect';
@@ -11,7 +12,10 @@ import { RuleSegmentedControl } from '../RuleSegmentedControl';
 import { SegmentedControl } from '../SegmentedControl';
 import { entityConditionUpdate } from '../lib/typed-updates';
 
-const RELATIVE_DISTANCE_TYPES = ['longitudinal', 'lateral', 'euclidianDistance'] as const;
+// Deprecated 'cartesianDistance' is filtered out of the UI; values come from @osce/shared.
+const RELATIVE_DISTANCE_TYPES = OSC_RELATIVE_DISTANCE_TYPES.filter(
+  (t) => t !== 'cartesianDistance',
+);
 
 interface RelativeDistanceConditionEditorProps {
   condition: Condition;
