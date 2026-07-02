@@ -8,13 +8,15 @@ import type {
   Trigger,
   EntityInitActions,
 } from '@osce/shared';
-import { detectElementType as detectNodeType } from '@osce/node-editor';
+import type { ElementTypeMatcher, OsceNodeType } from '@osce/node-editor';
+import { createElementTypeDetector, ELEMENT_TYPE_MATCHERS } from '@osce/node-editor';
 
 /**
  * Web-side discriminated union consumed by PropertyEditor. The detection rules
- * are single-sourced in `@osce/node-editor`'s `detectElementType`; this module is
- * a thin typed wrapper that maps the canonical string result onto this union and
- * adds the web-only `entityInit` case (which has no node-editor equivalent).
+ * are single-sourced in `@osce/node-editor`'s element-type registry; this module
+ * is a thin typed wrapper that maps the canonical result onto this union and
+ * extends the registry with the web-only `entityInit` type (which has no
+ * node-editor equivalent).
  */
 export type DetectedElementType =
   | { kind: 'entity'; element: ScenarioEntity }
@@ -27,20 +29,35 @@ export type DetectedElementType =
   | { kind: 'entityInit'; element: EntityInitActions }
   | { kind: 'unknown'; element: unknown };
 
+/** Web-only extension of `OsceNodeType`: entity init-actions have no node-editor concept. */
+type WebNodeType = OsceNodeType | 'entityInit';
+
+const entityInitMatcher: ElementTypeMatcher<WebNodeType> = {
+  type: 'entityInit',
+  matches: (obj) =>
+    'entityRef' in obj && 'privateActions' in obj && Array.isArray(obj.privateActions),
+};
+
+// The entityInit matcher must run first: EntityInitActions has no overlapping
+// field signature with any canonical type, but placing it first keeps the
+// precedence explicit and matches the previous "detect web-only case first" order.
+const WEB_MATCHERS: ElementTypeMatcher<WebNodeType>[] = [
+  entityInitMatcher,
+  ...ELEMENT_TYPE_MATCHERS,
+];
+
+const detectWebNodeType = createElementTypeDetector(WEB_MATCHERS);
+
 export function detectElementType(element: unknown): DetectedElementType {
   if (!element || typeof element !== 'object') {
     return { kind: 'unknown', element };
   }
 
-  const obj = element as Record<string, unknown>;
-
-  // EntityInitActions has no node-editor concept, so detect it web-side first.
-  if ('entityRef' in obj && 'privateActions' in obj && Array.isArray(obj.privateActions)) {
-    return { kind: 'entityInit', element: element as EntityInitActions };
-  }
-
-  // Delegate to the canonical node-editor detector and map onto this union.
-  switch (detectNodeType(element)) {
+  // Delegate to the registry (canonical matchers + the web-only entityInit
+  // extension) and map onto this union.
+  switch (detectWebNodeType(element)) {
+    case 'entityInit':
+      return { kind: 'entityInit', element: element as EntityInitActions };
     case 'entity':
       return { kind: 'entity', element: element as ScenarioEntity };
     case 'event':

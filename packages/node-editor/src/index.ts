@@ -39,5 +39,11 @@ export type { OsceEdgeType, OsceEdgeData } from './types/edge-types.js';
 // --- Utils ---
 export { getActionTypeLabel, getActionSummary } from './utils/action-display.js';
 export { getConditionTypeLabel, getConditionSummary, getTriggerSummary } from './utils/condition-display.js';
-export { detectElementType } from './utils/detect-element-type.js';
+export {
+  detectElementType,
+  createElementTypeDetector,
+  ELEMENT_TYPE_MATCHERS,
+  PARENT_FIELD_TO_TYPE,
+} from './utils/detect-element-type.js';
+export type { ElementTypeMatcher } from './utils/detect-element-type.js';
 export { getNodeColor } from './utils/color-map.js';

@@ -12,18 +12,35 @@ import type {
 } from '@osce/shared';
 import { deepCloneWithNewIds, CompoundCommand } from '@osce/scenario-engine';
 import type { CloneableElementType } from '@osce/scenario-engine';
+import { PARENT_FIELD_TO_TYPE } from '@osce/node-editor';
 import { useClipboardStore } from '../stores/clipboard-store';
 import type { ClipboardItem } from '../stores/clipboard-store';
 import { useScenarioStoreApi } from '../stores/use-scenario-store';
 
-/** Map from parent field name to the element type it contains. */
-const FIELD_TO_TYPE: Record<string, CloneableElementType> = {
-  maneuverGroups: 'maneuverGroup',
-  maneuvers: 'maneuver',
-  events: 'event',
-  actions: 'action',
-  entities: 'entity',
-};
+/**
+ * Which parent field maps to which cloneable element type, sourced from the
+ * shared `PARENT_FIELD_TO_TYPE` registry in `@osce/node-editor` so this hook
+ * cannot silently drift from the canonical element-type detection rules.
+ * Deliberately restricted to the 5 clipboard-cloneable types: copy/paste must
+ * NOT be widened to cover every `OsceNodeType` the registry knows about.
+ */
+const CLONEABLE_TYPES: ReadonlySet<CloneableElementType> = new Set([
+  'maneuverGroup',
+  'maneuver',
+  'event',
+  'action',
+  'entity',
+]);
+
+function isCloneableType(type: string | undefined): type is CloneableElementType {
+  return !!type && CLONEABLE_TYPES.has(type as CloneableElementType);
+}
+
+const FIELD_TO_TYPE: Record<string, CloneableElementType> = Object.fromEntries(
+  Object.entries(PARENT_FIELD_TO_TYPE).filter(
+    (entry): entry is [string, CloneableElementType] => isCloneableType(entry[1]),
+  ),
+);
 
 /** Which parent field accepts which clipboard type for paste. */
 const PASTE_TARGET_FIELD: Record<CloneableElementType, string> = {

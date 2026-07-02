@@ -112,3 +112,38 @@ describe('useCopyPaste — multi-select copy/paste', () => {
     expect(useClipboardStore.getState().copiedItem).toBe(items[0]);
   });
 });
+
+describe('useCopyPaste — parent field mapping subset', () => {
+  it('copyElement is a no-op when the element id is unresolvable (unknown parent field)', () => {
+    const { result } = renderClipboard();
+
+    const before = useClipboardStore.getState().copiedItems.length;
+    act(() => {
+      // getParentOf returns undefined for an id that does not exist in the
+      // document, exercising the same "no type resolved -> no-op" path that
+      // a real element parented under a non-cloneable field (e.g. a Story's
+      // 'acts' field, or Storyboard's 'stories' field) would take.
+      result.current.clipboard.copyElement('does-not-exist');
+    });
+    expect(useClipboardStore.getState().copiedItems.length).toBe(before);
+  });
+});
+
+describe('use-clipboard FIELD_TO_TYPE — subset of the shared registry', () => {
+  it('is a strict subset of PARENT_FIELD_TO_TYPE covering only the 5 cloneable types', async () => {
+    const { PARENT_FIELD_TO_TYPE } = await import('@osce/node-editor');
+
+    // The clipboard must only ever be able to copy/paste these 5 types.
+    // 'stories' -> 'story' and 'acts' -> 'act' exist as real storyboard
+    // parent fields but must NOT be present in PARENT_FIELD_TO_TYPE's
+    // cloneable subset consumed by the clipboard.
+    expect(PARENT_FIELD_TO_TYPE.stories).toBeUndefined();
+    expect(PARENT_FIELD_TO_TYPE.acts).toBeUndefined();
+
+    // Every field that IS mapped must resolve to one of the 5 cloneable types.
+    const cloneable = new Set(['maneuverGroup', 'maneuver', 'event', 'action', 'entity']);
+    for (const type of Object.values(PARENT_FIELD_TO_TYPE)) {
+      expect(cloneable.has(type as string)).toBe(true);
+    }
+  });
+});
