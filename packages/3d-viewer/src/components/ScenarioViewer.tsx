@@ -12,11 +12,11 @@ import type {
   OpenDriveDocument,
   SimulationFrame,
   SimulationStatus,
-  EditorPreferences,
   ScenarioDocument,
   Route,
 } from '@osce/shared';
 import { createViewerStore, useViewerStore } from '../store/viewer-store.js';
+import type { ViewerPreferences } from '../store/viewer-store.js';
 import type { HoverLaneInfo, ViewerMode } from '../store/viewer-types.js';
 import { ViewerCanvas } from '../scene/ViewerCanvas.js';
 import { SceneEnvironment } from '../scene/SceneEnvironment.js';
@@ -405,7 +405,7 @@ export interface ScenarioViewerProps {
   /** Simulation status for auto-mode-switching */
   simulationStatus?: SimulationStatus;
   /** Editor preferences for display toggles */
-  preferences?: Partial<EditorPreferences>;
+  preferences?: ViewerPreferences;
   /** CSS class for the container */
   className?: string;
   /** Callback when the viewer mode changes (edit/play) */
@@ -603,6 +603,7 @@ function ScenarioViewerScene({
   const showGrid = useViewerStore(viewerStore, (s) => s.showGrid);
   const showLaneIds = useViewerStore(viewerStore, (s) => s.showLaneIds);
   const showRoadIds = useViewerStore(viewerStore, (s) => s.showRoadIds);
+  const showDrivingDirection = useViewerStore(viewerStore, (s) => s.showDrivingDirection);
   const showEntityLabels = useViewerStore(viewerStore, (s) => s.showEntityLabels);
   const showTrafficSignals = useViewerStore(viewerStore, (s) => s.showTrafficSignals);
   const gizmoMode = useViewerStore(viewerStore, (s) => s.gizmoMode);
@@ -746,6 +747,7 @@ function ScenarioViewerScene({
         showRoadMarks
         showRoadIds={showRoadIds}
         showLaneIds={showLaneIds}
+        showDrivingDirection={showDrivingDirection}
         highlightedLaneRef={highlightedLaneRef}
         selectedJunctionId={selectedJunctionId}
         ghostJunctionSurface={ghostJunctionSurface}
@@ -1091,6 +1093,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   const showEntityLabels = useViewerStore(viewerStore, (s) => s.showEntityLabels);
   const showRoadIds = useViewerStore(viewerStore, (s) => s.showRoadIds);
   const showLaneIds = useViewerStore(viewerStore, (s) => s.showLaneIds);
+  const showDrivingDirection = useViewerStore(viewerStore, (s) => s.showDrivingDirection);
   const showTrafficSignals = useViewerStore(viewerStore, (s) => s.showTrafficSignals);
   const showPositionMarkersOuter = useViewerStore(viewerStore, (s) => s.showPositionMarkers);
   const gizmoMode = useViewerStore(viewerStore, (s) => s.gizmoMode);
@@ -1199,6 +1202,8 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
         onToggleRoadIds={() => viewerStore.getState().toggleRoadIds()}
         showLaneIds={showLaneIds}
         onToggleLaneIds={() => viewerStore.getState().toggleLaneIds()}
+        showDrivingDirection={showDrivingDirection}
+        onToggleDrivingDirection={() => viewerStore.getState().toggleDrivingDirection()}
         showTrafficSignals={showTrafficSignals}
         onToggleTrafficSignals={() => viewerStore.getState().toggleTrafficSignals()}
         gizmoMode={gizmoMode}

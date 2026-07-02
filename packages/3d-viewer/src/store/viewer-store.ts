@@ -15,15 +15,27 @@ import type {
 } from './viewer-types.js';
 
 /**
+ * Viewer display preferences accepted at store creation.
+ *
+ * Extends the shared EditorPreferences with viewer-only display flags that are
+ * not part of the persisted app-wide preferences contract (e.g. the
+ * driving-direction overlay toggle).
+ */
+export type ViewerPreferences = Partial<EditorPreferences> & {
+  showDrivingDirection?: boolean;
+};
+
+/**
  * Create a new viewer store with optional initial preferences.
  */
-export function createViewerStore(preferences?: Partial<EditorPreferences>) {
+export function createViewerStore(preferences?: ViewerPreferences) {
   return createStore<ViewerStore>()((set) => ({
     // State
     cameraMode: 'orbit' as CameraMode,
     showGrid: preferences?.showGrid3D ?? true,
     showLaneIds: preferences?.showLaneIds ?? false,
     showRoadIds: preferences?.showRoadIds ?? false,
+    showDrivingDirection: preferences?.showDrivingDirection ?? false,
     showEntityLabels: true,
     showTrafficSignals: true,
 
@@ -53,6 +65,7 @@ export function createViewerStore(preferences?: Partial<EditorPreferences>) {
     toggleGrid: () => set((s) => ({ showGrid: !s.showGrid })),
     toggleLaneIds: () => set((s) => ({ showLaneIds: !s.showLaneIds })),
     toggleRoadIds: () => set((s) => ({ showRoadIds: !s.showRoadIds })),
+    toggleDrivingDirection: () => set((s) => ({ showDrivingDirection: !s.showDrivingDirection })),
     toggleEntityLabels: () => set((s) => ({ showEntityLabels: !s.showEntityLabels })),
     toggleTrafficSignals: () => set((s) => ({ showTrafficSignals: !s.showTrafficSignals })),
 

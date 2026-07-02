@@ -57,6 +57,18 @@ export interface SignalPickMode {
 
 export type EditorMode = 'scenario' | 'roadNetwork';
 
+/**
+ * App-wide editor preferences plus viewer-only display flags.
+ *
+ * `showDrivingDirection` toggles the 3D driving-direction arrow overlay. It is
+ * kept here (rather than in the shared EditorPreferences contract) because it
+ * is a viewer display preference, not part of the OpenSCENARIO/editor data
+ * model, but it is persisted alongside the other display toggles.
+ */
+export type EditorPreferencesExt = EditorPreferences & {
+  showDrivingDirection: boolean;
+};
+
 export interface EditorState {
   // Editor mode (Scenario / Road Network tab)
   editorMode: EditorMode;
@@ -68,8 +80,8 @@ export interface EditorState {
   clearSelection: () => void;
 
   // Preferences (persisted to localStorage)
-  preferences: EditorPreferences;
-  updatePreferences: (prefs: Partial<EditorPreferences>) => void;
+  preferences: EditorPreferencesExt;
+  updatePreferences: (prefs: Partial<EditorPreferencesExt>) => void;
 
   // Validation
   validationResult: ValidationResult | null;
@@ -183,7 +195,7 @@ export interface EditorState {
   resetFileState: () => void;
 }
 
-const defaultPreferences: EditorPreferences = {
+const defaultPreferences: EditorPreferencesExt = {
   language: 'en',
   theme: 'system',
   // Autosave with crash recovery is on by default; consumed by use-autosave.
@@ -192,6 +204,7 @@ const defaultPreferences: EditorPreferences = {
   showGrid3D: true,
   showLaneIds: false,
   showRoadIds: false,
+  showDrivingDirection: false,
   speedUnit: 'mps',
   compatibilityProfile: {
     oscVersion: '1.3',

@@ -424,6 +424,7 @@ export function RoadNetworkEditorLayout() {
                     showGrid3D: preferences.showGrid3D,
                     showLaneIds: preferences.showLaneIds,
                     showRoadIds: preferences.showRoadIds,
+                    showDrivingDirection: preferences.showDrivingDirection,
                   }}
                   showPerf={false}
                   className="h-full w-full"

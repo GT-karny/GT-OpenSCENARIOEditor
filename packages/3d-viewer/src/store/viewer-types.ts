@@ -44,6 +44,8 @@ export interface ViewerState {
   showGrid: boolean;
   showLaneIds: boolean;
   showRoadIds: boolean;
+  /** Per-lane driving-direction arrows (rule-aware, RHT/LHT) */
+  showDrivingDirection: boolean;
   showEntityLabels: boolean;
   showTrafficSignals: boolean;
 
@@ -88,6 +90,7 @@ export interface ViewerActions {
   toggleGrid: () => void;
   toggleLaneIds: () => void;
   toggleRoadIds: () => void;
+  toggleDrivingDirection: () => void;
   toggleEntityLabels: () => void;
   toggleTrafficSignals: () => void;
 

@@ -17,12 +17,15 @@ import { RoadMesh } from './RoadMesh.js';
 import { RoadLabels } from './RoadLabels.js';
 import { JunctionMesh } from './JunctionMesh.js';
 import { LaneHighlightManager } from './LaneHighlightManager.js';
+import { DrivingDirectionArrows } from './DrivingDirectionArrows.js';
 
 interface RoadNetworkProps {
   odrDocument: OpenDriveDocument | null;
   showRoadMarks?: boolean;
   showRoadIds?: boolean;
   showLaneIds?: boolean;
+  /** Render per-lane driving-direction arrows (rule-aware, RHT/LHT). */
+  showDrivingDirection?: boolean;
   /** Ref-based lane highlight for hover feedback (read in useFrame, no re-renders) */
   highlightedLaneRef?: React.RefObject<{ roadId: string; laneId: number } | null>;
   /** Currently selected junction ID (renders with highlight) */
@@ -42,6 +45,7 @@ export const RoadNetwork = forwardRef<THREE.Group, RoadNetworkProps>(
       showRoadMarks = true,
       showRoadIds = false,
       showLaneIds = false,
+      showDrivingDirection = false,
       highlightedLaneRef,
       selectedJunctionId,
       ghostJunctionSurface,
@@ -126,6 +130,8 @@ export const RoadNetwork = forwardRef<THREE.Group, RoadNetworkProps>(
             />
           </group>
         ))}
+        {/* Per-lane driving-direction arrows (rule-aware, RHT/LHT) */}
+        {showDrivingDirection && <DrivingDirectionArrows roads={odrDocument.roads} />}
         {/* Junction surface fills (rendered behind roads via polygonOffset) */}
         {junctionSurfaces.map((surface) => (
           <JunctionMesh

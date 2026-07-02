@@ -27,6 +27,16 @@ export type {
   MinimapSize,
   HoverLaneInfo,
 } from './store/viewer-types.js';
+export type { ViewerPreferences } from './store/viewer-store.js';
+
+// Driving-direction arrow overlay (rule-aware, RHT/LHT)
+export { DrivingDirectionArrows } from './road/DrivingDirectionArrows.js';
+export {
+  computeRoadArrowPlacements,
+  computeArrowSampleS,
+  DEFAULT_ARROW_SPACING,
+} from './road/driving-direction-arrows.js';
+export type { ArrowPlacement } from './road/driving-direction-arrows.js';
 
 // Utility functions
 export { resolvePositionToWorld } from './utils/position-resolver.js';

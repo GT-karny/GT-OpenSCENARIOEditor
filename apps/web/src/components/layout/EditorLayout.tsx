@@ -95,7 +95,12 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   onEntityFocus: (entityId: string) => void;
   onEntityPositionChange?: (entityName: string, x: number, y: number, z: number, h: number, forceWorldPosition?: boolean) => void;
   onViewerModeChange?: (mode: ViewerMode) => void;
-  preferences: { showGrid3D: boolean; showLaneIds: boolean; showRoadIds: boolean };
+  preferences: {
+    showGrid3D: boolean;
+    showLaneIds: boolean;
+    showRoadIds: boolean;
+    showDrivingDirection: boolean;
+  };
   focusEntityId?: string | null;
   routeEdit?: RouteEditConfig;
   trajectoryEdit?: TrajectoryEditConfig;
@@ -1061,6 +1066,7 @@ export function EditorLayout() {
                       showGrid3D: preferences.showGrid3D,
                       showLaneIds: preferences.showLaneIds,
                       showRoadIds: preferences.showRoadIds,
+                      showDrivingDirection: preferences.showDrivingDirection,
                     }}
                     focusEntityId={focusEntityId}
                     routeEdit={routeEditConfig}
