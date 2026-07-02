@@ -30,7 +30,7 @@ test.describe('driving-direction arrow overlay (RHT/LHT)', () => {
     mkdirSync(SHOT_DIR, { recursive: true });
   });
 
-  test('toggle arrows, flip a road to LHT, capture RHT + LHT screenshots', async ({ page }) => {
+  test('toggle arrows, flip all roads to LHT, capture RHT + LHT screenshots', async ({ page }) => {
     await gotoEditor(page);
 
     // traffic_lights.xosc references a road network that resolves in the seeded
@@ -49,6 +49,9 @@ test.describe('driving-direction arrow overlay (RHT/LHT)', () => {
     const roadCountLabel = page.getByText(/\d+ roads?/);
     await expect(roadCountLabel.first()).toBeVisible({ timeout: 15_000 });
 
+    // Top-down view so chevron directions read unambiguously in screenshots.
+    await page.getByRole('button', { name: 'Top', exact: true }).click();
+
     // Enable the driving-direction overlay from the viewer toolbar.
     const dirToggle = page.getByTestId('toggle-driving-direction');
     await expect(dirToggle).toBeVisible();
@@ -56,34 +59,54 @@ test.describe('driving-direction arrow overlay (RHT/LHT)', () => {
     await dirToggle.click();
     await expect(dirToggle).toHaveAttribute('aria-pressed', 'true');
 
-    // Give the canvas a moment to render the overlay, then capture RHT.
-    await page.waitForTimeout(500);
-    await page.screenshot({ path: `${SHOT_DIR}/rht.png` });
+    // Zoom into the junction so individual chevrons are readable. Multiple
+    // canvases exist (main viewer + minimap) — pick the largest one.
+    const canvases = page.locator('canvas');
+    const count = await canvases.count();
+    let canvas = canvases.first();
+    let best = 0;
+    for (let i = 0; i < count; i++) {
+      const b = await canvases.nth(i).boundingBox();
+      const area = b ? b.width * b.height : 0;
+      if (area > best) {
+        best = area;
+        canvas = canvases.nth(i);
+      }
+    }
+    const box = await canvas.boundingBox();
+    if (!box) throw new Error('viewer canvas not found');
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    for (let i = 0; i < 6; i++) {
+      await page.mouse.wheel(0, -400);
+      await page.waitForTimeout(120);
+    }
 
-    // Select the first road so the property editor (with the Rule EnumSelect)
-    // is shown. Road list items render a Route icon + name; click the first.
+    // Capture the all-RHT baseline.
+    await page.waitForTimeout(500);
+    await canvas.screenshot({ path: `${SHOT_DIR}/rht.png` });
+
+    // Bulk-apply LHT to every road via the road-creation panel so EVERY arrow
+    // must visibly rotate 180° between the two screenshots (a single-road flip
+    // is too subtle to verify by eye). Panel clicks do not move the camera.
+    await page.getByRole('button', { name: 'Road', exact: true }).click();
+    await expect(page.getByText('Traffic rule')).toBeVisible();
+    await page.getByRole('button', { name: 'LHT', exact: true }).click();
+    await page.getByRole('button', { name: 'Apply to all roads' }).click();
+    await page.getByRole('button', { name: 'Select', exact: true }).click();
+
+    // DOM-level confirmation: a road's Rule field now reads LHT.
     const firstRoad = page.locator('.glass-item').first();
     await expect(firstRoad).toBeVisible();
     await firstRoad.click();
-
-    // The road property editor exposes a "Rule" field. Locate the Rule row and
-    // its EnumSelect trigger (Radix combobox) by proximity to the label.
     const ruleRow = page.locator('div.grid', { has: page.getByText('Rule', { exact: true }) });
     const ruleTrigger = ruleRow.getByRole('combobox');
     await expect(ruleTrigger).toBeVisible({ timeout: 10_000 });
-    await expect(ruleTrigger).toContainText('RHT');
-
-    // Set the road rule to LHT.
-    await ruleTrigger.click();
-    await page.getByRole('option', { name: 'LHT', exact: true }).click();
-
-    // The property editor should reflect the new rule value.
     await expect(ruleTrigger).toContainText('LHT');
 
-    // Overlay should still be enabled and the road now LHT — capture LHT.
+    // Overlay still enabled and every road now LHT — capture for comparison.
     await expect(dirToggle).toHaveAttribute('aria-pressed', 'true');
     await page.waitForTimeout(500);
-    await page.screenshot({ path: `${SHOT_DIR}/lht.png` });
+    await canvas.screenshot({ path: `${SHOT_DIR}/lht.png` });
 
     // No crash: the editor chrome is still alive.
     await expect(page.getByTestId('status-bar')).toBeVisible();
