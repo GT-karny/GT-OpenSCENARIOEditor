@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef, useEffect, memo } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useStore } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 import { SceneComposerView } from '../scene-composer/SceneComposerView';
@@ -8,12 +8,9 @@ import { FolderTree } from 'lucide-react';
 import type { Node } from '@xyflow/react';
 import { NodeEditorProvider, NodeEditor, detectElementType } from '@osce/node-editor';
 import type { OsceNodeData, OsceNodeType } from '@osce/node-editor';
-import { ScenarioViewer } from '@osce/3d-viewer';
 import type {
   ViewerMode,
   PickedPositionData,
-  RouteEditConfig,
-  TrajectoryEditConfig,
   SignalSelectionConfig,
   PositionPickConfig,
 } from '@osce/3d-viewer';
@@ -30,7 +27,6 @@ import { ErrorBoundary } from '../ErrorBoundary';
 import { NodeEditorContextMenu } from '../node-editor/NodeEditorContextMenu';
 import { WaypointContextMenu } from '../route/WaypointContextMenu';
 import { TrajectoryContextMenu } from '../trajectory/TrajectoryContextMenu';
-import type { WaypointContextMenuPosition } from '../route/WaypointContextMenu';
 import type { ContextMenuPosition } from '../node-editor/NodeEditorContextMenu';
 import { DeleteConfirmationDialog } from '../node-editor/DeleteConfirmationDialog';
 import { ParameterDialog } from '../template/ParameterDialog';
@@ -69,6 +65,10 @@ import { evaluateReferenceLineAtS, evaluateElevation, stToXyz } from '@osce/open
 import type { PoleAssemblyInfo } from '@osce/3d-viewer';
 import { extractEntityPositions } from '@osce/3d-viewer';
 import { RoadNetworkEditorLayout } from '../opendrive/RoadNetworkEditorLayout';
+import { SimulationViewerBridge } from './SimulationViewerBridge';
+import { SignalPickOverlay } from './SignalPickOverlay';
+import { useRouteEditHandlers } from '../../hooks/use-route-edit-handlers';
+import { useTrajectoryEditHandlers } from '../../hooks/use-trajectory-edit-handlers';
 
 function ResizeHandle() {
   return (
@@ -81,70 +81,6 @@ function ResizeHandleH() {
     <PanelResizeHandle className="h-[1px] divider-glow hover:h-[3px] transition-all data-[resize-handle-active]:h-[3px]" />
   );
 }
-
-/**
- * Thin wrapper that computes the current display frame from the simulation store,
- * so only the 3D viewer re-renders on frame changes (not the entire EditorLayout).
- */
-const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
-  scenarioStore: ReturnType<typeof import('../../stores/use-scenario-store').useScenarioStoreApi>;
-  openDriveDocument: import('@osce/shared').OpenDriveDocument | null;
-  selectedEntityId: string | null;
-  hoveredEntityName: string | null;
-  onEntitySelect: (entityId: string) => void;
-  onEntityFocus: (entityId: string) => void;
-  onEntityPositionChange?: (entityName: string, x: number, y: number, z: number, h: number, forceWorldPosition?: boolean) => void;
-  onViewerModeChange?: (mode: ViewerMode) => void;
-  preferences: {
-    showGrid3D: boolean;
-    showLaneIds: boolean;
-    showRoadIds: boolean;
-    showDrivingDirection: boolean;
-  };
-  focusEntityId?: string | null;
-  routeEdit?: RouteEditConfig;
-  trajectoryEdit?: TrajectoryEditConfig;
-  signalSelection?: SignalSelectionConfig;
-  positionPick?: PositionPickConfig;
-}) {
-  const simStatus = useSimulationStore((s) => s.status);
-  const simFrames = useSimulationStore(useShallow((s) => s.frames));
-  const currentFrameIndex = useSimulationStore((s) => s.currentFrameIndex);
-
-  // Compute display frame based on simulation state:
-  // - running: show the latest frame (live streaming)
-  // - completed/error: show frame at currentFrameIndex (replay scrubbing)
-  // - idle: no frame
-  let currentFrame = null;
-  if (simStatus === 'running' && simFrames.length > 0) {
-    currentFrame = simFrames[simFrames.length - 1];
-  } else if ((simStatus === 'completed' || simStatus === 'error') && simFrames.length > 0) {
-    currentFrame = simFrames[currentFrameIndex] ?? simFrames[simFrames.length - 1];
-  }
-
-  return (
-    <ScenarioViewer
-      scenarioStore={props.scenarioStore}
-      openDriveDocument={props.openDriveDocument}
-      selectedEntityId={props.selectedEntityId}
-      hoveredEntityName={props.hoveredEntityName}
-      onEntitySelect={props.onEntitySelect}
-      onEntityFocus={props.onEntityFocus}
-      onEntityPositionChange={props.onEntityPositionChange}
-      onViewerModeChange={props.onViewerModeChange}
-      currentFrame={currentFrame}
-      simulationStatus={simStatus}
-      preferences={props.preferences}
-      focusEntityId={props.focusEntityId}
-      routeEdit={props.routeEdit}
-      trajectoryEdit={props.trajectoryEdit}
-      signalSelection={props.signalSelection}
-      positionPick={props.positionPick}
-      showPerf={false}
-      className="h-full w-full"
-    />
-  );
-});
 
 interface DeleteRequest {
   id: string;
@@ -433,400 +369,35 @@ export function EditorLayout() {
     [catalogResolveReference],
   );
 
-  const handleRouteWaypointAdd = useCallback(
-    (
-      _worldX: number, _worldY: number, _worldZ: number, _heading: number,
-      roadId: string, laneId: string, s: number, _offset: number,
-    ) => {
-      // Route waypoints always snap to lane center (no lateral offset)
-      routeEdit.addWaypoint({
-        type: 'lanePosition',
-        roadId,
-        laneId,
-        s: Math.round(s * 100) / 100,
-      });
-    },
-    [routeEdit],
-  );
-
-  const handleRouteWaypointClick = useCallback(
-    (index: number) => {
-      routeEdit.selectWaypoint(index);
-    },
-    [routeEdit],
-  );
-
-  // --- Waypoint context menu ---
-  const [waypointContextMenu, setWaypointContextMenu] =
-    useState<WaypointContextMenuPosition | null>(null);
-
-  const handleRouteWaypointContextMenu = useCallback(
-    (index: number, event: unknown) => {
-      const nativeEvent = (event as { nativeEvent?: MouseEvent })?.nativeEvent;
-      if (!nativeEvent) return;
-      nativeEvent.preventDefault();
-      setWaypointContextMenu({
-        x: nativeEvent.clientX,
-        y: nativeEvent.clientY,
-        waypointIndex: index,
-      });
-    },
-    [],
-  );
-
-  const handleRouteWaypointDragEnd = useCallback(
-    (
-      index: number,
-      _worldX: number, _worldY: number, _worldZ: number, _heading: number,
-      roadId: string, laneId: string, s: number, _offset: number,
-    ) => {
-      // Route waypoints always snap to lane center (no lateral offset)
-      routeEdit.updateWaypointPosition(index, {
-        type: 'lanePosition',
-        roadId,
-        laneId,
-        s: Math.round(s * 100) / 100,
-      });
-    },
-    [routeEdit],
-  );
-
-  const handleRouteLineClick = useCallback(
-    (segmentIndex: number, event: unknown) => {
-      if (!routeEdit.editingRoute || !roadNetwork) return;
-
-      // Extract click position from ThreeEvent
-      const threeEvent = event as { point?: { x: number; y: number; z: number } };
-      if (threeEvent?.point) {
-        // ThreeEvent point is in Three.js world coords (inside rotation group)
-        // Convert to OpenDRIVE: odrX = point.x, odrY = -point.z
-        const odrX = threeEvent.point.x;
-        const odrY = -threeEvent.point.z;
-        const lane = worldToLane(roadNetwork, odrX, odrY, 20);
-        if (lane) {
-          routeEdit.insertWaypoint(segmentIndex, {
-            type: 'lanePosition',
-            roadId: lane.roadId,
-            laneId: String(lane.laneId),
-            s: Math.round(lane.s * 100) / 100,
-            offset: Math.abs(lane.offset) > 0.01
-              ? Math.round(lane.offset * 100) / 100
-              : undefined,
-          });
-          return;
-        }
-      }
-
-      // Fallback: duplicate segment start position
-      const wp = routeEdit.editingRoute.waypoints[segmentIndex];
-      if (!wp) return;
-      routeEdit.insertWaypoint(segmentIndex, wp.position);
-    },
-    [routeEdit, roadNetwork],
-  );
-
-  const handleRouteEditSave = useCallback(() => {
-    routeEdit.saveRoute(
-      // For action source: update via scenario store
-      (actionId, updates) => {
-        scenarioStoreApi.getState().updateAction(actionId, updates);
-      },
-      // For catalog source: update via catalog store
-      (catalogName, entryIndex, route) => {
-        updateCatalogEntry(catalogName, entryIndex, {
-          catalogType: 'route',
-          definition: route,
-        });
-      },
-    );
-  }, [routeEdit, scenarioStoreApi, updateCatalogEntry]);
-
-  const handleRouteEditCancel = useCallback(() => {
-    routeEdit.cancelRoute();
-  }, [routeEdit]);
+  const {
+    config: routeEditConfig,
+    waypointContextMenu,
+    setWaypointContextMenu,
+  } = useRouteEditHandlers({
+    routeEdit,
+    roadNetwork,
+    roadManagerClient,
+    scenarioStoreApi,
+    updateCatalogEntry,
+    resolveCatalogRoute,
+    routePreviewData,
+  });
 
   // --- Trajectory editing ---
   const trajectoryEdit = useTrajectoryEdit(roadNetwork, entityPositions);
 
-  const handleTrajectoryPointAdd = useCallback(
-    (
-      worldX: number, worldY: number, worldZ: number, heading: number,
-      roadId: string, laneId: string, s: number, _offset: number,
-      snapped: boolean,
-    ) => {
-      const shape = trajectoryEdit.editingTrajectory?.shape;
-      const pos = snapped
-        ? { type: 'lanePosition' as const, roadId, laneId, s: Math.round(s * 100) / 100, orientation: heading ? { type: 'absolute' as const, h: heading } : undefined }
-        : { type: 'worldPosition' as const, x: Math.round(worldX * 100) / 100, y: Math.round(worldY * 100) / 100, z: Math.round(worldZ * 100) / 100, h: heading || undefined };
-      if (shape?.type === 'polyline') {
-        trajectoryEdit.addVertex(pos);
-      } else if (shape?.type === 'nurbs') {
-        trajectoryEdit.addControlPoint(pos);
-      }
-    },
-    [trajectoryEdit],
-  );
-
-  const handleTrajectoryPointClick = useCallback(
-    (index: number) => {
-      trajectoryEdit.selectPoint(index);
-    },
-    [trajectoryEdit],
-  );
-
-  interface TrajectoryContextMenuPosition {
-    x: number;
-    y: number;
-    pointIndex: number;
-  }
-  const [trajectoryContextMenu, setTrajectoryContextMenu] =
-    useState<TrajectoryContextMenuPosition | null>(null);
-
-  const handleTrajectoryPointContextMenu = useCallback(
-    (index: number, event: unknown) => {
-      const nativeEvent = (event as { nativeEvent?: MouseEvent })?.nativeEvent;
-      if (!nativeEvent) return;
-      nativeEvent.preventDefault();
-      setTrajectoryContextMenu({
-        x: nativeEvent.clientX,
-        y: nativeEvent.clientY,
-        pointIndex: index,
-      });
-    },
-    [],
-  );
-
-  const handleTrajectoryPointDragEnd = useCallback(
-    (
-      index: number,
-      worldX: number, worldY: number, worldZ: number, heading: number,
-      roadId: string, laneId: string, s: number, _offset: number,
-      snapped: boolean,
-    ) => {
-      const shape = trajectoryEdit.editingTrajectory?.shape;
-
-      // "Start from entity" point: update dx/dy relative to entity instead of replacing position type
-      if (shape) {
-        const curPos = shape.type === 'polyline'
-          ? shape.vertices[index]?.position
-          : shape.type === 'nurbs'
-            ? shape.controlPoints[index]?.position
-            : null;
-        if (curPos && curPos.type === 'relativeObjectPosition') {
-          const ref = entityPositions.get(curPos.entityRef);
-          if (ref) {
-            // Compute dx/dy in entity-local coordinates (inverse rotation by entity heading)
-            const cos = Math.cos(-ref.h);
-            const sin = Math.sin(-ref.h);
-            const deltaX = worldX - ref.x;
-            const deltaY = worldY - ref.y;
-            const newPos = {
-              ...curPos,
-              dx: Math.round((deltaX * cos - deltaY * sin) * 100) / 100,
-              dy: Math.round((deltaX * sin + deltaY * cos) * 100) / 100,
-              dz: Math.round((worldZ - ref.z) * 100) / 100 || undefined,
-            };
-            if (shape.type === 'polyline') {
-              trajectoryEdit.updateVertexPosition(index, newPos);
-            } else if (shape.type === 'nurbs') {
-              trajectoryEdit.updateControlPointPosition(index, newPos);
-            }
-            return;
-          }
-        }
-      }
-
-      const pos = snapped
-        ? { type: 'lanePosition' as const, roadId, laneId, s: Math.round(s * 100) / 100, orientation: heading ? { type: 'absolute' as const, h: heading } : undefined }
-        : { type: 'worldPosition' as const, x: Math.round(worldX * 100) / 100, y: Math.round(worldY * 100) / 100, z: Math.round(worldZ * 100) / 100, h: heading || undefined };
-      if (shape?.type === 'polyline') {
-        trajectoryEdit.updateVertexPosition(index, pos);
-      } else if (shape?.type === 'nurbs') {
-        trajectoryEdit.updateControlPointPosition(index, pos);
-      } else if (shape?.type === 'clothoid') {
-        trajectoryEdit.updateClothoidPosition(pos);
-      }
-    },
-    [trajectoryEdit],
-  );
-
-  const handleTrajectoryEditSave = useCallback(() => {
-    trajectoryEdit.saveTrajectory(
-      (actionId, trajectory) => {
-        // Read the existing action from the store to preserve timeReference, followingMode, etc.
-        const doc = scenarioStoreApi.getState().document;
-        if (!doc) return;
-        // Search storyboard actions
-        for (const story of doc.storyboard.stories) {
-          for (const act of story.acts) {
-            for (const group of act.maneuverGroups) {
-              for (const maneuver of group.maneuvers) {
-                for (const event of maneuver.events) {
-                  const existing = event.actions.find((a) => a.id === actionId);
-                  if (existing && existing.action?.type === 'followTrajectoryAction') {
-                    scenarioStoreApi.getState().updateAction(actionId, {
-                      action: { ...existing.action, trajectory },
-                    });
-                    return;
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      (catalogName, entryIndex, trajectory) => {
-        updateCatalogEntry(catalogName, entryIndex, {
-          catalogType: 'trajectory',
-          definition: trajectory,
-        });
-      },
-    );
-  }, [trajectoryEdit, scenarioStoreApi, updateCatalogEntry]);
-
-  const handleTrajectoryEditCancel = useCallback(() => {
-    trajectoryEdit.cancelTrajectory();
-  }, [trajectoryEdit]);
-
-  // Compute time values for trajectory point markers
-  const trajectoryPointTimes = useMemo(() => {
-    const t = trajectoryEdit.editingTrajectory;
-    if (!t) return undefined;
-    if (t.shape.type === 'polyline') {
-      return t.shape.vertices.map((v) => v.time);
-    }
-    if (t.shape.type === 'nurbs') {
-      return t.shape.controlPoints.map((cp) => cp.time);
-    }
-    return undefined;
-  }, [trajectoryEdit.editingTrajectory]);
-
-  // Compute indices of relative-positioned points (for dashed line rendering)
-  const trajectoryRelativePointIndices = useMemo(() => {
-    const t = trajectoryEdit.editingTrajectory;
-    if (!t) return undefined;
-
-    const isRelative = (posType: string) =>
-      posType === 'relativeObjectPosition' ||
-      posType === 'relativeWorldPosition' ||
-      posType === 'relativeLanePosition' ||
-      posType === 'relativeRoadPosition';
-
-    const indices: number[] = [];
-    if (t.shape.type === 'polyline') {
-      for (let i = 0; i < t.shape.vertices.length; i++) {
-        if (isRelative(t.shape.vertices[i].position.type)) indices.push(i);
-      }
-    } else if (t.shape.type === 'nurbs') {
-      for (let i = 0; i < t.shape.controlPoints.length; i++) {
-        if (isRelative(t.shape.controlPoints[i].position.type)) indices.push(i);
-      }
-    }
-    return indices.length > 0 ? indices : undefined;
-  }, [trajectoryEdit.editingTrajectory]);
-
-  // Compute point count for trajectory
-  const trajectoryPointCount = useMemo(() => {
-    const t = trajectoryEdit.editingTrajectory;
-    if (!t) return 0;
-    if (t.shape.type === 'polyline') return t.shape.vertices.length;
-    if (t.shape.type === 'clothoid') return t.shape.position ? 1 : 0;
-    if (t.shape.type === 'nurbs') return t.shape.controlPoints.length;
-    return 0;
-  }, [trajectoryEdit.editingTrajectory]);
-
-  // Grouped viewer config objects.
-  // Referentially stable via useMemo so the memo()'d SimulationViewerBridge and the
-  // 30fps-rerendering ScenarioViewer do not re-render from new object identities each frame.
-  const routeEditConfig = useMemo<RouteEditConfig>(
-    () => ({
-      active: routeEdit.active,
-      waypoints: routeEdit.waypointWorldPositions,
-      pathSegments: routeEdit.pathSegments,
-      selectedWaypointIndex: routeEdit.selectedWaypointIndex,
-      onWaypointClick: handleRouteWaypointClick,
-      onWaypointContextMenu: handleRouteWaypointContextMenu,
-      onLineClick: handleRouteLineClick,
-      onWaypointAdd: handleRouteWaypointAdd,
-      onWaypointDragEnd: handleRouteWaypointDragEnd,
-      onEditSave: handleRouteEditSave,
-      onEditCancel: handleRouteEditCancel,
-      warnings: routeEdit.warnings,
-      waypointCount: routeEdit.editingRoute?.waypoints.length ?? 0,
-      laneChangeMarkers: routeEdit.laneChangeMarkers,
-      laneChangeAware: routeEdit.laneChangeAware,
-      laneChangeAvailable: roadManagerClient !== null,
-      onToggleLaneChangeAware: routeEdit.setLaneChangeAware,
-      calcStrategy: routeEdit.routeCalcStrategy,
-      onCalcStrategyChange: routeEdit.setRouteCalcStrategy,
-      resolveCatalogRoute,
-      previewData: routePreviewData,
-    }),
-    [
-      routeEdit.active,
-      routeEdit.waypointWorldPositions,
-      routeEdit.pathSegments,
-      routeEdit.selectedWaypointIndex,
-      handleRouteWaypointClick,
-      handleRouteWaypointContextMenu,
-      handleRouteLineClick,
-      handleRouteWaypointAdd,
-      handleRouteWaypointDragEnd,
-      handleRouteEditSave,
-      handleRouteEditCancel,
-      routeEdit.warnings,
-      routeEdit.editingRoute?.waypoints.length,
-      routeEdit.laneChangeMarkers,
-      routeEdit.laneChangeAware,
-      roadManagerClient,
-      routeEdit.setLaneChangeAware,
-      routeEdit.routeCalcStrategy,
-      routeEdit.setRouteCalcStrategy,
-      resolveCatalogRoute,
-      routePreviewData,
-    ],
-  );
-
-  const trajectoryEditConfig = useMemo<TrajectoryEditConfig>(
-    () => ({
-      active: trajectoryEdit.active,
-      shapeType: trajectoryEdit.editingTrajectory?.shape.type,
-      points: trajectoryEdit.pointWorldPositions,
-      curvePoints: trajectoryEdit.curvePoints,
-      pointTimes: trajectoryPointTimes,
-      selectedPointIndex: trajectoryEdit.selectedPointIndex,
-      onPointClick: handleTrajectoryPointClick,
-      onPointContextMenu: handleTrajectoryPointContextMenu,
-      onPointAdd: handleTrajectoryPointAdd,
-      onPointDragEnd: handleTrajectoryPointDragEnd,
-      onEditSave: handleTrajectoryEditSave,
-      onEditCancel: handleTrajectoryEditCancel,
-      relativePointIndices: trajectoryRelativePointIndices,
-      warnings: trajectoryEdit.warnings,
-      pointCount: trajectoryPointCount,
-      previewData: trajectoryPreviewData,
-      laneChangePreviewData,
-    }),
-    [
-      trajectoryEdit.active,
-      trajectoryEdit.editingTrajectory?.shape.type,
-      trajectoryEdit.pointWorldPositions,
-      trajectoryEdit.curvePoints,
-      trajectoryPointTimes,
-      trajectoryEdit.selectedPointIndex,
-      handleTrajectoryPointClick,
-      handleTrajectoryPointContextMenu,
-      handleTrajectoryPointAdd,
-      handleTrajectoryPointDragEnd,
-      handleTrajectoryEditSave,
-      handleTrajectoryEditCancel,
-      trajectoryRelativePointIndices,
-      trajectoryEdit.warnings,
-      trajectoryPointCount,
-      trajectoryPreviewData,
-      laneChangePreviewData,
-    ],
-  );
+  const {
+    config: trajectoryEditConfig,
+    trajectoryContextMenu,
+    setTrajectoryContextMenu,
+  } = useTrajectoryEditHandlers({
+    trajectoryEdit,
+    entityPositions,
+    scenarioStoreApi,
+    updateCatalogEntry,
+    trajectoryPreviewData,
+    laneChangePreviewData,
+  });
 
   const signalSelectionConfig = useMemo<SignalSelectionConfig>(
     () => ({
@@ -1002,53 +573,7 @@ export function EditorLayout() {
                 className="h-full bg-[var(--color-bg-deep)] enter d5 relative"
                 style={signalPickMode ? { cursor: 'crosshair' } : undefined}
               >
-                {signalPickMode && (
-                  <>
-                    {/* Bright cyan border overlay — clearly distinct from default accent */}
-                    <div
-                      className="absolute inset-0 z-10 pointer-events-none"
-                      style={{
-                        boxShadow: 'inset 0 0 0 3px #00e5ff, inset 0 0 20px 0 rgba(0,229,255,0.2)',
-                      }}
-                    />
-                    {/* Bottom bar (RouteEditOverlay style) */}
-                    <div
-                      className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2.5 px-4 py-2"
-                      style={{
-                        backgroundColor: 'rgba(10, 25, 35, 0.94)',
-                        border: '1px solid rgba(0, 229, 255, 0.5)',
-                        backdropFilter: 'blur(8px)',
-                        whiteSpace: 'nowrap',
-                        pointerEvents: 'auto',
-                      }}
-                    >
-                      <span className="inline-block size-2 rounded-full animate-pulse" style={{ backgroundColor: '#00e5ff' }} />
-                      <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#00e5ff' }}>
-                        Signal Pick
-                      </span>
-                      <span style={{ color: 'rgba(0,229,255,0.3)' }}>|</span>
-                      <span className="text-[11px] text-[var(--color-text-secondary)]">
-                        Click signals to add / remove
-                      </span>
-                      <span style={{ color: 'rgba(0,229,255,0.3)' }}>|</span>
-                      <button
-                        type="button"
-                        className="px-3 py-1 text-[11px] font-medium text-white transition-opacity hover:opacity-80"
-                        style={{ backgroundColor: '#00b8d4' }}
-                        onClick={() => useEditorStore.getState().exitSignalPickMode()}
-                      >
-                        Done
-                      </button>
-                      <button
-                        type="button"
-                        className="px-3 py-1 text-[11px] font-medium text-[var(--color-text-secondary)] bg-[var(--color-glass-2)] hover:bg-[var(--color-glass-hover)] transition-colors"
-                        onClick={() => useEditorStore.getState().exitSignalPickMode()}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </>
-                )}
+                {signalPickMode && <SignalPickOverlay />}
                 <ErrorBoundary fallbackTitle="3D Viewer Error">
                   <SimulationViewerBridge
                     scenarioStore={scenarioStoreApi}
