@@ -41,6 +41,7 @@ export {
 export { BaseCommand } from './commands/base-command.js';
 export { CommandHistory } from './commands/command-history.js';
 export { CompoundCommand } from './commands/compound-command.js';
+export { DuplicateEntityCommand } from './commands/entity-commands.js';
 
 // Operations
 export { getElementById, getParentOf } from './operations/tree-traversal.js';

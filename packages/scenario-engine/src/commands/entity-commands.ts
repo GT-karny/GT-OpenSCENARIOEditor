@@ -3,14 +3,32 @@
  */
 
 import { produce } from 'immer';
-import type { ScenarioDocument, ScenarioEntity } from '@osce/shared';
+import { v4 as uuidv4 } from 'uuid';
+import type { ScenarioDocument, ScenarioEntity, EntityInitActions } from '@osce/shared';
 import { BaseCommand } from './base-command.js';
 import { createEntityFromPartial, createEntityInitActions } from '../store/defaults.js';
 import { findEntityIndex } from '../operations/entity-operations.js';
+import { deepCloneWithNewIds } from '../operations/deep-clone.js';
 import {
   deepReplaceEntityRef,
   deepRemoveEntityRef,
 } from '../operations/entity-rename-utils.js';
+
+/**
+ * Generate a unique entity name based on `baseName`, appending `_copy`,
+ * then `_copy2`, `_copy3`, ... until it no longer collides with any
+ * existing entity name in the document.
+ */
+function uniqueEntityCopyName(existingNames: readonly string[], baseName: string): string {
+  const taken = new Set(existingNames);
+  let candidate = `${baseName}_copy`;
+  let counter = 2;
+  while (taken.has(candidate)) {
+    candidate = `${baseName}_copy${counter}`;
+    counter += 1;
+  }
+  return candidate;
+}
 
 export type GetDoc = () => ScenarioDocument;
 export type SetDoc = (doc: ScenarioDocument) => void;
@@ -172,5 +190,103 @@ export class UpdateEntityCommand extends BaseCommand {
       const idx = findEntityIndex(draft, this.entityId);
       if (idx !== -1) draft.entities[idx] = prev;
     }));
+  }
+}
+
+/**
+ * Duplicate an entity together with its Init EntityInitActions as a single
+ * undoable step. The clone receives a fresh id, a unique name
+ * (e.g. `Name_copy`, `Name_copy2`), regenerated nested parameter ids, and a
+ * deep copy of the source entity's init actions with new ids whose
+ * `entityRef` points at the clone's name. References from OTHER elements to
+ * the source entity are intentionally NOT remapped.
+ */
+export class DuplicateEntityCommand extends BaseCommand {
+  private clonedEntity: ScenarioEntity | null = null;
+  private clonedInitActions: EntityInitActions | null = null;
+  private readonly sourceEntityId: string;
+  private readonly getDoc: GetDoc;
+  private readonly setDoc: SetDoc;
+
+  constructor(sourceEntityId: string, getDoc: GetDoc, setDoc: SetDoc) {
+    super(`Duplicate entity: ${sourceEntityId}`);
+    this.sourceEntityId = sourceEntityId;
+    this.getDoc = getDoc;
+    this.setDoc = setDoc;
+  }
+
+  execute(): void {
+    const doc = this.getDoc();
+
+    // Reuse the previously built clone on redo so ids stay stable.
+    if (this.clonedEntity) {
+      const entity = this.clonedEntity;
+      const initActions = this.clonedInitActions;
+      this.setDoc(produce(doc, (draft) => {
+        draft.entities.push(entity);
+        if (initActions) draft.storyboard.init.entityActions.push(initActions);
+      }));
+      return;
+    }
+
+    const sourceIdx = findEntityIndex(doc, this.sourceEntityId);
+    if (sourceIdx === -1) return;
+
+    const source = doc.entities[sourceIdx];
+    const newName = uniqueEntityCopyName(
+      doc.entities.map((e) => e.name),
+      source.name,
+    );
+
+    const clone = deepCloneWithNewIds(source, 'entity');
+    clone.name = newName;
+    // Keep the embedded definition name aligned with the entity name.
+    const definition = clone.definition as { name?: string };
+    if (typeof definition.name === 'string') {
+      definition.name = newName;
+    }
+    this.clonedEntity = clone;
+
+    // Clone the source entity's init actions (if any) and retarget entityRef.
+    const sourceInit = doc.storyboard.init.entityActions.find(
+      (ea) => ea.entityRef === source.name,
+    );
+    if (sourceInit) {
+      const clonedInit = structuredClone(sourceInit);
+      clonedInit.id = uuidv4();
+      clonedInit.entityRef = newName;
+      for (const pa of clonedInit.privateActions) {
+        pa.id = uuidv4();
+      }
+      this.clonedInitActions = clonedInit;
+    } else {
+      // Match AddEntityCommand: every entity gets an EntityInitActions entry.
+      this.clonedInitActions = createEntityInitActions(newName);
+    }
+
+    const entity = this.clonedEntity;
+    const initActions = this.clonedInitActions;
+    this.setDoc(produce(doc, (draft) => {
+      draft.entities.push(entity);
+      if (initActions) draft.storyboard.init.entityActions.push(initActions);
+    }));
+  }
+
+  undo(): void {
+    if (!this.clonedEntity) return;
+    const entityId = this.clonedEntity.id;
+    const initId = this.clonedInitActions?.id;
+    this.setDoc(produce(this.getDoc(), (draft) => {
+      const idx = findEntityIndex(draft, entityId);
+      if (idx !== -1) draft.entities.splice(idx, 1);
+      if (initId) {
+        const eaIdx = draft.storyboard.init.entityActions.findIndex((ea) => ea.id === initId);
+        if (eaIdx !== -1) draft.storyboard.init.entityActions.splice(eaIdx, 1);
+      }
+    }));
+  }
+
+  getClonedEntity(): ScenarioEntity | null {
+    return this.clonedEntity;
   }
 }

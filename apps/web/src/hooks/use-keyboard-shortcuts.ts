@@ -12,7 +12,7 @@ export function useKeyboardShortcuts() {
   const storeApi = useScenarioStoreApi();
   const { openXosc, saveXosc, saveAsXosc, loadXodr, saveXodr, saveAsXodr } = useFileOperations();
   const { deleteSelected } = useElementDelete();
-  const { copyElement, pasteAtSelection } = useCopyPaste();
+  const { copyElements, pasteAtSelection, duplicateElements } = useCopyPaste();
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -61,17 +61,25 @@ export function useKeyboardShortcuts() {
         } else {
           openXosc();
         }
+      } else if (ctrl && e.key === 'd') {
+        if (isInputFocused() || isRoadNetwork) return;
+        const selectedIds = useEditorStore.getState().selection.selectedElementIds;
+        if (selectedIds.length > 0) {
+          e.preventDefault();
+          duplicateElements(selectedIds);
+        }
       } else if (ctrl && e.key === 'c') {
         if (isInputFocused() || isRoadNetwork) return;
         const selectedIds = useEditorStore.getState().selection.selectedElementIds;
-        if (selectedIds.length === 1) {
+        if (selectedIds.length > 0) {
           e.preventDefault();
-          copyElement(selectedIds[0]);
+          copyElements(selectedIds);
         }
       } else if (ctrl && e.key === 'v') {
         if (isInputFocused() || isRoadNetwork) return;
         const selectedIds = useEditorStore.getState().selection.selectedElementIds;
-        if (selectedIds.length === 1) {
+        // Paste is anchored on the primary (first) selected element.
+        if (selectedIds.length >= 1) {
           e.preventDefault();
           pasteAtSelection(selectedIds[0]);
         }
@@ -84,5 +92,5 @@ export function useKeyboardShortcuts() {
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [storeApi, openXosc, saveXosc, saveAsXosc, loadXodr, saveXodr, saveAsXodr, deleteSelected, copyElement, pasteAtSelection]);
+  }, [storeApi, openXosc, saveXosc, saveAsXosc, loadXodr, saveXodr, saveAsXodr, deleteSelected, copyElements, pasteAtSelection, duplicateElements]);
 }

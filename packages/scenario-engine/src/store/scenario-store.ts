@@ -32,6 +32,7 @@ import {
   AddEntityCommand,
   RemoveEntityCommand,
   UpdateEntityCommand,
+  DuplicateEntityCommand,
 } from '../commands/entity-commands.js';
 import type { EntityCleanupOption } from '../commands/entity-commands.js';
 import {
@@ -90,6 +91,10 @@ export interface ScenarioStore extends ScenarioState, IScenarioService {
 
   // Override to accept optional cleanup option
   removeEntity(entityId: string, cleanupOption?: EntityCleanupOption): void;
+
+  // Duplicate an entity (with its init actions) as a single undoable step.
+  // Returns the cloned entity, or undefined if the source was not found.
+  duplicateEntity(sourceEntityId: string): ScenarioEntity | undefined;
 
   // Update operations (beyond IScenarioService)
   updateStory(storyId: string, updates: Partial<Story>): void;
@@ -256,6 +261,13 @@ export function createScenarioStore() {
         const cmd = new UpdateEntityCommand(entityId, updates, getDoc, setDoc);
         commandHistory.execute(cmd);
         syncUndoRedo();
+      },
+
+      duplicateEntity: (sourceEntityId: string): ScenarioEntity | undefined => {
+        const cmd = new DuplicateEntityCommand(sourceEntityId, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+        return cmd.getClonedEntity() ?? undefined;
       },
 
       getEntity: (entityId: string): ScenarioEntity | undefined => {

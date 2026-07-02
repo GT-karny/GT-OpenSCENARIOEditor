@@ -13,9 +13,10 @@ import type {
   ConditionGroup,
   Condition,
   ParameterDeclaration,
+  ScenarioEntity,
 } from '@osce/shared';
 
-export type CloneableElementType = 'maneuverGroup' | 'maneuver' | 'event' | 'action';
+export type CloneableElementType = 'maneuverGroup' | 'maneuver' | 'event' | 'action' | 'entity';
 
 /**
  * Deep-clone a storyboard element, regenerating all `id` fields
@@ -35,6 +36,8 @@ export function deepCloneWithNewIds<T>(element: T, type: CloneableElementType): 
       return regenerateEventIds(clone as unknown as ScenarioEvent) as unknown as T;
     case 'action':
       return regenerateActionIds(clone as unknown as ScenarioAction) as unknown as T;
+    case 'entity':
+      return regenerateEntityIds(clone as unknown as ScenarioEntity) as unknown as T;
   }
 }
 
@@ -83,6 +86,30 @@ function regenerateActionIds(action: ScenarioAction): ScenarioAction {
   action.id = uuidv4();
   action.name = action.name + '_copy';
   return action;
+}
+
+/**
+ * Regenerate the entity `id` and all nested ParameterDeclaration ids
+ * (definition and, when present, controller). The `name` is intentionally
+ * left untouched here — unique-name assignment is the caller's responsibility
+ * so that dependent init actions can reference the final name.
+ */
+function regenerateEntityIds(entity: ScenarioEntity): ScenarioEntity {
+  entity.id = uuidv4();
+
+  const definition = entity.definition as { parameterDeclarations?: ParameterDeclaration[] };
+  if (Array.isArray(definition.parameterDeclarations)) {
+    regenerateParameterIds(definition.parameterDeclarations);
+  }
+
+  const controllerDef = entity.controller?.controller as
+    | { parameterDeclarations?: ParameterDeclaration[] }
+    | undefined;
+  if (controllerDef && Array.isArray(controllerDef.parameterDeclarations)) {
+    regenerateParameterIds(controllerDef.parameterDeclarations);
+  }
+
+  return entity;
 }
 
 function regenerateTriggerIds(trigger: Trigger): void {
