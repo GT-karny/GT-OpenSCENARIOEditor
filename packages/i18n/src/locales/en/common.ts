@@ -39,6 +39,10 @@ export const common = {
   timeline: {
     entity: 'Entity',
     noEntities: 'No entities in scenario',
+    resetZoom: 'Reset zoom',
+    zoomHint: 'Ctrl + scroll to zoom',
+    eventBlock: 'Drag to change trigger time',
+    ambiguousTrigger: 'Trigger has no single simulation-time condition — not draggable',
   },
   labels: {
     name: 'Name',

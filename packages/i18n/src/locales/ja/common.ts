@@ -39,6 +39,10 @@ export const common = {
   timeline: {
     entity: 'エンティティ',
     noEntities: 'シナリオにエンティティがありません',
+    resetZoom: 'ズームをリセット',
+    zoomHint: 'Ctrl + スクロールでズーム',
+    eventBlock: 'ドラッグしてトリガー時刻を変更',
+    ambiguousTrigger: 'シミュレーション時刻条件が1つに定まらないためドラッグできません',
   },
   labels: {
     name: '名前',
