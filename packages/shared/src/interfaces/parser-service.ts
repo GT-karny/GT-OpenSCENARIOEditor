@@ -37,6 +37,12 @@ export interface ValidationIssue {
   code: string;
   message: string;
   messageKey: string;
+  /**
+   * Interpolation values for {@link messageKey}. Keys match the `{{...}}`
+   * placeholders declared in the i18n `errors.validation` namespace so the UI
+   * can render a localized message via `t(messageKey, params)`.
+   */
+  params?: Record<string, string | number>;
   severity: 'error' | 'warning';
   path: string;
   elementId?: string;

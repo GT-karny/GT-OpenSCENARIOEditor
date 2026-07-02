@@ -1,5 +1,6 @@
 import type { ValidationIssue } from '@osce/shared';
 import { AlertCircle, AlertTriangle } from 'lucide-react';
+import { useTranslation } from '@osce/i18n';
 import { useEditorStore } from '../../stores/editor-store';
 
 interface ValidationIssueRowProps {
@@ -7,8 +8,11 @@ interface ValidationIssueRowProps {
 }
 
 export function ValidationIssueRow({ issue }: ValidationIssueRowProps) {
+  const { t } = useTranslation('errors');
+  const { t: tc } = useTranslation('common');
   const setSelection = useEditorStore((s) => s.setSelection);
   const setFocusNodeId = useEditorStore((s) => s.setFocusNodeId);
+  const requestCenterTab = useEditorStore((s) => s.requestCenterTab);
 
   const navigable = !!issue.elementId;
 
@@ -16,13 +20,19 @@ export function ValidationIssueRow({ issue }: ValidationIssueRowProps) {
     if (issue.elementId) {
       setSelection({ selectedElementIds: [issue.elementId] });
       setFocusNodeId(issue.elementId);
+      // Node focus is only visible in the Graph center tab, so surface it.
+      requestCenterTab('graph');
     }
   };
+
+  // Localize via the messageKey/params contract; the raw message is the fallback.
+  const label = t(issue.messageKey, { ...issue.params, defaultValue: issue.message });
 
   return (
     <button
       onClick={handleClick}
       disabled={!navigable}
+      title={navigable ? undefined : tc('validationToast.nonNavigable')}
       className={`w-full text-left px-3 py-2 transition-colors border-b border-[var(--color-glass-edge)] last:border-b-0 ${navigable ? 'cursor-pointer hover:bg-[var(--color-glass-hover)]' : 'cursor-default'}`}
     >
       <div className="flex items-start gap-2">
@@ -32,7 +42,7 @@ export function ValidationIssueRow({ issue }: ValidationIssueRowProps) {
           <AlertTriangle className="h-4 w-4 text-yellow-500 shrink-0 mt-0.5" />
         )}
         <div className="min-w-0">
-          <p className="text-xs">{issue.message}</p>
+          <p className="text-xs">{label}</p>
           <p className="text-[10px] text-muted-foreground truncate">{issue.path}</p>
         </div>
       </div>

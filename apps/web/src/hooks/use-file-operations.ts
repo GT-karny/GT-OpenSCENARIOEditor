@@ -5,9 +5,10 @@ import {
   createDefaultDocument,
   buildAssembliesFromDocument,
 } from '@osce/opendrive-engine';
-import type { CatalogLocations } from '@osce/shared';
+import type { CatalogLocations, ScenarioDocument } from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
 import { toast } from 'sonner';
+import { runValidationOnDocument } from './use-validation';
 import { useScenarioStoreApi } from '../stores/use-scenario-store';
 import { useEditorStore } from '../stores/editor-store';
 import { useProjectStore } from '../stores/project-store';
@@ -309,6 +310,44 @@ export function useFileOperations() {
   const setRoadNetwork = useEditorStore((s) => s.setRoadNetwork);
   const setShowSaveAs = useEditorStore((s) => s.setShowSaveAs);
 
+  /**
+   * Auto-validate a scenario before it is serialized/written.
+   *
+   * When the autoValidate preference is off this is a no-op that always allows
+   * the save. Otherwise it validates `doc`, publishes the result so the panel and
+   * status bar update, and gates the save:
+   * - errors: park a confirmation request in the store and await the user's
+   *   choice (Save Anyway / Cancel). Returns the decision.
+   * - warnings only: surface a single non-blocking toast and allow the save.
+   * - clean: allow silently.
+   *
+   * Returns `true` when the caller should proceed with the write.
+   */
+  const gateSaveWithValidation = useCallback(
+    (doc: ScenarioDocument): Promise<boolean> => {
+      const { preferences } = useEditorStore.getState();
+      if (!preferences.autoValidate) return Promise.resolve(true);
+
+      const result = runValidationOnDocument(doc);
+      setValidationResult(result);
+
+      if (result.errors.length > 0) {
+        return new Promise<boolean>((resolve) => {
+          useEditorStore.getState().setValidationConfirm({
+            errors: result.errors,
+            resolve,
+          });
+        });
+      }
+
+      if (result.warnings.length > 0) {
+        toast.warning(t('validationToast.warnings', { count: result.warnings.length }));
+      }
+      return Promise.resolve(true);
+    },
+    [setValidationResult, t],
+  );
+
   const newScenario = useCallback(() => {
     resetForNewFile();
     storeApi.getState().createScenario();
@@ -401,6 +440,7 @@ export function useFileOperations() {
     // Project mode with known file: save via API (overwrite)
     if (currentProject && currentFilePath) {
       try {
+        if (!(await gateSaveWithValidation(storeApi.getState().document))) return;
         const doc = convertPathsForSerialization(
           storeApi.getState().document,
           currentFilePath,
@@ -427,6 +467,7 @@ export function useFileOperations() {
     // Standalone mode: save to disk (overwrite if handle/path exists)
     try {
       const doc = storeApi.getState().document;
+      if (!(await gateSaveWithValidation(doc))) return;
       const serializer = new XoscSerializer();
       const xml = serializer.serializeFormatted(doc);
       const state = useEditorStore.getState();
@@ -447,7 +488,7 @@ export function useFileOperations() {
         toast.error(t('labels.serializeFailed'));
       }
     }
-  }, [storeApi, setCurrentFileName, setDirty, setShowSaveAs, t]);
+  }, [storeApi, setCurrentFileName, setDirty, setShowSaveAs, gateSaveWithValidation, t]);
 
   const saveAsXosc = useCallback(async () => {
     const currentProject = useProjectStore.getState().currentProject;
@@ -462,6 +503,7 @@ export function useFileOperations() {
     // Standalone mode: always show file picker (no handle reuse)
     try {
       const doc = storeApi.getState().document;
+      if (!(await gateSaveWithValidation(doc))) return;
       const serializer = new XoscSerializer();
       const xml = serializer.serializeFormatted(doc);
       const state = useEditorStore.getState();
@@ -479,13 +521,14 @@ export function useFileOperations() {
         toast.error(t('labels.serializeFailed'));
       }
     }
-  }, [storeApi, setCurrentFileName, setDirty, setShowSaveAs, t]);
+  }, [storeApi, setCurrentFileName, setDirty, setShowSaveAs, gateSaveWithValidation, t]);
 
   const handleSaveAs = useCallback(
     async (relativePath: string) => {
       const currentProject = useProjectStore.getState().currentProject;
       if (!currentProject) return;
 
+      if (!(await gateSaveWithValidation(storeApi.getState().document))) return;
       const doc = convertPathsForSerialization(
         storeApi.getState().document,
         relativePath,
@@ -506,7 +549,7 @@ export function useFileOperations() {
 
       toast.success(t('labels.fileSaved'));
     },
-    [storeApi, setCurrentFileName, setDirty, t],
+    [storeApi, setCurrentFileName, setDirty, gateSaveWithValidation, t],
   );
 
   // ---- OpenDRIVE (.xodr) operations ----

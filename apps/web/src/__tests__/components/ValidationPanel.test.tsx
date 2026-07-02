@@ -47,4 +47,28 @@ describe('ValidationPanel', () => {
     expect(screen.getAllByText('Missing entity').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Empty storyboard').length).toBeGreaterThan(0);
   });
+
+  it('localizes a real messageKey with params', () => {
+    useEditorStore.setState({
+      validationResult: {
+        valid: false,
+        errors: [],
+        warnings: [
+          {
+            code: 'STRUCT_003',
+            message: 'Story "Main" has no Acts',
+            messageKey: 'validation.struct003',
+            params: { name: 'Main' },
+            severity: 'warning',
+            path: 'storyboard.stories.Main',
+            elementId: 'story-1',
+          },
+        ],
+      },
+    });
+
+    renderWithProviders(<ValidationPanel />);
+    // The errors.validation.struct003 template interpolates {{name}} → "Main".
+    expect(screen.getAllByText('Story "Main" has no Acts').length).toBeGreaterThan(0);
+  });
 });

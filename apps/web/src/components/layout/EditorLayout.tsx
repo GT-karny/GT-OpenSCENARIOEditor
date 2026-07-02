@@ -32,6 +32,8 @@ import { FileTreeSidebar } from '../editor/FileTreeSidebar';
 import { SaveAsDialog } from '../editor/SaveAsDialog';
 import { AutosaveRecoveryDialog } from '../editor/AutosaveRecoveryDialog';
 import { useAutosave } from '../../hooks/use-autosave';
+import { useValidationAutorun } from '../../hooks/use-validation-autorun';
+import { ValidationConfirmHost } from '../validation/ValidationConfirmHost';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { useTranslation } from '@osce/i18n';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
@@ -236,8 +238,20 @@ export function EditorLayout() {
   const editorMode = useEditorStore((s) => s.editorMode);
   const [centerTab, setCenterTab] = useState<'composer' | 'graph'>('composer');
 
+  // Click-to-navigate from the validation panel requests the Graph tab so node
+  // focus is actually visible; consume and clear the transient store request.
+  const centerTabRequest = useEditorStore((s) => s.centerTabRequest);
+  useEffect(() => {
+    if (centerTabRequest) {
+      setCenterTab(centerTabRequest);
+      useEditorStore.getState().clearCenterTabRequest();
+    }
+  }, [centerTabRequest]);
+
   // --- Autosave with crash recovery (mounted once) ---
   const autosave = useAutosave();
+  // --- Debounced auto-validation (mounted once) ---
+  useValidationAutorun();
   const fileTreePanelRef = useRef<ImperativePanelHandle>(null);
   const editingPanelGroupRef = useRef<ImperativePanelGroupHandle>(null);
   const [fileTreeCollapsed, setFileTreeCollapsed] = useState(true);
@@ -905,6 +919,9 @@ export function EditorLayout() {
         onRestore={autosave.restore}
         onDiscard={autosave.discard}
       />
+
+      {/* Save-time validation confirmation host (mode-independent) */}
+      <ValidationConfirmHost />
 
       {editorMode === 'roadNetwork' ? (
         <>

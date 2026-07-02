@@ -181,6 +181,17 @@ export const common = {
     confirm: '削除',
     cancel: 'キャンセル',
   },
+  validationDialog: {
+    title: 'バリデーションエラーが{{count}}件見つかりました',
+    description: 'このシナリオには実行を妨げる可能性のあるエラーがあります。それでも保存しますか？',
+    more: '他{{count}}件',
+    save: '保存する',
+    cancel: 'キャンセル',
+  },
+  validationToast: {
+    warnings: 'バリデーション警告が{{count}}件見つかりました',
+    nonNavigable: 'この問題は特定の要素に紐づいていません',
+  },
   home: {
     title: 'OpenSCENARIOエディタ',
     newProject: '新規プロジェクト',

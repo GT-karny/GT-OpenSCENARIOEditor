@@ -181,6 +181,17 @@ export const common = {
     confirm: 'Delete',
     cancel: 'Cancel',
   },
+  validationDialog: {
+    title: '{{count}} validation error(s) found',
+    description: 'This scenario has errors that may prevent it from running. Save anyway?',
+    more: '…and {{count}} more',
+    save: 'Save Anyway',
+    cancel: 'Cancel',
+  },
+  validationToast: {
+    warnings: '{{count}} validation warning(s) found',
+    nonNavigable: 'This issue is not linked to a specific element',
+  },
   home: {
     title: 'OpenSCENARIO Editor',
     newProject: 'New Project',

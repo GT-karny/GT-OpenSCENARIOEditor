@@ -5,8 +5,19 @@ import type {
   EditorPreferences,
   EditorPanel,
   ValidationResult,
+  ValidationIssue,
   OpenDriveDocument,
 } from '@osce/shared';
+
+/**
+ * Pending save-time validation confirmation. When auto-validation finds blocking
+ * errors during a save, the save flow parks the decision here; the confirmation
+ * dialog resolves `resolve(true|false)` and the save either proceeds or aborts.
+ */
+export interface ValidationConfirmRequest {
+  errors: ValidationIssue[];
+  resolve: (proceed: boolean) => void;
+}
 
 /** Request to pick a position from the 3D viewer */
 export interface PositionPickRequest {
@@ -67,6 +78,16 @@ export interface EditorState {
   // Node focus (navigation from validation errors)
   focusNodeId: string | null;
   setFocusNodeId: (id: string | null) => void;
+
+  // Center tab switch request (consumed by EditorLayout to show Composer/Graph).
+  // Used by click-to-navigate so a validation issue can force the Graph view.
+  centerTabRequest: 'composer' | 'graph' | null;
+  requestCenterTab: (tab: 'composer' | 'graph') => void;
+  clearCenterTabRequest: () => void;
+
+  // Pending save-time validation confirmation (rendered by ValidationConfirmHost).
+  validationConfirm: ValidationConfirmRequest | null;
+  setValidationConfirm: (req: ValidationConfirmRequest | null) => void;
 
   // Road Network (loaded .xodr)
   roadNetwork: OpenDriveDocument | null;
@@ -228,6 +249,15 @@ export const useEditorStore = create<EditorState>()(
       focusNodeId: null,
       setFocusNodeId: (id) => set({ focusNodeId: id }),
 
+      // Center tab switch request
+      centerTabRequest: null,
+      requestCenterTab: (tab) => set({ centerTabRequest: tab }),
+      clearCenterTabRequest: () => set({ centerTabRequest: null }),
+
+      // Save-time validation confirmation
+      validationConfirm: null,
+      setValidationConfirm: (req) => set({ validationConfirm: req }),
+
       // Road Network
       roadNetwork: null,
       roadNetworkXml: null,
@@ -341,6 +371,8 @@ export const useEditorStore = create<EditorState>()(
           selection: { selectedElementIds: [], hoveredElementId: null, focusedPanelId: null },
           validationResult: null,
           focusNodeId: null,
+          centerTabRequest: null,
+          validationConfirm: null,
           focusEntityId: null,
           selectedSignalKey: null,
           activeActId: null,
