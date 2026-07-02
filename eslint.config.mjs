@@ -13,6 +13,8 @@ export default tseslint.config(
       '**/generated/**',
       'apps/web/public/wasm/**',
       'apps/desktop/release/**',
+      '**/playwright-report/**',
+      '**/test-results/**',
       '.claude/**',
       'tmp/**',
       '*.config.mjs',

@@ -23,6 +23,7 @@ import type {
   WasmScenarioObjectState,
   WasmStoryBoardEvent,
 } from './types.js';
+import { createEsminiWorker } from './worker-factory.js';
 
 /** Maximum time (ms) to wait for worker to confirm scenario loaded */
 const LOAD_TIMEOUT_MS = 30_000;
@@ -96,9 +97,7 @@ export class EsminiWasmService implements IEsminiService {
 
   private ensureWorker(): Worker {
     if (!this.worker) {
-      this.worker = new Worker(
-        new URL('./esmini-worker.ts', import.meta.url),
-      );
+      this.worker = createEsminiWorker();
       this.worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
         this.handleWorkerMessage(e.data);
       };

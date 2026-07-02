@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from '@osce/i18n';
-import { Download, Play, Trash2 } from 'lucide-react';
+import { Download, Grid3x3, Play, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { SegmentedControl } from '../property/SegmentedControl';
 import { PreviewVariantsDialog } from './PreviewVariantsDialog';
+import { BatchRunDialog } from './BatchRunDialog';
 import { summarizeDistribution, summarizeMultiParameter } from './distribution-helpers';
 import {
   useDistributionStore,
@@ -13,6 +14,7 @@ import {
   type DistributionMode,
 } from '../../stores/distribution-store';
 import { useFileOperations } from '../../hooks/use-file-operations';
+import { useWasmSimulation } from '../../hooks/use-wasm-simulation';
 
 const MODE_OPTIONS: readonly DistributionMode[] = ['deterministic', 'stochastic'];
 
@@ -28,8 +30,10 @@ export function DistributionsSection() {
   const removeEntry = useDistributionStore((s) => s.removeEntry);
   const setStochasticSettings = useDistributionStore((s) => s.setStochasticSettings);
   const { saveDistribution } = useFileOperations();
+  const { startSimulation } = useWasmSimulation();
 
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [batchOpen, setBatchOpen] = useState(false);
 
   const mode: DistributionMode = document?.distribution.kind ?? 'deterministic';
   const entries = useMemo(() => selectSingleParameterEntries(document), [document]);
@@ -159,6 +163,16 @@ export function DistributionsSection() {
         <Button
           variant="outline"
           size="sm"
+          className="h-7 flex-1 text-xs"
+          disabled={!hasEntries}
+          onClick={() => setBatchOpen(true)}
+        >
+          <Grid3x3 className="h-3.5 w-3.5 mr-1" />
+          {t('distributions.batch.run')}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
           className="h-7 text-xs"
           disabled={!hasEntries}
           onClick={() => void saveDistribution()}
@@ -169,6 +183,12 @@ export function DistributionsSection() {
       </div>
 
       <PreviewVariantsDialog open={previewOpen} onOpenChange={setPreviewOpen} document={document} />
+      <BatchRunDialog
+        open={batchOpen}
+        onOpenChange={setBatchOpen}
+        document={document}
+        startSimulation={startSimulation}
+      />
     </div>
   );
 }
