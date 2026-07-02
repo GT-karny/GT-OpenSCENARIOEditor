@@ -9,7 +9,14 @@ import type { Node } from '@xyflow/react';
 import { NodeEditorProvider, NodeEditor, detectElementType } from '@osce/node-editor';
 import type { OsceNodeData, OsceNodeType } from '@osce/node-editor';
 import { ScenarioViewer } from '@osce/3d-viewer';
-import type { ViewerMode, PickedPositionData } from '@osce/3d-viewer';
+import type {
+  ViewerMode,
+  PickedPositionData,
+  RouteEditConfig,
+  TrajectoryEditConfig,
+  SignalSelectionConfig,
+  PositionPickConfig,
+} from '@osce/3d-viewer';
 import { worldToLane } from '@osce/opendrive';
 import { HeaderToolbar } from './HeaderToolbar';
 import { StatusBar } from './StatusBar';
@@ -90,56 +97,10 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   onViewerModeChange?: (mode: ViewerMode) => void;
   preferences: { showGrid3D: boolean; showLaneIds: boolean; showRoadIds: boolean };
   focusEntityId?: string | null;
-  // Route editing props
-  routeEditActive?: boolean;
-  routeWaypoints?: Array<{ x: number; y: number; z: number; h: number }>;
-  routePathSegments?: Array<Array<{ x: number; y: number; z: number }>>;
-  routeSelectedWaypointIndex?: number | null;
-  onRouteWaypointClick?: (index: number) => void;
-  onRouteWaypointContextMenu?: (index: number, event: unknown) => void;
-  onRouteLineClick?: (segmentIndex: number, event: unknown) => void;
-  onRouteWaypointAdd?: (worldX: number, worldY: number, worldZ: number, heading: number, roadId: string, laneId: string, s: number, offset: number) => void;
-  onRouteWaypointDragEnd?: (index: number, worldX: number, worldY: number, worldZ: number, heading: number, roadId: string, laneId: string, s: number, offset: number) => void;
-  onRouteEditSave?: () => void;
-  onRouteEditCancel?: () => void;
-  routeWarnings?: string[];
-  routeWaypointCount?: number;
-  routeLaneChangeMarkers?: import('@osce/3d-viewer').RouteLaneChangeMarker[];
-  routeLaneChangeAware?: boolean;
-  routeLaneChangeAvailable?: boolean;
-  onToggleRouteLaneChangeAware?: (on: boolean) => void;
-  routeCalcStrategy?: number;
-  onRouteCalcStrategyChange?: (strategy: number) => void;
-  resolveCatalogRoute?: (ref: { catalogName: string; entryName: string }) => import('@osce/shared').Route | null;
-  routePreviewData?: import('@osce/3d-viewer').RoutePreviewData[];
-  // Trajectory editing props
-  trajectoryEditActive?: boolean;
-  trajectoryShapeType?: 'polyline' | 'clothoid' | 'nurbs' | 'clothoidSpline';
-  trajectoryPoints?: Array<{ x: number; y: number; z: number; h: number }>;
-  trajectoryCurvePoints?: Array<{ x: number; y: number; z: number }>;
-  trajectoryPointTimes?: Array<number | undefined>;
-  trajectoryRelativePointIndices?: number[];
-  trajectorySelectedPointIndex?: number | null;
-  onTrajectoryPointClick?: (index: number) => void;
-  onTrajectoryPointContextMenu?: (index: number, event: unknown) => void;
-  onTrajectoryPointAdd?: (worldX: number, worldY: number, worldZ: number, heading: number, roadId: string, laneId: string, s: number, offset: number, snapped: boolean) => void;
-  onTrajectoryPointDragEnd?: (index: number, worldX: number, worldY: number, worldZ: number, heading: number, roadId: string, laneId: string, s: number, offset: number, snapped: boolean) => void;
-  onTrajectoryEditSave?: () => void;
-  onTrajectoryEditCancel?: () => void;
-  trajectoryWarnings?: string[];
-  trajectoryPointCount?: number;
-  trajectoryPreviewData?: import('@osce/3d-viewer').TrajectoryPreviewData[];
-  laneChangePreviewData?: import('@osce/3d-viewer').LaneChangePreviewData[];
-  selectedSignalKey?: string | null;
-  onSignalSelect?: (key: string) => void;
-  highlightedSignalIds?: ReadonlySet<string>;
-  signalPickMode?: import('@osce/3d-viewer').ScenarioViewerProps['signalPickMode'];
-  onSignalHover?: (signalId: string | null) => void;
-  signalAssemblyMap?: import('@osce/3d-viewer').ScenarioViewerProps['signalAssemblyMap'];
-  positionPickActive?: boolean;
-  onPositionPicked?: (data: PickedPositionData) => void;
-  onPositionPickCancel?: () => void;
-  highlightedPositionElementIds?: string[];
+  routeEdit?: RouteEditConfig;
+  trajectoryEdit?: TrajectoryEditConfig;
+  signalSelection?: SignalSelectionConfig;
+  positionPick?: PositionPickConfig;
 }) {
   const simStatus = useSimulationStore((s) => s.status);
   const simFrames = useSimulationStore(useShallow((s) => s.frames));
@@ -170,54 +131,10 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       simulationStatus={simStatus}
       preferences={props.preferences}
       focusEntityId={props.focusEntityId}
-      routeEditActive={props.routeEditActive}
-      routeWaypoints={props.routeWaypoints}
-      routePathSegments={props.routePathSegments}
-      routeSelectedWaypointIndex={props.routeSelectedWaypointIndex}
-      onRouteWaypointClick={props.onRouteWaypointClick}
-      onRouteWaypointContextMenu={props.onRouteWaypointContextMenu}
-      onRouteLineClick={props.onRouteLineClick}
-      onRouteWaypointAdd={props.onRouteWaypointAdd}
-      onRouteWaypointDragEnd={props.onRouteWaypointDragEnd}
-      onRouteEditSave={props.onRouteEditSave}
-      onRouteEditCancel={props.onRouteEditCancel}
-      routeWarnings={props.routeWarnings}
-      routeWaypointCount={props.routeWaypointCount}
-      routeLaneChangeMarkers={props.routeLaneChangeMarkers}
-      routeLaneChangeAware={props.routeLaneChangeAware}
-      routeLaneChangeAvailable={props.routeLaneChangeAvailable}
-      onToggleRouteLaneChangeAware={props.onToggleRouteLaneChangeAware}
-      routeCalcStrategy={props.routeCalcStrategy}
-      onRouteCalcStrategyChange={props.onRouteCalcStrategyChange}
-      resolveCatalogRoute={props.resolveCatalogRoute}
-      routePreviewData={props.routePreviewData}
-      trajectoryEditActive={props.trajectoryEditActive}
-      trajectoryShapeType={props.trajectoryShapeType}
-      trajectoryPoints={props.trajectoryPoints}
-      trajectoryCurvePoints={props.trajectoryCurvePoints}
-      trajectoryPointTimes={props.trajectoryPointTimes}
-      trajectoryRelativePointIndices={props.trajectoryRelativePointIndices}
-      trajectorySelectedPointIndex={props.trajectorySelectedPointIndex}
-      onTrajectoryPointClick={props.onTrajectoryPointClick}
-      onTrajectoryPointContextMenu={props.onTrajectoryPointContextMenu}
-      onTrajectoryPointAdd={props.onTrajectoryPointAdd}
-      onTrajectoryPointDragEnd={props.onTrajectoryPointDragEnd}
-      onTrajectoryEditSave={props.onTrajectoryEditSave}
-      onTrajectoryEditCancel={props.onTrajectoryEditCancel}
-      trajectoryWarnings={props.trajectoryWarnings}
-      trajectoryPointCount={props.trajectoryPointCount}
-      trajectoryPreviewData={props.trajectoryPreviewData}
-      laneChangePreviewData={props.laneChangePreviewData}
-      selectedSignalKey={props.selectedSignalKey}
-      onSignalSelect={props.onSignalSelect}
-      highlightedSignalIds={props.highlightedSignalIds}
-      signalPickMode={props.signalPickMode}
-      onSignalHover={props.onSignalHover}
-      signalAssemblyMap={props.signalAssemblyMap}
-      positionPickActive={props.positionPickActive}
-      onPositionPicked={props.onPositionPicked}
-      onPositionPickCancel={props.onPositionPickCancel}
-      highlightedPositionElementIds={props.highlightedPositionElementIds}
+      routeEdit={props.routeEdit}
+      trajectoryEdit={props.trajectoryEdit}
+      signalSelection={props.signalSelection}
+      positionPick={props.positionPick}
       showPerf={false}
       className="h-full w-full"
     />
@@ -813,6 +730,134 @@ export function EditorLayout() {
     return 0;
   }, [trajectoryEdit.editingTrajectory]);
 
+  // Grouped viewer config objects.
+  // Referentially stable via useMemo so the memo()'d SimulationViewerBridge and the
+  // 30fps-rerendering ScenarioViewer do not re-render from new object identities each frame.
+  const routeEditConfig = useMemo<RouteEditConfig>(
+    () => ({
+      active: routeEdit.active,
+      waypoints: routeEdit.waypointWorldPositions,
+      pathSegments: routeEdit.pathSegments,
+      selectedWaypointIndex: routeEdit.selectedWaypointIndex,
+      onWaypointClick: handleRouteWaypointClick,
+      onWaypointContextMenu: handleRouteWaypointContextMenu,
+      onLineClick: handleRouteLineClick,
+      onWaypointAdd: handleRouteWaypointAdd,
+      onWaypointDragEnd: handleRouteWaypointDragEnd,
+      onEditSave: handleRouteEditSave,
+      onEditCancel: handleRouteEditCancel,
+      warnings: routeEdit.warnings,
+      waypointCount: routeEdit.editingRoute?.waypoints.length ?? 0,
+      laneChangeMarkers: routeEdit.laneChangeMarkers,
+      laneChangeAware: routeEdit.laneChangeAware,
+      laneChangeAvailable: roadManagerClient !== null,
+      onToggleLaneChangeAware: routeEdit.setLaneChangeAware,
+      calcStrategy: routeEdit.routeCalcStrategy,
+      onCalcStrategyChange: routeEdit.setRouteCalcStrategy,
+      resolveCatalogRoute,
+      previewData: routePreviewData,
+    }),
+    [
+      routeEdit.active,
+      routeEdit.waypointWorldPositions,
+      routeEdit.pathSegments,
+      routeEdit.selectedWaypointIndex,
+      handleRouteWaypointClick,
+      handleRouteWaypointContextMenu,
+      handleRouteLineClick,
+      handleRouteWaypointAdd,
+      handleRouteWaypointDragEnd,
+      handleRouteEditSave,
+      handleRouteEditCancel,
+      routeEdit.warnings,
+      routeEdit.editingRoute?.waypoints.length,
+      routeEdit.laneChangeMarkers,
+      routeEdit.laneChangeAware,
+      roadManagerClient,
+      routeEdit.setLaneChangeAware,
+      routeEdit.routeCalcStrategy,
+      routeEdit.setRouteCalcStrategy,
+      resolveCatalogRoute,
+      routePreviewData,
+    ],
+  );
+
+  const trajectoryEditConfig = useMemo<TrajectoryEditConfig>(
+    () => ({
+      active: trajectoryEdit.active,
+      shapeType: trajectoryEdit.editingTrajectory?.shape.type,
+      points: trajectoryEdit.pointWorldPositions,
+      curvePoints: trajectoryEdit.curvePoints,
+      pointTimes: trajectoryPointTimes,
+      selectedPointIndex: trajectoryEdit.selectedPointIndex,
+      onPointClick: handleTrajectoryPointClick,
+      onPointContextMenu: handleTrajectoryPointContextMenu,
+      onPointAdd: handleTrajectoryPointAdd,
+      onPointDragEnd: handleTrajectoryPointDragEnd,
+      onEditSave: handleTrajectoryEditSave,
+      onEditCancel: handleTrajectoryEditCancel,
+      relativePointIndices: trajectoryRelativePointIndices,
+      warnings: trajectoryEdit.warnings,
+      pointCount: trajectoryPointCount,
+      previewData: trajectoryPreviewData,
+      laneChangePreviewData,
+    }),
+    [
+      trajectoryEdit.active,
+      trajectoryEdit.editingTrajectory?.shape.type,
+      trajectoryEdit.pointWorldPositions,
+      trajectoryEdit.curvePoints,
+      trajectoryPointTimes,
+      trajectoryEdit.selectedPointIndex,
+      handleTrajectoryPointClick,
+      handleTrajectoryPointContextMenu,
+      handleTrajectoryPointAdd,
+      handleTrajectoryPointDragEnd,
+      handleTrajectoryEditSave,
+      handleTrajectoryEditCancel,
+      trajectoryRelativePointIndices,
+      trajectoryEdit.warnings,
+      trajectoryPointCount,
+      trajectoryPreviewData,
+      laneChangePreviewData,
+    ],
+  );
+
+  const signalSelectionConfig = useMemo<SignalSelectionConfig>(
+    () => ({
+      selectedSignalKey,
+      onSignalSelect: handleSignalSelect,
+      highlightedSignalIds: signalPickMode ? undefined : highlightedSignalIds,
+      signalPickMode: signalPickMode
+        ? {
+            bulbCount: signalPickMode.bulbCount,
+            trackSignalIds: signalPickMode.trackSignalIds,
+            allTrackSignalMap: signalPickMode.allTrackSignalMap,
+          }
+        : undefined,
+      onSignalHover: handleSignalHover,
+      signalAssemblyMap,
+    }),
+    [
+      selectedSignalKey,
+      handleSignalSelect,
+      highlightedSignalIds,
+      signalPickMode,
+      handleSignalHover,
+      signalAssemblyMap,
+    ],
+  );
+
+  const positionPickConfig = useMemo<PositionPickConfig>(
+    () => ({
+      active: positionPickRequest != null,
+      onPositionPicked: handlePositionPicked,
+      onPositionPickCancel: handlePositionPickCancel,
+      highlightedElementIds: selectedElementIds,
+    }),
+    [positionPickRequest, handlePositionPicked, handlePositionPickCancel, selectedElementIds],
+  );
+
   // --- Drag & Drop ---
   const {
     handleDragOver,
@@ -1018,58 +1063,10 @@ export function EditorLayout() {
                       showRoadIds: preferences.showRoadIds,
                     }}
                     focusEntityId={focusEntityId}
-                    routeEditActive={routeEdit.active}
-                    routeWaypoints={routeEdit.waypointWorldPositions}
-                    routePathSegments={routeEdit.pathSegments}
-                    routeSelectedWaypointIndex={routeEdit.selectedWaypointIndex}
-                    onRouteWaypointClick={handleRouteWaypointClick}
-                    onRouteWaypointContextMenu={handleRouteWaypointContextMenu}
-                    onRouteLineClick={handleRouteLineClick}
-                    onRouteWaypointAdd={handleRouteWaypointAdd}
-                    onRouteWaypointDragEnd={handleRouteWaypointDragEnd}
-                    onRouteEditSave={handleRouteEditSave}
-                    onRouteEditCancel={handleRouteEditCancel}
-                    routeWarnings={routeEdit.warnings}
-                    routeWaypointCount={routeEdit.editingRoute?.waypoints.length ?? 0}
-                    routeLaneChangeMarkers={routeEdit.laneChangeMarkers}
-                    routeLaneChangeAware={routeEdit.laneChangeAware}
-                    routeLaneChangeAvailable={roadManagerClient !== null}
-                    onToggleRouteLaneChangeAware={routeEdit.setLaneChangeAware}
-                    routeCalcStrategy={routeEdit.routeCalcStrategy}
-                    onRouteCalcStrategyChange={routeEdit.setRouteCalcStrategy}
-                    resolveCatalogRoute={resolveCatalogRoute}
-                    routePreviewData={routePreviewData}
-                    trajectoryEditActive={trajectoryEdit.active}
-                    trajectoryShapeType={trajectoryEdit.editingTrajectory?.shape.type}
-                    trajectoryPoints={trajectoryEdit.pointWorldPositions}
-                    trajectoryCurvePoints={trajectoryEdit.curvePoints}
-                    trajectoryPointTimes={trajectoryPointTimes}
-                    trajectorySelectedPointIndex={trajectoryEdit.selectedPointIndex}
-                    onTrajectoryPointClick={handleTrajectoryPointClick}
-                    onTrajectoryPointContextMenu={handleTrajectoryPointContextMenu}
-                    onTrajectoryPointAdd={handleTrajectoryPointAdd}
-                    onTrajectoryPointDragEnd={handleTrajectoryPointDragEnd}
-                    onTrajectoryEditSave={handleTrajectoryEditSave}
-                    onTrajectoryEditCancel={handleTrajectoryEditCancel}
-                    trajectoryRelativePointIndices={trajectoryRelativePointIndices}
-                    trajectoryWarnings={trajectoryEdit.warnings}
-                    trajectoryPointCount={trajectoryPointCount}
-                    trajectoryPreviewData={trajectoryPreviewData}
-                    laneChangePreviewData={laneChangePreviewData}
-                    selectedSignalKey={selectedSignalKey}
-                    onSignalSelect={handleSignalSelect}
-                    highlightedSignalIds={signalPickMode ? undefined : highlightedSignalIds}
-                    signalPickMode={signalPickMode ? {
-                      bulbCount: signalPickMode.bulbCount,
-                      trackSignalIds: signalPickMode.trackSignalIds,
-                      allTrackSignalMap: signalPickMode.allTrackSignalMap,
-                    } : undefined}
-                    onSignalHover={handleSignalHover}
-                    signalAssemblyMap={signalAssemblyMap}
-                    positionPickActive={positionPickRequest != null}
-                    onPositionPicked={handlePositionPicked}
-                    onPositionPickCancel={handlePositionPickCancel}
-                    highlightedPositionElementIds={selectedElementIds}
+                    routeEdit={routeEditConfig}
+                    trajectoryEdit={trajectoryEditConfig}
+                    signalSelection={signalSelectionConfig}
+                    positionPick={positionPickConfig}
                   />
                 </ErrorBoundary>
                 {/* Hidden DOM mirror of preview counts (E2E observability only) */}

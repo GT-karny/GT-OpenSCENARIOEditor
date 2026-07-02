@@ -22,7 +22,14 @@ import {
   getAssemblyPresetById,
 } from '@osce/opendrive-engine';
 import { ScenarioViewer } from '@osce/3d-viewer';
-import type { PoleAssemblyInfo } from '@osce/3d-viewer';
+import type {
+  PoleAssemblyInfo,
+  RoadEditingConfig,
+  LaneEditConfig,
+  JunctionToolsConfig,
+  SignalPlaceConfig,
+  SignalSelectionConfig,
+} from '@osce/3d-viewer';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { OdrPropertyEditor } from './property/OdrPropertyEditor';
@@ -1492,6 +1499,158 @@ export function RoadNetworkEditorLayout() {
     [odrStoreApi],
   );
 
+  // Grouped viewer config objects, referentially stable so ScenarioViewer
+  // (which re-renders at 30fps during simulation) does not churn on object identity.
+  const roadEditingConfig = useMemo<RoadEditingConfig>(
+    () => ({
+      active: true,
+      selectedRoadId,
+      selectedGeometryIndex,
+      onGeometryDragEnd: handleGeometryDragEnd,
+      onStartpointDragEnd: handleStartpointDragEnd,
+      onGeometrySelect: handleGeometrySelect,
+      creationModeActive: roadCreationMode,
+      creationPhase: roadCreation.phase,
+      creationStartX: roadCreation.startX,
+      creationStartY: roadCreation.startY,
+      creationStartHdg: roadCreation.startHdg,
+      creationCursorX: roadCreation.cursorX,
+      creationCursorY: roadCreation.cursorY,
+      creationLanes,
+      onCreationStartPlace: handleCreationStartPlace,
+      onRoadCreate: handleRoadCreate,
+      onCreationCursorMove: handleCreationCursorMove,
+      onHeadingDragEnd: handleHeadingDragEnd,
+      onCurvatureDragEnd: handleCurvatureDragEnd,
+      onEndpointDragEnd: handleEndpointDragEnd,
+      onGeometryShiftClick: handleGeometryShiftClick,
+      selectedGeometryIndices,
+      onLinkSet: handleRoadLinkSet,
+      onLinkUnset: handleRoadLinkUnset,
+      onEndpointContextMenu: handleEndpointContextMenu,
+      creationHasStartConstraint: hasStartConstraint,
+      selectModeActive: activeTool === 'select',
+      onRoadSelect: handleRoadSelect,
+      onRoadHover: handleRoadHover,
+    }),
+    [
+      selectedRoadId,
+      selectedGeometryIndex,
+      handleGeometryDragEnd,
+      handleStartpointDragEnd,
+      handleGeometrySelect,
+      roadCreationMode,
+      roadCreation.phase,
+      roadCreation.startX,
+      roadCreation.startY,
+      roadCreation.startHdg,
+      roadCreation.cursorX,
+      roadCreation.cursorY,
+      creationLanes,
+      handleCreationStartPlace,
+      handleRoadCreate,
+      handleCreationCursorMove,
+      handleHeadingDragEnd,
+      handleCurvatureDragEnd,
+      handleEndpointDragEnd,
+      handleGeometryShiftClick,
+      selectedGeometryIndices,
+      handleRoadLinkSet,
+      handleRoadLinkUnset,
+      handleEndpointContextMenu,
+      hasStartConstraint,
+      activeTool,
+      handleRoadSelect,
+      handleRoadHover,
+    ],
+  );
+
+  const laneEditConfig = useMemo<LaneEditConfig>(
+    () => ({
+      active: laneEditMode,
+      roadId: laneEdit.activeRoadId,
+      onLaneHover: handleLaneHover,
+      onLaneClick: handleLaneClick,
+      onLaneContextMenu: handleLaneContextMenu,
+      onRoadSurfaceContextMenu: handleRoadSurfaceContextMenu,
+      onSectionBoundaryDragEnd: handleSectionBoundaryDragEnd,
+      subMode: laneEditSubMode,
+      onSplitClick: handleSplitClick,
+      onTaperClick: handleTaperClick,
+      taperCreationPhase: taperCreation.phase,
+      taperStartS: taperCreation.startS,
+      taperSide: taperCreation.side,
+    }),
+    [
+      laneEditMode,
+      laneEdit.activeRoadId,
+      handleLaneHover,
+      handleLaneClick,
+      handleLaneContextMenu,
+      handleRoadSurfaceContextMenu,
+      handleSectionBoundaryDragEnd,
+      laneEditSubMode,
+      handleSplitClick,
+      handleTaperClick,
+      taperCreation.phase,
+      taperCreation.startS,
+      taperCreation.side,
+    ],
+  );
+
+  const junctionToolsConfig = useMemo<JunctionToolsConfig>(
+    () => ({
+      createActive: junctionCreateMode,
+      createSelectedEndpoints: junctionCreate.selectedEndpoints,
+      createHoveredEndpoint: junctionCreate.hoveredEndpoint,
+      onEndpointClick: handleJunctionEndpointClick,
+      onEndpointHover: handleJunctionEndpointHover,
+      selectedJunctionId,
+      onJunctionClick: handleJunctionClick,
+      onJunctionContextMenu: handleJunctionContextMenu,
+    }),
+    [
+      junctionCreateMode,
+      junctionCreate.selectedEndpoints,
+      junctionCreate.hoveredEndpoint,
+      handleJunctionEndpointClick,
+      handleJunctionEndpointHover,
+      selectedJunctionId,
+      handleJunctionClick,
+      handleJunctionContextMenu,
+    ],
+  );
+
+  const signalPlaceConfig = useMemo<SignalPlaceConfig>(
+    () => ({
+      active: signalPlaceMode,
+      subMode: signalPlace.subMode,
+      tSnapMode: signalPlace.tSnapMode,
+      ghost: signalPlace.ghostPreview,
+      onSignalPlace: handleSignalPlace,
+      onSignalGhostUpdate: handleSignalGhostUpdate,
+      onSignalMove: handleSignalMove,
+    }),
+    [
+      signalPlaceMode,
+      signalPlace.subMode,
+      signalPlace.tSnapMode,
+      signalPlace.ghostPreview,
+      handleSignalPlace,
+      handleSignalGhostUpdate,
+      handleSignalMove,
+    ],
+  );
+
+  const signalSelectionConfig = useMemo<SignalSelectionConfig>(
+    () => ({
+      selectedSignalKey,
+      onSignalSelect: handleSignalSelect,
+      signalAssemblyMap,
+    }),
+    [selectedSignalKey, handleSignalSelect, signalAssemblyMap],
+  );
+
   return (
     <PanelGroup direction="horizontal" className="flex-1">
       {/* Left: OdrSidebar */}
@@ -1526,66 +1685,11 @@ export function RoadNetworkEditorLayout() {
                   }}
                   showPerf={false}
                   className="h-full w-full"
-                  roadEditMode
-                  roadEditSelectedRoadId={selectedRoadId}
-                  roadEditSelectedGeometryIndex={selectedGeometryIndex}
-                  onRoadGeometryDragEnd={handleGeometryDragEnd}
-                  onRoadStartpointDragEnd={handleStartpointDragEnd}
-                  onRoadGeometrySelect={handleGeometrySelect}
-                  roadCreationModeActive={roadCreationMode}
-                  roadCreationPhase={roadCreation.phase}
-                  roadCreationStartX={roadCreation.startX}
-                  roadCreationStartY={roadCreation.startY}
-                  roadCreationStartHdg={roadCreation.startHdg}
-                  roadCreationCursorX={roadCreation.cursorX}
-                  roadCreationCursorY={roadCreation.cursorY}
-                  roadCreationLanes={creationLanes}
-                  onRoadCreationStartPlace={handleCreationStartPlace}
-                  onRoadCreate={handleRoadCreate}
-                  onRoadCreationCursorMove={handleCreationCursorMove}
-                  onRoadHeadingDragEnd={handleHeadingDragEnd}
-                  onRoadCurvatureDragEnd={handleCurvatureDragEnd}
-                  onRoadEndpointDragEnd={handleEndpointDragEnd}
-                  onRoadGeometryShiftClick={handleGeometryShiftClick}
-                  roadEditSelectedGeometryIndices={selectedGeometryIndices}
-                  onRoadLinkSet={handleRoadLinkSet}
-                  onRoadLinkUnset={handleRoadLinkUnset}
-                  onRoadEndpointContextMenu={handleEndpointContextMenu}
-                  roadCreationHasStartConstraint={hasStartConstraint}
-                  roadSelectModeActive={activeTool === 'select'}
-                  onRoadSelect={handleRoadSelect}
-                  onRoadHover={handleRoadHover}
-                  laneEditActive={laneEditMode}
-                  laneEditRoadId={laneEdit.activeRoadId}
-                  onLaneHover={handleLaneHover}
-                  onLaneClick={handleLaneClick}
-                  onLaneContextMenu={handleLaneContextMenu}
-                  onRoadSurfaceContextMenu={handleRoadSurfaceContextMenu}
-                  onSectionBoundaryDragEnd={handleSectionBoundaryDragEnd}
-                  laneEditSubMode={laneEditSubMode}
-                  onSplitClick={handleSplitClick}
-                  onTaperClick={handleTaperClick}
-                  taperCreationPhase={taperCreation.phase}
-                  taperStartS={taperCreation.startS}
-                  taperSide={taperCreation.side}
-                  junctionCreateActive={junctionCreateMode}
-                  junctionCreateSelectedEndpoints={junctionCreate.selectedEndpoints}
-                  junctionCreateHoveredEndpoint={junctionCreate.hoveredEndpoint}
-                  onJunctionEndpointClick={handleJunctionEndpointClick}
-                  onJunctionEndpointHover={handleJunctionEndpointHover}
-                  selectedSignalKey={selectedSignalKey}
-                  onSignalSelect={handleSignalSelect}
-                  signalAssemblyMap={signalAssemblyMap}
-                  signalPlaceActive={signalPlaceMode}
-                  signalPlaceSubMode={signalPlace.subMode}
-                  signalPlaceTSnapMode={signalPlace.tSnapMode}
-                  signalPlaceGhost={signalPlace.ghostPreview}
-                  onSignalPlace={handleSignalPlace}
-                  onSignalGhostUpdate={handleSignalGhostUpdate}
-                  onSignalMove={handleSignalMove}
-                  selectedJunctionId={selectedJunctionId}
-                  onJunctionClick={handleJunctionClick}
-                  onJunctionContextMenu={handleJunctionContextMenu}
+                  roadEditing={roadEditingConfig}
+                  laneEdit={laneEditConfig}
+                  junctionTools={junctionToolsConfig}
+                  signalPlace={signalPlaceConfig}
+                  signalSelection={signalSelectionConfig}
                 />
               </ErrorBoundary>
               </div>

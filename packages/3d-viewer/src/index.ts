@@ -4,7 +4,17 @@
 
 // Main component
 export { ScenarioViewer } from './components/ScenarioViewer.js';
-export type { ScenarioViewerProps } from './components/ScenarioViewer.js';
+export type {
+  ScenarioViewerProps,
+  RouteEditConfig,
+  TrajectoryEditConfig,
+  SignalSelectionConfig,
+  PositionPickConfig,
+  RoadEditingConfig,
+  LaneEditConfig,
+  JunctionToolsConfig,
+  SignalPlaceConfig,
+} from './components/ScenarioViewer.js';
 
 // Viewer store types (consumed externally by apps/web for ViewerMode etc.)
 export type {
