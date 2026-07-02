@@ -1,10 +1,13 @@
 import { useCallback } from 'react';
-import { XoscParser, XoscSerializer } from '@osce/openscenario';
-import { XodrParser, XodrSerializer } from '@osce/opendrive';
 import {
-  createDefaultDocument,
-  buildAssembliesFromDocument,
-} from '@osce/opendrive-engine';
+  XoscParser,
+  XoscSerializer,
+  XoscRootMismatchError,
+  parseParameterValueDistributionXml,
+  serializeParameterValueDistributionFormatted,
+} from '@osce/openscenario';
+import { XodrParser, XodrSerializer } from '@osce/opendrive';
+import { createDefaultDocument, buildAssembliesFromDocument } from '@osce/opendrive-engine';
 import type { CatalogLocations, ScenarioDocument } from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
 import { toast } from 'sonner';
@@ -13,6 +16,7 @@ import { useScenarioStoreApi } from '../stores/use-scenario-store';
 import { useEditorStore } from '../stores/editor-store';
 import { useProjectStore } from '../stores/project-store';
 import { useCatalogStore } from '../stores/catalog-store';
+import { useDistributionStore } from '../stores/distribution-store';
 import {
   buildCatalogLocationsFromProject,
   computeRelativeFilePath,
@@ -103,9 +107,7 @@ async function readFileFromDisk(accept: string, extensions: string[]): Promise<R
   // Electron: use native dialog + Node.js fs
   if (window.electronAPI?.isElectron) {
     const result = await window.electronAPI.showOpenDialog({
-      filters: [
-        { name: `${accept} files`, extensions: extensions.map((e) => e.replace('.', '')) },
-      ],
+      filters: [{ name: `${accept} files`, extensions: extensions.map((e) => e.replace('.', '')) }],
       properties: ['openFile'],
     });
     if (result.canceled || !result.filePaths[0]) throw new FilePickerCancelledError();
@@ -372,7 +374,14 @@ export function useFileOperations() {
     setRoadNetwork(null, null);
     useEditorStore.getState().setXoscFileHandle(null);
     useEditorStore.getState().setXoscFilePath(null);
-  }, [storeApi, resetForNewFile, setCurrentFileName, setDirty, setValidationResult, setRoadNetwork]);
+  }, [
+    storeApi,
+    resetForNewFile,
+    setCurrentFileName,
+    setDirty,
+    setValidationResult,
+    setRoadNetwork,
+  ]);
 
   /**
    * Load an already-read .xosc source into the editor. Shared by the menu
@@ -410,6 +419,37 @@ export function useFileOperations() {
         registerRecentFile({ name, filePath, handle }, 'xosc');
         return true;
       } catch (err) {
+        // The <OpenSCENARIO> root is a catalog or parameter-distribution
+        // document, not a scenario. Route to the correct handler instead of
+        // silently loading an empty scenario.
+        if (err instanceof XoscRootMismatchError) {
+          if (err.rootKind === 'parameterValueDistribution') {
+            try {
+              const doc = parseParameterValueDistributionXml(text);
+              if (filePath) doc._sourcePath = filePath;
+              useDistributionStore.getState().loadDocument(doc);
+              const entryCount =
+                doc.distribution.kind === 'deterministic'
+                  ? doc.distribution.entries.length
+                  : doc.distribution.distributions.length;
+              toast.success(
+                t('distributions.loaded', {
+                  count: entryCount,
+                  filepath: doc.scenarioFilepath || '—',
+                }),
+              );
+              registerRecentFile({ name, filePath, handle }, 'xosc');
+              return true;
+            } catch (parseErr) {
+              console.error('Parse parameter distribution failed:', parseErr);
+              toast.error(t('fileErrors.openXoscFailed', { message: errorMessage(parseErr) }));
+              return false;
+            }
+          }
+          // Catalog documents must be opened through the catalog manager.
+          toast.error(t('fileErrors.catalogRootMismatch'));
+          return false;
+        }
         console.error('Open .xosc failed:', err);
         toast.error(t('fileErrors.openXoscFailed', { message: errorMessage(err) }));
         return false;
@@ -441,10 +481,7 @@ export function useFileOperations() {
     if (currentProject && currentFilePath) {
       try {
         if (!(await gateSaveWithValidation(storeApi.getState().document))) return;
-        const doc = convertPathsForSerialization(
-          storeApi.getState().document,
-          currentFilePath,
-        );
+        const doc = convertPathsForSerialization(storeApi.getState().document, currentFilePath);
         const serializer = new XoscSerializer();
         const xml = serializer.serializeFormatted(doc);
         await useProjectStore.getState().saveCurrentFile(xml);
@@ -529,10 +566,7 @@ export function useFileOperations() {
       if (!currentProject) return;
 
       if (!(await gateSaveWithValidation(storeApi.getState().document))) return;
-      const doc = convertPathsForSerialization(
-        storeApi.getState().document,
-        relativePath,
-      );
+      const doc = convertPathsForSerialization(storeApi.getState().document, relativePath);
       const serializer = new XoscSerializer();
       const xml = serializer.serializeFormatted(doc);
 
@@ -551,6 +585,43 @@ export function useFileOperations() {
     },
     [storeApi, setCurrentFileName, setDirty, gateSaveWithValidation, t],
   );
+
+  /**
+   * Serialize the current parameter value distribution side-document and save it
+   * as a standalone `.xosc`. Reuses the same disk-writer plumbing as the
+   * scenario. When the document has no `scenarioFilepath`, it is defaulted to
+   * the current scenario file name so the exported file references its base.
+   */
+  const saveDistribution = useCallback(async () => {
+    const doc = useDistributionStore.getState().document;
+    if (!doc) {
+      toast.error(t('distributions.nothingToExport'));
+      return;
+    }
+
+    // Default the referenced scenario path from the open scenario when unset.
+    const scenarioFilepath =
+      doc.scenarioFilepath || useEditorStore.getState().currentFileName || '';
+    const docToSave =
+      scenarioFilepath === doc.scenarioFilepath ? doc : { ...doc, scenarioFilepath };
+    if (scenarioFilepath !== doc.scenarioFilepath) {
+      useDistributionStore.getState().setScenarioFilepath(scenarioFilepath);
+    }
+
+    try {
+      const xml = serializeParameterValueDistributionFormatted(docToSave);
+      const suggestedName = useEditorStore.getState().currentFileName
+        ? `${useEditorStore.getState().currentFileName?.replace(/\.xosc$/i, '')}.pvd.xosc`
+        : 'distribution.xosc';
+      await writeFileToDisk(xml, '.xosc', { suggestedName });
+      toast.success(t('labels.fileSaved'));
+    } catch (err) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        console.error('Export distribution failed:', err);
+        toast.error(t('labels.serializeFailed'));
+      }
+    }
+  }, [t]);
 
   // ---- OpenDRIVE (.xodr) operations ----
 
@@ -745,6 +816,7 @@ export function useFileOperations() {
     handleSaveAs,
     handleSaveAsXodr,
     newOpenDrive,
+    saveDistribution,
     // Lower-level loaders shared with drag-and-drop and recent-files reopen.
     loadXoscFromRead,
     loadXodrFromRead,

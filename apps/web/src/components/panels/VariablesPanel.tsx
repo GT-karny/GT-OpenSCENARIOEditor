@@ -3,22 +3,27 @@ import { useTranslation } from '@osce/i18n';
 import { Plus } from 'lucide-react';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '../ui/accordion';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { ParameterListItem } from '../parameter/ParameterListItem';
 import { AddParameterDialog } from '../parameter/AddParameterDialog';
 import { VariableListItem } from '../variable/VariableListItem';
 import { AddVariableDialog } from '../variable/AddVariableDialog';
+import { DistributionsSection } from '../parameter/DistributionsSection';
 import { useScenarioStore, useScenarioStoreApi } from '../../stores/use-scenario-store';
+import {
+  useDistributionStore,
+  selectMultiParameterEntries,
+  selectSingleParameterEntries,
+} from '../../stores/distribution-store';
 
 export function VariablesPanel() {
   const { t } = useTranslation('common');
   const parameters = useScenarioStore((s) => s.document.parameterDeclarations);
   const variables = useScenarioStore((s) => s.document.variableDeclarations);
+  const distributionDoc = useDistributionStore((s) => s.document);
+  const distributionCount =
+    selectSingleParameterEntries(distributionDoc).length +
+    selectMultiParameterEntries(distributionDoc).length;
   const storeApi = useScenarioStoreApi();
   const [addParamOpen, setAddParamOpen] = useState(false);
   const [addVarOpen, setAddVarOpen] = useState(false);
@@ -98,6 +103,20 @@ export function VariablesPanel() {
                   {t('labels.noVariables')}
                 </p>
               )}
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="distributions" className="border-b-0">
+            <div className="flex items-center border-b border-[var(--color-glass-edge)]">
+              <AccordionTrigger className="flex-1 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] hover:no-underline">
+                {t('distributions.title')}
+                <span className="ml-1.5 text-[var(--color-text-tertiary)] font-normal normal-case tracking-normal">
+                  ({distributionCount})
+                </span>
+              </AccordionTrigger>
+            </div>
+            <AccordionContent className="pb-0 pt-0">
+              <DistributionsSection />
             </AccordionContent>
           </AccordionItem>
         </Accordion>

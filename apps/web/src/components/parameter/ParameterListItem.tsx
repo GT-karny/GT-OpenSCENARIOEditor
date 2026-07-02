@@ -1,16 +1,27 @@
 import { useState, useCallback } from 'react';
 import type { ParameterDeclaration, ParameterType } from '@osce/shared';
 import { isExpression, looksLikeExpression, typeAllowsExpression } from '@/lib/expression-utils';
-import { GripVertical, Trash2, Variable } from 'lucide-react';
+import { Dices, GripVertical, Trash2, Variable } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { EnumSelect } from '../property/EnumSelect';
 import { ParameterAwareInput } from '../property/ParameterAwareInput';
+import { AttachDistributionDialog } from './AttachDistributionDialog';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
+import {
+  useDistributionStore,
+  selectSingleParameterEntries,
+} from '../../stores/distribution-store';
 import { cn } from '@/lib/utils';
 
 const PARAMETER_TYPES: readonly ParameterType[] = [
-  'string', 'double', 'int', 'boolean', 'dateTime', 'unsignedInt', 'unsignedShort',
+  'string',
+  'double',
+  'int',
+  'boolean',
+  'dateTime',
+  'unsignedInt',
+  'unsignedShort',
 ];
 
 interface ParameterListItemProps {
@@ -27,6 +38,13 @@ export function ParameterListItem({ parameter, onDelete }: ParameterListItemProp
   const [tempName, setTempName] = useState(parameter.name);
   const [tempValue, setTempValue] = useState(parameter.value);
   const [isDragging, setIsDragging] = useState(false);
+  const [attachOpen, setAttachOpen] = useState(false);
+
+  const distributionDoc = useDistributionStore((s) => s.document);
+  const mode = distributionDoc?.distribution.kind ?? 'deterministic';
+  const attachedEntry = selectSingleParameterEntries(distributionDoc).find(
+    (e) => e.parameterName === parameter.name,
+  );
 
   const handleDragStart = useCallback(
     (e: React.DragEvent) => {
@@ -90,14 +108,20 @@ export function ParameterListItem({ parameter, onDelete }: ParameterListItemProp
             value={tempName}
             onChange={(e) => setTempName(e.target.value)}
             onBlur={commitName}
-            onKeyDown={(e) => { if (e.key === 'Enter') commitName(); if (e.key === 'Escape') setEditingName(false); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') commitName();
+              if (e.key === 'Escape') setEditingName(false);
+            }}
             className="h-5 text-[12px] px-1"
             autoFocus
           />
         ) : (
           <p
             className="text-[12px] font-medium truncate cursor-text hover:text-[var(--color-accent-1)]"
-            onClick={() => { setTempName(parameter.name); setEditingName(true); }}
+            onClick={() => {
+              setTempName(parameter.name);
+              setEditingName(true);
+            }}
           >
             {parameter.name}
           </p>
@@ -117,21 +141,53 @@ export function ParameterListItem({ parameter, onDelete }: ParameterListItemProp
               value={tempValue}
               onValueChange={(v) => setTempValue(v)}
               onBlur={commitValue}
-              onKeyDown={(e) => { if (e.key === 'Enter') commitValue(); if (e.key === 'Escape') setEditingValue(false); }}
-              acceptedTypes={['string', 'double', 'int', 'boolean', 'dateTime', 'unsignedInt', 'unsignedShort']}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitValue();
+                if (e.key === 'Escape') setEditingValue(false);
+              }}
+              acceptedTypes={[
+                'string',
+                'double',
+                'int',
+                'boolean',
+                'dateTime',
+                'unsignedInt',
+                'unsignedShort',
+              ]}
               className="h-5 text-[10px] flex-1 min-w-0 px-1"
               autoFocus
             />
           ) : (
             <span
               className="text-[10px] text-[var(--color-accent-1)] cursor-text hover:underline truncate"
-              onClick={() => { setTempValue(parameter.value); setEditingValue(true); }}
+              onClick={() => {
+                setTempValue(parameter.value);
+                setEditingValue(true);
+              }}
             >
               {parameter.value || '""'}
             </span>
           )}
         </div>
       </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Attach distribution"
+        title="Attach distribution"
+        className={cn(
+          'h-6 w-6 shrink-0',
+          attachedEntry
+            ? 'opacity-100 text-[var(--color-accent-1)]'
+            : 'opacity-0 group-hover:opacity-100',
+        )}
+        onClick={(e) => {
+          e.stopPropagation();
+          setAttachOpen(true);
+        }}
+      >
+        <Dices className="h-3.5 w-3.5" />
+      </Button>
       <Button
         variant="ghost"
         size="icon"
@@ -144,6 +200,14 @@ export function ParameterListItem({ parameter, onDelete }: ParameterListItemProp
       >
         <Trash2 className="h-3 w-3" />
       </Button>
+
+      <AttachDistributionDialog
+        open={attachOpen}
+        onOpenChange={setAttachOpen}
+        parameterName={parameter.name}
+        mode={mode}
+        initial={attachedEntry?.distribution}
+      />
     </div>
   );
 }

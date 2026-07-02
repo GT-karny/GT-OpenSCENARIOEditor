@@ -579,27 +579,34 @@
 | Shape (Polyline / Clothoid / Nurbs) | Dynamics | ✅ | ✅ | All 3 trajectory shapes with full sub-elements |
 | Property | Dynamics | ✅ | ✅ | name + value |
 
-### A.20 Distribution / Stochastic (NOT IMPLEMENTED)
+### A.20 Distribution / Stochastic (IMPLEMENTED)
 
-> Future consideration. Not planned for initial release. Enables automated test variation
-> by applying statistical distributions to scenario parameters.
+> Standalone `ParameterValueDistribution` documents (the third `OpenScenarioCategory`
+> root choice) enable automated test variation by applying statistical distributions to
+> a base scenario's top-level parameters. Parser and serializer cover all 14 types
+> losslessly. The UI ships attach + preview: distributions are attached to declared
+> parameters from the Variables panel (per-parameter dialog), and concrete variants are
+> expanded by the seeded, deterministic variant-generation engine
+> (`generateParameterVariants` in `@osce/scenario-engine`) and shown in a preview table.
+> Distribution documents are a separate side-document (not on the scenario undo stack);
+> opening one routes via `XoscRootMismatchError` into the distribution store.
 
 | XSD Element/Type | Category | Parser | Serializer | Notes |
 |---|---|---|---|---|
-| Deterministic | Distribution | ❌ | ❌ | Deterministic parameter variation for test automation |
-| DeterministicMultiParameterDistribution | Distribution | ❌ | ❌ | Multi-parameter sweep |
-| DeterministicSingleParameterDistribution | Distribution | ❌ | ❌ | Single-parameter sweep |
-| DistributionRange / DistributionSet | Distribution | ❌ | ❌ | Range and set-based distributions |
-| Stochastic | Distribution | ❌ | ❌ | Stochastic simulation parameters |
-| StochasticDistribution | Distribution | ❌ | ❌ | Distribution wrapper |
-| NormalDistribution | Distribution | ❌ | ❌ | Gaussian distribution |
-| UniformDistribution | Distribution | ❌ | ❌ | Uniform distribution |
-| PoissonDistribution | Distribution | ❌ | ❌ | Poisson distribution |
-| Histogram / HistogramBin | Distribution | ❌ | ❌ | Histogram-based distribution |
-| ProbabilityDistributionSet | Distribution | ❌ | ❌ | Weighted probability set |
-| ParameterValueDistribution | Distribution | ❌ | ❌ | Parameter value distribution wrapper |
-| ValueSetDistribution | Distribution | ❌ | ❌ | Discrete value set |
-| UserDefinedDistribution | Distribution | ❌ | ❌ | Custom distribution type |
+| Deterministic | Distribution | ✅ | ✅ | Deterministic parameter variation (cartesian product) |
+| DeterministicMultiParameterDistribution | Distribution | ✅ | ✅ | Multi-parameter sweep; UI read-only (create out of scope) |
+| DeterministicSingleParameterDistribution | Distribution | ✅ | ✅ | Single-parameter sweep; UI attach + edit |
+| DistributionRange / DistributionSet | Distribution | ✅ | ✅ | Range (stepped) and set-based distributions; UI attach + preview |
+| Stochastic | Distribution | ✅ | ✅ | Stochastic sampling (numberOfTestRuns, optional randomSeed) |
+| StochasticDistribution | Distribution | ✅ | ✅ | Distribution wrapper; UI attach + edit |
+| NormalDistribution | Distribution | ✅ | ✅ | Gaussian (μ, σ²) with optional truncation range |
+| UniformDistribution | Distribution | ✅ | ✅ | Uniform over a required range |
+| PoissonDistribution | Distribution | ✅ | ✅ | Poisson (λ) with optional truncation range |
+| Histogram / HistogramBin | Distribution | ✅ | ✅ | Weighted bins; UI add/remove rows |
+| ProbabilityDistributionSet | Distribution | ✅ | ✅ | Weighted probability set; UI value/weight rows |
+| ParameterValueDistribution | Distribution | ✅ | ✅ | Root wrapper; ScenarioFile ref + FileHeader |
+| ValueSetDistribution | Distribution | ✅ | ✅ | Discrete value set (multi-parameter rows) |
+| UserDefinedDistribution | Distribution | ✅ | ✅ | Custom type; lossless passthrough (not enumerable for variants) |
 
 ### Notable Gaps and Observations
 
@@ -619,8 +626,10 @@
 - **RandomRouteAction**: typed passthrough (`routeAction: 'randomRoute'`); no property-panel editor.
 - **TrajectoryPosition**: typed model added; no property-panel editor.
 
+**Well-Covered Areas (continued):**
+- **Distribution/Stochastic** (14 types): Full parameter distribution subsystem — parser + serializer for all 14 types, seeded deterministic variant-generation engine, and UI (attach distributions to declared parameters, preview generated variants, export the distribution document). Multi-parameter ValueSet creation from the UI is out of scope (rendered read-only when loaded).
+
 **Not Implemented:**
-- **Distribution/Stochastic** (14 types): Entire parameter distribution subsystem for automated test variation. Future consideration.
 - **TimeOfDayCondition**: The only ByValueCondition variant not dispatched.
 - **Catalog definition files**: Standalone catalog parsing added for Vehicle, Pedestrian, MiscObject, Maneuver, Route types. Environment and Trajectory catalogs not yet.
 - **ExternalObjectReference**, **EntitySelection**, **DomeImage**, **SensorReference/SensorReferenceSet**, **Color/ColorCmyk** (detailed color model), **License** (FileHeader child), **UsedArea**.
