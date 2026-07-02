@@ -20,6 +20,30 @@
 
 ゲート実績: typecheck / eslint 0 エラー、vitest 1,485、E2E 45 passed（+preview/validation/clipboard/timeline 新規ケース）。
 
+## 進捗 (2026-07-02 追記その2 — フェーズ3)
+
+**Phase 4 完了（God ファイル分解 + パフォーマンス）:**
+- RoadNetworkEditorLayout 1,816 → 662 行: ドメインロジックを engine へ抽出（signal-arm-geometry / signal-orientation / computeSignalMovePatch / plan-view-operations / resolveTaperSDirection / regenerateJunctionConnections〔undo バッチ化バグ修正込み〕/ nextJunctionId、テスト付き）+ ツール別8フック（hooks/opendrive/: editor-selection / plan-view-editing / road-creation / road-linking / lane-tools / junction-tools / signal-placement / road-network-keyboard）
+- ScenarioViewer: 123 flat props → 8つの編集セッション別 config オブジェクト（routeEdit / trajectoryEdit / signalSelection / positionPick / roadEditing / laneEdit / junctionTools / signalPlace）。SimulationViewerBridge の手書き60フィールド重複型も退役
+- EditorLayout 1,365 → 890 行: SimulationViewerBridge / SignalPickOverlay を分離、route/trajectory ハンドラ塊を use-route-edit-handlers / use-trajectory-edit-handlers へ
+- opendrive-engine undo: 全コマンドを PatchCommand（immer produceWithPatches / applyPatches、redo は保存パッチ再生）化し手書き structuredClone+復元を全廃。※監査の「変異毎に全ドキュメント clone」は実態と相違（既に部分 clone だった）— パッチ化は簡素化として実施
+- エディタディスパッチ: ELEMENT_TYPE_MATCHERS レジストリ + createElementTypeDetector に統合（web の entityInit は拡張エントリ、use-clipboard は PARENT_FIELD_TO_TYPE の部分集合でドリフト構造的に不能に）
+- 3d-viewer: useMemo ジオメトリ/マテリアル6ファイルに dispose 追加（SplitPreviewLine パターン）、arc-math を @osce/opendrive へ移管（layering 修正）
+
+**機能側（ロードマップ フェーズ3、D1 前倒し・MCP 系はフェーズ4へ後ろ倒し）:**
+- **D1 LHT 完遂**: auto-junction / 手動 junction / regeneration / routing-presets 'dedicated' / taper が per-road rule を尊重（実バグ3件修正）、走行方向矢印オーバーレイ新設（'Dir' トグル、computeDrivingHeading 消費、rule 変更に追随）、新規道路のデフォルト rule + 全道路一括適用 UX、LHT ユニットテスト13本 + E2E 2本。※proposal の「header rule 属性」は仕様誤認（rule は road 属性）— lht-support.md を訂正済み。mesh/レーンマーキングは rule 非依存が仕様的に正しくクリーン確認のみ
+- **C3 パラメータ分布**: 全14型の shared 判別共用体 + 専用パーサー/シリアライザ（カタログ方式踏襲、往復テスト）+ シード付きバリアント生成（decartesian / stochastic sampling）+ 分布アタッチ UI・バリアントプレビュー・分布ファイルの open ルーティング（無警告データ消失バグ修正）
+- **C4 バッチ実行マトリクス**: esmini WASM ワーカープール（cores-2, 1..4）で全バリアント並列実行、完走/衝突/minDistance/minTTC 判定のマトリクス表示 + バリアント単位のドリルダウン再生（フレームは保持せずストリーミング判定）
+
+ゲート実績: typecheck / eslint 0 エラー、vitest 1,689（+204）、E2E 48 passed（+LHT 2 / distribution 1 / batch 1 新規、ローカル retry 1 を導入 — WASM 並列時の負荷フレーク対策）、build 緑。コミット17件（dev_v0.5、未プッシュ）。
+
+**フェーズ3からの申し送り:**
+1. **showDrivingDirection の shared 昇格** — 現状 apps/web / 3d-viewer のローカル型拡張（EditorPreferencesExt / ViewerPreferences）。shared の EditorPreferences へ optional フィールドとして昇格すれば2つの拡張型を畳める（shared 単独変更として実施）
+2. **ValueSetDistribution（複数パラメータ組合せ）の UI 作成が未対応** — 読み込みは対応済み（read-only 表示）。作成 UI は需要を見て追加
+3. **分布編集は undo スタック外** — 分布ドキュメントはシナリオとは別のサイドドキュメントとして意図的に非 undo。要望があればコマンド化
+4. **Rule UI の視覚不一致** — per-road の Rule はドロップダウン、デフォルト rule はセグメントトグル。統一するなら後者に寄せる
+5. **tree-traversal.ts（scenario-engine）の型判定** — レジストリ統合の対象外に残る第4の duck-typing サイト。次回統合候補
+
 **フェーズ2からの申し送り（未対応の残課題）:**
 1. **複数選択の UI 導線が未整備** — B5 のクリップボード/削除ロジックは `selectedElementIds: string[]` に完全対応済みだが、現状の UI（EntityListPanel / composer / graph）は単一選択しか生成しない。shift/ctrl クリックの選択集約を追加すると複数選択コピペ・複数削除が実際に使えるようになる。
 2. **`$name` パラメータ解決の共通化** — use-lane-change-preview には story+global parameterDeclarations に対する `$name`/`${name}` の entityRef 解決を実装済みだが、use-route-preview / use-trajectory-preview には同じギャップが残る。共有 `resolveEntityRef()` ヘルパーへ抽出し3フックに適用する。
