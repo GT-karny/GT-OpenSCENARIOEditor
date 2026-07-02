@@ -5,6 +5,7 @@ import {
   evalCubic,
   findRecordAtS,
   findLaneSectionAtS,
+  findLaneSectionIndexAtS,
   ensureArray,
 } from '../../utils/math.js';
 
@@ -144,6 +145,42 @@ describe('findLaneSectionAtS', () => {
 
   it('clamps to the first section before the first boundary', () => {
     expect(findLaneSectionAtS(sections, -1)?.s).toBe(0);
+  });
+});
+
+describe('findLaneSectionIndexAtS', () => {
+  function makeSection(s: number): OdrLaneSection {
+    const centerLane: OdrLane = { id: 0, type: 'none', width: [], roadMarks: [] };
+    return { s, leftLanes: [], centerLane, rightLanes: [] };
+  }
+
+  const sections: OdrLaneSection[] = [makeSection(0), makeSection(50), makeSection(120)];
+
+  it('returns 0 for no sections', () => {
+    expect(findLaneSectionIndexAtS([], 10)).toBe(0);
+  });
+
+  it('returns the first index before the second boundary', () => {
+    expect(findLaneSectionIndexAtS(sections, 25)).toBe(0);
+  });
+
+  it('returns the index at an exact boundary', () => {
+    expect(findLaneSectionIndexAtS(sections, 50)).toBe(1);
+  });
+
+  it('returns the last index past the end', () => {
+    expect(findLaneSectionIndexAtS(sections, 9999)).toBe(2);
+  });
+
+  it('clamps to index 0 before the first boundary', () => {
+    expect(findLaneSectionIndexAtS(sections, -1)).toBe(0);
+  });
+
+  it('agrees with findLaneSectionAtS across a range of s values', () => {
+    for (const s of [-10, 0, 1, 49, 50, 51, 119, 120, 121, 1000]) {
+      const idx = findLaneSectionIndexAtS(sections, s);
+      expect(sections[idx].s).toBe(findLaneSectionAtS(sections, s)?.s);
+    }
   });
 });
 

@@ -74,6 +74,25 @@ export function findLaneSectionAtS(
   return findRecordAtS(laneSections, s, (section) => section.s);
 }
 
+/**
+ * Find the index of the lane section that contains a given s coordinate.
+ *
+ * Returns the index of the last section whose `s` is <= the target. Sections
+ * must be sorted ascending by `s`. Returns 0 when there are no sections or
+ * when `s` is before the first section's `s`.
+ */
+export function findLaneSectionIndexAtS(
+  laneSections: readonly OdrLaneSection[],
+  s: number,
+): number {
+  let idx = 0;
+  for (let i = 0; i < laneSections.length; i++) {
+    if (laneSections[i].s <= s) idx = i;
+    else break;
+  }
+  return idx;
+}
+
 /** Ensure a value is an array */
 export function ensureArray<T>(val: T | T[] | undefined | null): T[] {
   if (val == null) return [];

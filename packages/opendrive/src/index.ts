@@ -60,6 +60,10 @@ export { evaluateSpiral } from './geometry/spiral.js';
 export { evaluatePoly3 } from './geometry/poly3.js';
 export { evaluateParamPoly3 } from './geometry/param-poly3.js';
 
+// Road creation arc/line math
+export { computeAutoArc, computeGeometryEndpoint } from './geometry/arc-math.js';
+export type { AutoArcResult } from './geometry/arc-math.js';
+
 // Mesh generation
 export { generateRoadMesh } from './mesh/road-mesh-generator.js';
 export { buildLaneMesh } from './mesh/lane-mesh-builder.js';
@@ -75,6 +79,7 @@ export {
   ensureArray,
   findRecordAtS,
   findLaneSectionAtS,
+  findLaneSectionIndexAtS,
 } from './utils/math.js';
 
 // Types
