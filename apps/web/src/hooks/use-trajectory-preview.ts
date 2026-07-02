@@ -137,7 +137,15 @@ function resolveTrajectoryPreview(
 ): TrajectoryPreviewData | null {
   const { points, curvePoints } = resolveTrajectoryVisual(trajectory, odrDoc, entityPositions);
 
-  if (points.length === 0 && trajectory.shape.type !== 'clothoidSpline') return null;
+  if (trajectory.shape.type === 'clothoidSpline') {
+    // The resolved points are per-segment start anchors (with ORIGIN sentinels
+    // for chained segments) — not user-facing markers. Only the evaluated
+    // curve is meaningful for preview, so suppress the markers.
+    if (curvePoints.length === 0) return null;
+    return { shapeType: 'clothoidSpline', points: [], curvePoints };
+  }
+
+  if (points.length === 0) return null;
 
   return {
     shapeType: trajectory.shape.type,

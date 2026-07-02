@@ -46,6 +46,8 @@ import { TrajectoryClickHandler } from '../interaction/TrajectoryClickHandler.js
 import { TrajectoryEditOverlay } from '../trajectory/TrajectoryEditOverlay.js';
 import { TrajectoryPreviewOverlay } from '../trajectory/TrajectoryPreviewOverlay.js';
 import type { TrajectoryPreviewData } from '../trajectory/TrajectoryPreviewOverlay.js';
+import { LaneChangePreviewOverlay } from '../preview/LaneChangePreviewOverlay.js';
+import type { LaneChangePreviewData } from '../preview/LaneChangePreviewOverlay.js';
 import { TrafficSignalGroup } from '../signals/TrafficSignalGroup.js';
 import { useScenarioPositions } from '../scenario/useScenarioPositions.js';
 import { PositionMarkersOverlay } from '../markers/PositionMarkersOverlay.js';
@@ -182,6 +184,8 @@ export interface ScenarioViewerProps {
   trajectoryPointCount?: number;
   /** Trajectory preview data for selected entity/action (read-only visualization) */
   trajectoryPreviewData?: TrajectoryPreviewData[];
+  /** Lane-change preview data for selected entity/action (read-only visualization) */
+  laneChangePreviewData?: LaneChangePreviewData[];
 
   /** Currently selected traffic signal key (roadId:signalId) */
   selectedSignalKey?: string | null;
@@ -418,6 +422,7 @@ function ScenarioViewerScene({
   onTrajectoryPointDragEnd,
   trajectoryRelativePointIndices,
   trajectoryPreviewData,
+  laneChangePreviewData,
   selectedSignalKey,
   onSignalSelect,
   highlightedSignalIds,
@@ -524,6 +529,7 @@ function ScenarioViewerScene({
   onTrajectoryPointDragEnd?: ScenarioViewerProps['onTrajectoryPointDragEnd'];
   trajectoryRelativePointIndices?: number[];
   trajectoryPreviewData?: TrajectoryPreviewData[];
+  laneChangePreviewData?: LaneChangePreviewData[];
   selectedSignalKey?: string | null;
   onSignalSelect?: (key: string) => void;
   highlightedSignalIds?: ReadonlySet<string>;
@@ -823,6 +829,16 @@ function ScenarioViewerScene({
         </group>
       )}
 
+      {/* Lane-change preview overlay (shown when entity/action selected, not editing) */}
+      {!routeEditActive &&
+        !trajectoryEditActive &&
+        laneChangePreviewData &&
+        laneChangePreviewData.length > 0 && (
+          <group rotation={[-Math.PI / 2, 0, 0]}>
+            <LaneChangePreviewOverlay previews={laneChangePreviewData} />
+          </group>
+        )}
+
       {/* Trajectory overlay (inside rotation group to match OpenDRIVE coords) */}
       {trajectoryEditActive && trajectoryPoints && trajectoryPoints.length > 0 && (
         <group rotation={[-Math.PI / 2, 0, 0]}>
@@ -1041,6 +1057,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   trajectoryWarnings,
   trajectoryPointCount,
   trajectoryPreviewData,
+  laneChangePreviewData,
   selectedSignalKey,
   onSignalSelect,
   highlightedSignalIds,
@@ -1389,6 +1406,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           onTrajectoryPointDragEnd={onTrajectoryPointDragEnd}
           trajectoryRelativePointIndices={trajectoryRelativePointIndices}
           trajectoryPreviewData={trajectoryPreviewData}
+          laneChangePreviewData={laneChangePreviewData}
           selectedSignalKey={selectedSignalKey}
           onSignalSelect={onSignalSelect}
           highlightedSignalIds={highlightedSignalIds}

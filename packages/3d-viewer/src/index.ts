@@ -44,6 +44,13 @@ export { TrajectoryPreviewOverlay } from './trajectory/TrajectoryPreviewOverlay.
 export type { TrajectoryPreviewData, TrajectoryPreviewOverlayProps } from './trajectory/TrajectoryPreviewOverlay.js';
 export { TrajectoryClickHandler } from './interaction/TrajectoryClickHandler.js';
 
+// Lane-change preview visualization
+export { LaneChangePreviewOverlay } from './preview/LaneChangePreviewOverlay.js';
+export type {
+  LaneChangePreviewData,
+  LaneChangePreviewOverlayProps,
+} from './preview/LaneChangePreviewOverlay.js';
+
 // Position inspector & pick mode
 export { PositionInspectorOverlay } from './interaction/PositionInspectorOverlay.js';
 export type { PickedPositionData } from './interaction/RoadClickHandler.js';

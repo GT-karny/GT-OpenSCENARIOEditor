@@ -42,6 +42,7 @@ import { useRouteEdit } from '../../hooks/use-route-edit';
 import { useTrajectoryEdit } from '../../hooks/use-trajectory-edit';
 import { useRoutePreview } from '../../hooks/use-route-preview';
 import { useTrajectoryPreview } from '../../hooks/use-trajectory-preview';
+import { useLaneChangePreview } from '../../hooks/use-lane-change-preview';
 import { useRoadManagerClient } from '../../hooks/use-road-manager-client';
 import { useCatalogStore } from '../../stores/catalog-store';
 import { useTemplateDrop } from '../../hooks/use-template-drop';
@@ -126,6 +127,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
   trajectoryWarnings?: string[];
   trajectoryPointCount?: number;
   trajectoryPreviewData?: import('@osce/3d-viewer').TrajectoryPreviewData[];
+  laneChangePreviewData?: import('@osce/3d-viewer').LaneChangePreviewData[];
   selectedSignalKey?: string | null;
   onSignalSelect?: (key: string) => void;
   highlightedSignalIds?: ReadonlySet<string>;
@@ -203,6 +205,7 @@ const SimulationViewerBridge = memo(function SimulationViewerBridge(props: {
       trajectoryWarnings={props.trajectoryWarnings}
       trajectoryPointCount={props.trajectoryPointCount}
       trajectoryPreviewData={props.trajectoryPreviewData}
+      laneChangePreviewData={props.laneChangePreviewData}
       selectedSignalKey={props.selectedSignalKey}
       onSignalSelect={props.onSignalSelect}
       highlightedSignalIds={props.highlightedSignalIds}
@@ -474,6 +477,9 @@ export function EditorLayout() {
 
   // --- Trajectory preview (read-only visualization for selected entity/action) ---
   const trajectoryPreviewData = useTrajectoryPreview(scenarioStoreApi, roadNetwork, entityPositions);
+
+  // --- Lane-change preview (read-only visualization for selected entity/action) ---
+  const laneChangePreviewData = useLaneChangePreview(scenarioStoreApi, roadNetwork, entityPositions);
 
   const resolveCatalogRoute = useCallback(
     (ref: { catalogName: string; entryName: string }) => {
@@ -1032,6 +1038,7 @@ export function EditorLayout() {
                     trajectoryWarnings={trajectoryEdit.warnings}
                     trajectoryPointCount={trajectoryPointCount}
                     trajectoryPreviewData={trajectoryPreviewData}
+                    laneChangePreviewData={laneChangePreviewData}
                     selectedSignalKey={selectedSignalKey}
                     onSignalSelect={handleSignalSelect}
                     highlightedSignalIds={signalPickMode ? undefined : highlightedSignalIds}
@@ -1048,6 +1055,14 @@ export function EditorLayout() {
                     highlightedPositionElementIds={selectedElementIds}
                   />
                 </ErrorBoundary>
+                {/* Hidden DOM mirror of preview counts (E2E observability only) */}
+                <span
+                  data-testid="preview-mirror"
+                  data-route-count={routePreviewData.length}
+                  data-trajectory-count={trajectoryPreviewData.length}
+                  data-lane-change-count={laneChangePreviewData.length}
+                  className="sr-only"
+                />
                 {waypointContextMenu && (
                   <WaypointContextMenu
                     position={waypointContextMenu}

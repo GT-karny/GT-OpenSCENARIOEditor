@@ -36,6 +36,15 @@ export interface RoutePreviewData {
  */
 function findRoutesForEntity(doc: ScenarioDocument, entityName: string): Route[] {
   const routes: Route[] = [];
+  // Init-block routing actions (e.g. AssignRoute in Init/Private) belong to the
+  // entity's route preview too, not just storyboard events.
+  const init = doc.storyboard.init.entityActions.find((e) => e.entityRef === entityName);
+  if (init) {
+    for (const pa of init.privateActions) {
+      const route = extractRouteFromAction(pa.action);
+      if (route) routes.push(route);
+    }
+  }
   for (const story of doc.storyboard.stories) {
     for (const act of story.acts) {
       for (const group of act.maneuverGroups) {

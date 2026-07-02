@@ -49,7 +49,17 @@ export function resolveTrajectoryPoints(
       }
       break;
     case 'clothoidSpline':
-      // ClothoidSpline editing/preview not yet implemented — no points.
+      // One entry per segment, index-aligned with shape.segments. Segments
+      // without an explicit positionStart map to the ORIGIN sentinel; the curve
+      // math treats those as "chain from the previous segment end" (only the
+      // first segment actually needs a resolvable start).
+      for (const segment of trajectory.shape.segments) {
+        positions.push(
+          segment.positionStart
+            ? (resolvePositionToWorld(segment.positionStart, odrDoc, resolveOpts) ?? ORIGIN)
+            : ORIGIN,
+        );
+      }
       break;
   }
 
