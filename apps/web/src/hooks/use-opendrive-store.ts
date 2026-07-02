@@ -11,7 +11,7 @@ import { useStore } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 import { createOpenDriveStore } from '@osce/opendrive-engine';
 import type { OpenDriveStore } from '@osce/opendrive-engine';
-import type { OdrRoad, OdrJunction, OdrSignal } from '@osce/shared';
+import type { OdrRoad, OdrRoadRule, OdrJunction, OdrSignal } from '@osce/shared';
 import type { EndpointLaneRouting, TurnType } from '@osce/opendrive-engine';
 import { useEditorStore } from '../stores/editor-store';
 
@@ -68,6 +68,8 @@ export interface RoadCreationState {
   /** Live cursor position during creation (updated on mouse move) */
   cursorX: number;
   cursorY: number;
+  /** Driving rule applied to newly created roads. 'RHT' leaves rule undefined (XSD default). */
+  defaultTrafficRule: OdrRoadRule;
 }
 
 export interface LaneEditHoverInfo {
@@ -185,6 +187,7 @@ const DEFAULT_ROAD_CREATION: RoadCreationState = {
   selectedPreset: '2-lane',
   cursorX: 0,
   cursorY: 0,
+  defaultTrafficRule: 'RHT',
 };
 
 interface OpenDriveSidebarState {
@@ -209,6 +212,7 @@ interface OpenDriveSidebarState {
   resetRoadCreation: () => void;
   setSelectedPreset: (name: string) => void;
   setRoadCreationCursor: (x: number, y: number) => void;
+  setDefaultTrafficRule: (rule: OdrRoadRule) => void;
 
   // Lane edit state
   laneEdit: LaneEditState;
@@ -266,8 +270,12 @@ export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
   setActiveTool: (tool) =>
     set((state) => ({
       activeTool: tool,
-      // Reset creation state when switching tools
-      roadCreation: tool !== 'road-create' ? DEFAULT_ROAD_CREATION : state.roadCreation,
+      // Reset creation state when switching tools, but keep the editor-level
+      // default traffic rule (it is a standing preference, not per-session state).
+      roadCreation:
+        tool !== 'road-create'
+          ? { ...DEFAULT_ROAD_CREATION, defaultTrafficRule: state.roadCreation.defaultTrafficRule }
+          : state.roadCreation,
       // Reset lane edit state when switching away from lane-edit
       laneEdit: tool !== 'lane-edit' ? DEFAULT_LANE_EDIT : state.laneEdit,
       // Reset junction create state when switching away
@@ -291,7 +299,11 @@ export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
     })),
   resetRoadCreation: () =>
     set((state) => ({
-      roadCreation: { ...DEFAULT_ROAD_CREATION, selectedPreset: state.roadCreation.selectedPreset },
+      roadCreation: {
+        ...DEFAULT_ROAD_CREATION,
+        selectedPreset: state.roadCreation.selectedPreset,
+        defaultTrafficRule: state.roadCreation.defaultTrafficRule,
+      },
     })),
   setSelectedPreset: (name) =>
     set((state) => ({
@@ -300,6 +312,10 @@ export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
   setRoadCreationCursor: (x, y) =>
     set((state) => ({
       roadCreation: { ...state.roadCreation, cursorX: x, cursorY: y },
+    })),
+  setDefaultTrafficRule: (rule) =>
+    set((state) => ({
+      roadCreation: { ...state.roadCreation, defaultTrafficRule: rule },
     })),
 
   // Lane edit state

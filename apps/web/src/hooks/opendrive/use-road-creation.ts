@@ -131,10 +131,14 @@ export function useRoadCreation({
               type: 'line',
             };
 
+      const defaultTrafficRule = useOdrSidebarStore.getState().roadCreation.defaultTrafficRule;
+
       const newRoad = odrStoreApi.getState().addRoad({
         name: `Road ${roadCount + 1}`,
         planView: [newGeometry],
         lanes: template.lanes,
+        // Only set 'LHT' explicitly; RHT is the XSD default (rule undefined).
+        rule: defaultTrafficRule === 'LHT' ? 'LHT' : undefined,
       });
 
       // Link to snapped start endpoint
