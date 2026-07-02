@@ -6,6 +6,20 @@
 
 **Track A 完了:** 往復修正続編（AnimationAction/LightStateAction・TrajectoryRef・EnvironmentAction CatalogReference・ClothoidSpline・RandomRouteAction・TrajectoryPosition）、A2 エラー可視化・A3 自動保存+クラッシュ復旧・A4 未保存ガード・A6 ドラッグ&ドロップ+最近使ったファイル。E2E スイートを HomeScreen フローに合わせて全面修復（31 passed）。残: A1 WASM 完遂・A5 帳簿（本更新で対応）。
 
+## 進捗 (2026-07-02 追記)
+
+**A1 WASM 完遂:** GT_Sim を f2674640（upstream v3.3.0 キャッチアップ + SwapAndClearDirtyBits 修正）へ更新し再ビルド。凍結エンティティ問題解消。wasm-simulation E2E を「位置が実際に変化する」アサーション + シード5シナリオのスイープに強化。
+
+**Phase 2 完了（C表 重複統合）:** math utils export + normalizeAngle（(-π,π] 統一）/ findLaneSectionAtS / evalCubic / ensureArray 統合、opendrive-engine ジオメトリ評価を正規評価器へ置換（junction-validator のスパイラル直線フォールバック修正）、CommandHistory/BaseCommand/CompoundCommand を scenario-engine に単一ソース化（collapseUndo を ICommandHistory へ昇格）、デフォルトエンティティ定義を物理的に現実的なカテゴリ別テーブルへ一本化（AI/UI 作成の乖離解消）+ generateId → shared、detectElementType / action サマリーを node-editor 正本化（'Longitudinal Distance' に統一）、EntityRefSelect 3兄弟を共有コア化（消費者無変更）、信号アイコンレンダラーをエンジン集約（BULB_SPACING 0.38 統一）。※WS 型は Phase 1 で削除済みのため対象外。
+
+**Phase 3 完了（型固定）:** osc-enums を v1.3.1 XSD から再生成（~35 enum を const 配列 + union 化、CoordinateSystem 'world' 追加、ODR enum 18型削除）しモデルフィールド + UI ドロップダウンへ配線、openscenario を unknown ベース RawXml 化（any 255 / eslint-disable 272 → 0、eslint override 撤廃）、property エディタに型付き updater ヘルパー導入（as Partial 106 → 0）、OdrGeometry を判別共用体化（?? 0 フォールバック退役）。
+
+**Phase 4 前倒し分:** route/trajectory 編集スタック統合（draft-edit-store ファクトリ、3D 共有プリミティブ、編集フックのセレクタ化 = EditorLayout ドラッグ時全体再レンダー解消）。
+
+**機能側（ロードマップ フェーズ2）:** B1 軌跡プレビュー（ClothoidSpline 実装 + 車線変更遷移プレビュー + Init ルート走査）、B2 バリデーション UX（保存時自動検証・debounced 検証・エラーナビ可視化・i18n 契約修復）、B5 クリップボード強化（エンティティ複製・複数選択・Ctrl+D・複数削除単一 undo）、B4 タイムライン操作（スクラブ・ズーム・イベントブロックドラッグ→undo 可能な時刻書き戻し）。
+
+ゲート実績: typecheck / eslint 0 エラー、vitest 1,485、E2E 45 passed（+preview/validation/clipboard/timeline 新規ケース）。
+
 ---
 
 # 技術的負債監査レポート & リファクタリング・ロードマップ（2026-06）
