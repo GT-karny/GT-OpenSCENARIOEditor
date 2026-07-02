@@ -54,21 +54,22 @@ function expectRoundTrip(dir: string, file: string): void {
 
 describe.skipIf(!FIXTURES_AVAILABLE)('Round-trip: parse → serialize → parse', () => {
   // OpenSCENARIO v1.2.0 official examples.
+  // Note: the *ParameterSet.xosc files are ParameterValueDistribution documents,
+  // not scenarios — they are round-tripped separately in
+  // parse-parameter-distribution.test.ts and are (correctly) rejected by
+  // XoscParser with a XoscRootMismatchError.
   const exampleFiles = [
     'CloseVehicleCrossing.xosc',
     'CutIn.xosc',
     'SimpleOvertake.xosc',
     'EndOfTrafficJam.xosc',
     'DoubleLaneChanger.xosc',
-    'EndOfTrafficJamParameterSet.xosc',
     'EndofTrafficJamNeighboringLaneOccupied.xosc',
     'FastOvertakeWithReInitialization.xosc',
     'Overtaker.xosc',
     'SequentialEvents_0-100-0kph_Explicit.xosc',
     'SequentialEvents_0-100-0kph_Implicit.xosc',
     'SlowPrecedingVehicle.xosc',
-    'SlowPrecedingVehicleDeterministicParameterSet.xosc',
-    'SlowPrecedingVehicleStochasticParameterSet.xosc',
     'TrafficJam.xosc',
     'SynchronizedArrivalToIntersection.xosc',
   ];

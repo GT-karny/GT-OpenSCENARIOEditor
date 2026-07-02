@@ -2,9 +2,24 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { XoscParser } from '../../parser/xosc-parser.js';
+import { XoscRootMismatchError } from '../../parser/xosc-root-error.js';
 import { EXAMPLES_DIR, XOSC_DIR, THIRDPARTY_DIR, GT_SIM_AVAILABLE } from '../test-helpers.js';
 
 const parser = new XoscParser();
+
+/**
+ * A scenario parser must either parse a file or reject it with a typed
+ * root-mismatch error (for catalog / parameter-distribution root files). Any
+ * other throw is an unexpected crash and fails the test.
+ */
+function expectParsableOrTypedRootMismatch(xml: string): void {
+  try {
+    parser.parse(xml);
+  } catch (err) {
+    if (err instanceof XoscRootMismatchError) return;
+    throw err;
+  }
+}
 
 function getXoscFiles(absDir: string, label: string): { absDir: string; label: string; files: string[] } {
   if (!existsSync(absDir)) return { absDir, label, files: [] };
@@ -28,7 +43,7 @@ describe('Parse all fixture .xosc files without throwing', () => {
       for (const file of files) {
         it(`parses ${file} without error`, () => {
           const xml = readFileSync(resolve(absDir, file), 'utf-8');
-          expect(() => parser.parse(xml)).not.toThrow();
+          expect(() => expectParsableOrTypedRootMismatch(xml)).not.toThrow();
         });
       }
     });
@@ -42,7 +57,7 @@ describe('Parse all fixture .xosc files without throwing', () => {
     for (const file of files) {
       it(`parses ${file} without error`, () => {
         const xml = readFileSync(resolve(gtSimDir, file), 'utf-8');
-        expect(() => parser.parse(xml)).not.toThrow();
+        expect(() => expectParsableOrTypedRootMismatch(xml)).not.toThrow();
       });
     }
   });

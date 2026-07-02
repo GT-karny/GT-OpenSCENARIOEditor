@@ -51,6 +51,12 @@ export { deepCloneWithNewIds } from './operations/deep-clone.js';
 export type { CloneableElementType } from './operations/deep-clone.js';
 export type { EntityCleanupOption } from './commands/entity-commands.js';
 export { findManeuverGroupForAction } from './operations/storyboard-operations.js';
+export { generateParameterVariants, mulberry32 } from './operations/distribution-variants.js';
+export type {
+  ParameterVariant,
+  GenerateVariantsOptions,
+  GenerateVariantsResult,
+} from './operations/distribution-variants.js';
 
 // Component Engine
 export { applyUseCaseComponent } from './components/component-engine.js';

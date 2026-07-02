@@ -4,6 +4,7 @@
 
 import type { ScenarioDocument } from '../types/scenario.js';
 import type { OpenDriveDocument } from '../types/opendrive.js';
+import type { ParameterValueDistributionDocument } from '../types/parameter-distribution.js';
 
 export interface IXoscParser {
   parse(xml: string): ScenarioDocument;
@@ -12,6 +13,17 @@ export interface IXoscParser {
 export interface IXoscSerializer {
   serialize(doc: ScenarioDocument): string;
   serializeFormatted(doc: ScenarioDocument): string;
+}
+
+/** Parser for standalone `<ParameterValueDistribution>` `.xosc` documents. */
+export interface IParameterDistributionParser {
+  parse(xml: string): ParameterValueDistributionDocument;
+}
+
+/** Serializer for standalone `<ParameterValueDistribution>` `.xosc` documents. */
+export interface IParameterDistributionSerializer {
+  serialize(doc: ParameterValueDistributionDocument): string;
+  serializeFormatted(doc: ParameterValueDistributionDocument): string;
 }
 
 export interface IXodrParser {

@@ -8,8 +8,14 @@ import { parseEntities } from './parse-entities.js';
 import { parseStoryboard } from './parse-storyboard.js';
 import { generateId } from '@osce/shared';
 import { createDefaultEditorMetadata } from '../utils/defaults.js';
-import { startBindingCollection, finishBindingCollection, child } from '../utils/xml-helpers.js';
+import {
+  startBindingCollection,
+  finishBindingCollection,
+  child,
+  has,
+} from '../utils/xml-helpers.js';
 import type { RawXml } from '../utils/xml-helpers.js';
+import { XoscRootMismatchError } from './xosc-root-error.js';
 import type { XMLParser } from 'fast-xml-parser';
 
 export class XoscParser implements IXoscParser {
@@ -25,6 +31,16 @@ export class XoscParser implements IXoscParser {
 
     if (!root) {
       throw new Error('Invalid OpenSCENARIO XML: missing <OpenSCENARIO> root element');
+    }
+
+    // The XSD OpenScenarioCategory is a choice: a scenario, a catalog, or a
+    // parameter value distribution. Detect the two non-scenario roots up front
+    // so they fail loudly instead of parsing to a silently-empty scenario.
+    if (has(root, 'ParameterValueDistribution')) {
+      throw new XoscRootMismatchError('parameterValueDistribution');
+    }
+    if (has(root, 'Catalog')) {
+      throw new XoscRootMismatchError('catalog');
     }
 
     startBindingCollection();
