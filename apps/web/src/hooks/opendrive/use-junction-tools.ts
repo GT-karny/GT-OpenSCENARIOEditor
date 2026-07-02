@@ -75,7 +75,14 @@ export function useJunctionTools({
       .map((ep) => {
         const road = roads.find((r) => r.id === ep.roadId);
         if (!road) return null;
-        return computeRoadEndpoint(road, ep.contactPoint, evaluateReferenceLineAtS);
+        // Use each road's own traffic rule (default RHT) so LHT roads pick
+        // the correct incoming lanes.
+        return computeRoadEndpoint(
+          road,
+          ep.contactPoint,
+          evaluateReferenceLineAtS,
+          road.rule ?? 'RHT',
+        );
       })
       .filter((ep): ep is NonNullable<typeof ep> => ep !== null);
   }, [junctionCreateMode, junctionCreate.selectedEndpoints, roads]);
@@ -106,7 +113,11 @@ export function useJunctionTools({
     for (const ep of selectedEndpoints) {
       const road = doc.roads.find((r) => r.id === ep.roadId);
       if (road) {
-        endpoints.push(computeRoadEndpoint(road, ep.contactPoint, evaluateReferenceLineAtS));
+        // Use each road's own traffic rule (default RHT) so LHT roads pick
+        // the correct incoming lanes.
+        endpoints.push(
+          computeRoadEndpoint(road, ep.contactPoint, evaluateReferenceLineAtS, road.rule ?? 'RHT'),
+        );
       }
     }
     if (endpoints.length < 2) return;

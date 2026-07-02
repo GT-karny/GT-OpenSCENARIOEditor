@@ -278,10 +278,17 @@ function processNewIntersections(
       if (autoKeys.has(pairKey) || manualKeys.has(pairKey)) continue;
 
       const currentDoc = odrStoreApi.getState().document;
+      // Derive the junction's traffic rule from the intersecting roads.
+      // planJunctionCreation accepts one rule per junction; for the rare
+      // mixed-rule intersection we fall back to roadA's rule (then roadB's).
+      const roadA = currentDoc.roads.find((r) => r.id === hit.roadIdA);
+      const roadB = currentDoc.roads.find((r) => r.id === hit.roadIdB);
+      const trafficRule = roadA?.rule ?? roadB?.rule ?? 'RHT';
       const plan = planJunctionCreation(currentDoc, {
         intersection: hit,
         routingConfig,
         evaluateAtS: evaluateReferenceLineAtS,
+        trafficRule,
       });
 
       if (!plan) continue;

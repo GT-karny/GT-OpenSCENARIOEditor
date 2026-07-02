@@ -281,13 +281,15 @@ export function useLaneTools({
         const endS = Math.max(taperCreation.startS, s);
         if (endS - startS < 1) return;
 
-        // Left lanes travel opposite to s-direction, so the driver-perspective
-        // taper direction is flipped to road (increasing-s) coordinates. Pass
-        // 'RHT' explicitly; LHT wiring lands in a later wave.
+        // A lane travels against +s depending on its side and the road's
+        // traffic rule; resolveTaperSDirection flips the driver-perspective
+        // direction into road (increasing-s) coordinates accordingly. Use the
+        // tapered road's own rule (default RHT) so LHT roads flip correctly.
+        const road = roads.find((r) => r.id === roadId);
         const effectiveDirection = resolveTaperSDirection(
           taperCreation.side,
           taperDirection,
-          'RHT',
+          road?.rule ?? 'RHT',
         );
 
         const store = odrStoreApi.getState();
@@ -306,6 +308,7 @@ export function useLaneTools({
     },
     [
       odrStoreApi,
+      roads,
       taperCreation,
       taperDirection,
       taperPosition,

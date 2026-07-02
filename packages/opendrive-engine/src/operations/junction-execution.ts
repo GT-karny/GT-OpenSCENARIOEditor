@@ -458,7 +458,9 @@ export function regenerateJunctionConnections(
     for (const [roadId, contactPoint] of incomingEntries) {
       const road = freshDoc.roads.find((r) => r.id === roadId);
       if (road) {
-        endpoints.push(computeRoadEndpoint(road, contactPoint, evaluateAtS));
+        // Each endpoint uses its own road's traffic rule (default RHT) so LHT
+        // roads select the correct incoming lanes.
+        endpoints.push(computeRoadEndpoint(road, contactPoint, evaluateAtS, road.rule ?? 'RHT'));
       }
     }
 
