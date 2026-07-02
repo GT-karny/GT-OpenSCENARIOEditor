@@ -20,6 +20,15 @@
 
 ゲート実績: typecheck / eslint 0 エラー、vitest 1,485、E2E 45 passed（+preview/validation/clipboard/timeline 新規ケース）。
 
+**フェーズ2からの申し送り（未対応の残課題）:**
+1. **複数選択の UI 導線が未整備** — B5 のクリップボード/削除ロジックは `selectedElementIds: string[]` に完全対応済みだが、現状の UI（EntityListPanel / composer / graph）は単一選択しか生成しない。shift/ctrl クリックの選択集約を追加すると複数選択コピペ・複数削除が実際に使えるようになる。
+2. **`$name` パラメータ解決の共通化** — use-lane-change-preview には story+global parameterDeclarations に対する `$name`/`${name}` の entityRef 解決を実装済みだが、use-route-preview / use-trajectory-preview には同じギャップが残る。共有 `resolveEntityRef()` ヘルパーへ抽出し3フックに適用する。
+3. **`apps/web/src/constants/osc-enum-values.ts` の重複** — Phase 3 の enum 配線後も shared の const 配列と重複したままで、廃止値（wind/overwrite/integer）も UI リストに残存。shared からの再エクスポートに畳める。
+4. **NURBS knot 検証の軽微な不整合**（既存バグ） — `generateClampedUniformKnots` は制御点2 + order 3 のとき 2*order 本の knot を生成し、バリデータの期待値（controlPoints+order）と一致せず誤警告が出る。実害は警告表示のみ。
+5. **i18n locale ファイルの Prettier 未整形**（既存負債） — packages/i18n の en/ja common.ts は HEAD 時点で `prettier --check` に不合格。一括整形コミットを1回入れるのが望ましい。
+6. **EventPriority / OrientationType の重複 union**（shared 内） — Priority / ReferenceContext と同値の独立定義。エイリアス化で単一ソース化できるが消費者への波及があるため見送り。
+7. **scenario-engine の uuid 依存** — generateId は shared に統一済みだが、defaults.ts の非エンティティ要素 ID 生成は uuid パッケージの uuidv4 を継続使用。完全移行すれば uuid 依存を落とせる。
+
 ---
 
 # 技術的負債監査レポート & リファクタリング・ロードマップ（2026-06）
