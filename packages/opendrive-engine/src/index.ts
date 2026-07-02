@@ -41,6 +41,9 @@ export {
 // Undo/redo infrastructure is single-sourced in @osce/scenario-engine and
 // re-exported here so opendrive-engine's public surface stays unchanged.
 export { BaseCommand, CommandHistory, CompoundCommand } from '@osce/scenario-engine';
+// Patch-based command base: recipes + immer produceWithPatches for undo/redo.
+export { PatchCommand } from './commands/patch-command.js';
+export type { PatchRecipe } from './commands/patch-command.js';
 export { AddRoadCommand, RemoveRoadCommand, UpdateRoadCommand } from './commands/road-commands.js';
 export type { GetDoc, SetDoc, MarkDirtyRoad } from './commands/road-commands.js';
 export { UpdateHeaderCommand } from './commands/header-commands.js';

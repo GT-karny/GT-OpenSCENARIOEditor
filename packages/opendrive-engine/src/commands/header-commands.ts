@@ -2,13 +2,11 @@
  * Commands for OpenDRIVE header updates.
  */
 
-import { produce } from 'immer';
 import type { OdrHeader } from '@osce/shared';
-import { BaseCommand } from '@osce/scenario-engine';
+import { PatchCommand } from './patch-command.js';
 import type { GetDoc, SetDoc } from './road-commands.js';
 
-export class UpdateHeaderCommand extends BaseCommand {
-  private previousHeader: OdrHeader | null = null;
+export class UpdateHeaderCommand extends PatchCommand {
   private readonly updates: Partial<OdrHeader>;
   private readonly getDoc: GetDoc;
   private readonly setDoc: SetDoc;
@@ -20,23 +18,9 @@ export class UpdateHeaderCommand extends BaseCommand {
     this.setDoc = setDoc;
   }
 
-  execute(): void {
-    const doc = this.getDoc();
-    this.previousHeader = structuredClone(doc.header);
-    this.setDoc(
-      produce(doc, (draft) => {
-        Object.assign(draft.header, this.updates);
-      }),
-    );
-  }
-
-  undo(): void {
-    if (!this.previousHeader) return;
-    const prev = this.previousHeader;
-    this.setDoc(
-      produce(this.getDoc(), (draft) => {
-        draft.header = prev;
-      }),
-    );
+  apply(): void {
+    this.mutate(this.getDoc, this.setDoc, (draft) => {
+      Object.assign(draft.header, this.updates);
+    });
   }
 }

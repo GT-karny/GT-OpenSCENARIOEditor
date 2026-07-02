@@ -2,14 +2,14 @@
  * Commands for lane CRUD operations and lane section splitting.
  */
 
-import { produce } from 'immer';
+import { current } from 'immer';
 import type { OdrLane, OdrLaneSection } from '@osce/shared';
-import { BaseCommand } from '@osce/scenario-engine';
+import { PatchCommand } from './patch-command.js';
 import type { GetDoc, SetDoc, MarkDirtyRoad } from './road-commands.js';
 import { findRoadIndex } from '../operations/road-operations.js';
 import { createDefaultLane } from '../store/defaults.js';
 
-export class AddLaneCommand extends BaseCommand {
+export class AddLaneCommand extends PatchCommand {
   private readonly roadId: string;
   private readonly sectionIdx: number;
   private readonly side: 'left' | 'right';
@@ -50,40 +50,18 @@ export class AddLaneCommand extends BaseCommand {
     };
   }
 
-  execute(): void {
-    const doc = this.getDoc();
-    const roadIdx = findRoadIndex(doc, this.roadId);
-    if (roadIdx === -1) return;
-    const section = doc.roads[roadIdx].lanes[this.sectionIdx];
-    if (!section) return;
-
-    this.setDoc(
-      produce(doc, (draft) => {
-        const target =
-          this.side === 'left'
-            ? draft.roads[roadIdx].lanes[this.sectionIdx].leftLanes
-            : draft.roads[roadIdx].lanes[this.sectionIdx].rightLanes;
-        target.push(this.lane);
-      }),
-    );
-    this.markDirty(this.roadId);
+  apply(): void {
+    this.mutate(this.getDoc, this.setDoc, (draft) => {
+      const roadIdx = findRoadIndex(draft, this.roadId);
+      if (roadIdx === -1) return;
+      const section = draft.roads[roadIdx].lanes[this.sectionIdx];
+      if (!section) return;
+      const target = this.side === 'left' ? section.leftLanes : section.rightLanes;
+      target.push(this.lane);
+    });
   }
 
-  undo(): void {
-    const doc = this.getDoc();
-    const roadIdx = findRoadIndex(doc, this.roadId);
-    if (roadIdx === -1) return;
-
-    this.setDoc(
-      produce(doc, (draft) => {
-        const target =
-          this.side === 'left'
-            ? draft.roads[roadIdx].lanes[this.sectionIdx].leftLanes
-            : draft.roads[roadIdx].lanes[this.sectionIdx].rightLanes;
-        const idx = target.findIndex((l) => l.id === this.lane.id);
-        if (idx !== -1) target.splice(idx, 1);
-      }),
-    );
+  protected markSideEffects(): void {
     this.markDirty(this.roadId);
   }
 
@@ -92,9 +70,7 @@ export class AddLaneCommand extends BaseCommand {
   }
 }
 
-export class RemoveLaneCommand extends BaseCommand {
-  private removedLane: OdrLane | null = null;
-  private removedIndex = -1;
+export class RemoveLaneCommand extends PatchCommand {
   private readonly roadId: string;
   private readonly sectionIdx: number;
   private readonly side: 'left' | 'right';
@@ -122,54 +98,24 @@ export class RemoveLaneCommand extends BaseCommand {
     this.markDirty = markDirty;
   }
 
-  execute(): void {
-    const doc = this.getDoc();
-    const roadIdx = findRoadIndex(doc, this.roadId);
-    if (roadIdx === -1) return;
-    const section = doc.roads[roadIdx].lanes[this.sectionIdx];
-    if (!section) return;
-
-    const lanes = this.side === 'left' ? section.leftLanes : section.rightLanes;
-    this.removedIndex = lanes.findIndex((l) => l.id === this.laneId);
-    if (this.removedIndex !== -1) {
-      this.removedLane = structuredClone(lanes[this.removedIndex]);
-    }
-
-    this.setDoc(
-      produce(doc, (draft) => {
-        const target =
-          this.side === 'left'
-            ? draft.roads[roadIdx].lanes[this.sectionIdx].leftLanes
-            : draft.roads[roadIdx].lanes[this.sectionIdx].rightLanes;
-        if (this.removedIndex !== -1) target.splice(this.removedIndex, 1);
-      }),
-    );
-    this.markDirty(this.roadId);
+  apply(): void {
+    this.mutate(this.getDoc, this.setDoc, (draft) => {
+      const roadIdx = findRoadIndex(draft, this.roadId);
+      if (roadIdx === -1) return;
+      const section = draft.roads[roadIdx].lanes[this.sectionIdx];
+      if (!section) return;
+      const target = this.side === 'left' ? section.leftLanes : section.rightLanes;
+      const idx = target.findIndex((l) => l.id === this.laneId);
+      if (idx !== -1) target.splice(idx, 1);
+    });
   }
 
-  undo(): void {
-    if (!this.removedLane || this.removedIndex === -1) return;
-    const lane = this.removedLane;
-    const idx = this.removedIndex;
-    const doc = this.getDoc();
-    const roadIdx = findRoadIndex(doc, this.roadId);
-    if (roadIdx === -1) return;
-
-    this.setDoc(
-      produce(doc, (draft) => {
-        const target =
-          this.side === 'left'
-            ? draft.roads[roadIdx].lanes[this.sectionIdx].leftLanes
-            : draft.roads[roadIdx].lanes[this.sectionIdx].rightLanes;
-        target.splice(idx, 0, lane);
-      }),
-    );
+  protected markSideEffects(): void {
     this.markDirty(this.roadId);
   }
 }
 
-export class UpdateLaneCommand extends BaseCommand {
-  private previousLane: OdrLane | null = null;
+export class UpdateLaneCommand extends PatchCommand {
   private readonly roadId: string;
   private readonly sectionIdx: number;
   private readonly side: 'left' | 'right';
@@ -200,55 +146,24 @@ export class UpdateLaneCommand extends BaseCommand {
     this.markDirty = markDirty;
   }
 
-  execute(): void {
-    const doc = this.getDoc();
-    const roadIdx = findRoadIndex(doc, this.roadId);
-    if (roadIdx === -1) return;
-    const section = doc.roads[roadIdx].lanes[this.sectionIdx];
-    if (!section) return;
-
-    const lanes = this.side === 'left' ? section.leftLanes : section.rightLanes;
-    const lane = lanes.find((l) => l.id === this.laneId);
-    if (!lane) return;
-
-    this.previousLane = structuredClone(lane);
-
-    this.setDoc(
-      produce(doc, (draft) => {
-        const target =
-          this.side === 'left'
-            ? draft.roads[roadIdx].lanes[this.sectionIdx].leftLanes
-            : draft.roads[roadIdx].lanes[this.sectionIdx].rightLanes;
-        const draftLane = target.find((l) => l.id === this.laneId);
-        if (draftLane) Object.assign(draftLane, this.updates);
-      }),
-    );
-    this.markDirty(this.roadId);
+  apply(): void {
+    this.mutate(this.getDoc, this.setDoc, (draft) => {
+      const roadIdx = findRoadIndex(draft, this.roadId);
+      if (roadIdx === -1) return;
+      const section = draft.roads[roadIdx].lanes[this.sectionIdx];
+      if (!section) return;
+      const target = this.side === 'left' ? section.leftLanes : section.rightLanes;
+      const draftLane = target.find((l) => l.id === this.laneId);
+      if (draftLane) Object.assign(draftLane, this.updates);
+    });
   }
 
-  undo(): void {
-    if (!this.previousLane) return;
-    const prev = this.previousLane;
-    const doc = this.getDoc();
-    const roadIdx = findRoadIndex(doc, this.roadId);
-    if (roadIdx === -1) return;
-
-    this.setDoc(
-      produce(doc, (draft) => {
-        const target =
-          this.side === 'left'
-            ? draft.roads[roadIdx].lanes[this.sectionIdx].leftLanes
-            : draft.roads[roadIdx].lanes[this.sectionIdx].rightLanes;
-        const idx = target.findIndex((l) => l.id === this.laneId);
-        if (idx !== -1) target[idx] = prev;
-      }),
-    );
+  protected markSideEffects(): void {
     this.markDirty(this.roadId);
   }
 }
 
-export class SplitLaneSectionCommand extends BaseCommand {
-  private previousSections: OdrLaneSection[] | null = null;
+export class SplitLaneSectionCommand extends PatchCommand {
   private readonly roadId: string;
   private readonly sectionIdx: number;
   private readonly splitS: number;
@@ -273,50 +188,33 @@ export class SplitLaneSectionCommand extends BaseCommand {
     this.markDirty = markDirty;
   }
 
-  execute(): void {
-    const doc = this.getDoc();
-    const roadIdx = findRoadIndex(doc, this.roadId);
-    if (roadIdx === -1) return;
-    const road = doc.roads[roadIdx];
-    const section = road.lanes[this.sectionIdx];
-    if (!section) return;
+  apply(): void {
+    this.mutate(this.getDoc, this.setDoc, (draft) => {
+      const roadIdx = findRoadIndex(draft, this.roadId);
+      if (roadIdx === -1) return;
+      const road = draft.roads[roadIdx];
+      const section = road.lanes[this.sectionIdx];
+      if (!section) return;
 
-    // Validate split position is within the section range
-    if (this.splitS <= section.s) return;
+      // Validate split position is within the section range.
+      if (this.splitS <= section.s) return;
 
-    // Determine section end: next section's s or road length
-    const nextSection = road.lanes[this.sectionIdx + 1];
-    const sectionEnd = nextSection ? nextSection.s : road.length;
-    if (this.splitS >= sectionEnd) return;
+      // Determine section end: next section's s or road length.
+      const nextSection = road.lanes[this.sectionIdx + 1];
+      const sectionEnd = nextSection ? nextSection.s : road.length;
+      if (this.splitS >= sectionEnd) return;
 
-    this.previousSections = structuredClone(road.lanes);
-
-    // Create the new section as a clone of the original with updated s
-    const newSection: OdrLaneSection = {
-      ...structuredClone(section),
-      s: this.splitS,
-    };
-
-    this.setDoc(
-      produce(doc, (draft) => {
-        draft.roads[roadIdx].lanes.splice(this.sectionIdx + 1, 0, newSection);
-      }),
-    );
-    this.markDirty(this.roadId);
+      // Create the new section as a clone of the original with updated s.
+      // `current` produces a plain (non-draft) snapshot, safe to structuredClone.
+      const newSection: OdrLaneSection = {
+        ...structuredClone(current(section)),
+        s: this.splitS,
+      };
+      road.lanes.splice(this.sectionIdx + 1, 0, newSection);
+    });
   }
 
-  undo(): void {
-    if (!this.previousSections) return;
-    const prev = this.previousSections;
-    const doc = this.getDoc();
-    const roadIdx = findRoadIndex(doc, this.roadId);
-    if (roadIdx === -1) return;
-
-    this.setDoc(
-      produce(doc, (draft) => {
-        draft.roads[roadIdx].lanes = prev;
-      }),
-    );
+  protected markSideEffects(): void {
     this.markDirty(this.roadId);
   }
 }

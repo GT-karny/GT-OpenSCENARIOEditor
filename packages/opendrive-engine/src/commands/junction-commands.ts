@@ -2,9 +2,8 @@
  * Commands for junction CRUD operations.
  */
 
-import { produce } from 'immer';
 import type { OpenDriveDocument, OdrJunction, OdrJunctionConnection } from '@osce/shared';
-import { BaseCommand } from '@osce/scenario-engine';
+import { PatchCommand } from './patch-command.js';
 import type { GetDoc, SetDoc } from './road-commands.js';
 import { nextNumericId } from '../utils/id-generator.js';
 import {
@@ -18,7 +17,7 @@ function findJunctionIndex(doc: OpenDriveDocument, junctionId: string): number {
   return doc.junctions.findIndex((j) => j.id === junctionId);
 }
 
-export class AddJunctionCommand extends BaseCommand {
+export class AddJunctionCommand extends PatchCommand {
   private readonly junction: OdrJunction;
   private readonly getDoc: GetDoc;
   private readonly setDoc: SetDoc;
@@ -41,22 +40,13 @@ export class AddJunctionCommand extends BaseCommand {
     this.markDirty = markDirty;
   }
 
-  execute(): void {
-    this.setDoc(
-      produce(this.getDoc(), (draft) => {
-        draft.junctions.push(this.junction);
-      }),
-    );
-    this.markDirty(this.junction.id);
+  apply(): void {
+    this.mutate(this.getDoc, this.setDoc, (draft) => {
+      draft.junctions.push(this.junction);
+    });
   }
 
-  undo(): void {
-    this.setDoc(
-      produce(this.getDoc(), (draft) => {
-        const idx = findJunctionIndex(draft, this.junction.id);
-        if (idx !== -1) draft.junctions.splice(idx, 1);
-      }),
-    );
+  protected markSideEffects(): void {
     this.markDirty(this.junction.id);
   }
 
@@ -65,20 +55,13 @@ export class AddJunctionCommand extends BaseCommand {
   }
 }
 
-export class RemoveJunctionCommand extends BaseCommand {
-  private removedJunction: OdrJunction | null = null;
-  private removedIndex = -1;
+export class RemoveJunctionCommand extends PatchCommand {
   private readonly junctionId: string;
   private readonly getDoc: GetDoc;
   private readonly setDoc: SetDoc;
   private readonly markDirty: MarkDirtyJunction;
 
-  constructor(
-    junctionId: string,
-    getDoc: GetDoc,
-    setDoc: SetDoc,
-    markDirty: MarkDirtyJunction,
-  ) {
+  constructor(junctionId: string, getDoc: GetDoc, setDoc: SetDoc, markDirty: MarkDirtyJunction) {
     super(`Remove junction: ${junctionId}`);
     this.junctionId = junctionId;
     this.getDoc = getDoc;
@@ -86,35 +69,19 @@ export class RemoveJunctionCommand extends BaseCommand {
     this.markDirty = markDirty;
   }
 
-  execute(): void {
-    const doc = this.getDoc();
-    this.removedIndex = findJunctionIndex(doc, this.junctionId);
-    if (this.removedIndex !== -1) {
-      this.removedJunction = structuredClone(doc.junctions[this.removedIndex]);
-    }
-    this.setDoc(
-      produce(doc, (draft) => {
-        if (this.removedIndex !== -1) draft.junctions.splice(this.removedIndex, 1);
-      }),
-    );
-    this.markDirty(this.junctionId);
+  apply(): void {
+    this.mutate(this.getDoc, this.setDoc, (draft) => {
+      const idx = findJunctionIndex(draft, this.junctionId);
+      if (idx !== -1) draft.junctions.splice(idx, 1);
+    });
   }
 
-  undo(): void {
-    if (!this.removedJunction || this.removedIndex === -1) return;
-    const junction = this.removedJunction;
-    const idx = this.removedIndex;
-    this.setDoc(
-      produce(this.getDoc(), (draft) => {
-        draft.junctions.splice(idx, 0, junction);
-      }),
-    );
+  protected markSideEffects(): void {
     this.markDirty(this.junctionId);
   }
 }
 
-export class UpdateJunctionCommand extends BaseCommand {
-  private previousJunction: OdrJunction | null = null;
+export class UpdateJunctionCommand extends PatchCommand {
   private readonly junctionId: string;
   private readonly updates: Partial<OdrJunction>;
   private readonly getDoc: GetDoc;
@@ -136,33 +103,20 @@ export class UpdateJunctionCommand extends BaseCommand {
     this.markDirty = markDirty;
   }
 
-  execute(): void {
-    const doc = this.getDoc();
-    const idx = findJunctionIndex(doc, this.junctionId);
-    if (idx === -1) return;
-    this.previousJunction = structuredClone(doc.junctions[idx]);
-    this.setDoc(
-      produce(doc, (draft) => {
-        Object.assign(draft.junctions[idx], this.updates);
-      }),
-    );
-    this.markDirty(this.junctionId);
+  apply(): void {
+    this.mutate(this.getDoc, this.setDoc, (draft) => {
+      const idx = findJunctionIndex(draft, this.junctionId);
+      if (idx === -1) return;
+      Object.assign(draft.junctions[idx], this.updates);
+    });
   }
 
-  undo(): void {
-    if (!this.previousJunction) return;
-    const prev = this.previousJunction;
-    this.setDoc(
-      produce(this.getDoc(), (draft) => {
-        const idx = findJunctionIndex(draft, this.junctionId);
-        if (idx !== -1) draft.junctions[idx] = prev;
-      }),
-    );
+  protected markSideEffects(): void {
     this.markDirty(this.junctionId);
   }
 }
 
-export class AddJunctionConnectionCommand extends BaseCommand {
+export class AddJunctionConnectionCommand extends PatchCommand {
   private readonly junctionId: string;
   private readonly connection: OdrJunctionConnection;
   private readonly getDoc: GetDoc;
@@ -195,26 +149,14 @@ export class AddJunctionConnectionCommand extends BaseCommand {
     this.markDirty = markDirty;
   }
 
-  execute(): void {
-    this.setDoc(
-      produce(this.getDoc(), (draft) => {
-        const junction = draft.junctions.find((j) => j.id === this.junctionId);
-        if (junction) junction.connections.push(this.connection);
-      }),
-    );
-    this.markDirty(this.junctionId);
+  apply(): void {
+    this.mutate(this.getDoc, this.setDoc, (draft) => {
+      const junction = draft.junctions.find((j) => j.id === this.junctionId);
+      if (junction) junction.connections.push(this.connection);
+    });
   }
 
-  undo(): void {
-    this.setDoc(
-      produce(this.getDoc(), (draft) => {
-        const junction = draft.junctions.find((j) => j.id === this.junctionId);
-        if (junction) {
-          const idx = junction.connections.findIndex((c) => c.id === this.connection.id);
-          if (idx !== -1) junction.connections.splice(idx, 1);
-        }
-      }),
-    );
+  protected markSideEffects(): void {
     this.markDirty(this.junctionId);
   }
 
@@ -223,9 +165,7 @@ export class AddJunctionConnectionCommand extends BaseCommand {
   }
 }
 
-export class RemoveJunctionConnectionCommand extends BaseCommand {
-  private removedConnection: OdrJunctionConnection | null = null;
-  private removedIndex = -1;
+export class RemoveJunctionConnectionCommand extends PatchCommand {
   private readonly junctionId: string;
   private readonly connectionId: string;
   private readonly getDoc: GetDoc;
@@ -247,35 +187,17 @@ export class RemoveJunctionConnectionCommand extends BaseCommand {
     this.markDirty = markDirty;
   }
 
-  execute(): void {
-    const doc = this.getDoc();
-    const jIdx = findJunctionIndex(doc, this.junctionId);
-    if (jIdx === -1) return;
-    const junction = doc.junctions[jIdx];
-    this.removedIndex = junction.connections.findIndex((c) => c.id === this.connectionId);
-    if (this.removedIndex !== -1) {
-      this.removedConnection = structuredClone(junction.connections[this.removedIndex]);
-    }
-
-    this.setDoc(
-      produce(doc, (draft) => {
-        const j = draft.junctions[jIdx];
-        if (this.removedIndex !== -1) j.connections.splice(this.removedIndex, 1);
-      }),
-    );
-    this.markDirty(this.junctionId);
+  apply(): void {
+    this.mutate(this.getDoc, this.setDoc, (draft) => {
+      const jIdx = findJunctionIndex(draft, this.junctionId);
+      if (jIdx === -1) return;
+      const junction = draft.junctions[jIdx];
+      const idx = junction.connections.findIndex((c) => c.id === this.connectionId);
+      if (idx !== -1) junction.connections.splice(idx, 1);
+    });
   }
 
-  undo(): void {
-    if (!this.removedConnection || this.removedIndex === -1) return;
-    const conn = this.removedConnection;
-    const idx = this.removedIndex;
-    this.setDoc(
-      produce(this.getDoc(), (draft) => {
-        const junction = draft.junctions.find((j) => j.id === this.junctionId);
-        if (junction) junction.connections.splice(idx, 0, conn);
-      }),
-    );
+  protected markSideEffects(): void {
     this.markDirty(this.junctionId);
   }
 }
