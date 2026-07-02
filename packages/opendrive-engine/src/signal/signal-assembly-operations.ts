@@ -5,13 +5,15 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import type { OdrSignal, OpenDriveDocument, ICommand } from '@osce/shared';
+import type { OdrSignal, OdrRoad, OdrRoadObject, OpenDriveDocument, ICommand } from '@osce/shared';
+import { computePolePlacementT } from '@osce/opendrive';
 import type { StoreApi } from 'zustand/vanilla';
 import type { OpenDriveStore } from '../store/opendrive-store.js';
 import type { EditorMetadataStore } from '../store/editor-metadata-store.js';
 import type { SignalAssemblyMetadata } from '../store/editor-metadata-types.js';
 import { presetToSignalPartial, signalToPresetId } from './preset-to-signal.js';
 import { getPresetById } from './signal-presets.js';
+import { computeArmAngleFromWorld } from './signal-arm-geometry.js';
 import {
   CreateAssemblyCommand,
   UpdateAssemblyCommand,
@@ -474,4 +476,91 @@ export function buildAssembliesFromDocument(
   }
 
   return assemblies;
+}
+
+// ---------------------------------------------------------------------------
+// computeSignalMovePatch
+// ---------------------------------------------------------------------------
+
+/** Field patch for a single OdrRoadObject, keyed by its object id. */
+export interface ObjectFieldPatch {
+  id: string;
+  patch: Partial<OdrRoadObject>;
+}
+
+/**
+ * Result of `computeSignalMovePatch` — pure patches for the caller to apply.
+ * `objectPatches` is empty when the assembly has no pole object.
+ */
+export interface SignalMovePatch {
+  /** Update for the moved signal (store.updateSignal). */
+  signalPatch: { s: number; t: number };
+  /** Update for the assembly metadata (updateAssembly). */
+  assemblyPatch: { armLength: number; armAngle: number };
+  /** Per-object field updates for the pole/arm objects (store.updateRoad). */
+  objectPatches: ObjectFieldPatch[];
+}
+
+/**
+ * Compute the patches required to move an arm-mounted signal, without touching
+ * any store. Replicates the arm-mounted branch of handleSignalMove:
+ *   - the signal gets { s: newS, t: newT }
+ *   - the pole T is recomputed via computePolePlacementT for the new side
+ *   - the arm angle is recomputed via computeArmAngleFromWorld
+ *   - the assembly metadata gets { armLength, armAngle }
+ *   - when a pole object exists, the pole object gets { s, t: poleT, height: zOffset }
+ *     and the arm object gets { s, t: midpoint, zOffset, length, hdg }
+ *
+ * The caller applies these patches (store.updateSignal / updateAssembly /
+ * store.updateRoad). The signal's current zOffset (defaulting to 5.0) is read
+ * from the road to size the pole/arm, matching the source.
+ *
+ * @param road     The road the signal is on.
+ * @param assembly The assembly the signal belongs to.
+ * @param signalId The moved signal's id (used to read its zOffset).
+ * @param newS     The signal's new s-coordinate.
+ * @param newT     The signal's new t-offset.
+ * @param armInfo  Arm length (and previous angle) supplied by the caller.
+ * @returns The patches to apply.
+ */
+export function computeSignalMovePatch(
+  road: OdrRoad,
+  assembly: SignalAssemblyMetadata,
+  signalId: string,
+  newS: number,
+  newT: number,
+  armInfo: { armLength: number; armAngle: number },
+): SignalMovePatch {
+  const side: 'right' | 'left' = newT < 0 ? 'right' : 'left';
+  const poleT = computePolePlacementT(road, newS, side);
+  const armAngle = computeArmAngleFromWorld(road, newS, poleT, newT);
+
+  const signal = road.signals.find((s) => s.id === signalId);
+  const zOffset = signal?.zOffset ?? 5.0;
+
+  const objectPatches: ObjectFieldPatch[] = [];
+  if (assembly.poleObjectId) {
+    objectPatches.push({
+      id: assembly.poleObjectId,
+      patch: { s: newS, t: poleT, height: zOffset },
+    });
+    if (assembly.armObjectId) {
+      objectPatches.push({
+        id: assembly.armObjectId,
+        patch: {
+          s: newS,
+          t: (poleT + newT) / 2,
+          zOffset,
+          length: armInfo.armLength,
+          hdg: newT > poleT ? Math.PI / 2 : -Math.PI / 2,
+        },
+      });
+    }
+  }
+
+  return {
+    signalPatch: { s: newS, t: newT },
+    assemblyPatch: { armLength: armInfo.armLength, armAngle },
+    objectPatches,
+  };
 }
