@@ -3,7 +3,7 @@
  * Shows cyan lines between roads that have successor/predecessor links.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 import type { OpenDriveDocument, OdrRoad, OdrGeometry } from '@osce/shared';
 
@@ -111,6 +111,16 @@ export function RoadLinkLines({ openDriveDocument }: RoadLinkLinesProps) {
       return { key: seg.key, line };
     });
   }, [segments]);
+
+  // Dispose every line's geometry and material when the array is rebuilt, and on unmount.
+  useEffect(() => {
+    return () => {
+      for (const { line } of lineObjects) {
+        line.geometry.dispose();
+        (line.material as THREE.Material).dispose();
+      }
+    };
+  }, [lineObjects]);
 
   if (lineObjects.length === 0) return null;
 

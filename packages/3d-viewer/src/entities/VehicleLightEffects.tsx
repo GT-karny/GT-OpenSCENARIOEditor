@@ -6,7 +6,7 @@
  *   3. A pointLight to illuminate the surrounding scene
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 import type { VehicleLightState } from '../scenario/useEntityLightStates.js';
 import { useFlashingClock } from '../hooks/useFlashingClock.js';
@@ -130,7 +130,7 @@ const BRAKE_CONFIG: LightConfig = {
 
 /** Creates a SpriteMaterial for radial glow */
 function useGlowMaterial(color: string, opacity: number): THREE.SpriteMaterial {
-  return useMemo(
+  const material = useMemo(
     () =>
       new THREE.SpriteMaterial({
         map: glowTexture,
@@ -142,11 +142,19 @@ function useGlowMaterial(color: string, opacity: number): THREE.SpriteMaterial {
       }),
     [color, opacity],
   );
+
+  // Dispose the previous per-instance material when a new one is created, and on unmount.
+  // The shared glowTexture (module-level singleton) must NOT be disposed here.
+  useEffect(() => {
+    return () => material.dispose();
+  }, [material]);
+
+  return material;
 }
 
 /** Creates a MeshBasicMaterial for the light core */
 function useCoreMaterial(color: string, opacity: number): THREE.MeshBasicMaterial {
-  return useMemo(
+  const material = useMemo(
     () =>
       new THREE.MeshBasicMaterial({
         color,
@@ -158,6 +166,13 @@ function useCoreMaterial(color: string, opacity: number): THREE.MeshBasicMateria
       }),
     [color, opacity],
   );
+
+  // Dispose the previous per-instance material when a new one is created, and on unmount.
+  useEffect(() => {
+    return () => material.dispose();
+  }, [material]);
+
+  return material;
 }
 
 /** Single light unit: core plane + sprite glow + pointLight */
