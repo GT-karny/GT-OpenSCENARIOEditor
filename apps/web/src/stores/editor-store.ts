@@ -67,6 +67,13 @@ export type EditorMode = 'scenario' | 'roadNetwork';
  */
 export type EditorPreferencesExt = EditorPreferences & {
   showDrivingDirection: boolean;
+  /**
+   * Show simulator-generated synthetic objects (crosswalks, bridges,
+   * objectReference clones) in the runtime object list. These are emitted by the
+   * simulator with very large ids (>= 900000000) and are not part of the authored
+   * scenario, so they are hidden by default. Persisted alongside display toggles.
+   */
+  showSimGeneratedObjects: boolean;
 };
 
 export interface EditorState {
@@ -205,6 +212,7 @@ const defaultPreferences: EditorPreferencesExt = {
   showLaneIds: false,
   showRoadIds: false,
   showDrivingDirection: false,
+  showSimGeneratedObjects: false,
   speedUnit: 'mps',
   compatibilityProfile: {
     oscVersion: '1.3',

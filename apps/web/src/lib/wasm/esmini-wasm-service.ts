@@ -24,6 +24,8 @@ import type {
   WasmStoryBoardEvent,
 } from './types.js';
 import { createEsminiWorker } from './worker-factory.js';
+import { filterSimObjects } from './sim-object-filter.js';
+import { useEditorStore } from '../../stores/editor-store.js';
 
 /** Maximum time (ms) to wait for worker to confirm scenario loaded */
 const LOAD_TIMEOUT_MS = 30_000;
@@ -124,10 +126,15 @@ export class EsminiWasmService implements IEsminiService {
         break;
 
       case 'batch-completed': {
+        // Hide simulator-generated synthetic objects (crosswalks/bridges/
+        // objectReference clones, id >= 900000000) from the runtime object list
+        // unless the user opted to show them.
+        const showSimGenerated =
+          useEditorStore.getState().preferences.showSimGeneratedObjects;
         // Convert all frames at once
         const convertedFrames: SimulationFrame[] = msg.frames.map((f) => ({
           time: f.simulationTime,
-          objects: f.objects.map(convertObjectState),
+          objects: filterSimObjects(f.objects, showSimGenerated).map(convertObjectState),
           trafficLightStates: f.trafficLightStates.map((tl) => ({
             signalId: tl.id,
             state: tl.state,

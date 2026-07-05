@@ -1,7 +1,7 @@
 import { useMemo, useCallback, useState, useRef, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useTranslation } from '@osce/i18n';
-import { Timer, Play, Pause, SkipBack, SkipForward, ZoomOut } from 'lucide-react';
+import { Timer, Play, Pause, SkipBack, SkipForward, ZoomOut, Eye, EyeOff } from 'lucide-react';
 import type {
   StoryBoardEvent,
   StoryBoardElementType,
@@ -351,6 +351,11 @@ function PlaybackControls() {
 
   // Editor selection state for reverse-lookup interval lines
   const selectedElementIds = useEditorStore(useShallow((s) => s.selection.selectedElementIds));
+  // Toggle: reveal simulator-generated synthetic objects (hidden by default).
+  const showSimGeneratedObjects = useEditorStore(
+    (s) => s.preferences.showSimGeneratedObjects,
+  );
+  const updatePreferences = useEditorStore((s) => s.updatePreferences);
   const scenarioStoreApi = useScenarioStoreApi();
   // Reactive document slice — drives the reverse trigger map so blocks follow
   // undo/redo and property-editor edits.
@@ -596,6 +601,31 @@ function PlaybackControls() {
       >
         {leadPos}
       </span>
+
+      {/* Toggle: show simulator-generated synthetic objects (crosswalks/bridges/
+          objectReference clones with id >= 900000000), hidden by default. */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className={
+          'h-7 w-7 ' +
+          (showSimGeneratedObjects
+            ? 'text-[var(--color-text-primary)]'
+            : 'text-[var(--color-text-secondary)]')
+        }
+        aria-label="Show simulator-generated objects"
+        aria-pressed={showSimGeneratedObjects}
+        title="Show simulator-generated objects"
+        onClick={() =>
+          updatePreferences({ showSimGeneratedObjects: !showSimGeneratedObjects })
+        }
+      >
+        {showSimGeneratedObjects ? (
+          <Eye className="h-3.5 w-3.5" />
+        ) : (
+          <EyeOff className="h-3.5 w-3.5" />
+        )}
+      </Button>
 
       {/* Speed selector */}
       <DropdownMenu>
