@@ -76,7 +76,7 @@ export interface OpenDriveStore extends OpenDriveState {
   updateLane(
     roadId: string,
     sectionIdx: number,
-    side: 'left' | 'right',
+    side: 'left' | 'right' | 'center',
     laneId: number,
     updates: Partial<OdrLane>,
   ): void;
@@ -277,7 +277,7 @@ export function createOpenDriveStore() {
       updateLane: (
         roadId: string,
         sectionIdx: number,
-        side: 'left' | 'right',
+        side: 'left' | 'right' | 'center',
         laneId: number,
         updates: Partial<OdrLane>,
       ): void => {

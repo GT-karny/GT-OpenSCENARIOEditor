@@ -118,7 +118,7 @@ export class RemoveLaneCommand extends PatchCommand {
 export class UpdateLaneCommand extends PatchCommand {
   private readonly roadId: string;
   private readonly sectionIdx: number;
-  private readonly side: 'left' | 'right';
+  private readonly side: 'left' | 'right' | 'center';
   private readonly laneId: number;
   private readonly updates: Partial<OdrLane>;
   private readonly getDoc: GetDoc;
@@ -128,7 +128,7 @@ export class UpdateLaneCommand extends PatchCommand {
   constructor(
     roadId: string,
     sectionIdx: number,
-    side: 'left' | 'right',
+    side: 'left' | 'right' | 'center',
     laneId: number,
     updates: Partial<OdrLane>,
     getDoc: GetDoc,
@@ -152,6 +152,12 @@ export class UpdateLaneCommand extends PatchCommand {
       if (roadIdx === -1) return;
       const section = draft.roads[roadIdx].lanes[this.sectionIdx];
       if (!section) return;
+      if (this.side === 'center') {
+        // Center lane is a single OdrLane (id=0), not an array. Guard defensively.
+        const centerLane = section.centerLane;
+        if (centerLane) Object.assign(centerLane, this.updates);
+        return;
+      }
       const target = this.side === 'left' ? section.leftLanes : section.rightLanes;
       const draftLane = target.find((l) => l.id === this.laneId);
       if (draftLane) Object.assign(draftLane, this.updates);

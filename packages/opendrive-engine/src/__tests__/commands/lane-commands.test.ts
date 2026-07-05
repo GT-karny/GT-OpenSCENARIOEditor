@@ -175,6 +175,77 @@ describe('Lane Commands', () => {
       // Original lane unchanged
       expect(doc.roads[0].lanes[0].leftLanes[0].type).toBe('driving');
     });
+
+    it('updates the center lane (id=0) instead of dropping the edit', () => {
+      // Regression: center lane edits were routed to `right` and silently
+      // discarded because rightLanes never contains id=0.
+      expect(doc.roads[0].lanes[0].centerLane.type).toBe('none');
+
+      const cmd = new UpdateLaneCommand(
+        roadId,
+        0,
+        'center',
+        0,
+        { type: 'shoulder', roadMarks: [{ sOffset: 0, type: 'broken', color: 'white' }] },
+        getDoc,
+        setDoc,
+        markDirty,
+      );
+      history.execute(cmd);
+
+      const center = doc.roads[0].lanes[0].centerLane;
+      expect(center.type).toBe('shoulder');
+      expect(center.roadMarks[0].type).toBe('broken');
+      expect(center.roadMarks[0].color).toBe('white');
+      // Side lanes must be untouched.
+      expect(doc.roads[0].lanes[0].leftLanes[0].type).toBe('driving');
+      expect(doc.roads[0].lanes[0].rightLanes[0].type).toBe('driving');
+      expect(dirtyIds.has(roadId)).toBe(true);
+    });
+
+    it('undo restores previous center-lane state', () => {
+      const cmd = new UpdateLaneCommand(
+        roadId,
+        0,
+        'center',
+        0,
+        { type: 'shoulder', roadMarks: [{ sOffset: 0, type: 'broken', color: 'white' }] },
+        getDoc,
+        setDoc,
+        markDirty,
+      );
+      history.execute(cmd);
+      expect(doc.roads[0].lanes[0].centerLane.type).toBe('shoulder');
+
+      history.undo();
+      expect(doc.roads[0].lanes[0].centerLane.type).toBe('none');
+      expect(doc.roads[0].lanes[0].centerLane.roadMarks[0].type).toBe('solid');
+      expect(doc.roads[0].lanes[0].centerLane.roadMarks[0].color).toBe('yellow');
+
+      history.redo();
+      expect(doc.roads[0].lanes[0].centerLane.type).toBe('shoulder');
+      expect(doc.roads[0].lanes[0].centerLane.roadMarks[0].color).toBe('white');
+    });
+
+    it('center update leaves left/right lanes byte-identical', () => {
+      const leftBefore = structuredClone(doc.roads[0].lanes[0].leftLanes);
+      const rightBefore = structuredClone(doc.roads[0].lanes[0].rightLanes);
+
+      const cmd = new UpdateLaneCommand(
+        roadId,
+        0,
+        'center',
+        0,
+        { type: 'border' },
+        getDoc,
+        setDoc,
+        markDirty,
+      );
+      history.execute(cmd);
+
+      expect(doc.roads[0].lanes[0].leftLanes).toEqual(leftBefore);
+      expect(doc.roads[0].lanes[0].rightLanes).toEqual(rightBefore);
+    });
   });
 
   describe('SplitLaneSectionCommand', () => {

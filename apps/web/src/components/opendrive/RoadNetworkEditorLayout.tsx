@@ -208,10 +208,10 @@ export function RoadNetworkEditorLayout() {
 
   const handleUpdateLane = useCallback(
     (roadId: string, sectionIdx: number, laneId: number, updates: Partial<OdrLane>) => {
-      const side = laneId > 0 ? 'left' : 'right';
+      const side = laneId > 0 ? 'left' : laneId < 0 ? 'right' : 'center';
       odrStoreApi
         .getState()
-        .updateLane(roadId, sectionIdx, side as 'left' | 'right', laneId, updates);
+        .updateLane(roadId, sectionIdx, side as 'left' | 'right' | 'center', laneId, updates);
     },
     [odrStoreApi],
   );
