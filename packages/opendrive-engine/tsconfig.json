@@ -6,5 +6,5 @@
     "composite": true
   },
   "include": ["src"],
-  "references": [{ "path": "../shared" }, { "path": "../scenario-engine" }]
+  "references": [{ "path": "../shared" }, { "path": "../opendrive" }, { "path": "../scenario-engine" }]
 }

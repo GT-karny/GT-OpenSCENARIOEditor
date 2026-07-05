@@ -9,6 +9,7 @@
   "references": [
     { "path": "../shared" },
     { "path": "../opendrive" },
+    { "path": "../opendrive-engine" },
     { "path": "../scenario-engine" }
   ]
 }
