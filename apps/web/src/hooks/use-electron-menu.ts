@@ -3,6 +3,7 @@ import { useScenarioStoreApi } from '../stores/use-scenario-store';
 import { useEditorStore } from '../stores/editor-store';
 import { useProjectStore } from '../stores/project-store';
 import { useFileOperations } from './use-file-operations';
+import { getOpenDriveStoreApi } from './use-opendrive-store';
 import { kindFromFileName } from '../lib/recent-files/recent-list';
 
 /**
@@ -73,10 +74,18 @@ export function useElectronMenu() {
           }
           break;
         case 'undo':
-          storeApi.getState().undo();
+          if (isRoadNetwork) {
+            getOpenDriveStoreApi().getState().undo();
+          } else {
+            storeApi.getState().undo();
+          }
           break;
         case 'redo':
-          storeApi.getState().redo();
+          if (isRoadNetwork) {
+            getOpenDriveStoreApi().getState().redo();
+          } else {
+            storeApi.getState().redo();
+          }
           break;
       }
     });
