@@ -30,6 +30,13 @@ export function useWasmSimulation() {
       const { key, message } = classifySimError(raw);
       console.error('[useWasmSimulation] Simulation error:', message);
       useSimulationStore.getState().setError(message);
+      // The include-unsupported message is fully self-contained and actionable,
+      // so it is toasted verbatim (no i18n template) — same pattern as other
+      // literal, non-templated toasts in the app.
+      if (key === 'simulation.includeUnsupported') {
+        toast.error(message);
+        return;
+      }
       toast.error(t(key, { message }));
     },
     [t],

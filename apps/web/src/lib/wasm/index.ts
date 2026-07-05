@@ -16,7 +16,13 @@ export {
 export type { BatchMetrics, MetricFrame, MetricObject } from './batch-metrics.js';
 export { materializeVariant } from './variant-materialization.js';
 export type { MaterializedVariant } from './variant-materialization.js';
-export { classifySimError, toErrorMessage } from './sim-error.js';
+export {
+  classifySimError,
+  toErrorMessage,
+  xodrHasInclude,
+  documentHasInclude,
+  INCLUDE_UNSUPPORTED_MESSAGE,
+} from './sim-error.js';
 export type { ClassifiedSimError, SimErrorKind } from './sim-error.js';
 export {
   VFS,

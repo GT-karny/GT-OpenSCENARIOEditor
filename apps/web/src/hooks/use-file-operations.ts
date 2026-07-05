@@ -27,6 +27,21 @@ import * as api from '../lib/project-api';
 import { resolveCatalogEntityTypes } from '../lib/resolve-catalog-entity-types';
 import { addWebRecentFile } from '../lib/recent-files/recent-files-db';
 import type { RecentFileKind } from '../lib/recent-files/recent-list';
+import { documentHasInclude } from '../lib/wasm';
+
+/**
+ * Warn (non-blocking) when saving an OpenDRIVE document that uses <include>
+ * references: the GT_Sim simulator treats <include> as a hard load error, so the
+ * saved file will not simulate. Authoring/exporting is still allowed.
+ */
+function warnIfXodrHasInclude(roadNetwork: unknown): void {
+  if (documentHasInclude(roadNetwork as Parameters<typeof documentHasInclude>[0])) {
+    toast.warning(
+      'Saved OpenDRIVE uses <include> references — it will NOT load in the simulator. ' +
+        'Resolve/inline the includes to simulate this map.',
+    );
+  }
+}
 
 // File picker type definitions for File System Access API
 interface FilePickerOptions {
@@ -692,6 +707,7 @@ export function useFileOperations() {
       toast.error('No road network to save');
       return;
     }
+    warnIfXodrHasInclude(roadNetwork);
 
     const currentProject = useProjectStore.getState().currentProject;
     const currentXodrPath = useProjectStore.getState().currentXodrPath;
@@ -747,6 +763,7 @@ export function useFileOperations() {
       toast.error('No road network to save');
       return;
     }
+    warnIfXodrHasInclude(roadNetwork);
 
     const currentProject = useProjectStore.getState().currentProject;
 

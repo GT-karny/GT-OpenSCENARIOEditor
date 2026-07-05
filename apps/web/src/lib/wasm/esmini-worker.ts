@@ -246,9 +246,17 @@ async function handleLoad(
       numberOfObjects: scenario.getNumberOfObjects(),
     });
   } catch (err) {
+    // GT_Sim treats any OpenDRIVE using <include> as a permanent hard error.
+    // Flag it in the message so the classifier can surface a specific, actionable
+    // toast instead of the generic "missing road" one. Kept in sync with
+    // xodrHasInclude() in sim-error.ts (this classic worker cannot import it).
+    const includeFailure = !!xodrData && /<(?:[\w.-]+:)?include\b/i.test(xodrData);
+    const rawMessage = err instanceof Error ? err.message : String(err);
     post({
       type: 'error',
-      message: err instanceof Error ? err.message : String(err),
+      message: includeFailure
+        ? `OpenDRIVE map uses <include> references (unsupported by the simulator): ${rawMessage}`
+        : rawMessage,
     });
   }
 }

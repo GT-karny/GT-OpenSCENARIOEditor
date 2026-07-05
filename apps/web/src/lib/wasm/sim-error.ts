@@ -18,7 +18,51 @@ export type SimErrorKind =
   | 'initFailed'
   | 'runtimeError'
   | 'workerError'
-  | 'noFrames';
+  | 'noFrames'
+  | 'includeUnsupported';
+
+/**
+ * Actionable message for OpenDRIVE maps that use `<include>` references.
+ *
+ * The GT_Sim WASM treats any `.xodr` containing `<include>` as a permanent hard
+ * error (RoadManagerJS.loadOpenDrive / SE_Init returns failure). This is not a
+ * transient/parse issue, so we surface a specific, self-explanatory message
+ * instead of the generic "failed to load road" toast.
+ */
+export const INCLUDE_UNSUPPORTED_MESSAGE =
+  'This OpenDRIVE map uses <include> references, which the simulator cannot load. ' +
+  'Resolve/inline the includes before simulating.';
+
+/**
+ * Whether an OpenDRIVE (.xodr) source string contains any `<include>` element.
+ * Matches both self-closing (`<include .../>`) and paired (`<include ...>`) forms,
+ * and is namespace-tolerant. Pure so it can be unit-tested and reused for the
+ * save-time warning.
+ */
+export function xodrHasInclude(xodr: string | undefined | null): boolean {
+  if (!xodr) return false;
+  return /<(?:[\w.-]+:)?include\b/i.test(xodr);
+}
+
+/**
+ * Minimal structural shape of a parsed OpenDRIVE document for include detection.
+ * OpenDRIVE allows `<include>` at header scope and per-road scope.
+ */
+interface OdrIncludeScopes {
+  header?: { includes?: readonly unknown[] };
+  roads?: ReadonlyArray<{ includes?: readonly unknown[] }>;
+}
+
+/**
+ * Whether a parsed OpenDRIVE document model declares any `<include>` element
+ * (at header or road scope). Used to warn on save that the file will not load in
+ * the simulator. Pure and structurally typed so it needs no package imports.
+ */
+export function documentHasInclude(doc: OdrIncludeScopes | undefined | null): boolean {
+  if (!doc) return false;
+  if ((doc.header?.includes?.length ?? 0) > 0) return true;
+  return (doc.roads ?? []).some((road) => (road.includes?.length ?? 0) > 0);
+}
 
 export interface ClassifiedSimError {
   /** i18n key under the `simulation` namespace of `common`. */
@@ -45,12 +89,20 @@ export function toErrorMessage(err: unknown): string {
  * error text is not a stable contract; the fallback is a generic runtime error
  * so nothing is ever swallowed.
  */
-export function classifySimError(raw: unknown): ClassifiedSimError {
+export function classifySimError(raw: unknown, xodrSource?: string | null): ClassifiedSimError {
   const message = toErrorMessage(raw).trim();
   const lower = message.toLowerCase();
 
   if (lower.includes('timed out') || lower.includes('timeout')) {
     return { key: 'simulation.timeout', message };
+  }
+
+  // OpenDRIVE `<include>` is a permanent hard error in GT_Sim. When the failing
+  // scenario's road source uses <include> — either detected from the xodr passed
+  // in, or already flagged in the worker's error text — surface the specific,
+  // actionable message rather than the generic "missing road" one.
+  if (xodrHasInclude(xodrSource) || lower.includes('<include>')) {
+    return { key: 'simulation.includeUnsupported', message: INCLUDE_UNSUPPORTED_MESSAGE };
   }
 
   // Missing / unloadable road network (.xodr)
