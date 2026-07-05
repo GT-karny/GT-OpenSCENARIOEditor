@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import type { ScenarioDocument, OpenDriveDocument } from '@osce/shared';
 import { useScenarioStoreApi } from '../stores/use-scenario-store';
 import { useEditorStore } from '../stores/editor-store';
+import { useDocumentRegistry } from '../stores/document-registry';
 import {
   readSnapshot,
   writeSnapshot,
@@ -69,9 +70,11 @@ export function useAutosave(): UseAutosaveResult {
     let loggedWriteError = false;
 
     const writeNow = (): void => {
-      // Re-check the guard at flush time, not just at schedule time.
-      const { isDirty, preferences, roadNetwork, currentFileName } = useEditorStore.getState();
-      if (!isDirty || !preferences.autoSave) return;
+      // Re-check the guard at flush time, not just at schedule time. Any dirty
+      // document (scenario OR road network) warrants a snapshot — a road-only
+      // editing session must still checkpoint (danger sequence #7).
+      const { preferences, roadNetwork, currentFileName } = useEditorStore.getState();
+      if (!useDocumentRegistry.getState().anyDirty() || !preferences.autoSave) return;
 
       const snapshot = buildSnapshot({
         scenario: scenarioRef.current,
@@ -93,8 +96,9 @@ export function useAutosave(): UseAutosaveResult {
     });
 
     const onChange = (): void => {
-      const { isDirty, preferences } = useEditorStore.getState();
-      if (!isDirty || !preferences.autoSave) return;
+      if (!useDocumentRegistry.getState().anyDirty() || !useEditorStore.getState().preferences.autoSave) {
+        return;
+      }
       scheduler.schedule();
     };
 
@@ -106,26 +110,35 @@ export function useAutosave(): UseAutosaveResult {
       }
     });
 
-    // Subscribe to the OpenDRIVE document + dirty transitions on the editor store.
-    let prevDirty = useEditorStore.getState().isDirty;
+    // Subscribe to the OpenDRIVE document mirror on the editor store.
     const unsubEditor = useEditorStore.subscribe((state) => {
       if (state.roadNetwork !== opendriveRef.current) {
         opendriveRef.current = state.roadNetwork;
         onChange();
       }
-      // Clear the snapshot when dirty transitions true -> false.
-      if (prevDirty && !state.isDirty) {
+    });
+
+    // Delete the snapshot only when EVERY document transitions to clean (all
+    // saved / newly loaded), so saving the scenario never discards a still-dirty
+    // road network's recovery snapshot (danger sequence #7 permanent fix).
+    let prevAnyDirty = useDocumentRegistry.getState().anyDirty();
+    const unsubRegistry = useDocumentRegistry.subscribe((state) => {
+      const nowAnyDirty =
+        state.current.scenario !== state.saved.scenario ||
+        state.current.roadNetwork !== state.saved.roadNetwork;
+      if (prevAnyDirty && !nowAnyDirty) {
         scheduler.cancel();
         deleteSnapshot().catch((err) => {
           console.error('[autosave] failed to clear snapshot', err);
         });
       }
-      prevDirty = state.isDirty;
+      prevAnyDirty = nowAnyDirty;
     });
 
     return () => {
       unsubScenario();
       unsubEditor();
+      unsubRegistry();
       scheduler.cancel();
     };
   }, [scenarioStoreApi]);
@@ -140,9 +153,15 @@ export function useAutosave(): UseAutosaveResult {
       // into the opendrive-engine store from editorStore.roadNetwork.
       setOpenDrive: (document) => useEditorStore.getState().setRoadNetwork(document, null),
       setFileName: (name) => useEditorStore.getState().setCurrentFileName(name),
-      // Restored work is unsaved by definition; keep the snapshot until the next
-      // clean transition deletes it.
-      markDirty: () => useEditorStore.getState().setDirty(true),
+      // Restored work is unsaved by definition; force each restored document
+      // dirty until the next explicit save. loadDocument/setRoadNetwork reset the
+      // engine revision to a clean baseline, so mark AFTER applying the snapshot.
+      markDirty: () => {
+        useDocumentRegistry.getState().markRestoredDirty('scenario');
+        if (snapshot.opendrive) {
+          useDocumentRegistry.getState().markRestoredDirty('roadNetwork');
+        }
+      },
     });
     // Keep refs in sync so the restore itself does not trigger an immediate write.
     scenarioRef.current = scenarioStoreApi.getState().document;
