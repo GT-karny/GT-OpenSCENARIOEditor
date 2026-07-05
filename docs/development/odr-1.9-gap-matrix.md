@@ -1,0 +1,209 @@
+# OpenDRIVE 1.6 → 1.9 Gap Matrix (reference)
+
+> Generated 2026-07-02 by multi-agent analysis (7 XSD diff + 3 coverage + 1 spec + 1 synthesis, adversarially spot-verified).
+> Source schemas: `Thirdparty/opendrive/xsd_schema/` (v1.6) vs `Thirdparty/opendrive/1.9/xsd_schema_files/` (v1.9, extracted from ASAM zips — Thirdparty/ is gitignored).
+> Plan derived from this matrix: `docs/proposals/opendrive-1.9-support.md`
+> Verified in code this session: A1 dual-lanes misparse (parse-road.ts:29-30), esmini verbatim-feed loss on editor open (RoadNetworkEditorLayout.tsx:93), revMinor=6 default (opendrive-engine defaults.ts:29), dual <lanes> in Ex_Lane_MultiLaneLayer.xodr (lines 19/351).
+
+# OpenDRIVE 1.6 → 1.9 Support-Gap Matrix
+
+Baseline: editor targets ~1.4–1.6 (parser reads only known keys, **no RawXml passthrough**, serializer rebuilds solely from the typed model, engine writes `revMinor=6`, `revMajor/revMinor` read-only in UI). Because there is no lossless-unknown mechanism (coverage report §3), **every 1.9 addition below is dropped on load→save unless explicitly modeled** — so almost every item has both a T0/T1 line and (where relevant) higher tiers.
+
+Tier legend: **T0** load without crash/misparse · **T1** lossless round-trip (+ correct header revMinor) · **T2** correct visualization · **T3** editing UI · **T4** emit 1.9 by default.
+
+Package columns: **S**=shared types · **P**=opendrive parser+serializer · **E**=opendrive-engine · **V**=3d-viewer/mesh · **U**=apps/web UI.
+
+---
+
+## A. CRITICAL / BEHAVIOR-CHANGING (do first)
+
+| # | Area | What changed in 1.9 | Current support (cited) | Work per package | Tier | Effort |
+|---|------|--------------------|--------------------------|------------------|------|--------|
+| A1 | **Lane layers — dual `<lanes>`** | `<lanes>` `maxOccurs` 1→2; new `@layer` (`e_layerType` permanent/temporary) on `<lanes>`; the ONLY feature stamping `revMinor=9` in examples (Input3 §1). | **BROKEN/misparse.** Verified `parse-road.ts:29-30` calls `parseLanes(raw.lanes)` treating `raw.lanes` as one object; fast-xml-parser yields an **array** for two `<lanes>`, so `raw.lanes.laneSection` is `undefined` → all lanes dropped. Model has single `lanes`/`laneOffset` per road (odr-road.ts). | S: add `layer` field + allow ≤2 lane groups. P: iterate `ensureArray(raw.lanes)`, tag layer, emit both. E: dual-layer aware selectors. V: render permanent (+optionally temporary). U: layer indicator/toggle. | **T0** (parse), T1, T2 | **L** |
+| A2 | **`@layer` on lane links + laneValidity** | New `@layer` on lane `<predecessor>/<successor>` (xs:string) and on object `<validity>` (`e_layerType`) (Input1 Lane; Input3 §1). | Absent. Lane link keeps only single pred/succ id (coverage §1 Lanes); validity has no layer. | S: add layer to link+validity. P: parse/emit. | T1 | **S** |
+| A3 | **Junction `@type` = direct / crossing** | `e_junction_type` gains `direct`,`crossing`; `<junction>` polymorphic via XSD 1.1 alternative into 4 subtypes with different children (Input1 Junction). | **Partial/lossy.** `type:string` free (odr-junction.ts:10) so loads, but UI dropdown only `['default','virtual']` (coverage §3.1) → out-of-range Select, coerced/lost on edit. crossing/direct-specific children (roadSection, linkedRoad, boundary, elevationGrid, crossPath) unmodeled → dropped. | S: extend type union + subtype fields. P: dispatch on @type, parse/emit variant children. E: creation paths only write 'default' (junction-operations.ts:390). U: add direct/crossing to dropdown + metadata type. | T0(load ok today), **T1**, T3 | **L** |
+| A4 | **`validateJunctionLinks` / `repairJunctionLinks` corrupts virtual junctions** | Virtual junctions express road relationship via connection pred/succ, not a road→junction link (Input1 Junction). | **Actively harmful.** `MISSING_ROAD_JUNCTION_LINK` assumes every incoming road has an `elementType='junction'` back-link; `repairJunctionLinks` then *injects* a wrong link, corrupting a valid 1.9 file (coverage §4B). | E: exempt virtual/direct/crossing junctions from the back-link rule; disable auto-repair for them. | **T0** (data-safety) | **S** |
+| A5 | **Road-link enums now type-restricted** | `elementType`→`e_road_link_elementType`, `contactPoint`→`e_contactPoint`, `elementDir`→`e_elementDir` (were xs:string in 1.6) (Input1 Road). | Round-trips as free strings (coverage §1 link=Full). Values we emit are valid, but no validation; legacy free-string values would now be schema-invalid. | S: narrow to enums (optional). P: no XML change. U: dropdowns. | T1(no-op), T3 | **S** |
+| A6 | **Unknown geometry coerced to `<line>`** | 1.9 geometry set unchanged, but no passthrough means any unmodeled variant is lossy (Input1/Input2). | **Actively lossy:** `parse-geometry.ts:84-85` falls back to `line` (coverage §1). Not a new 1.9 type, but the coercion is a latent data-loss risk for any future/unknown geometry. | P: preserve raw instead of coercing, or hard-error. | T0/T1 | **S** |
+| A7 | **`SplitRoadCommand` drops profiles/objects/signals** | Version-independent latent bug, amplified by 1.9 richer profiles (coverage §3.4). | New road half gets `elevationProfile:[]`, `lateralProfile:[]`, `laneOffset:[]`, `objects:[]`, `signals:[]` (road-link-commands.ts:186-192). | E: carry profiles/objects/signals across the cut (mirror junction-operations.ts:275-306). | T3 (editing integrity) | **S** |
+| A8 | **Header revMinor pinned to 1.6 & read-only** | 1.9 files should stamp `revMinor=9`; header must round-trip declared version (Input3 §c). | Engine default `revMinor:6` (defaults.ts:29 — verified); UI read-only (coverage §3.7). Parse reads verbatim but write echoes model. | E: version-aware default/emit. U: allow selecting target version. | **T1** (write correct revMinor), T4 | **S** |
+
+---
+
+## B. LANE SCHEMA ADDITIONS (mostly additive-optional)
+
+| # | Area | What changed in 1.9 | Current support | Work | Tier | Effort |
+|---|------|--------------------|------------------|------|------|--------|
+| B1 | Lane `@direction` (`e_lane_direction` both/reversed/standard) + `@advisory` (`e_laneAdvisory`) | New optional lane attrs (Input1 Lane). | Absent. | S+P parse/emit; U control | T1, T3 | **S** |
+| B2 | Dynamic flags `@dynamicLaneType`,`@dynamicLaneDirection`,`@roadWorks` (t_bool) | New optional lane attrs (Input1; Input3 §2). | Absent. | S+P; U checkbox | T1 | **S** |
+| B3 | `<access>` restructured: repeatable `<restriction>` child + `e_accessRestrictionType`+HOV; `@restriction` now optional | New child type; enum +HOV (Input1 Lane). | Model has single access `rule`; child restrictions absent. | S+P (support both legacy attr + children); U | T1, T3 | **M** |
+| B4 | Center lane redefined: only link+roadMark; `@type` optional; width/border/material/speed/access forbidden; exactly one center lane | Standalone content model (Input1 Lane). | Center lane parsed via shared lane path (parse-lane.ts:39). Risk: emitting forbidden children on center = invalid 1.9. | S+P branch center handling; strip forbidden children on emit | T1 | **M** |
+| B5 | New lane types `shared`,`walking`,`slipLane`; deprecated `sidewalk`,`bus`,`taxi`,`HOV`,`bidirectional`,`special1-3`,`mwyEntry/Exit` | Enum additions + deprecation docs (Input1 Lane). | laneType is free-ish; new values load, but color palette lacks them (colors default `#606060`, coverage consumer §1). | S enum; V palette entries; U deprecation hints | T2, T3 | **S** |
+| B6 | `e_roadMarkColor` +`black`,`violet` | New enum values (Input1 Lane). | Round-trips (string); mesh color map may miss them (road-mark-mesh-builder). | S+V palette; U dropdown | T2 | **S** |
+| B7 | `@length` on `<laneSection>`; two xs:assert on `<lanes>` (permanent⇒no section length; laneOffset⇔no border) | New attr + constraints (Input1 Lane). | Absent. | S+P attr; E optional validation | T1 | **S** |
+| B8 | Numeric tightening: roadMark `@height`,`explicit line @length/@width`,`type @width`,`type_line @width` → t_grZero/t_grEqZero | string/double → strict >0/≥0 (Input1 Lane). | Model already numeric for most; ensure we never emit 0/negative height. | P validate on emit | T1 | **S** |
+| B9 | `border/width` choice now optional (minOccurs 0); lane may have neither | Cardinality relaxed (Input1 Lane). | Model allows both; no enforcement (coverage §1). Loading a lane with neither is fine. | none / optional validation | — | S (skip) |
+| B10 | Removed key `k_road_lanes_laneSection_laneId` (unique lane id no longer schema-enforced) | Schema no longer enforces (Input1 Lane). | Engine already assumes contiguous numeric ids (coverage §3.5) — collision risk on gapped ids. | E: id-allocation robustness | T3 | **S** |
+
+---
+
+## C. OBJECT SCHEMA ADDITIONS
+
+| # | Area | What changed in 1.9 | Current support | Work | Tier | Effort |
+|---|------|--------------------|------------------|------|------|--------|
+| C1 | `<skeleton>` (polyline/vertexRoad/vertexLocal) | Brand-new subtree (Input1 Object; Input3). | Absent → dropped. Objects add/remove-only, no editor (coverage §1 Objects). | S+P new subtree | T1 | **M** |
+| C2 | `<surface>/<CRG>` on object (hideRoadSurfaceCRG/zScale) | New object-level CRG (Input1 Object). | Absent → dropped. | S+P | T1 | **S** |
+| C3 | `<curveLocal>` outline (line/arc/paramPoly3) — smooth outlines | New outline alternative; **XSD name `curveLocal` NOT `cornerLocalCurve`** (Input3 naming trap). | Absent; outlines only corner-based (coverage §1). Objects unrendered anyway (consumer §1). | S+P new choice branch; V (only if objects ever rendered) | T1 | **M** |
+| C4 | `<markings>` nestable under `<outline>` (+ mutual-exclusion assert) | Markings now at outline scope too (Input1 Object; Input3 §4). | Markings modeled only under object (coverage §1). | S+P (two locations + assert) | T1 | **S** |
+| C5 | Object attrs `@perpToRoad`,`@invalidated`,`@temporary` | New optional attrs (Input1; Input3 §2). | Absent → dropped. | S+P; U (no object editor exists) | T1 | **S** |
+| C6 | Repeat `@detachFromReferenceLine`,`@bT/@cT/@dT` | New optional repeat attrs (Input1 Object). | Absent → dropped (repeat otherwise modeled). | S+P | T1 | **S** |
+| C7 | `e_objectType` +`roadSurface`; `van` un-deprecated; `patch/railing/streetLamp/soundBarrier/wind` redirect-deprecated | Enum + doc changes (Input1 Object). | type is string → loads; deprecation UI absent (no editor). | S enum docs; U hints if editor added | T3 | **S** |
+| C8 | `e_borderType`+`paint`; `e_outlineFillType`+`paint`; material `@roadMarkColor` | New enum values + attr (Input1 Object). | Absent/dropped. | S+P | T1 | **S** |
+| C9 | Numeric tightening object `@length/@radius`→t_grZero, `@height`,repeat/corner heights→t_grEqZero; marking `@width/@lineLength` string→t_grZero | Type tightening (Input1 Object). | Model largely numeric; risk: non-numeric legacy marking width fails 1.9. | P emit numeric >0 | T1 | **S** |
+| C10 | ~12 xs:assert business rules on `<object>` (per-type child allowances; radius vs width/length exclusivity) | XSD 1.1 asserts (Input1 Object). | No validation. | E optional validator | T3 (validation) | **M** |
+| C11 | Corner-choice cardinality now mandatory; cornerRoad/cornerLocal min 2 | Cardinality tightened (Input1 Object). | Model allows empty outline (coverage §1). | E default-creation logic (if object editor added) | T3 | **S** |
+
+---
+
+## D. SIGNAL SCHEMA ADDITIONS
+
+| # | Area | What changed in 1.9 | Current support | Work | Tier | Effort |
+|---|------|--------------------|------------------|------|------|--------|
+| D1 | `<signal>` re-typed to `t_road_signals_signal_road`; s/t/zOffset now **optional** (were required) | Abstract base + road subtype (Input1 Signal). | Signal fully modeled with s/t/zOffset (coverage §1 Signals). Loads fine; risk only if we required them. | P: allow absent s/t/zOffset | T0/T1 | **S** |
+| D2 | `<semantics>` participant model (speed/lane/priority/prohibited/warning/... + vehicle/person/animal + ~10 enums) | Large new subtree (Input1 Signal; Input3 §5). | Absent → dropped. | S+P new subtree; U (advanced, later) | T1, T3 | **L** |
+| D3 | Board system: `staticBoard`,`vmsBoard`,`sign`,`displayArea`,`t_signalGroup_vmsGroup`, root `<vmsGroup>` | New VMS/board types incl. root child (Input1 Core+Signal). | Absent → dropped. Root `vmsGroup` also unmodeled at document level. | S+P new types + root collection | T1 | **L** |
+| D4 | Signal `@length`,`@invalidated`,`@temporary` | New optional attrs (Input1; Input3 §2). | Absent → dropped. | S+P | T1 | **S** |
+| D5 | positionInertial/positionRoad **choice order swapped** (Inertial before Road) | Order change (Input1 Signal). | Serializer emits from model; must emit new order for strict validators. | P: emit positionInertial first | T1 | **S** |
+| D6 | g_additionalData added to positionRoad/Inertial/reference/dependency/control | Previously-empty leaves now carry additionalData (Input1 Signal). | userData not captured at these scopes (coverage §1 userData Partial). | S+P (optional) | T1 | **S** |
+
+---
+
+## E. CORE / HEADER / JUNCTION-DETAIL ADDITIONS
+
+| # | Area | What changed in 1.9 | Current support | Work | Tier | Effort |
+|---|------|--------------------|------------------|------|------|--------|
+| E1 | Header `<license>` (t_license: name/spdxid/resource/text) | New optional header child (Input1 Core). | Absent → dropped (header Partial, coverage §1). | S+P | T1 | **S** |
+| E2 | Header `<defaultRegulations>` (roadRegulation/signalRegulation) **incl. spurious mandatory `<_OpenDriveElement/>`** | New header subtree; strict validator REQUIRES empty `<_OpenDriveElement/>` (Input1 Core — see G3). | Absent → dropped. | S+P (+ decide on _OpenDriveElement artifact) | T1 | **M** |
+| E3 | g_additionalData member **order changed**: dataQuality FIRST, then include, userData | Sequence reorder (Input1 Core). | build-common emits in old order (coverage §1). Old order may fail strict 1.9 validation. | P: reorder emit (dataQuality→include→userData) | T1 | **S** |
+| E4 | Header child order changed: geoReference, offset, license, [additionalData], defaultRegulations | Sequence change (Input1 Core). | build-header fixed order (coverage §1). | P: adjust emit order | T1 | **S** |
+| E5 | `t_header_GeoReference` no longer carries additionalData | Group removed (Input1 Core). | We capture userData under header; ensure not emitted inside geoReference. | P: don't emit additionalData in geoReference | T1 | **S** |
+| E6 | Header `offset/@hdg` float→double | Precision widening (Input1 Core). | offset modeled (coverage §1). No structural change. | none/emit as double | — | S (skip) |
+| E7 | New shared types `t_grEqZeroOrContactPoint`; `e_paramPoly3_pRange` moved to Core | Type relocation/new union (Input1 Core+Road). | paramPoly3 pRange already handled (coverage §1). File-location only. | P: type-map only if XSD-driven | — | S (skip) |
+| E8 | Junction `<connection>` `@linkedRoad` (direct), `@overlapZone`,`@fromLayer`,`@toLayer` on laneLink; predecessor/successor moved to virtual-only & mandatory; `@type`=`e_connection_type` | Connection refactor (Input1 Junction). | Connection has pred/succ + type free-string (coverage §1 Junction Partial); linkedRoad/overlapZone/layers absent → dropped; connection @type never authored (coverage §3.2). | S+P new attrs; E author connection @type for virtual | T1, T3 | **M** |
+| E9 | Junction `<crossPath>`,`<roadSection>`,`<boundary>`(segment joint/lane),`<elevationGrid>`,`<planView>`,`<objects>`; surface now `t_road_surface` | New junction children/subtypes (Input1 Junction). | Absent → dropped; surface uses CRG-only model (coverage §1). | S+P new subtrees | T1 | **L** |
+| E10 | `e_junctionGroup_type` +`complexJunction`,`highwayInterchange` | Enum values (Input1 Junction). | junctionGroup type free string (coverage §1) → loads. | S enum; U | T3 | **S** |
+| E11 | Junction `priority @high/@low` now **required**; predSucc `@elementDir` optional & `@elementS` ≥0 | Required-ness/type changes (Input1 Junction). | priority modeled high/low (coverage §1). Emitting priority with one side would be invalid; we already emit both typically. | P: ensure both emitted | T1 | **S** |
+
+---
+
+## F. ROAD / SURFACE / GEOMETRY ADDITIONS
+
+| # | Area | What changed in 1.9 | Current support | Work | Tier | Effort |
+|---|------|--------------------|------------------|------|------|--------|
+| F1 | **`<crossSectionSurface>`** lateral profile (tOffset + surfaceStrips + strip constant/linear/quadratic/cubic + coefficients + `e_strip_mode`); xs:assert mutually exclusive with superelevation/shape | Major new lateral-profile subtree (Input1 Road; Input3 §8). | Absent → dropped. Note superelevation itself is NOT applied to mesh today (consumer §1). | S+P subtree; V (banking; would also fix flat-road-under-rolled-car); E exclusivity | T1, T2 | **L** |
+| F2 | CRG global-mode `@xOffset`,`@yOffset` on road surface CRG; `@zOffset/@zScale/@hOffset/@orientation` semantics gated on mode/purpose | New attrs + doc-gated constraints (Input1 Road; Input3 §6). | surface.crg modeled load/save-only (coverage §2). xOffset/yOffset absent → dropped. | S+P attrs; U gating if surface editor added | T1 | **S** |
+| F3 | Road `@length`, geometry `@length` string→t_grZero | Type tightening (Input1 Road). | Modeled numeric already (coverage §1). | P emit >0 | T1 | **S** |
+| F4 | additionalData group added to elevation/shape/superelevation/geometry leaves/CRG/type-speed/link | Previously-empty leaves now allow additionalData (Input1 Road). | userData at those scopes dropped (coverage §1). Additive-optional. | S+P (optional) | T1 | **S** |
+| F5 | Road `<type>` `@country` (v1.5+) | Not new to 1.9 but unmodeled | `country` on road type not modeled (coverage §1 type Partial). | S+P | T1 | **S** |
+| F6 | New root key `...surfaceStrip...stripId`, `crossPathId`, `roadSectionId`, railroad switch mainTrack/sideTrack refs now→roadId | Identity-constraint reorg (Input1 Core). | No schema-key validation in engine (coverage §4). Informational; drives F1/E9. | none (validation only) | — | skip |
+
+---
+
+## G. NO-OP / SKIP
+
+| # | Area | Finding | Action |
+|---|------|---------|--------|
+| G1 | **Railroad schema** | Structurally identical 1.6↔1.9; only root attrs/include-names/docs changed (Input1 Railroad). Coverage: railroad Partial (switches only). | **Zero changes** for 1.9. (Pre-existing gap: empty `<railroad>` dropped, station segment `both` mis-typed — unrelated to 1.9.) |
+| G2 | XSD 1.1 / elementFormDefault=qualified / namespaced-XSD deprecated | Schema-validation concern only; no targetNamespace so instances unqualified (Input1 all files; Input3 §7). | We do no in-engine XSD validation (coverage §4). Skip unless we add a validator; then it must be XSD-1.1-capable. |
+| G3 | Malformed Core comment + spurious mandatory `<_OpenDriveElement/>` children | 1.9 Core XSD has a broken comment and requires literal `<_OpenDriveElement/>` in defaultRegulations/roadRegulation/signalRegulation and vmsGroup (Input1 Core/Signal). | **Needs verification** (see H). Don't blindly emit `<_OpenDriveElement/>`; treat as codegen artifact until confirmed against a real 1.9 example. |
+
+---
+
+## (a) Version-strategy risks
+
+1. **esmini tolerance is our safety net, but only for verbatim files.** RoadManager reads `revMajor/revMinor` (`RoadManager.cpp:3719`) but never gates on version; unknown 1.9 elements are warned/ignored, never fatal (consumer §3). So a 1.9 file that reaches the VFS byte-for-byte simulates fine.
+2. **The editor destroys that verbatim path.** Opening the OpenDRIVE editor calls `setRoadNetwork(document)` with **no rawXml** (`RoadNetworkEditorLayout.tsx:93`), nulling `roadNetworkXml`. After that the sim feed is `undefined` and RoadManager falls back to lossy re-serialization (consumer §2). **Implication:** until T1 lossless round-trip exists, editing a 1.9 file then simulating loses all unmodeled 1.9 content. Emitting 1.9 headers is meaningless without T1.
+3. **Header version choice.** We must NOT stamp `revMinor=9` while silently dropping 1.9 content (misleads downstream tools). Rule: stamp `9` **only** when a 1.9-specific construct is actually present/emitted (Input3 §c "do not rely on revMinor"). Conversely, when we can't preserve 1.9 content, keep the file's declared version and warn.
+4. **Lane-layer + OpenSCENARIO interop.** Input3 explicitly warns combining 1.9 lane-layer files with OpenSCENARIO ≤1.3.1 is not recommended. If we ever emit dual `<lanes>`, gate it behind an explicit 1.9 output mode (T4).
+5. **esmini itself doesn't understand layers/crossSectionSurface** — it will ignore them (consumer §3), so simulation silently uses only what it parses; visualization parity (our mesh) and esmini may diverge.
+
+## (b) Additive-optional (safe to defer) vs behavior-changing (dangerous)
+
+**Safe to ignore initially (pure opt-in attrs / optional children; absence is valid 1.9):** B1,B2,B7,B8; C2,C5,C6,C8,C9; D4,D6; E1,E6,E7; F2,F3,F4,F5; and the `<semantics>`/board/skeleton/curveLocal/crossSectionSurface/junction-detail subtrees (D2,D3,C1,C3,F1,E9) — large but additive, so a 1.9 file *without* them loads fine.
+
+**Behavior-changing / dangerous (must handle, listed explicitly):**
+- **A1** dual `<lanes>` — misparse of the flagship 1.9 file (T0 defect, verified `parse-road.ts:29-30`).
+- **A4** `repairJunctionLinks` **actively corrupts** valid 1.9 virtual junctions (writes wrong link).
+- **A6** unknown geometry **coerced to `<line>`** (active data loss).
+- **A3** junction `@type` UI restricted to {default,virtual}; 1.9 direct/crossing coerced/lost on edit.
+- **A5** road-link `elementType/contactPoint/elementDir` now **enum-typed** — legacy free-string values become schema-invalid.
+- **B4** center lane **redefined** — emitting width/material/speed/access on center is now invalid 1.9; and exactly-one-center now required.
+- **B3** access `@restriction` now optional with new child `<restriction>` — mixed old/new authoring.
+- **D1/D5** signal s/t/zOffset now optional; positionInertial/positionRoad **order swapped** (strict validators reject old order).
+- **E3/E4** g_additionalData and header child **order changed** (dataQuality first; defaultRegulations trailing) — our current emit order can fail 1.9 validation.
+- **E11** junction `priority @high/@low` now **required**.
+- **Deprecated values we might emit:** lane types `sidewalk/bus/taxi/HOV/bidirectional/special1-3/mwyEntry/mwyExit` (B5), object types `patch/railing/streetLamp/soundBarrier/wind` (C7). We don't author most of these today, but any migration/T4 mode must steer to replacements (walking, access+@direction, barrier/pole, roadSurface, entry/exit).
+
+## (c) Contradictions / needs code verification
+
+1. **Dual-`<lanes>` misparse — CONFIRMED in code.** `parse-road.ts:29-30` passes `raw.lanes` (single object) to lane parsing; two `<lanes>` yield an array, so `raw.lanes.laneSection` is `undefined`. This is a real T0 crash/silent-drop, not merely additive. (Verified this session.)
+2. **`repeat` coverage contradiction (Input2 first report).** Its summary text says "road-object `repeat.zOffset`... actually repeat is covered" — self-corrects mid-sentence. Confirm object `<repeat>` (incl. zOffset) truly round-trips before trusting; new attrs bT/cT/dT/detachFromReferenceLine are definitely absent.
+3. **Naming trap `curveLocal` vs `cornerLocalCurve`.** Release deck says `<cornerLocalCurve>`; XSD element is `<curveLocal>` (Input3 §c). Any serializer MUST emit `curveLocal`. Verify against `Ex_SmoothObjectOutline` before implementing C3.
+4. **Spurious mandatory `<_OpenDriveElement/>` + malformed Core comment (G3).** Input1 flags these as codegen artifacts yet schema-required. Verify against a real 1.9 example (`Ex_*` files) whether ASAM tooling actually emits `<_OpenDriveElement/>`; do NOT emit blindly for E2/D3.
+5. **crossSectionSurface version attribution.** Input3 infers it may be 1.8-era (examples stamped revMinor=8) though it's in the 1.9 XSD; not load-bearing for the matrix (we support it either way) but note the header-vs-feature mismatch — validate by schema, not header.
+6. **Junction `type` is `string` (not enum) at the shared-type level** — verified odr-junction.ts uses `type?: string`/`type: string`, so the "coercion/loss" risk (A3) is purely at the **UI dropdown**, not the model. The model would round-trip `direct`/`crossing` as strings *if* the parser read them — but variant-specific children are still dropped.
+7. **`connectionMaster` keyref dropped in 1.9** (Input1 Core) — if we ever emit it, confirm it's still tolerated; schema no longer validates it.
+
+---
+
+# Appendix: per-schema diff summaries
+
+## Thirdparty/opendrive/1.9/xsd_schema_files/OpenDRIVE_Core.xsd
+
+OpenDRIVE Core schema 1.6 -> 1.9. The root OpenDRIVE element gains a polymorphic junction (xs:alternative dispatch on @type to t_junction_virtual/direct/crossing/common) and a new top-level vmsGroup child. XSD version bumped to 1.1 (vc:minVersion, elementFormDefault=qualified), enabling xs:alternative/xs:assert. The header type gains three new children (license, defaultRegulations, and the default-regulation machinery) and four new complex types are introduced in Core (t_license, t_header_defaultRegulations, t_header_roadRegulation, t_header_signalRegulation). e_paramPoly3_pRange moves INTO Core from the 1.6 Road file, and a new union type t_grEqZeroOrContactPoint is added. The g_additionalData group child order is reordered and dataQuality is no longer implicitly appended to header via the group. A large set of key/keyref identity constraints on the root element are added, removed, or re-scoped. One header attribute type widening (offset/@hdg float->double). Note: the 1.9 Core file contains malformed XML — the _OpenDriveElement comment block uses '- ->' which corrupts the comment, and t_header_defaultRegulations/t_header_roadRegulation/t_header_signalRegulation each contain a nonsensical mandatory child element literally named '_OpenDriveElement' of type _OpenDriveElement; a strict parser/serializer must account for these.
+
+## OpenDRIVE_Road.xsd
+
+OpenDRIVE 1.9's road schema is largely compatible with 1.6 but adds a major new feature — the cross section surface / strip system under lateralProfile (7 new complex types, 1 new enum e_strip_mode) — plus a second lanes element (lanes maxOccurs 1→2), CRG global-mode support (new xOffset/yOffset attributes on surface/CRG), and numerous type tightenings that turn loose xs:string attributes into constrained enums or positive-double types. Several attribute types that were xs:string in 1.6 (road/@length, geometry/@length, link elementType/contactPoint/elementDir, road/type/@type use) become strict types. The e_paramPoly3_pRange enum definition moved out of this file into OpenDRIVE_Core.xsd. Nothing was outright removed. A structural XSD 1.1 assertion was added constraining crossSectionSurface vs superelevation/shape coexistence.
+
+## OpenDRIVE_Lane.xsd (v1.9) vs opendrive_16_lane.xsd (v1.6)
+
+The 1.9 lane schema adds several new lane semantics: per-lane travel direction (@direction + e_lane_direction), advisory lanes (@advisory + e_laneAdvisory), a temporary/permanent layer system (@layer + e_layerType on lanes, lane links, and laneValidity), and dynamic-lane flags (@dynamicLaneType, @dynamicLaneDirection, @roadWorks). The access model is restructured: the flat lane/access element gains repeatable child <restriction> elements (new t_...access_restriction type + e_accessRestrictionType type attribute) and its own @restriction becomes optional. New lane types (shared, walking, slipLane) are added while many old ones are deprecated (sidewalk→walking, bus/taxi/HOV→use access, bidirectional→use direction, special1-3, mwyEntry/mwyExit). The e_accessRestrictionType enum drops nothing but adds HOV; e_roadMarkColor adds black and violet. laneSection gains an optional @length, and t_road_lanes gains @layer plus two xs:assert constraints. The center lane type is redefined with its own restricted content model (link + roadMark only, plus optional @type/@level). Numeric tightening: roadMark @height, explicit_line @length/@width, roadMark_type @width, and type_line @width switch from xs:double/xs:string to the stricter t_grZero/t_grEqZero. The 1.6 manually-added key constraint k_road_lanes_laneSection_laneId is removed. The lr_lane base type is now abstract, and the border/width choice cardinality changed from required (minOccurs=1) to optional (minOccurs=0).
+
+## OpenDRIVE_Junction.xsd
+
+OpenDRIVE 1.9 massively restructures the junction schema versus 1.6. The single concrete t_junction became an abstract base, and the document-level <junction> element now uses XSD 1.1 type alternatives (@type-driven polymorphism) to select one of four new concrete subtypes: t_junction_common (default), t_junction_virtual, t_junction_direct, and t_junction_crossing. The e_junction_type enum gained 'direct' and 'crossing'. Two entirely new junction paradigms were added: direct junctions (linkedRoad-based split/merge with overlapZone), crossing junctions (roadSection-based, no connecting roads), plus cross paths (pedestrian crossings), junction boundaries (segment polygons), and junction elevation grids. The connection type was also refactored into an abstract base with common/direct/virtual/virtual_default subtypes. The 1.6 <surface>/<CRG> elevation description (t_junction_surface, t_junction_surface_CRG) was removed and replaced by the shared t_road_surface type; junctions additionally gained planView and objects children. junctionGroup gained two new enum values. This schema now depends on Lane, Object, Road and Core includes rather than just Core. NOTE: this uses XSD 1.1 (vc:minVersion=1.1, xs:alternative, xs:assert) which many 1.0 parsers cannot process.
+
+## OpenDRIVE_Object.xsd (v1.9) vs opendrive_16_object.xsd (v1.6)
+
+Substantial expansion of the object schema between 1.6 and 1.9. Major additions: a new object `<skeleton>` subtree (polyline/vertexRoad/vertexLocal), a new object `<surface>`/`<CRG>` subtree, curve-based outlines (`<curveLocal>` with line/arc/paramPoly3), and `<markings>` now nestable under an `<outline>`. The object element gains 4 new attributes (perpToRoad, invalidated, temporary) plus repeat gains detachFromReferenceLine/bT/cT/dT and 3 new e_objectType values (roadSurface added; van un-deprecated; many enums now carry 'use X instead' redirect docs). Several attribute types tightened (object @length/@radius double→t_grZero, @height double→t_grEqZero, repeat height* double→t_grEqZero, marking @width/@lineLength string→t_grZero). Cardinality of outline corners changed (choice now mandatory, corners minOccurs 0→2, marking @side and border cornerReference relaxed to optional/0 with new xs:assert co-constraints). New e_borderType 'paint', new e_outlineFillType 'paint', new material @roadMarkColor. Key/keyref constraints restructured. Numerous xs:assert business rules added on the object element. Note: t_grZero and e_paramPoly3_pRange are pre-existing shared types (in core/road), not new; skeleton/surface/curveLocal/CRG-in-object are genuinely new to 1.9 (absent everywhere in 1.6).
+
+## OpenDRIVE_Signal.xsd
+
+Major expansion of the signal schema from 1.6 to 1.9. The single concrete `t_road_signals_signal` type is split into an abstract base (`t_road_signals_signal`) plus a concrete road-signal subtype (`t_road_signals_signal_road`), which is now what the `<signal>` element maps to. A large new signal-semantics subtree (`<semantics>` with speed/lane/priority/prohibited/warning/routing/streetname/parking/tourist/supplementary* children and their enums) is added, along with a variable-message-board / static-board system (staticBoard, vmsBoard, sign, displayArea, vmsGroup, vmsBoardReference) and new enums (displayType, vehicleCategory, personCategory, and multiple semantics enums). Positional attributes (s/t/zOffset) migrate from the base to the road subtype and become optional; several new signal attributes (length, invalidated, temporary) are added while zOffset is removed from the base. Existing types gained a g_additionalData group in previously-empty sequences. Nothing was removed outright; e_unitSpeed/e_unitDistance referenced here are defined in Core (unchanged location).
+
+## Thirdparty/opendrive/1.9/xsd_schema_files/OpenDRIVE_Railroad.xsd
+
+The Railroad schema is structurally identical between OpenDRIVE 1.6 and 1.9. No elements, attributes, enum values, types, or cardinalities changed. All three simple types (e_road_railroad_switch_position, e_station_platform_segment_side, e_station_type) retain identical enumerations, and all nine complex types (t_road_railroad, t_road_railroad_switch, t_road_railroad_switch_mainTrack, t_road_railroad_switch_partner, t_road_railroad_switch_sideTrack, t_station, t_station_platform, t_station_platform_segment) keep the same children, attributes, and multiplicities. The switch/mainTrack/sideTrack/partner and station/platform/segment element hierarchies are byte-for-byte equivalent in structure. There are NO deprecation annotations in this file. The only differences are non-structural: (1) schema-level root attributes changed (elementFormDefault="qualified" and vc:minVersion="1.1" added, XMLSchema-versioning namespace declared) — these are global XSD-wide changes, not railroad-specific; (2) include filenames were renamed to the 1.9 naming convention (opendrive_16_junction.xsd/opendrive_16_core.xsd -> OpenDRIVE_Junction.xsd/OpenDRIVE_Core.xsd); (3) added/reworded xs:documentation annotations on several complexTypes (no schema meaning); (4) the phrases "For values see UML Model" were dropped from the position/side attribute docs (annotation text only). Attachment points are unchanged: <railroad> still attaches under <road> (minOccurs=0/maxOccurs=1) and <station> still attaches at the OpenDRIVE root (minOccurs=0/maxOccurs=unbounded); the t_road_railroad and t_station types remain defined solely in the Railroad file (Core/Road only reference them). A parser, serializer, or visual editor built for the 1.6 railroad schema requires ZERO changes to handle 1.9 railroad content.
+
+---
+
+# Appendix: implementation coverage summaries
+
+## shared types + parser/serializer
+
+The OpenDRIVE document model (`packages/shared/src/types/odr-*.ts`) plus parser (`packages/opendrive/src/parser/*`) and serializer (`packages/opendrive/src/serializer/*`) implement a broad, typed subset of OpenDRIVE that de facto targets roughly the v1.4-v1.6 feature set (default written header is `revMajor=1 / revMinor=6`). Nearly every major area — header, road link/type, all 5 planView geometries, elevation/superelevation/shape, lanes+roadMark, objects (outlines/markings/borders/parkingSpace/tunnel/bridge), signals (dependency/reference/positioning), junctions (connection/priority/controller/surface/type), railroad switches, controllers, stations, userData/dataQuality/include — is modeled, parsed and serialized with matching depth, so round-trip is symmetric. However several v1.5-v1.8 attributes/children are silently dropped (e.g. header `version`/`vendor`, road-object `roadMark`/`repeat.zOffset`... actually repeat is covered; missing items detailed below such as signal `hOffset`-vs-arm, junction-group nesting, lane `roadMark` explicit `no`, `connection` extra attrs), and — critically — there is NO lossless RawXml passthrough: the parser only keeps fields it explicitly knows about, and the fast-xml-parser output for any unrecognized element/attribute is simply never read and never re-emitted. Header version handling is defaulted (parse fallback 1.0, engine default 1.6) with ZERO version-dependent branching anywhere. Consequently a 1.7/1.8/1.9 file does NOT survive load→save intact: any newer element or attribute is dropped on the floor.
+
+## opendrive-engine editable subset
+
+The OpenDRIVE editor is built to a 1.6 baseline (`createDefaultHeader` emits rev 1.6, and revMajor/revMinor are read-only in the UI). Fully editable areas are roads (properties, split/join, links via tools), lanes (CRUD + sections/tapers/roadmarks/width/speed), signals (rich CRUD + pole/arm assemblies), junctions (auto-detection and manual creation, connections, lane-links), the header (name/date/geoRef/bounds), and road rule LHT/RHT which is threaded through geometry and junction logic. Geometry authoring is limited to line/arc (spiral via form only; poly3/paramPoly3 are read-only), objects are add/remove-only with no property editor, controllers have commands but no UI, and elevation/superelevation are effectively display-only in the road-network layout. Large parts of the model are load/save-only (railroad, tunnels/bridges, stations, junctionGroups, junction priority/controller/surface, virtual-connection pred/succ, most lane and object sub-elements, signal validity/references/positions, userData/dataQuality/includes). Key 1.9 breakages: junction @type is hardcoded to {default,virtual} (missing 1.7+ `direct`/`crossing`), connection @type is never authored (needed for virtual connections), the junction-link validator/repairer assumes a road→junction back-link on every incoming road and would flag and then corrupt valid 1.9 virtual junctions, and validateJunctionPlan bakes in a fully-connected common-junction assumption. The only xodr validation is the junction validator suite (plan geometry/topology pre-checks plus document link integrity/repair); there is no XSD or continuity validation wired into the editor.
+
+## mesh/3d-viewer + esmini feed path
+
+The parsed OdrRoad model has two visual consumers plus a verbatim esmini feed. The mesh pipeline (packages/opendrive/src/mesh + 3d-viewer/src/road) honors all 5 plan-view geometry types, elevation, lane widths/offset, lane types (as vertex color), roadMarks (as flat polylines), and signals (separate signals/ path) — but IGNORES superelevation/lateralProfile (road banking never applied to the surface; only used for entity/signal roll, causing a flat-road-under-rolled-car mismatch) and ODR &lt;object&gt; elements/tunnels/bridges (parsed and round-tripped but never rendered). For esmini, the .xodr reaches the WASM VFS byte-for-byte (esmini-worker.ts:217) — but only if it came straight from a file load (use-file-operations.ts:649 stores original text as roadNetworkXml); opening the OpenDRIVE editor drops that verbatim text (RoadNetworkEditorLayout.tsx:93 passes no rawXml), after which the simulation feed becomes undefined and the RoadManager path re-serializes lossily from the TS model. esmini's own RoadManager reads revMajor/revMinor (RoadManager.cpp:3719) but never gates on version — unknown 1.7/1.8/1.9 elements are warned/ignored, never rejected, so verbatim 1.9 content rides along harmlessly. The only stated version direction: CLAUDE.md targets OpenDRIVE 1.8 conventions and lht-support.md relies on the 1.7+ per-road rule attribute (implemented, mesh intentionally rule-independent); no proposal states a 1.9 target.
+
+---
+
+# Appendix: OpenDRIVE 1.9 spec/release summary
+
+OpenDRIVE 1.9.0 (released 19 May 2026, backward-compatible with 1.8.1) introduces eight themes, headlined by a two-layer lane architecture (permanent + temporary) for modeling roadworks/construction zones, plus roadworks/invalidation state attributes, smooth object outlines via curveLocal, harmonized traffic-participant signal semantics (vehicle/person/animal), and OpenCRG global-mode xy/heading offsets. The bundled schema also carries a crossSectionSurface lateral-profile model (constant/linear/quadratic/cubic strips) that is mutually exclusive with legacy superelevation/shape, and the namespaced XSD variant is deprecated in favor of local-file XSDs. Evidence comes from the release deck (Thirdparty/opendrive/1.9/release_presentation), the 1.9 XSD schema files, and example .xodr files — note that only 2 of 25 bundled examples carry a revMinor="9" header (the lane-layer/roadworks pair); the rest are stamped 1.8/1.5 but some still exercise new schema elements. Junction/lane features like direct/virtual junctions, slip lanes, entry/exit lane types, and bidirectional junctions are pre-1.9 (1.7/1.8) and appear only for completeness. For a read/write tool, all 1.9 additions are opt-in attributes/optional child elements on existing elements, so a 1.8.1 reader mostly still parses 1.9 files unless the new lane-layer or crossSectionSurface structures are present.
