@@ -9,7 +9,7 @@ import type {
   OdrLaneOffset,
   OdrShape,
 } from '@osce/shared';
-import { ensureArray, attr, attrNum } from './xml-helpers.js';
+import { ensureArray, attr, attrNum, ATTR_PREFIX } from './xml-helpers.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Raw = Record<string, any>;
@@ -81,8 +81,15 @@ export function parseGeometry(raw: Raw): OdrGeometry {
     };
   }
 
-  // Fallback: treat unknown geometry as a line
-  return { ...base, type: 'line' as const };
+  // No known primitive present. Do NOT fabricate a <line> — that would
+  // silently corrupt the road shape. Fail loudly, naming the primitive so
+  // the caller can see which unsupported geometry was encountered.
+  const primitives = Object.keys(raw).filter((k) => !k.startsWith(ATTR_PREFIX));
+  const found = primitives.length > 0 ? primitives.join(', ') : '<none>';
+  throw new Error(
+    `Unsupported OpenDRIVE geometry primitive at s=${base.s}: expected one of ` +
+      `line/arc/spiral/poly3/paramPoly3 but found ${found}`,
+  );
 }
 
 export function parseElevations(raw: Raw | undefined): OdrElevation[] {
