@@ -59,6 +59,20 @@ const INCLUDE_XODR_REL = 'xodr/e2e-include-error.xodr';
 const INCLUDE_XOSC_NAME = 'e2e-include-error.xosc';
 const INCLUDE_XOSC_REL = `xosc/${INCLUDE_XOSC_NAME}`;
 
+/** Test-owned files for the rawXml-passthrough regression (1.9-P1 3-D). */
+const PASSTHROUGH_XODR_REL = 'xodr/e2e-vj-passthrough.xodr';
+const PASSTHROUGH_XOSC_NAME = 'e2e-vj-passthrough.xosc';
+const PASSTHROUGH_XOSC_REL = `xosc/${PASSTHROUGH_XOSC_NAME}`;
+
+/**
+ * Stable substring of the degraded-road warning
+ * (packages/i18n .../common.ts `simulation.degradedRoad`). It is toasted
+ * synchronously at Run when the raw xodr text was lost and the sim payload had
+ * to be re-serialized. With the rawXml passthrough, an unedited road never
+ * degrades, so this must NOT appear.
+ */
+const DEGRADED_ROAD_SUBSTRING = 'Regenerating the edited road data for simulation';
+
 /**
  * Stable substring of INCLUDE_UNSUPPORTED_MESSAGE
  * (apps/web/src/lib/wasm/sim-error.ts). Kept as a substring so incidental
@@ -135,9 +149,20 @@ async function writeProjectFile(
   expect(res.ok(), `write ${relativePath}`).toBeTruthy();
 }
 
+/** Scenario referencing the seeded virtual-junction road (rawXml passthrough test). */
+const PASSTHROUGH_XOSC = INCLUDE_XOSC.replace(
+  '../xodr/e2e-include-error.xodr',
+  '../xodr/e2e-vj-passthrough.xodr',
+);
+
 /** Switch the editor into Road Network mode (scoped to the header toggle). */
 async function enterRoadNetworkMode(page: Page): Promise<void> {
   await page.getByRole('banner').getByRole('button', { name: 'Road Network' }).click();
+}
+
+/** Switch the editor back into Scenario mode (scoped to the header toggle). */
+async function enterScenarioMode(page: Page): Promise<void> {
+  await page.getByRole('banner').getByRole('button', { name: 'Scenario' }).click();
 }
 
 /** Open a scenario from the project file tree (mirrors smoke.spec.ts). */
@@ -232,4 +257,36 @@ test.describe('OpenDRIVE 1.9 support', () => {
       await expect(page.getByRole('banner')).toBeVisible();
     });
   }
+
+  // 1.9-P1 Stage 3-D: opening a road, visiting the Road Network editor, and
+  // running WITHOUT editing must keep the verbatim xodr flowing to the simulator
+  // — i.e. the "degraded / re-serialized road" warning must NOT fire. Before the
+  // rawXml passthrough, entering road mode nulled roadNetworkXml and every run
+  // degraded silently.
+  test('keeps raw xodr passthrough after visiting road mode unedited (no degraded warning)', async ({
+    page,
+    request,
+  }) => {
+    await writeProjectFile(request, PASSTHROUGH_XODR_REL, readFileSync(VIRTUAL_JUNCTION_XODR, 'utf-8'));
+    await writeProjectFile(request, PASSTHROUGH_XOSC_REL, PASSTHROUGH_XOSC);
+
+    await gotoEditor(page);
+
+    // Scenario open auto-loads the referenced road into roadNetworkXml.
+    await openScenarioFromTree(page, PASSTHROUGH_XOSC_NAME);
+    await expect(page.getByTestId('status-bar')).not.toContainText(/Entities:\s*0(?!\d)/, {
+      timeout: 10_000,
+    });
+
+    // Round-trip through the Road Network editor without editing, then back.
+    await enterRoadNetworkMode(page);
+    await expect(page.getByText(/\d+ roads?/).first()).toBeVisible({ timeout: 30_000 });
+    await enterScenarioMode(page);
+
+    // Run: the degraded-road warning fires synchronously at click if the raw
+    // text was lost. It must not appear — the unedited road passes through.
+    await page.getByRole('button', { name: /Run|実行/ }).click();
+    await page.waitForTimeout(3_000);
+    await expect(page.getByText(DEGRADED_ROAD_SUBSTRING)).toHaveCount(0);
+  });
 });
