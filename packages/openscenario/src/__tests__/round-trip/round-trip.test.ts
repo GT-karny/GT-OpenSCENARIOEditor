@@ -6,11 +6,37 @@ import { XoscSerializer } from '../../serializer/xosc-serializer.js';
 import type { ScenarioDocument } from '@osce/shared';
 import {
   EXAMPLES_DIR,
+  EXAMPLES_V131_DIR,
   XOSC_DIR,
-  THIRDPARTY_DIR,
+  GT_SIM_XOSC_DIR,
   GT_SIM_AVAILABLE,
   FIXTURES_AVAILABLE,
 } from '../test-helpers.js';
+
+/**
+ * Allow-list of fixtures whose round-trip is known to fail because of a
+ * parser/serializer gap (NOT a fixture problem). These are enrolled as
+ * `it.fails` so the suite stays green while the failure remains tracked and
+ * visible. Fixing the underlying parser/serializer bug is tracked separately;
+ * see tmp/s0-v131-triage.md. Remove an entry once its bug is fixed.
+ */
+const KNOWN_ROUNDTRIP_FAILURES: Record<string, string> = {
+  // populated after triage run — key: `${label}/${file}`, value: reason
+};
+
+function roundTripIt(label: string, dir: string, file: string): void {
+  const key = `${label}/${file}`;
+  const reason = KNOWN_ROUNDTRIP_FAILURES[key];
+  if (reason) {
+    it.fails(`round-trips ${key} (known failure: ${reason})`, () => {
+      expectRoundTrip(dir, file);
+    });
+  } else {
+    it(`round-trips ${key}`, () => {
+      expectRoundTrip(dir, file);
+    });
+  }
+}
 
 const parser = new XoscParser();
 const serializer = new XoscSerializer();
@@ -75,18 +101,39 @@ describe.skipIf(!FIXTURES_AVAILABLE)('Round-trip: parse → serialize → parse'
   ];
 
   for (const file of exampleFiles) {
-    it(`round-trips ${file}`, () => {
-      expectRoundTrip(EXAMPLES_DIR, file);
-    });
+    roundTripIt('v1.2.0', EXAMPLES_DIR, file);
+  }
+
+  // OpenSCENARIO v1.3.1 official examples.
+  // Same set as v1.2.0 (the *ParameterSet.xosc files are ParameterValueDistribution
+  // documents and are rejected with XoscRootMismatchError), plus TrailerConnect.xosc
+  // which is new in v1.3.1.
+  const exampleFilesV131 = [
+    'CloseVehicleCrossing.xosc',
+    'CutIn.xosc',
+    'SimpleOvertake.xosc',
+    'EndOfTrafficJam.xosc',
+    'DoubleLaneChanger.xosc',
+    'EndofTrafficJamNeighboringLaneOccupied.xosc',
+    'FastOvertakeWithReInitialization.xosc',
+    'Overtaker.xosc',
+    'SequentialEvents_0-100-0kph_Explicit.xosc',
+    'SequentialEvents_0-100-0kph_Implicit.xosc',
+    'SlowPrecedingVehicle.xosc',
+    'TrafficJam.xosc',
+    'SynchronizedArrivalToIntersection.xosc',
+    'TrailerConnect.xosc',
+  ];
+
+  for (const file of exampleFilesV131) {
+    roundTripIt('v1.3.1', EXAMPLES_V131_DIR, file);
   }
 
   // esmini scenarios
   const esminiFiles = ['cut-in.xosc', 'acc-test.xosc', 'alks-test.xosc'];
 
   for (const file of esminiFiles) {
-    it(`round-trips esmini/${file}`, () => {
-      expectRoundTrip(XOSC_DIR, file);
-    });
+    roundTripIt('esmini', XOSC_DIR, file);
   }
 
   // GT_Sim scenarios (only when Thirdparty is available locally)
@@ -99,11 +146,8 @@ describe.skipIf(!FIXTURES_AVAILABLE)('Round-trip: parse → serialize → parse'
       'cut-in_environment.xosc',
     ];
 
-    const gtSimDir = resolve(THIRDPARTY_DIR, 'GT_Sim_v0.6.0-rc/resources/xosc');
     for (const file of gtSimFiles) {
-      it(`round-trips GT_Sim/${file}`, () => {
-        expectRoundTrip(gtSimDir, file);
-      });
+      roundTripIt('GT_Sim', GT_SIM_XOSC_DIR, file);
     }
   });
 });
