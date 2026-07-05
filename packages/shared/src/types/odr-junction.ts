@@ -30,7 +30,7 @@ export interface OdrJunctionConnection {
   incomingRoad: string;
   connectingRoad: string;
   contactPoint: 'start' | 'end';
-  laneLinks: { from: number; to: number }[];
+  laneLinks: { from: number; to: number; extra?: OdrExtra }[];
   type?: string;
   predecessor?: OdrJunctionPredSucc;
   successor?: OdrJunctionPredSucc;
