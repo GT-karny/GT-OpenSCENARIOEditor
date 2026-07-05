@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
-import { gotoEditor } from './helpers';
+import { gotoEditor, dismissDiscardDialog } from './helpers';
 
 /**
  * E2E for the driving-direction arrow overlay (W2-B, LHT wave).
@@ -23,6 +23,9 @@ async function openScenario(page: Page, fileName: string): Promise<void> {
   await page.getByRole('button', { name: 'Show file explorer' }).click();
   await page.getByRole('button', { name: 'xosc', exact: true }).click();
   await page.getByRole('button', { name: fileName }).click();
+  // Project-tree opens route through the unsaved-changes guard; the seeded
+  // default document is dirty, so discard it to proceed to the scenario load.
+  await dismissDiscardDialog(page, 'discard');
 }
 
 test.describe('driving-direction arrow overlay (RHT/LHT)', () => {

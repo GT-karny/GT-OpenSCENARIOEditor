@@ -162,7 +162,7 @@ async function enterRoadNetworkMode(page: Page): Promise<void> {
 
 /** Switch the editor back into Scenario mode (scoped to the header toggle). */
 async function enterScenarioMode(page: Page): Promise<void> {
-  await page.getByRole('banner').getByRole('button', { name: 'Scenario' }).click();
+  await page.getByRole('banner').getByRole('button', { name: 'Scenario', exact: true }).click();
 }
 
 /** Open a scenario from the project file tree (mirrors smoke.spec.ts). */
@@ -170,6 +170,9 @@ async function openScenarioFromTree(page: Page, fileName: string): Promise<void>
   await page.getByRole('button', { name: 'Show file explorer' }).click();
   await page.getByRole('button', { name: 'xosc', exact: true }).click();
   await page.getByRole('button', { name: fileName }).click();
+  // Project-tree opens now route through the unsaved-changes guard; the seeded
+  // default document is dirty, so discard it to proceed to the scenario load.
+  await dismissDiscardDialog(page, 'discard');
 }
 
 /** Drive File > Open .xodr → pick `filePath` (Road Network mode must be active). */

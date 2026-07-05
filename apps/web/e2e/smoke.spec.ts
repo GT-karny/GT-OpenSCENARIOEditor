@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoEditor, entityList } from './helpers';
+import { gotoEditor, entityList, dismissDiscardDialog } from './helpers';
 
 /**
  * End-to-end smoke test of the primary happy path:
@@ -20,6 +20,9 @@ test.describe('Smoke: open seeded project and scenario', () => {
     // Expand the "xosc" folder, then open the seeded cut-in scenario.
     await page.getByRole('button', { name: 'xosc', exact: true }).click();
     await page.getByRole('button', { name: 'cut-in.xosc' }).click();
+    // Project-tree opens route through the unsaved-changes guard; the seeded
+    // default document is dirty, so discard it to proceed to the scenario load.
+    await dismissDiscardDialog(page, 'discard');
 
     // The scenario's entities (Ego, OverTaker) should populate the entity list.
     await expect(entityList(page).getByText('Ego', { exact: true })).toBeVisible({

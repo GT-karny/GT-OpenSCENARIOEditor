@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { gotoEditor, entityList } from './helpers';
+import { gotoEditor, entityList, dismissDiscardDialog } from './helpers';
 
 /**
  * Acceptance test for the in-browser WASM esmini simulation (roadmap item A1).
@@ -30,6 +30,9 @@ async function openScenario(page: Page, fileName: string): Promise<void> {
   // Expand the "xosc" folder, then open the scenario.
   await page.getByRole('button', { name: 'xosc', exact: true }).click();
   await page.getByRole('button', { name: fileName }).click();
+  // Project-tree opens route through the unsaved-changes guard; the seeded
+  // default document is dirty, so discard it to proceed to the scenario load.
+  await dismissDiscardDialog(page, 'discard');
 }
 
 /**

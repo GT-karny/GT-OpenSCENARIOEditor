@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { gotoEditor } from './helpers';
+import { gotoEditor, dismissDiscardDialog } from './helpers';
 
 /**
  * Default traffic rule workflow convenience (LHT/RHT) in the Road Network editor.
@@ -19,6 +19,9 @@ async function openScenario(page: Page, fileName: string): Promise<void> {
   await page.getByRole('button', { name: 'Show file explorer' }).click();
   await page.getByRole('button', { name: 'xosc', exact: true }).click();
   await page.getByRole('button', { name: fileName }).click();
+  // Project-tree opens route through the unsaved-changes guard; the seeded
+  // default document is dirty, so discard it to proceed to the scenario load.
+  await dismissDiscardDialog(page, 'discard');
 }
 
 test.describe('Road Network: default traffic rule', () => {
