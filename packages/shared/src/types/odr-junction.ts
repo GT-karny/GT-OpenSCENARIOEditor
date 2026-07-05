@@ -12,6 +12,14 @@ export interface OdrJunction {
   priority?: OdrJunctionPriority[];
   controller?: OdrJunctionController[];
   surface?: OdrJunctionSurface;
+  /** Virtual junction: main road from which connecting roads branch off (t_junction_virtual/@mainRoad). */
+  mainRoad?: string;
+  /** Virtual junction: start position on the main road reference line (t_junction_virtual/@sStart). */
+  sStart?: number;
+  /** Virtual junction: end position on the main road reference line (t_junction_virtual/@sEnd). */
+  sEnd?: number;
+  /** Virtual junction: relevance by driving direction, one of '+', '-', 'none' (t_junction_virtual/@orientation). */
+  orientation?: string;
 }
 
 export interface OdrJunctionConnection {

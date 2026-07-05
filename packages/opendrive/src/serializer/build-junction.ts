@@ -15,6 +15,12 @@ export function buildJunction(junction: OdrJunction): XmlNode {
 
   optAttr(node, '@_type', junction.type);
 
+  // Virtual junction attributes (t_junction_virtual)
+  optAttr(node, '@_mainRoad', junction.mainRoad);
+  optAttr(node, '@_sStart', junction.sStart, fmtNum);
+  optAttr(node, '@_sEnd', junction.sEnd, fmtNum);
+  optAttr(node, '@_orientation', junction.orientation);
+
   if (junction.connections.length > 0) {
     node.connection = junction.connections.map(buildConnection);
   }

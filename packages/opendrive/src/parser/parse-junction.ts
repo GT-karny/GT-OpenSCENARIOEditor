@@ -27,6 +27,16 @@ export function parseJunction(raw: Raw): OdrJunction {
     connections: ensureArray(raw.connection).map(parseJunctionConnection),
   };
 
+  // Virtual junction attributes (t_junction_virtual): mandatory for type="virtual"
+  const mainRoad = attrOptStr(raw, 'mainRoad');
+  if (mainRoad !== undefined) junction.mainRoad = mainRoad;
+  const sStart = attrOptNum(raw, 'sStart');
+  if (sStart !== undefined) junction.sStart = sStart;
+  const sEnd = attrOptNum(raw, 'sEnd');
+  if (sEnd !== undefined) junction.sEnd = sEnd;
+  const orientation = attrOptStr(raw, 'orientation');
+  if (orientation !== undefined) junction.orientation = orientation;
+
   // priority
   const priorityArr = ensureArray(raw.priority);
   if (priorityArr.length > 0) {
