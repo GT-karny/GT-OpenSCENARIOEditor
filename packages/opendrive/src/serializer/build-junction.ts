@@ -3,6 +3,7 @@
  */
 import type { OdrJunction, OdrJunctionConnection, OdrJunctionGroup } from '@osce/shared';
 import { fmtNum, optAttr } from './format-utils.js';
+import { applyExtra } from './apply-extra.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type XmlNode = Record<string, any>;
@@ -65,7 +66,7 @@ export function buildJunction(junction: OdrJunction): XmlNode {
     };
   }
 
-  return node;
+  return applyExtra(node, junction.extra);
 }
 
 function buildConnection(conn: OdrJunctionConnection): XmlNode {
@@ -105,7 +106,7 @@ function buildConnection(conn: OdrJunctionConnection): XmlNode {
     };
   }
 
-  return node;
+  return applyExtra(node, conn.extra);
 }
 
 export function buildJunctionGroup(group: OdrJunctionGroup): XmlNode {

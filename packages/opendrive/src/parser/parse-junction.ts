@@ -15,41 +15,43 @@ import {
   attrOptStr,
   attrOptNum,
 } from './xml-helpers.js';
+import { trackNode } from './node-tracker.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Raw = Record<string, any>;
 
 export function parseJunction(raw: Raw): OdrJunction {
+  const t = trackNode(raw);
   const junction: OdrJunction = {
-    id: attrStr(raw, 'id'),
-    name: attrStr(raw, 'name'),
-    type: attrOptStr(raw, 'type'),
-    connections: ensureArray(raw.connection).map(parseJunctionConnection),
+    id: t.str('id'),
+    name: t.str('name'),
+    type: t.optStr('type'),
+    connections: t.takeChildren('connection').map((c) => parseJunctionConnection(c as Raw)),
   };
 
   // Virtual junction attributes (t_junction_virtual): mandatory for type="virtual"
-  const mainRoad = attrOptStr(raw, 'mainRoad');
+  const mainRoad = t.optStr('mainRoad');
   if (mainRoad !== undefined) junction.mainRoad = mainRoad;
-  const sStart = attrOptNum(raw, 'sStart');
+  const sStart = t.optNum('sStart');
   if (sStart !== undefined) junction.sStart = sStart;
-  const sEnd = attrOptNum(raw, 'sEnd');
+  const sEnd = t.optNum('sEnd');
   if (sEnd !== undefined) junction.sEnd = sEnd;
-  const orientation = attrOptStr(raw, 'orientation');
+  const orientation = t.optStr('orientation');
   if (orientation !== undefined) junction.orientation = orientation;
 
   // priority
-  const priorityArr = ensureArray(raw.priority);
+  const priorityArr = t.takeChildren('priority') as Raw[];
   if (priorityArr.length > 0) {
-    junction.priority = priorityArr.map((p: Raw) => ({
+    junction.priority = priorityArr.map((p) => ({
       high: attrOptStr(p, 'high'),
       low: attrOptStr(p, 'low'),
     }));
   }
 
   // controller
-  const controllerArr = ensureArray(raw.controller);
+  const controllerArr = t.takeChildren('controller') as Raw[];
   if (controllerArr.length > 0) {
-    junction.controller = controllerArr.map((c: Raw) => ({
+    junction.controller = controllerArr.map((c) => ({
       id: attrStr(c, 'id'),
       type: attrOptStr(c, 'type'),
       sequence: attrOptNum(c, 'sequence'),
@@ -57,8 +59,9 @@ export function parseJunction(raw: Raw): OdrJunction {
   }
 
   // surface
-  if (raw.surface) {
-    const crgArr = ensureArray(raw.surface.CRG ?? raw.surface.crg);
+  const surface = t.takeChild('surface') as Raw | undefined;
+  if (surface) {
+    const crgArr = ensureArray(surface.CRG ?? surface.crg);
     if (crgArr.length > 0) {
       junction.surface = {
         crg: crgArr.map((crg: Raw) => ({
@@ -78,27 +81,33 @@ export function parseJunction(raw: Raw): OdrJunction {
     }
   }
 
+  // Preserve unmodeled attrs/children (crossing/direct-junction subtrees:
+  // roadSection, crossPath, boundary, elevationGrid, planView, objects, …).
+  const extra = t.rest();
+  if (extra) junction.extra = extra;
+
   return junction;
 }
 
 function parseJunctionConnection(raw: Raw): OdrJunctionConnection {
+  const t = trackNode(raw);
   const conn: OdrJunctionConnection = {
-    id: attrStr(raw, 'id'),
-    incomingRoad: attrStr(raw, 'incomingRoad'),
-    connectingRoad: attrStr(raw, 'connectingRoad'),
-    contactPoint: attrStr(raw, 'contactPoint', 'start') as 'start' | 'end',
-    laneLinks: ensureArray(raw.laneLink).map((ll: Raw) => ({
-      from: attrNum(ll, 'from'),
-      to: attrNum(ll, 'to'),
+    id: t.str('id'),
+    incomingRoad: t.str('incomingRoad'),
+    connectingRoad: t.str('connectingRoad'),
+    contactPoint: t.str('contactPoint', 'start') as 'start' | 'end',
+    laneLinks: t.takeChildren('laneLink').map((ll) => ({
+      from: attrNum(ll as Raw, 'from'),
+      to: attrNum(ll as Raw, 'to'),
     })),
   };
 
   // type (for virtual/direct junction connections)
-  conn.type = attrOptStr(raw, 'type');
+  conn.type = t.optStr('type');
 
   // predecessor
-  if (raw.predecessor) {
-    const p = raw.predecessor;
+  const p = t.takeChild('predecessor') as Raw | undefined;
+  if (p) {
     conn.predecessor = {
       elementType: attrStr(p, 'elementType'),
       elementId: attrStr(p, 'elementId'),
@@ -108,8 +117,8 @@ function parseJunctionConnection(raw: Raw): OdrJunctionConnection {
   }
 
   // successor
-  if (raw.successor) {
-    const s = raw.successor;
+  const s = t.takeChild('successor') as Raw | undefined;
+  if (s) {
     conn.successor = {
       elementType: attrStr(s, 'elementType'),
       elementId: attrStr(s, 'elementId'),
@@ -117,6 +126,10 @@ function parseJunctionConnection(raw: Raw): OdrJunctionConnection {
       elementDir: attrStr(s, 'elementDir', '+') as '+' | '-',
     };
   }
+
+  // Preserve unmodeled connection attrs (linkedRoad, overlapZone, layer, …).
+  const extra = t.rest();
+  if (extra) conn.extra = extra;
 
   return conn;
 }
