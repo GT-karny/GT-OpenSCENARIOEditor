@@ -2,7 +2,7 @@
  * OpenDRIVE road object types.
  */
 
-import type { OdrLaneValidity } from './odr-common.js';
+import type { OdrLaneValidity, OdrExtra } from './odr-common.js';
 
 export interface OdrRoadObject {
   id: string;
@@ -30,6 +30,8 @@ export interface OdrRoadObject {
   parkingSpace?: OdrParkingSpace;
   markings?: OdrObjectMarking[];
   borders?: OdrObjectBorder[];
+  /** Unmodeled object attrs (@perpToRoad/@invalidated/@temporary) / children (<skeleton>, <surface>) preserved for round-trip. */
+  extra?: OdrExtra;
 }
 
 export interface OdrObjectRepeat {
@@ -58,6 +60,8 @@ export interface OdrObjectOutline {
   laneType?: string;
   cornerRoad?: OdrCornerRoad[];
   cornerLocal?: OdrCornerLocal[];
+  /** Unmodeled outline children (1.9 <curveLocal>, nested <markings>) preserved for round-trip. */
+  extra?: OdrExtra;
 }
 
 export interface OdrCornerRoad {
@@ -80,6 +84,8 @@ export interface OdrObjectMaterial {
   surface?: string;
   friction?: number;
   roughness?: number;
+  /** Unmodeled material attrs (1.9 @roadMarkColor) preserved for round-trip. */
+  extra?: OdrExtra;
 }
 
 export interface OdrParkingSpace {

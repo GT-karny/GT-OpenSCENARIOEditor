@@ -2,12 +2,16 @@
  * OpenDRIVE lane types.
  */
 
+import type { OdrExtra } from './odr-common.js';
+
 export interface OdrLaneSection {
   s: number;
   singleSide?: boolean;
   leftLanes: OdrLane[];
   centerLane: OdrLane;
   rightLanes: OdrLane[];
+  /** Unmodeled <laneSection> attrs (@length) / children (userData) preserved for round-trip. */
+  extra?: OdrExtra;
 }
 
 export interface OdrLane {
@@ -23,6 +27,8 @@ export interface OdrLane {
   material?: OdrLaneMaterial[];
   access?: OdrLaneAccess[];
   rule?: OdrLaneRule[];
+  /** Unmodeled lane attrs (@direction/@advisory/@dynamic*) / children (userData) preserved for round-trip. */
+  extra?: OdrExtra;
 }
 
 export interface OdrLaneWidth {

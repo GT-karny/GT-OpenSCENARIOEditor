@@ -8,7 +8,7 @@ import type { OdrRoadObject, OdrObjectReference, OdrTunnel, OdrBridge } from './
 import type { OdrSignal, OdrSignalRef } from './odr-signal.js';
 import type { OdrRailroad } from './odr-railroad.js';
 import type { OdrSurfaceCRG } from './odr-surface.js';
-import type { OdrUserData, OdrDataQuality, OdrInclude } from './odr-common.js';
+import type { OdrUserData, OdrDataQuality, OdrInclude, OdrExtra } from './odr-common.js';
 
 export type OdrRoadRule = 'RHT' | 'LHT';
 
@@ -49,6 +49,13 @@ export interface OdrRoad {
    * will add full modeling).
    */
   temporaryLanesRaw?: unknown;
+  /** Unmodeled direct attrs/children of <road> preserved for round-trip. */
+  extra?: OdrExtra;
+  /**
+   * Unmodeled children of <lateralProfile> (notably the 1.9 <crossSectionSurface>
+   * strip system) preserved for round-trip alongside superelevation/shape.
+   */
+  lateralProfileExtra?: OdrExtra;
 }
 
 export interface OdrRoadLink {
@@ -68,4 +75,6 @@ export interface OdrRoadTypeEntry {
   s: number;
   type: string;
   speed?: { max: number; unit: string };
+  /** Unmodeled <type> attrs (e.g. @country) preserved for round-trip. */
+  extra?: OdrExtra;
 }

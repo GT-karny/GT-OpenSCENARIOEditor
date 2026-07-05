@@ -34,6 +34,8 @@ export interface OdrInclude {
 export interface OdrUserData {
   code: string;
   value?: string;
+  /** Nested children/attrs of <userData> (vendor payloads like <style>/<fillet>) preserved for round-trip. */
+  extra?: OdrExtra;
 }
 
 /**

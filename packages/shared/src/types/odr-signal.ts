@@ -2,7 +2,7 @@
  * OpenDRIVE signal types.
  */
 
-import type { OdrLaneValidity } from './odr-common.js';
+import type { OdrLaneValidity, OdrExtra } from './odr-common.js';
 
 export interface OdrSignal {
   id: string;
@@ -29,6 +29,8 @@ export interface OdrSignal {
   reference?: OdrSignalReference[];
   positionRoad?: OdrSignalPositionRoad;
   positionInertial?: OdrSignalPositionInertial;
+  /** Unmodeled signal attrs (@length/@invalidated/@temporary) / 1.9 subtrees (<semantics>, board) preserved for round-trip. */
+  extra?: OdrExtra;
 }
 
 export interface OdrSignalDependency {
