@@ -9,8 +9,8 @@ import { useUnsavedChangesGuard } from './hooks/use-unsaved-changes-guard';
 import { useFileDragDrop } from './hooks/use-file-drag-drop';
 import { DropOverlay } from './components/editor/DropOverlay';
 import { useScenarioStoreApi } from './stores/use-scenario-store';
-import { useEditorStore } from './stores/editor-store';
 import { useProjectStore } from './stores/project-store';
+import { initDocumentRegistry } from './stores/document-registry';
 
 export default function App() {
   useKeyboardShortcuts();
@@ -19,14 +19,12 @@ export default function App() {
   const { isDragging } = useFileDragDrop();
   const currentView = useProjectStore((s) => s.currentView);
 
-  // Track dirty state: any scenario store mutation marks the document as dirty
+  // Wire the DocumentRegistry to the engine stores. Dirty is derived from the
+  // command-history revision (see document-registry.ts), replacing the old
+  // blanket "any scenario mutation → setDirty(true)" subscription that marked
+  // freshly loaded/created documents dirty.
   const storeApi = useScenarioStoreApi();
-  useEffect(() => {
-    const unsub = storeApi.subscribe(() => {
-      useEditorStore.getState().setDirty(true);
-    });
-    return unsub;
-  }, [storeApi]);
+  useEffect(() => initDocumentRegistry(storeApi), [storeApi]);
 
   return (
     <>
