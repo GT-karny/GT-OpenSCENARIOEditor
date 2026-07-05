@@ -3,6 +3,7 @@
  */
 import type { OdrController } from '@osce/shared';
 import { optAttr } from './format-utils.js';
+import { applyExtra } from './apply-extra.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type XmlNode = Record<string, any>;
@@ -25,5 +26,5 @@ export function buildController(controller: OdrController): XmlNode {
     });
   }
 
-  return node;
+  return applyExtra(node, controller.extra);
 }

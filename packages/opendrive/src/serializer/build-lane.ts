@@ -16,6 +16,7 @@ import type {
   OdrRoadMarkSway,
 } from '@osce/shared';
 import { fmtNum, optAttr, numAttr } from './format-utils.js';
+import { applyExtra } from './apply-extra.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type XmlNode = Record<string, any>;
@@ -67,7 +68,7 @@ function buildLaneSection(section: OdrLaneSection): XmlNode {
     };
   }
 
-  return node;
+  return applyExtra(node, section.extra);
 }
 
 function buildLane(lane: OdrLane): XmlNode {
@@ -144,7 +145,7 @@ function buildLane(lane: OdrLane): XmlNode {
     node.rule = lane.rule.map(buildLaneRule);
   }
 
-  return node;
+  return applyExtra(node, lane.extra);
 }
 
 function buildLaneWidth(w: OdrLaneWidth): XmlNode {

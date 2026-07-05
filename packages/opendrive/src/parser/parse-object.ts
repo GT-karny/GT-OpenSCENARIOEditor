@@ -4,6 +4,8 @@
 import type {
   OdrRoadObject,
   OdrObjectReference,
+  OdrObjectOutline,
+  OdrObjectMaterial,
   OdrTunnel,
   OdrBridge,
 } from '@osce/shared';
@@ -17,6 +19,7 @@ import {
   attrOptStr,
   attrBool,
 } from './xml-helpers.js';
+import { trackNode } from './node-tracker.js';
 import { parseLaneValidity } from './parse-common.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,30 +31,31 @@ export function parseObjects(raw: Raw | undefined): OdrRoadObject[] {
 }
 
 function parseObject(o: Raw): OdrRoadObject {
+  const t = trackNode(o);
   const obj: OdrRoadObject = {
-    id: attrStr(o, 'id'),
-    name: attrOptStr(o, 'name'),
-    type: attrOptStr(o, 'type'),
-    subtype: attrOptStr(o, 'subtype'),
-    dynamic: attrOptStr(o, 'dynamic'),
-    s: attrNum(o, 's'),
-    t: attrNum(o, 't'),
-    zOffset: attrOptNum(o, 'zOffset'),
-    validLength: attrOptNum(o, 'validLength'),
-    hdg: attrOptNum(o, 'hdg'),
-    pitch: attrOptNum(o, 'pitch'),
-    roll: attrOptNum(o, 'roll'),
-    length: attrOptNum(o, 'length'),
-    width: attrOptNum(o, 'width'),
-    height: attrOptNum(o, 'height'),
-    radius: attrOptNum(o, 'radius'),
-    orientation: attrOptStr(o, 'orientation'),
+    id: t.str('id'),
+    name: t.optStr('name'),
+    type: t.optStr('type'),
+    subtype: t.optStr('subtype'),
+    dynamic: t.optStr('dynamic'),
+    s: t.num('s'),
+    t: t.num('t'),
+    zOffset: t.optNum('zOffset'),
+    validLength: t.optNum('validLength'),
+    hdg: t.optNum('hdg'),
+    pitch: t.optNum('pitch'),
+    roll: t.optNum('roll'),
+    length: t.optNum('length'),
+    width: t.optNum('width'),
+    height: t.optNum('height'),
+    radius: t.optNum('radius'),
+    orientation: t.optStr('orientation'),
   };
 
   // repeat
-  const repeatArr = ensureArray(o.repeat);
+  const repeatArr = t.takeChildren('repeat') as Raw[];
   if (repeatArr.length > 0) {
-    obj.repeat = repeatArr.map((r: Raw) => ({
+    obj.repeat = repeatArr.map((r) => ({
       s: attrNum(r, 's'),
       length: attrNum(r, 'length'),
       distance: attrNum(r, 'distance'),
@@ -70,47 +74,54 @@ function parseObject(o: Raw): OdrRoadObject {
     }));
   }
 
-  // outline (single, direct child)
-  if (o.outline) {
-    obj.outline = parseOutline(o.outline);
+  // outline (single, direct child; forced to an array by the parser config)
+  const outlineArr = t.takeChildren('outline') as Raw[];
+  if (outlineArr.length > 0) {
+    obj.outline = parseOutline(outlineArr[0]);
   }
 
   // outlines (wrapper with multiple outline children)
-  if (o.outlines) {
-    const outlinesWrapper = ensureArray(o.outlines);
-    if (outlinesWrapper.length > 0) {
-      const outlineChildren = ensureArray(outlinesWrapper[0].outline);
-      if (outlineChildren.length > 0) {
-        obj.outlines = outlineChildren.map(parseOutline);
-      }
+  const outlinesArr = t.takeChildren('outlines') as Raw[];
+  if (outlinesArr.length > 0) {
+    const outlineChildren = ensureArray(outlinesArr[0].outline);
+    if (outlineChildren.length > 0) {
+      obj.outlines = outlineChildren.map(parseOutline);
     }
   }
 
   // material
-  const materialArr = ensureArray(o.material);
+  const materialArr = t.takeChildren('material') as Raw[];
   if (materialArr.length > 0) {
-    obj.material = materialArr.map((m: Raw) => ({
-      surface: attrOptStr(m, 'surface'),
-      friction: attrOptNum(m, 'friction'),
-      roughness: attrOptNum(m, 'roughness'),
-    }));
+    obj.material = materialArr.map((m) => {
+      const mt = trackNode(m);
+      const mat: OdrObjectMaterial = {
+        surface: mt.optStr('surface'),
+        friction: mt.optNum('friction'),
+        roughness: mt.optNum('roughness'),
+      };
+      const ex = mt.rest();
+      if (ex) mat.extra = ex;
+      return mat;
+    });
   }
 
   // validity
-  const validity = parseLaneValidity(o.validity);
+  const validity = parseLaneValidity(t.takeChildren('validity'));
   if (validity) obj.validity = validity;
 
   // parkingSpace
-  if (o.parkingSpace) {
+  const parkingSpace = t.takeChild('parkingSpace') as Raw | undefined;
+  if (parkingSpace) {
     obj.parkingSpace = {
-      access: attrStr(o.parkingSpace, 'access'),
-      restrictions: attrOptStr(o.parkingSpace, 'restrictions'),
+      access: attrStr(parkingSpace, 'access'),
+      restrictions: attrOptStr(parkingSpace, 'restrictions'),
     };
   }
 
-  // markings
-  if (o.markings) {
-    const markingArr = ensureArray(o.markings.marking ?? o.markings);
+  // markings (object-level wrapper; 1.9 also allows markings under <outline>)
+  const markingsRaw = t.takeChild('markings') as Raw | undefined;
+  if (markingsRaw) {
+    const markingArr = ensureArray(markingsRaw.marking ?? markingsRaw);
     if (markingArr.length > 0 && typeof markingArr[0] === 'object') {
       obj.markings = markingArr.map((m: Raw) => ({
         side: attrStr(m, 'side'),
@@ -130,8 +141,9 @@ function parseObject(o: Raw): OdrRoadObject {
   }
 
   // borders
-  if (o.borders) {
-    const borderArr = ensureArray(o.borders.border ?? o.borders);
+  const bordersRaw = t.takeChild('borders') as Raw | undefined;
+  if (bordersRaw) {
+    const borderArr = ensureArray(bordersRaw.border ?? bordersRaw);
     if (borderArr.length > 0 && typeof borderArr[0] === 'object') {
       obj.borders = borderArr.map((b: Raw) => ({
         outlineId: attrStr(b, 'outlineId'),
@@ -145,29 +157,27 @@ function parseObject(o: Raw): OdrRoadObject {
     }
   }
 
+  // Preserve unmodeled object attrs (@perpToRoad/@invalidated/@temporary) and
+  // whole unmodeled subtrees (<skeleton>, <surface>/<CRG>) for round-trip.
+  const extra = t.rest();
+  if (extra) obj.extra = extra;
+
   return obj;
 }
 
-function parseOutline(raw: Raw): {
-  id?: string;
-  fillType?: string;
-  outer?: boolean;
-  closed?: boolean;
-  laneType?: string;
-  cornerRoad?: { s: number; t: number; dz: number; height: number; id?: number }[];
-  cornerLocal?: { u: number; v: number; z: number; height: number; id?: number }[];
-} {
-  const outline: ReturnType<typeof parseOutline> = {
-    id: attrOptStr(raw, 'id'),
-    fillType: attrOptStr(raw, 'fillType'),
-    outer: attrBool(raw, 'outer') === true ? true : undefined,
-    closed: attrBool(raw, 'closed') === true ? true : undefined,
-    laneType: attrOptStr(raw, 'laneType'),
+function parseOutline(raw: Raw): OdrObjectOutline {
+  const t = trackNode(raw);
+  const outline: OdrObjectOutline = {
+    id: t.optStr('id'),
+    fillType: t.optStr('fillType'),
+    outer: t.bool('outer') === true ? true : undefined,
+    closed: t.bool('closed') === true ? true : undefined,
+    laneType: t.optStr('laneType'),
   };
 
-  const cornerRoadArr = ensureArray(raw.cornerRoad);
+  const cornerRoadArr = t.takeChildren('cornerRoad') as Raw[];
   if (cornerRoadArr.length > 0) {
-    outline.cornerRoad = cornerRoadArr.map((c: Raw) => ({
+    outline.cornerRoad = cornerRoadArr.map((c) => ({
       s: attrNum(c, 's'),
       t: attrNum(c, 't'),
       dz: attrNum(c, 'dz'),
@@ -176,9 +186,9 @@ function parseOutline(raw: Raw): {
     }));
   }
 
-  const cornerLocalArr = ensureArray(raw.cornerLocal);
+  const cornerLocalArr = t.takeChildren('cornerLocal') as Raw[];
   if (cornerLocalArr.length > 0) {
-    outline.cornerLocal = cornerLocalArr.map((c: Raw) => ({
+    outline.cornerLocal = cornerLocalArr.map((c) => ({
       u: attrNum(c, 'u'),
       v: attrNum(c, 'v'),
       z: attrNum(c, 'z'),
@@ -186,6 +196,10 @@ function parseOutline(raw: Raw): {
       id: attrOptNum(c, 'id'),
     }));
   }
+
+  // Preserve unmodeled outline children (1.9 <curveLocal>, nested <markings>).
+  const extra = t.rest();
+  if (extra) outline.extra = extra;
 
   return outline;
 }

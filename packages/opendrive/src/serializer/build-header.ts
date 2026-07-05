@@ -4,6 +4,7 @@
 import type { OdrHeader } from '@osce/shared';
 import { fmtNum, optAttr } from './format-utils.js';
 import { buildUserData, buildDataQuality, buildInclude } from './build-common.js';
+import { applyExtra } from './apply-extra.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type XmlNode = Record<string, any>;
@@ -20,6 +21,8 @@ export function buildHeader(header: OdrHeader): XmlNode {
   optAttr(node, '@_south', header.south, fmtNum);
   optAttr(node, '@_east', header.east, fmtNum);
   optAttr(node, '@_west', header.west, fmtNum);
+  optAttr(node, '@_version', header.version);
+  optAttr(node, '@_vendor', header.vendor);
 
   if (header.geoReference != null) {
     node.geoReference = { __cdata: header.geoReference };
@@ -45,5 +48,6 @@ export function buildHeader(header: OdrHeader): XmlNode {
     node.include = header.includes.map(buildInclude);
   }
 
-  return node;
+  // Re-emit unmodeled header children (1.9 <license>, <defaultRegulations>).
+  return applyExtra(node, header.extra);
 }

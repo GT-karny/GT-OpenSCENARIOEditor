@@ -3,6 +3,7 @@
  */
 import type { OdrSignal, OdrSignalRef, OdrLaneValidity } from '@osce/shared';
 import { fmtNum, optAttr } from './format-utils.js';
+import { applyExtra } from './apply-extra.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type XmlNode = Record<string, any>;
@@ -85,7 +86,7 @@ export function buildSignal(sig: OdrSignal): XmlNode {
     node.positionInertial = piNode;
   }
 
-  return node;
+  return applyExtra(node, sig.extra);
 }
 
 export function buildSignalRef(ref: OdrSignalRef): XmlNode {

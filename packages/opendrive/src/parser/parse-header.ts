@@ -2,7 +2,8 @@
  * Parse OpenDRIVE <header> element.
  */
 import type { OdrHeader, OdrHeaderOffset } from '@osce/shared';
-import { attrNum, attrStr, attrOptNum } from './xml-helpers.js';
+import { attrNum } from './xml-helpers.js';
+import { trackNode } from './node-tracker.js';
 import { parseUserData, parseDataQuality, parseIncludes } from './parse-common.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -13,28 +14,35 @@ export function parseHeader(raw: Raw | undefined): OdrHeader {
     return { revMajor: 1, revMinor: 0, name: '', date: '' };
   }
 
+  const t = trackNode(raw);
   const header: OdrHeader = {
-    revMajor: attrNum(raw, 'revMajor', 1),
-    revMinor: attrNum(raw, 'revMinor', 0),
-    name: attrStr(raw, 'name'),
-    date: attrStr(raw, 'date'),
-    north: attrOptNum(raw, 'north'),
-    south: attrOptNum(raw, 'south'),
-    east: attrOptNum(raw, 'east'),
-    west: attrOptNum(raw, 'west'),
-    geoReference: extractGeoReference(raw.geoReference),
-    offset: parseHeaderOffset(raw.offset),
+    revMajor: t.num('revMajor', 1),
+    revMinor: t.num('revMinor', 0),
+    name: t.str('name'),
+    date: t.str('date'),
+    north: t.optNum('north'),
+    south: t.optNum('south'),
+    east: t.optNum('east'),
+    west: t.optNum('west'),
+    version: t.optStr('version'),
+    vendor: t.optStr('vendor'),
+    geoReference: extractGeoReference(t.takeChild('geoReference')),
+    offset: parseHeaderOffset(t.takeChild('offset') as Raw | undefined),
   };
 
   // userData / dataQuality / include (lossless round-trip)
-  const userData = parseUserData(raw.userData);
+  const userData = parseUserData(t.takeChildren('userData'));
   if (userData.length > 0) header.userData = userData;
 
-  const dataQuality = parseDataQuality(raw.dataQuality);
+  const dataQuality = parseDataQuality(t.takeChild('dataQuality') as Raw | undefined);
   if (dataQuality) header.dataQuality = dataQuality;
 
-  const includes = parseIncludes(raw.include);
+  const includes = parseIncludes(t.takeChildren('include'));
   if (includes.length > 0) header.includes = includes;
+
+  // Preserve unmodeled header children (1.9 <license>, <defaultRegulations>).
+  const extra = t.rest();
+  if (extra) header.extra = extra;
 
   return header;
 }

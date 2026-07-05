@@ -5,6 +5,7 @@ import type {
   OdrJunction,
   OdrJunctionConnection,
   OdrJunctionGroup,
+  OdrExtra,
 } from '@osce/shared';
 import {
   ensureArray,
@@ -96,10 +97,17 @@ function parseJunctionConnection(raw: Raw): OdrJunctionConnection {
     incomingRoad: t.str('incomingRoad'),
     connectingRoad: t.str('connectingRoad'),
     contactPoint: t.str('contactPoint', 'start') as 'start' | 'end',
-    laneLinks: t.takeChildren('laneLink').map((ll) => ({
-      from: attrNum(ll as Raw, 'from'),
-      to: attrNum(ll as Raw, 'to'),
-    })),
+    laneLinks: t.takeChildren('laneLink').map((ll) => {
+      const lt = trackNode(ll as Raw);
+      const link: { from: number; to: number; extra?: OdrExtra } = {
+        from: lt.num('from'),
+        to: lt.num('to'),
+      };
+      // Preserve unmodeled laneLink attrs (@overlapZone/@fromLayer/@toLayer).
+      const ex = lt.rest();
+      if (ex) link.extra = ex;
+      return link;
+    }),
   };
 
   // type (for virtual/direct junction connections)

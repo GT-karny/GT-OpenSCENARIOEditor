@@ -21,8 +21,8 @@ import {
   attrStr,
   attrOptStr,
   attrOptNum,
-  attrBool,
 } from './xml-helpers.js';
+import { trackNode } from './node-tracker.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Raw = Record<string, any>;
@@ -33,38 +33,49 @@ export function parseLaneSections(raw: Raw | undefined): OdrLaneSection[] {
 }
 
 function parseLaneSection(raw: Raw): OdrLaneSection {
-  const leftLanes = raw.left ? ensureArray(raw.left.lane).map(parseLane) : [];
-  const rightLanes = raw.right ? ensureArray(raw.right.lane).map(parseLane) : [];
+  const t = trackNode(raw);
+  const leftRaw = t.takeChild('left') as Raw | undefined;
+  const rightRaw = t.takeChild('right') as Raw | undefined;
+  const centerRaw = t.takeChild('center') as Raw | undefined;
+
+  const leftLanes = leftRaw ? ensureArray(leftRaw.lane).map(parseLane) : [];
+  const rightLanes = rightRaw ? ensureArray(rightRaw.lane).map(parseLane) : [];
 
   // Center lane - always id=0
   let centerLane: OdrLane;
-  if (raw.center?.lane) {
-    const centerArr = ensureArray(raw.center.lane);
-    centerLane = parseLane(centerArr[0]);
+  if (centerRaw?.lane) {
+    centerLane = parseLane(ensureArray(centerRaw.lane)[0]);
   } else {
     centerLane = { id: 0, type: 'none', width: [], roadMarks: [] };
   }
 
-  return {
-    s: attrNum(raw, 's'),
-    singleSide: attrBool(raw, 'singleSide') === true ? true : undefined,
+  const section: OdrLaneSection = {
+    s: t.num('s'),
+    singleSide: t.bool('singleSide') === true ? true : undefined,
     leftLanes,
     centerLane,
     rightLanes,
   };
+
+  // Preserve unmodeled <laneSection> attrs (@length) / children.
+  const extra = t.rest();
+  if (extra) section.extra = extra;
+
+  return section;
 }
 
 function parseLane(raw: Raw): OdrLane {
+  const t = trackNode(raw);
   const lane: OdrLane = {
-    id: attrNum(raw, 'id'),
-    type: attrStr(raw, 'type', 'none'),
-    level: attrBool(raw, 'level'),
-    width: ensureArray(raw.width).map(parseLaneWidth),
-    roadMarks: ensureArray(raw.roadMark).map(parseRoadMark),
+    id: t.num('id'),
+    type: t.str('type', 'none'),
+    level: t.bool('level'),
+    width: t.takeChildren('width').map((w) => parseLaneWidth(w as Raw)),
+    roadMarks: t.takeChildren('roadMark').map((r) => parseRoadMark(r as Raw)),
   };
 
   // Link
-  const link = raw.link;
+  const link = t.takeChild('link') as Raw | undefined;
   if (link) {
     const laneLink: OdrLaneLink = {};
     if (link.predecessor) {
@@ -81,9 +92,9 @@ function parseLane(raw: Raw): OdrLane {
   }
 
   // Speed
-  const speedArr = ensureArray(raw.speed);
+  const speedArr = t.takeChildren('speed') as Raw[];
   if (speedArr.length > 0) {
-    lane.speed = speedArr.map((s: Raw) => ({
+    lane.speed = speedArr.map((s) => ({
       sOffset: attrNum(s, 'sOffset'),
       max: attrNum(s, 'max'),
       unit: attrStr(s, 'unit', 'm/s'),
@@ -91,9 +102,9 @@ function parseLane(raw: Raw): OdrLane {
   }
 
   // Height
-  const heightArr = ensureArray(raw.height);
+  const heightArr = t.takeChildren('height') as Raw[];
   if (heightArr.length > 0) {
-    lane.height = heightArr.map((h: Raw) => ({
+    lane.height = heightArr.map((h) => ({
       sOffset: attrNum(h, 'sOffset'),
       inner: attrNum(h, 'inner'),
       outer: attrNum(h, 'outer'),
@@ -101,28 +112,32 @@ function parseLane(raw: Raw): OdrLane {
   }
 
   // Border
-  const borderArr = ensureArray(raw.border);
+  const borderArr = t.takeChildren('border') as Raw[];
   if (borderArr.length > 0) {
     lane.border = borderArr.map(parseLaneBorder);
   }
 
   // Material
-  const materialArr = ensureArray(raw.material);
+  const materialArr = t.takeChildren('material') as Raw[];
   if (materialArr.length > 0) {
     lane.material = materialArr.map(parseLaneMaterial);
   }
 
   // Access
-  const accessArr = ensureArray(raw.access);
+  const accessArr = t.takeChildren('access') as Raw[];
   if (accessArr.length > 0) {
     lane.access = accessArr.map(parseLaneAccess);
   }
 
   // Rule
-  const ruleArr = ensureArray(raw.rule);
+  const ruleArr = t.takeChildren('rule') as Raw[];
   if (ruleArr.length > 0) {
     lane.rule = ruleArr.map(parseLaneRule);
   }
+
+  // Preserve unmodeled lane attrs (@direction/@advisory/@dynamic*) / children (userData).
+  const extra = t.rest();
+  if (extra) lane.extra = extra;
 
   return lane;
 }

@@ -3,6 +3,7 @@
  */
 import type { OdrLaneValidity, OdrDataQuality, OdrUserData, OdrInclude } from '@osce/shared';
 import { ensureArray, attrNum, attrStr, attrOptStr } from './xml-helpers.js';
+import { trackNode } from './node-tracker.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Raw = Record<string, any>;
@@ -42,13 +43,19 @@ export function parseDataQuality(raw: Raw | undefined): OdrDataQuality | undefin
   return dq.error || dq.rawData ? dq : undefined;
 }
 
-/** Parse <userData> elements */
+/** Parse <userData> elements, preserving any nested vendor payload for round-trip. */
 export function parseUserData(raw: Raw | undefined): OdrUserData[] {
   if (!raw) return [];
-  return ensureArray(raw).map((u: Raw) => ({
-    code: attrStr(u, 'code'),
-    value: attrOptStr(u, 'value'),
-  }));
+  return ensureArray(raw).map((u: Raw) => {
+    const t = trackNode(u);
+    const ud: OdrUserData = {
+      code: t.str('code'),
+      value: t.optStr('value'),
+    };
+    const extra = t.rest();
+    if (extra) ud.extra = extra;
+    return ud;
+  });
 }
 
 /** Parse <include> elements */

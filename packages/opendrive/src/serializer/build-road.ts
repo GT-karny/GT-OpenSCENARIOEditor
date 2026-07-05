@@ -16,6 +16,7 @@ import { buildObject, buildObjectReference, buildTunnel, buildBridge } from './b
 import { buildSignal, buildSignalRef } from './build-signal.js';
 import { buildRailroad } from './build-railroad.js';
 import { buildUserData, buildDataQuality, buildInclude } from './build-common.js';
+import { applyExtra } from './apply-extra.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type XmlNode = Record<string, any>;
@@ -57,7 +58,7 @@ export function buildRoad(road: OdrRoad): XmlNode {
   // lateralProfile (superelevation + shapes)
   const hasSuperelev = road.lateralProfile.length > 0;
   const hasShapes = road.shapes && road.shapes.length > 0;
-  if (hasSuperelev || hasShapes) {
+  if (hasSuperelev || hasShapes || road.lateralProfileExtra) {
     const lpNode: XmlNode = {};
     if (hasSuperelev) lpNode.superelevation = road.lateralProfile.map(buildSuperelevation);
     if (hasShapes) {
@@ -72,7 +73,8 @@ export function buildRoad(road: OdrRoad): XmlNode {
         return sn;
       });
     }
-    node.lateralProfile = lpNode;
+    // Re-emit passthrough children (crossSectionSurface, …) after the known ones.
+    node.lateralProfile = applyExtra(lpNode, road.lateralProfileExtra);
   } else {
     node.lateralProfile = '';
   }
@@ -168,7 +170,8 @@ export function buildRoad(road: OdrRoad): XmlNode {
     node.include = road.includes.map(buildInclude);
   }
 
-  return node;
+  // Re-emit any unmodeled direct children/attrs (e.g. a bare <surface/>).
+  return applyExtra(node, road.extra);
 }
 
 function buildRoadLink(link: OdrRoadLink | undefined): XmlNode | string {
@@ -207,7 +210,7 @@ function buildRoadType(entry: OdrRoadTypeEntry): XmlNode {
       '@_unit': entry.speed.unit,
     };
   }
-  return node;
+  return applyExtra(node, entry.extra);
 }
 
 function buildGeometry(geom: OdrGeometry): XmlNode {

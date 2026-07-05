@@ -3,6 +3,7 @@
  */
 import type { OdrDataQuality, OdrUserData, OdrInclude } from '@osce/shared';
 import { fmtNum, optAttr } from './format-utils.js';
+import { applyExtra } from './apply-extra.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type XmlNode = Record<string, any>;
@@ -32,7 +33,7 @@ export function buildDataQuality(dq: OdrDataQuality): XmlNode {
 export function buildUserData(ud: OdrUserData): XmlNode {
   const node: XmlNode = { '@_code': ud.code };
   optAttr(node, '@_value', ud.value);
-  return node;
+  return applyExtra(node, ud.extra);
 }
 
 export function buildInclude(inc: OdrInclude): XmlNode {

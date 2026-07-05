@@ -80,10 +80,9 @@ function buildConnection(conn: OdrJunctionConnection): XmlNode {
   optAttr(node, '@_type', conn.type);
 
   if (conn.laneLinks.length > 0) {
-    node.laneLink = conn.laneLinks.map((ll) => ({
-      '@_from': ll.from,
-      '@_to': ll.to,
-    }));
+    node.laneLink = conn.laneLinks.map((ll) =>
+      applyExtra({ '@_from': ll.from, '@_to': ll.to }, ll.extra),
+    );
   }
 
   // predecessor
