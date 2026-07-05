@@ -15,7 +15,7 @@ import { buildLanes } from './build-lane.js';
 import { buildObject, buildObjectReference, buildTunnel, buildBridge } from './build-object.js';
 import { buildSignal, buildSignalRef } from './build-signal.js';
 import { buildRailroad } from './build-railroad.js';
-import { buildUserData, buildDataQuality, buildInclude } from './build-common.js';
+import { appendAdditionalData } from './build-common.js';
 import { applyExtra } from './apply-extra.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -159,16 +159,12 @@ export function buildRoad(road: OdrRoad): XmlNode {
     node.railroad = buildRailroad(road.railroad);
   }
 
-  // userData / dataQuality / include (lossless round-trip, XSD-correct positions at end of road element)
-  if (road.userData && road.userData.length > 0) {
-    node.userData = road.userData.map(buildUserData);
-  }
-  if (road.dataQuality) {
-    node.dataQuality = buildDataQuality(road.dataQuality);
-  }
-  if (road.includes && road.includes.length > 0) {
-    node.include = road.includes.map(buildInclude);
-  }
+  // g_additionalData (lossless round-trip): dataQuality → include → userData
+  appendAdditionalData(node, {
+    dataQuality: road.dataQuality,
+    includes: road.includes,
+    userData: road.userData,
+  });
 
   // Re-emit any unmodeled direct children/attrs (e.g. a bare <surface/>).
   return applyExtra(node, road.extra);

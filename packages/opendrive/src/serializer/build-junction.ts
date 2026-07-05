@@ -26,14 +26,14 @@ export function buildJunction(junction: OdrJunction): XmlNode {
     node.connection = junction.connections.map(buildConnection);
   }
 
-  // priority
+  // priority — XSD 1.9 makes both @high and @low required (use="required"),
+  // so always emit both sides (empty string for a missing side rather than
+  // dropping the attribute, which would be schema-invalid).
   if (junction.priority && junction.priority.length > 0) {
-    node.priority = junction.priority.map((p) => {
-      const pn: XmlNode = {};
-      optAttr(pn, '@_high', p.high);
-      optAttr(pn, '@_low', p.low);
-      return pn;
-    });
+    node.priority = junction.priority.map((p) => ({
+      '@_high': p.high ?? '',
+      '@_low': p.low ?? '',
+    }));
   }
 
   // controller

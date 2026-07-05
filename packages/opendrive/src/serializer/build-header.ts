@@ -3,7 +3,7 @@
  */
 import type { OdrHeader } from '@osce/shared';
 import { fmtNum, optAttr } from './format-utils.js';
-import { buildUserData, buildDataQuality, buildInclude } from './build-common.js';
+import { appendAdditionalData } from './build-common.js';
 import { applyExtra } from './apply-extra.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -37,17 +37,21 @@ export function buildHeader(header: OdrHeader): XmlNode {
     };
   }
 
-  // userData / dataQuality / include (lossless round-trip, XSD-correct positions at end of header element)
-  if (header.userData && header.userData.length > 0) {
-    node.userData = header.userData.map(buildUserData);
-  }
-  if (header.dataQuality) {
-    node.dataQuality = buildDataQuality(header.dataQuality);
-  }
-  if (header.includes && header.includes.length > 0) {
-    node.include = header.includes.map(buildInclude);
-  }
+  // XSD t_header sequence: geoReference, offset, license, g_additionalData,
+  // defaultRegulations. <license> and <defaultRegulations> are unmodeled and
+  // ride through `extra`; emit <license> here so it precedes the additionalData
+  // group (applyExtra then skips it as already-present), leaving
+  // <defaultRegulations> to trail after the group.
+  const license = header.extra?.children?.find((c) => c.name === 'license');
+  if (license) node.license = license.raw;
 
-  // Re-emit unmodeled header children (1.9 <license>, <defaultRegulations>).
+  // g_additionalData: dataQuality → include → userData
+  appendAdditionalData(node, {
+    dataQuality: header.dataQuality,
+    includes: header.includes,
+    userData: header.userData,
+  });
+
+  // Re-emit remaining unmodeled header children (1.9 <defaultRegulations>).
   return applyExtra(node, header.extra);
 }

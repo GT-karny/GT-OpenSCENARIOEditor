@@ -39,3 +39,21 @@ export function buildUserData(ud: OdrUserData): XmlNode {
 export function buildInclude(inc: OdrInclude): XmlNode {
   return { '@_file': inc.file };
 }
+
+interface AdditionalDataSource {
+  dataQuality?: OdrDataQuality;
+  includes?: OdrInclude[];
+  userData?: OdrUserData[];
+}
+
+/**
+ * Append the g_additionalData group children in XSD 1.9 sequence order
+ * (dataQuality → include → userData). Every g_additionalData occurrence must
+ * emit this order regardless of how the model stores the fields.
+ */
+export function appendAdditionalData(node: XmlNode, src: AdditionalDataSource): XmlNode {
+  if (src.dataQuality) node.dataQuality = buildDataQuality(src.dataQuality);
+  if (src.includes && src.includes.length > 0) node.include = src.includes.map(buildInclude);
+  if (src.userData && src.userData.length > 0) node.userData = src.userData.map(buildUserData);
+  return node;
+}

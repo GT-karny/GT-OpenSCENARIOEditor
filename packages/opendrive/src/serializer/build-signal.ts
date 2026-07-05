@@ -57,7 +57,21 @@ export function buildSignal(sig: OdrSignal): XmlNode {
     });
   }
 
-  // positionRoad
+  // position choice — XSD 1.9 orders positionInertial before positionRoad
+  // (t_road_signals_signal sequence); emit in that order.
+  if (sig.positionInertial) {
+    const pi = sig.positionInertial;
+    const piNode: XmlNode = {
+      '@_x': fmtNum(pi.x),
+      '@_y': fmtNum(pi.y),
+      '@_z': fmtNum(pi.z),
+      '@_hdg': fmtNum(pi.hdg),
+    };
+    optAttr(piNode, '@_pitch', pi.pitch, fmtNum);
+    optAttr(piNode, '@_roll', pi.roll, fmtNum);
+    node.positionInertial = piNode;
+  }
+
   if (sig.positionRoad) {
     const pr = sig.positionRoad;
     const prNode: XmlNode = {
@@ -70,20 +84,6 @@ export function buildSignal(sig: OdrSignal): XmlNode {
     optAttr(prNode, '@_pitch', pr.pitch, fmtNum);
     optAttr(prNode, '@_roll', pr.roll, fmtNum);
     node.positionRoad = prNode;
-  }
-
-  // positionInertial
-  if (sig.positionInertial) {
-    const pi = sig.positionInertial;
-    const piNode: XmlNode = {
-      '@_x': fmtNum(pi.x),
-      '@_y': fmtNum(pi.y),
-      '@_z': fmtNum(pi.z),
-      '@_hdg': fmtNum(pi.hdg),
-    };
-    optAttr(piNode, '@_pitch', pi.pitch, fmtNum);
-    optAttr(piNode, '@_roll', pi.roll, fmtNum);
-    node.positionInertial = piNode;
   }
 
   return applyExtra(node, sig.extra);
