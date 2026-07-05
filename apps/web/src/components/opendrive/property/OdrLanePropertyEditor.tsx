@@ -36,15 +36,18 @@ const LANE_TYPES: readonly string[] = [
   'mwyExit',
 ];
 
-const ROAD_MARK_TYPES: readonly string[] = [
+// Values are the OpenDRIVE XSD e_roadMarkType tokens (space-separated for compound
+// marks). The serializer/parser and viewers use the same space form, so UI, viz, and
+// serialize all agree. See Thirdparty/opendrive/1.9/.../OpenDRIVE_Lane.xsd.
+export const ROAD_MARK_TYPES: readonly string[] = [
   'none',
   'solid',
   'broken',
-  'solid_solid',
-  'solid_broken',
-  'broken_solid',
-  'broken_broken',
-  'botts_dots',
+  'solid solid',
+  'solid broken',
+  'broken solid',
+  'broken broken',
+  'botts dots',
   'grass',
   'curb',
   'custom',
