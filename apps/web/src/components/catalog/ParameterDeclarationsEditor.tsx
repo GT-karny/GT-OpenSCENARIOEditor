@@ -1,4 +1,5 @@
 import { useTranslation } from '@osce/i18n';
+import { generateId } from '@osce/shared';
 import type { ParameterDeclaration } from '@osce/shared';
 import { Input } from '../ui/input';
 import { EnumSelect } from '../property/EnumSelect';
@@ -21,7 +22,7 @@ export function ParameterDeclarationsEditor({
     onChange([
       ...parameters,
       {
-        id: crypto.randomUUID(),
+        id: generateId(),
         name: '',
         parameterType: 'double',
         value: '',

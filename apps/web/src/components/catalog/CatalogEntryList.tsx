@@ -2,6 +2,7 @@ import { useTranslation } from '@osce/i18n';
 import { useCatalogStore } from '../../stores/catalog-store';
 import { cn } from '@/lib/utils';
 import { Car, User, Box, Plus, Copy, Trash2, Gamepad2, Cloud, GitBranch, Spline, Route } from 'lucide-react';
+import { generateId } from '@osce/shared';
 import type { CatalogEntry, VehicleDefinition, PedestrianDefinition, MiscObjectDefinition, ControllerDefinition } from '@osce/shared';
 
 function entryIcon(entry: CatalogEntry) {
@@ -61,7 +62,7 @@ export function CatalogEntryList() {
       ? {
           catalogType: 'maneuver',
           definition: {
-            id: crypto.randomUUID(),
+            id: generateId(),
             name: `new_maneuver_${count}`,
             parameterDeclarations: [],
             events: [],

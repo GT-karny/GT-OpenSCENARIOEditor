@@ -7,6 +7,7 @@
 import { useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { Plus, Trash2, TrafficCone } from 'lucide-react';
+import { generateId } from '@osce/shared';
 import type { TrafficSignalController } from '@osce/shared';
 import { useScenarioStore, useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
@@ -30,7 +31,7 @@ export function SignalControllerPropertyEditor() {
   const handleAdd = useCallback(() => {
     const doc = storeApi.getState().document;
     const signals = (doc.roadNetwork?.trafficSignals ?? []) as TrafficSignalController[];
-    const id = crypto.randomUUID();
+    const id = generateId();
     const newController: TrafficSignalController = {
       id,
       name: `Controller_${signals.length + 1}`,

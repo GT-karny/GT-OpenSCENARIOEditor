@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { generateId } from '@osce/shared';
 import type { Act, Condition, Trigger } from '@osce/shared';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { SegmentedControl } from './SegmentedControl';
@@ -39,7 +40,7 @@ export function ActPropertyEditor({ act }: ActPropertyEditorProps) {
   /** Ensure a real StopTrigger exists in the store before mutating */
   const ensureStopTrigger = (): Trigger => {
     if (act.stopTrigger) return act.stopTrigger;
-    const newTrigger: Trigger = { id: crypto.randomUUID(), conditionGroups: [] };
+    const newTrigger: Trigger = { id: generateId(), conditionGroups: [] };
     storeApi.getState().setStopTrigger(act.id, newTrigger);
     // Re-read from store (synchronous update)
     const updated = findActInStore(storeApi.getState(), act.id);

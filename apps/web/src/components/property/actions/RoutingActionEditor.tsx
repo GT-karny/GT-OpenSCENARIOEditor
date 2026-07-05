@@ -1,3 +1,4 @@
+import { generateId } from '@osce/shared';
 import type { ScenarioAction, RoutingAction, Position, Route, RouteStrategy } from '@osce/shared';
 import { MapPin } from 'lucide-react';
 import { Label } from '../../ui/label';
@@ -26,7 +27,7 @@ function toFullRoute(
   routeData: NonNullable<RoutingAction['route']>,
 ): Route {
   return {
-    id: crypto.randomUUID(),
+    id: generateId(),
     name: routeData.name,
     closed: routeData.closed,
     waypoints: routeData.waypoints.map((wp) => ({
