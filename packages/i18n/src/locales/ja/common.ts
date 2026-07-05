@@ -257,6 +257,13 @@ export const common = {
     save: '保存する',
     cancel: 'キャンセル',
   },
+  unsavedGuard: {
+    title: '未保存の変更',
+    description: '未保存の変更があります。続行する前に保存しますか？',
+    save: '保存して続行',
+    discard: '破棄して続行',
+    cancel: 'キャンセル',
+  },
   validationToast: {
     warnings: 'バリデーション警告が{{count}}件見つかりました',
     nonNavigable: 'この問題は特定の要素に紐づいていません',

@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import {
   XoscParser,
   XoscSerializer,
@@ -28,6 +28,7 @@ import { resolveCatalogEntityTypes } from '../lib/resolve-catalog-entity-types';
 import { addWebRecentFile } from '../lib/recent-files/recent-files-db';
 import type { RecentFileKind } from '../lib/recent-files/recent-list';
 import { documentHasInclude } from '../lib/wasm';
+import { confirmDiscardIfDirty, hasUnsavedChanges } from './use-discard-guard';
 
 /**
  * Warn (non-blocking) when saving an OpenDRIVE document that uses <include>
@@ -327,6 +328,39 @@ export function useFileOperations() {
   const setRoadNetwork = useEditorStore((s) => s.setRoadNetwork);
   const setShowSaveAs = useEditorStore((s) => s.setShowSaveAs);
 
+  // Holds the current save flows so the unsaved-changes guard can invoke them
+  // without depending on their declaration order (they are defined below).
+  const saveFnsRef = useRef<{
+    saveXosc: () => Promise<void>;
+    saveXodr: () => Promise<void>;
+  }>({ saveXosc: async () => {}, saveXodr: async () => {} });
+
+  /**
+   * Gate a document-replacing action (new / open / drop / reopen) behind the
+   * unsaved-changes guard.
+   *
+   * Returns `true` when the caller may proceed to replace the document:
+   * - clean document: proceeds immediately.
+   * - user picks Discard: proceeds.
+   * - user picks Save: runs the existing save flow(s) for whichever document is
+   *   dirty, then proceeds only if the save actually cleared the dirty state
+   *   (i.e. it was not cancelled/failed).
+   * - user picks Cancel: aborts (returns `false`).
+   */
+  const runUnsavedGuard = useCallback(async (): Promise<boolean> => {
+    const choice = await confirmDiscardIfDirty();
+    if (choice === 'cancel') return false;
+    if (choice === 'discard') return true;
+
+    // choice === 'save': persist whichever document(s) are dirty.
+    const state = useEditorStore.getState();
+    if (state.isDirty) await saveFnsRef.current.saveXosc();
+    if (state.isRoadNetworkDirty) await saveFnsRef.current.saveXodr();
+
+    // Proceed only if the save stuck; a cancelled picker leaves it dirty.
+    return !hasUnsavedChanges();
+  }, []);
+
   /**
    * Auto-validate a scenario before it is serialized/written.
    *
@@ -365,7 +399,8 @@ export function useFileOperations() {
     [setValidationResult, t],
   );
 
-  const newScenario = useCallback(() => {
+  const newScenario = useCallback(async () => {
+    if (!(await runUnsavedGuard())) return;
     resetForNewFile();
     storeApi.getState().createScenario();
 
@@ -396,6 +431,7 @@ export function useFileOperations() {
     setDirty,
     setValidationResult,
     setRoadNetwork,
+    runUnsavedGuard,
   ]);
 
   /**
@@ -405,7 +441,13 @@ export function useFileOperations() {
    * Returns true on success so callers can switch to the editor view.
    */
   const loadXoscFromRead = useCallback(
-    async ({ text, name, filePath, handle }: ReadResult): Promise<boolean> => {
+    async (
+      { text, name, filePath, handle }: ReadResult,
+      options?: { skipGuard?: boolean },
+    ): Promise<boolean> => {
+      // Guard against replacing unsaved changes (drag-drop / recent reopen call
+      // this directly; the menu picker guards earlier and passes skipGuard).
+      if (!options?.skipGuard && !(await runUnsavedGuard())) return false;
       try {
         const parser = new XoscParser();
         const doc = parser.parse(text);
@@ -470,10 +512,13 @@ export function useFileOperations() {
         return false;
       }
     },
-    [storeApi, resetForNewFile, setCurrentFileName, setDirty, setValidationResult, t],
+    [storeApi, resetForNewFile, setCurrentFileName, setDirty, setValidationResult, t, runUnsavedGuard],
   );
 
   const openXosc = useCallback(async () => {
+    // Prompt before opening the picker so the user isn't asked to pick a file
+    // they may then abandon at the unsaved-changes prompt.
+    if (!(await runUnsavedGuard())) return;
     let read: ReadResult;
     try {
       read = await readFileFromDisk('OpenSCENARIO', ['.xosc']);
@@ -485,8 +530,8 @@ export function useFileOperations() {
       }
       return;
     }
-    await loadXoscFromRead(read);
-  }, [loadXoscFromRead, t]);
+    await loadXoscFromRead(read, { skipGuard: true });
+  }, [loadXoscFromRead, t, runUnsavedGuard]);
 
   const saveXosc = useCallback(async () => {
     const currentProject = useProjectStore.getState().currentProject;
@@ -640,7 +685,8 @@ export function useFileOperations() {
 
   // ---- OpenDRIVE (.xodr) operations ----
 
-  const newOpenDrive = useCallback(() => {
+  const newOpenDrive = useCallback(async () => {
+    if (!(await runUnsavedGuard())) return;
     resetForNewRoadNetwork();
     const doc = createDefaultDocument();
     setRoadNetwork(doc, null);
@@ -648,7 +694,7 @@ export function useFileOperations() {
     useEditorStore.getState().setRoadNetworkDirty(false);
     useEditorStore.getState().setXodrFileHandle(null);
     useEditorStore.getState().setXodrFilePath(null);
-  }, [resetForNewRoadNetwork, setRoadNetwork]);
+  }, [resetForNewRoadNetwork, setRoadNetwork, runUnsavedGuard]);
 
   /**
    * Load an already-read .xodr source into the editor. Shared by the menu
@@ -656,7 +702,13 @@ export function useFileOperations() {
    * Returns true on success so callers can switch to the editor view.
    */
   const loadXodrFromRead = useCallback(
-    async ({ text, name, filePath, handle }: ReadResult): Promise<boolean> => {
+    async (
+      { text, name, filePath, handle }: ReadResult,
+      options?: { skipGuard?: boolean },
+    ): Promise<boolean> => {
+      // Guard against replacing unsaved changes (drag-drop / recent reopen call
+      // this directly; the menu picker guards earlier and passes skipGuard).
+      if (!options?.skipGuard && !(await runUnsavedGuard())) return false;
       try {
         const parser = new XodrParser();
         const doc = parser.parse(text);
@@ -684,10 +736,12 @@ export function useFileOperations() {
         return false;
       }
     },
-    [resetForNewRoadNetwork, setRoadNetwork, t],
+    [resetForNewRoadNetwork, setRoadNetwork, t, runUnsavedGuard],
   );
 
   const loadXodr = useCallback(async () => {
+    // Prompt before opening the picker (see openXosc).
+    if (!(await runUnsavedGuard())) return;
     let read: ReadResult;
     try {
       read = await readFileFromDisk('OpenDRIVE', ['.xodr']);
@@ -698,8 +752,8 @@ export function useFileOperations() {
       }
       return;
     }
-    await loadXodrFromRead(read);
-  }, [loadXodrFromRead, t]);
+    await loadXodrFromRead(read, { skipGuard: true });
+  }, [loadXodrFromRead, t, runUnsavedGuard]);
 
   const saveXodr = useCallback(async () => {
     const roadNetwork = useEditorStore.getState().roadNetwork;
@@ -821,6 +875,10 @@ export function useFileOperations() {
     },
     [t],
   );
+
+  // Keep the guard's save-flow reference current so it can persist on "Save"
+  // without creating a declaration-order dependency on these callbacks.
+  saveFnsRef.current = { saveXosc, saveXodr };
 
   return {
     newScenario,

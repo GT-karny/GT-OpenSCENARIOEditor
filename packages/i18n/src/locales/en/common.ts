@@ -256,6 +256,13 @@ export const common = {
     save: 'Save Anyway',
     cancel: 'Cancel',
   },
+  unsavedGuard: {
+    title: 'Unsaved changes',
+    description: 'You have unsaved changes. Do you want to save them before continuing?',
+    save: 'Save and continue',
+    discard: 'Discard and continue',
+    cancel: 'Cancel',
+  },
   validationToast: {
     warnings: '{{count}} validation warning(s) found',
     nonNavigable: 'This issue is not linked to a specific element',
