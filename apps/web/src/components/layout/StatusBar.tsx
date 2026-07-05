@@ -1,6 +1,7 @@
 import { useTranslation } from '@osce/i18n';
 import { useScenarioStore } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
+import { useDocumentRegistry } from '../../stores/document-registry';
 import { useSimulationStore } from '../../stores/simulation-store';
 import type { SimulationStatus } from '@osce/shared';
 
@@ -52,9 +53,12 @@ export function StatusBar() {
   const validationResult = useEditorStore((s) => s.validationResult);
   const editorMode = useEditorStore((s) => s.editorMode);
   const xoscFileName = useEditorStore((s) => s.currentFileName);
-  const isXoscDirty = useEditorStore((s) => s.isDirty);
+  // Dirty is derived from each document's command-history revision (registry).
+  const isXoscDirty = useDocumentRegistry((s) => s.current.scenario !== s.saved.scenario);
   const xodrFileName = useEditorStore((s) => s.roadNetworkFileName);
-  const isXodrDirty = useEditorStore((s) => s.isRoadNetworkDirty);
+  const isXodrDirty = useDocumentRegistry(
+    (s) => s.current.roadNetwork !== s.saved.roadNetwork,
+  );
   const simStatus = useSimulationStore((s) => s.status);
   const compatibilityProfile = useEditorStore((s) => s.preferences.compatibilityProfile);
   const speedUnit = useEditorStore((s) => s.preferences.speedUnit);
@@ -99,6 +103,35 @@ export function StatusBar() {
         )}
       </div>
       <div className="flex items-center gap-6">
+        {/* Per-document dirty indicators: surface unsaved state for BOTH the
+            focused and non-focused documents, so a dirty road network is visible
+            while editing a scenario (and vice versa). */}
+        {(isXoscDirty || isXodrDirty) && (
+          <span
+            className="flex items-center gap-3"
+            data-testid="dirty-indicators"
+            title={t('labels.unsavedChanges')}
+          >
+            {isXoscDirty && (
+              <span
+                data-testid="dirty-indicator-scenario"
+                className="flex items-center gap-1 text-[var(--color-text-secondary)]"
+              >
+                {t('labels.scenarioDoc')}
+                <span className="text-[var(--color-warning,#f59e0b)]">●</span>
+              </span>
+            )}
+            {isXodrDirty && (
+              <span
+                data-testid="dirty-indicator-roadNetwork"
+                className="flex items-center gap-1 text-[var(--color-text-secondary)]"
+              >
+                {t('labels.roadDoc')}
+                <span className="text-[var(--color-warning,#f59e0b)]">●</span>
+              </span>
+            )}
+          </span>
+        )}
         <span>
           {displayName ?? 'Untitled'}
           {displayDirty ? ' ●' : ''}
