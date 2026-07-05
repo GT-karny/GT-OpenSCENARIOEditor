@@ -26,6 +26,18 @@ export function getOpenDriveStoreApi() {
   return storeInstance;
 }
 
+/**
+ * Reset the module-singleton OpenDRIVE engine store to an empty document.
+ *
+ * `createDocument()` clears the CommandHistory (undo/redo), replaces the
+ * document with an empty default, and clears transient dirty tracking.
+ * Shared by both new-road-network and new-file lifecycle resets so a
+ * previously-edited road never leaks into the next scenario.
+ */
+export function resetOpenDriveStore(): void {
+  getOpenDriveStoreApi().getState().createDocument();
+}
+
 /** Get the raw vanilla store API (for non-React usage or subscriptions) */
 export function useOpenDriveStoreApi() {
   return useMemo(() => getOpenDriveStoreApi(), []);

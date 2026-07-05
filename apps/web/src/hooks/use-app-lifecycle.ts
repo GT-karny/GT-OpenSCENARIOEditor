@@ -4,7 +4,7 @@ import { useEditorStore } from '../stores/editor-store';
 import { useSimulationStore } from '../stores/simulation-store';
 import { useRouteEditStore } from '../stores/route-edit-store';
 import { useCatalogStore } from '../stores/catalog-store';
-import { getOpenDriveStoreApi, useOdrSidebarStore } from './use-opendrive-store';
+import { resetOpenDriveStore, useOdrSidebarStore } from './use-opendrive-store';
 import { editorMetadataStoreApi } from '../stores/editor-metadata-store-instance';
 
 /**
@@ -60,11 +60,15 @@ export function useAppLifecycle() {
 
     // 7. Reset editor metadata (virtual roads, junction metadata)
     editorMetadataStoreApi.getState().resetMetadata();
+
+    // 8. Reset opendrive-engine store (empty document + undo history)
+    // so a previously-edited road never leaks into the new scenario.
+    resetOpenDriveStore();
   }, []);
 
   const resetForNewRoadNetwork = useCallback(() => {
     // 1. Reset opendrive-engine store (creates empty document, clears undo history)
-    getOpenDriveStoreApi().getState().createDocument();
+    resetOpenDriveStore();
 
     // 2. Reset sidebar state (tool selection, creation states)
     useOdrSidebarStore.getState().resetAll();
