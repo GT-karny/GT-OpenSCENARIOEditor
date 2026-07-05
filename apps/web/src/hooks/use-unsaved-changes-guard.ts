@@ -49,11 +49,27 @@ export function useUnsavedChangesGuard(): void {
     const offRunSave = electron.onRunSave(() => {
       void (async () => {
         try {
-          const isRoadNetwork = useEditorStore.getState().editorMode === 'roadNetwork';
-          if (isRoadNetwork) {
-            await saveXodr();
-          } else {
+          // Both documents may be dirty at once (e.g. edited scenario + road
+          // network). Save each dirty document in turn; a single mode-specific
+          // save would leave the other dirty and the window would never close.
+          //
+          // Cancellation is detected via the per-document dirty flag: a
+          // successful save clears its own flag (setDirty/setRoadNetworkDirty),
+          // whereas a cancelled picker leaves it set. If a save leaves its flag
+          // dirty, the user cancelled — abort immediately and report failure.
+          if (useEditorStore.getState().isDirty) {
             await saveXosc();
+            if (useEditorStore.getState().isDirty) {
+              electron.respondSaveComplete(false);
+              return;
+            }
+          }
+          if (useEditorStore.getState().isRoadNetworkDirty) {
+            await saveXodr();
+            if (useEditorStore.getState().isRoadNetworkDirty) {
+              electron.respondSaveComplete(false);
+              return;
+            }
           }
           // Treat success as "no longer dirty". If the save was cancelled or
           // failed, the dirty flag stays set and we keep the window open.
