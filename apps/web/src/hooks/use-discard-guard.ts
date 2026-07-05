@@ -1,15 +1,14 @@
-import { useEditorStore } from '../stores/editor-store';
+import { useDocumentRegistry } from '../stores/document-registry';
 
 /** The user's decision when an in-app open would replace unsaved changes. */
 export type DiscardChoice = 'save' | 'discard' | 'cancel';
 
 /**
- * True when the active document (scenario or road network) has unsaved edits.
- * Read imperatively so the guard adds no re-render subscription.
+ * True when any registered document (scenario or road network) has unsaved
+ * edits. Read imperatively so the guard adds no re-render subscription.
  */
 export function hasUnsavedChanges(): boolean {
-  const state = useEditorStore.getState();
-  return state.isDirty || state.isRoadNetworkDirty;
+  return useDocumentRegistry.getState().anyDirty();
 }
 
 // ─── Module-level guard controller ───────────────────────────────────────────
@@ -96,9 +95,9 @@ export async function runUnsavedGuard(saveFns: UnsavedGuardSaveFns): Promise<boo
   if (choice === 'discard') return true;
 
   // choice === 'save': persist whichever document(s) are dirty.
-  const state = useEditorStore.getState();
-  if (state.isDirty) await saveFns.saveXosc();
-  if (state.isRoadNetworkDirty) await saveFns.saveXodr();
+  const registry = useDocumentRegistry.getState();
+  if (registry.isDirty('scenario')) await saveFns.saveXosc();
+  if (registry.isDirty('roadNetwork')) await saveFns.saveXodr();
 
   // Proceed only if the save stuck; a cancelled picker leaves it dirty.
   return !hasUnsavedChanges();

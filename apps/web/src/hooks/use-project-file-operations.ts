@@ -6,6 +6,7 @@ import { useTranslation } from '@osce/i18n';
 import { toast } from 'sonner';
 import { useScenarioStoreApi } from '../stores/use-scenario-store';
 import { useEditorStore } from '../stores/editor-store';
+import { useDocumentRegistry } from '../stores/document-registry';
 import { useProjectStore } from '../stores/project-store';
 import { useCatalogStore } from '../stores/catalog-store';
 import { buildCatalogLocationsFromProject } from '../lib/catalog-location-utils';
@@ -214,7 +215,8 @@ export function useProjectFileOperations() {
         // Update editor state
         const filename = relativePath.split('/').pop() ?? relativePath;
         useEditorStore.getState().setCurrentFileName(filename);
-        useEditorStore.getState().setDirty(false);
+        // Loaded document = clean baseline (createScenario cleared history).
+        useDocumentRegistry.getState().markLoaded('scenario');
         useEditorStore.getState().setValidationResult(null);
 
         // Update project store

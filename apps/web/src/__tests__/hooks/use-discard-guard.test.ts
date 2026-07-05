@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { useEditorStore } from '../../stores/editor-store';
+import { useDocumentRegistry } from '../../stores/document-registry';
 import {
   confirmDiscardIfDirty,
   resolveDiscardGuard,
@@ -13,9 +13,18 @@ import {
 // mount so the controller's promise behaviour can be asserted in isolation.
 vi.mock('react-dom/client', () => ({ createRoot: () => ({ render: () => {} }) }));
 
+// Derived dirty is driven through the registry: markRestoredDirty forces a
+// document dirty (savedRevision sentinel), markLoaded/markSaved make it clean.
+const registry = () => useDocumentRegistry.getState();
+function markScenarioDirty() {
+  registry().markRestoredDirty('scenario');
+}
+function markRoadDirty() {
+  registry().markRestoredDirty('roadNetwork');
+}
 function setClean() {
-  useEditorStore.getState().setDirty(false);
-  useEditorStore.getState().setRoadNetworkDirty(false);
+  registry().markLoaded('scenario');
+  registry().markLoaded('roadNetwork');
 }
 
 describe('confirmDiscardIfDirty', () => {
@@ -35,15 +44,15 @@ describe('confirmDiscardIfDirty', () => {
   it('reflects dirty state via hasUnsavedChanges (scenario or road network)', () => {
     setClean();
     expect(hasUnsavedChanges()).toBe(false);
-    useEditorStore.getState().setDirty(true);
+    markScenarioDirty();
     expect(hasUnsavedChanges()).toBe(true);
     setClean();
-    useEditorStore.getState().setRoadNetworkDirty(true);
+    markRoadDirty();
     expect(hasUnsavedChanges()).toBe(true);
   });
 
   it('opens the dialog when dirty and resolves "cancel"', async () => {
-    useEditorStore.getState().setDirty(true);
+    markScenarioDirty();
     const promise = confirmDiscardIfDirty();
     expect(getDiscardGuardOpen()).toBe(true);
 
@@ -53,7 +62,7 @@ describe('confirmDiscardIfDirty', () => {
   });
 
   it('opens the dialog when dirty and resolves "discard"', async () => {
-    useEditorStore.getState().setDirty(true);
+    markScenarioDirty();
     const promise = confirmDiscardIfDirty();
     expect(getDiscardGuardOpen()).toBe(true);
 
@@ -63,7 +72,7 @@ describe('confirmDiscardIfDirty', () => {
   });
 
   it('opens the dialog when dirty and resolves "save"', async () => {
-    useEditorStore.getState().setRoadNetworkDirty(true);
+    markRoadDirty();
     const promise = confirmDiscardIfDirty();
     expect(getDiscardGuardOpen()).toBe(true);
 
@@ -93,7 +102,7 @@ describe('runUnsavedGuard gate semantics', () => {
   });
 
   it('cancel aborts the replace', async () => {
-    useEditorStore.getState().setDirty(true);
+    markScenarioDirty();
     const save = vi.fn(async () => {});
     const gate = runGate(save);
     resolveDiscardGuard('cancel');
@@ -102,7 +111,7 @@ describe('runUnsavedGuard gate semantics', () => {
   });
 
   it('discard proceeds without saving', async () => {
-    useEditorStore.getState().setDirty(true);
+    markScenarioDirty();
     const save = vi.fn(async () => {});
     const gate = runGate(save);
     resolveDiscardGuard('discard');
@@ -111,9 +120,9 @@ describe('runUnsavedGuard gate semantics', () => {
   });
 
   it('save that succeeds (clears dirty) proceeds', async () => {
-    useEditorStore.getState().setDirty(true);
+    markScenarioDirty();
     const save = vi.fn(async () => {
-      useEditorStore.getState().setDirty(false);
+      registry().markLoaded('scenario');
     });
     const gate = runGate(save);
     resolveDiscardGuard('save');
@@ -122,7 +131,7 @@ describe('runUnsavedGuard gate semantics', () => {
   });
 
   it('save that is cancelled (stays dirty) aborts the replace', async () => {
-    useEditorStore.getState().setDirty(true);
+    markScenarioDirty();
     const save = vi.fn(async () => {
       // Simulate a cancelled save-picker: dirty flag remains set.
     });

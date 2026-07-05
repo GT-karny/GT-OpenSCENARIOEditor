@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { runValidationOnDocument } from './use-validation';
 import { useScenarioStoreApi } from '../stores/use-scenario-store';
 import { useEditorStore } from '../stores/editor-store';
+import { useDocumentRegistry } from '../stores/document-registry';
 import { useProjectStore } from '../stores/project-store';
 import { useCatalogStore } from '../stores/catalog-store';
 import { useDistributionStore } from '../stores/distribution-store';
@@ -323,7 +324,6 @@ export function useFileOperations() {
   const { t } = useTranslation('common');
   const { resetForNewFile, resetForNewRoadNetwork } = useAppLifecycle();
   const setCurrentFileName = useEditorStore((s) => s.setCurrentFileName);
-  const setDirty = useEditorStore((s) => s.setDirty);
   const setValidationResult = useEditorStore((s) => s.setValidationResult);
   const setRoadNetwork = useEditorStore((s) => s.setRoadNetwork);
   const setShowSaveAs = useEditorStore((s) => s.setShowSaveAs);
@@ -404,7 +404,8 @@ export function useFileOperations() {
     }
 
     setCurrentFileName(null);
-    setDirty(false);
+    // Fresh document: capture the post-create revision as the clean baseline.
+    useDocumentRegistry.getState().markLoaded('scenario');
     setValidationResult(null);
     setRoadNetwork(null, null);
     useEditorStore.getState().setXoscFileHandle(null);
@@ -413,7 +414,6 @@ export function useFileOperations() {
     storeApi,
     resetForNewFile,
     setCurrentFileName,
-    setDirty,
     setValidationResult,
     setRoadNetwork,
     runUnsavedGuard,
@@ -442,7 +442,8 @@ export function useFileOperations() {
         storeApi.getState().createScenario();
         storeApi.setState({ document: doc });
         setCurrentFileName(name);
-        setDirty(false);
+        // Loaded document = clean baseline (history was cleared by createScenario).
+        useDocumentRegistry.getState().markLoaded('scenario');
         setValidationResult(null);
 
         // Store handle/path for overwrite-save
@@ -497,7 +498,7 @@ export function useFileOperations() {
         return false;
       }
     },
-    [storeApi, resetForNewFile, setCurrentFileName, setDirty, setValidationResult, t, runUnsavedGuard],
+    [storeApi, resetForNewFile, setCurrentFileName, setValidationResult, t, runUnsavedGuard],
   );
 
   const openXosc = useCallback(async () => {
@@ -530,7 +531,7 @@ export function useFileOperations() {
         const serializer = new XoscSerializer();
         const xml = serializer.serializeFormatted(doc);
         await useProjectStore.getState().saveCurrentFile(xml);
-        setDirty(false);
+        useDocumentRegistry.getState().markSaved('scenario');
         toast.success(t('labels.fileSaved'));
       } catch (err) {
         console.error('Save failed:', err);
@@ -561,7 +562,7 @@ export function useFileOperations() {
       setCurrentFileName(result.fileName);
       if (result.handle) useEditorStore.getState().setXoscFileHandle(result.handle);
       if (result.filePath) useEditorStore.getState().setXoscFilePath(result.filePath);
-      setDirty(false);
+      useDocumentRegistry.getState().markSaved('scenario');
       toast.success(t('labels.fileSaved'));
     } catch (err) {
       // AbortError = user cancelled the file picker
@@ -570,7 +571,7 @@ export function useFileOperations() {
         toast.error(t('labels.serializeFailed'));
       }
     }
-  }, [storeApi, setCurrentFileName, setDirty, setShowSaveAs, gateSaveWithValidation, t]);
+  }, [storeApi, setCurrentFileName, setShowSaveAs, gateSaveWithValidation, t]);
 
   const saveAsXosc = useCallback(async () => {
     const currentProject = useProjectStore.getState().currentProject;
@@ -595,7 +596,7 @@ export function useFileOperations() {
       setCurrentFileName(result.fileName);
       if (result.handle) useEditorStore.getState().setXoscFileHandle(result.handle);
       if (result.filePath) useEditorStore.getState().setXoscFilePath(result.filePath);
-      setDirty(false);
+      useDocumentRegistry.getState().markSaved('scenario');
       toast.success(t('labels.fileSaved'));
     } catch (err) {
       if (err instanceof Error && err.name !== 'AbortError') {
@@ -603,7 +604,7 @@ export function useFileOperations() {
         toast.error(t('labels.serializeFailed'));
       }
     }
-  }, [storeApi, setCurrentFileName, setDirty, setShowSaveAs, gateSaveWithValidation, t]);
+  }, [storeApi, setCurrentFileName, setShowSaveAs, gateSaveWithValidation, t]);
 
   const handleSaveAs = useCallback(
     async (relativePath: string) => {
@@ -621,14 +622,14 @@ export function useFileOperations() {
       useProjectStore.setState({ currentFilePath: relativePath });
       const fileName = relativePath.split('/').pop() ?? relativePath;
       setCurrentFileName(fileName);
-      setDirty(false);
+      useDocumentRegistry.getState().markSaved('scenario');
 
       // Refresh project file list
       await useProjectStore.getState().refreshProject();
 
       toast.success(t('labels.fileSaved'));
     },
-    [storeApi, setCurrentFileName, setDirty, gateSaveWithValidation, t],
+    [storeApi, setCurrentFileName, gateSaveWithValidation, t],
   );
 
   /**
@@ -676,7 +677,8 @@ export function useFileOperations() {
     const doc = createDefaultDocument();
     setRoadNetwork(doc, null);
     useEditorStore.getState().setRoadNetworkFileName(null);
-    useEditorStore.getState().setRoadNetworkDirty(false);
+    // markLoaded('roadNetwork') is handled by resetForNewRoadNetwork (registry
+    // reset) and re-affirmed by the RoadNetworkEditorLayout load effect.
     useEditorStore.getState().setXodrFileHandle(null);
     useEditorStore.getState().setXodrFilePath(null);
   }, [resetForNewRoadNetwork, setRoadNetwork, runUnsavedGuard]);
@@ -700,7 +702,8 @@ export function useFileOperations() {
         resetForNewRoadNetwork();
         setRoadNetwork(doc, text);
         useEditorStore.getState().setRoadNetworkFileName(name);
-        useEditorStore.getState().setRoadNetworkDirty(false);
+        // The RoadNetworkEditorLayout load effect captures the post-load,
+        // post-auto-correction revision as the clean baseline (markLoaded).
         useEditorStore.getState().setXodrFileHandle(handle ?? null);
         useEditorStore.getState().setXodrFilePath(filePath ?? null);
         // Reconstruct signal assemblies from signal→object references
@@ -757,7 +760,7 @@ export function useFileOperations() {
         const serializer = new XodrSerializer();
         const xml = serializer.serializeFormatted(roadNetwork);
         await api.writeProjectFile(currentProject.meta.id, currentXodrPath, xml);
-        useEditorStore.getState().setRoadNetworkDirty(false);
+        useDocumentRegistry.getState().markSaved('roadNetwork');
         toast.success(t('labels.fileSaved'));
       } catch (err) {
         console.error('Save .xodr failed:', err);
@@ -786,7 +789,7 @@ export function useFileOperations() {
       useEditorStore.getState().setRoadNetworkFileName(result.fileName);
       if (result.handle) useEditorStore.getState().setXodrFileHandle(result.handle);
       if (result.filePath) useEditorStore.getState().setXodrFilePath(result.filePath);
-      useEditorStore.getState().setRoadNetworkDirty(false);
+      useDocumentRegistry.getState().markSaved('roadNetwork');
       toast.success(t('labels.fileSaved'));
     } catch (err) {
       if (err instanceof Error && err.name !== 'AbortError') {
@@ -824,7 +827,7 @@ export function useFileOperations() {
       useEditorStore.getState().setRoadNetworkFileName(result.fileName);
       if (result.handle) useEditorStore.getState().setXodrFileHandle(result.handle);
       if (result.filePath) useEditorStore.getState().setXodrFilePath(result.filePath);
-      useEditorStore.getState().setRoadNetworkDirty(false);
+      useDocumentRegistry.getState().markSaved('roadNetwork');
       toast.success(t('labels.fileSaved'));
     } catch (err) {
       if (err instanceof Error && err.name !== 'AbortError') {
@@ -851,7 +854,7 @@ export function useFileOperations() {
       useProjectStore.setState({ currentXodrPath: relativePath });
       const fileName = relativePath.split('/').pop() ?? relativePath;
       useEditorStore.getState().setRoadNetworkFileName(fileName);
-      useEditorStore.getState().setRoadNetworkDirty(false);
+      useDocumentRegistry.getState().markSaved('roadNetwork');
 
       // Refresh project file list
       await useProjectStore.getState().refreshProject();

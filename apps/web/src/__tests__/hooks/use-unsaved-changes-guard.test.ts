@@ -14,7 +14,7 @@ vi.mock('../../hooks/use-file-operations', () => ({
 }));
 
 import { useUnsavedChangesGuard } from '../../hooks/use-unsaved-changes-guard';
-import { useEditorStore } from '../../stores/editor-store';
+import { useDocumentRegistry } from '../../stores/document-registry';
 
 type RunSaveHandler = () => void;
 
@@ -45,8 +45,8 @@ beforeEach(() => {
 
 afterEach(() => {
   delete (window as unknown as { electronAPI?: unknown }).electronAPI;
-  useEditorStore.getState().setDirty(false);
-  useEditorStore.getState().setRoadNetworkDirty(false);
+  useDocumentRegistry.getState().markLoaded('scenario');
+  useDocumentRegistry.getState().markLoaded('roadNetwork');
 });
 
 /** Run the captured onRunSave callback and wait for its async body to settle. */
@@ -63,14 +63,14 @@ describe('useUnsavedChangesGuard — onRunSave (S0-2)', () => {
   it('runs BOTH saves when both documents are dirty and reports success', async () => {
     // A successful save clears its own dirty flag.
     saveXosc.mockImplementation(async () => {
-      useEditorStore.getState().setDirty(false);
+      useDocumentRegistry.getState().markLoaded('scenario');
     });
     saveXodr.mockImplementation(async () => {
-      useEditorStore.getState().setRoadNetworkDirty(false);
+      useDocumentRegistry.getState().markLoaded('roadNetwork');
     });
 
-    useEditorStore.getState().setDirty(true);
-    useEditorStore.getState().setRoadNetworkDirty(true);
+    useDocumentRegistry.getState().markRestoredDirty('scenario');
+    useDocumentRegistry.getState().markRestoredDirty('roadNetwork');
 
     renderHook(() => useUnsavedChangesGuard());
     await runSave();
@@ -82,11 +82,11 @@ describe('useUnsavedChangesGuard — onRunSave (S0-2)', () => {
 
   it('only saves the dirty document when a single document is dirty', async () => {
     saveXodr.mockImplementation(async () => {
-      useEditorStore.getState().setRoadNetworkDirty(false);
+      useDocumentRegistry.getState().markLoaded('roadNetwork');
     });
 
-    useEditorStore.getState().setDirty(false);
-    useEditorStore.getState().setRoadNetworkDirty(true);
+    useDocumentRegistry.getState().markLoaded('scenario');
+    useDocumentRegistry.getState().markRestoredDirty('roadNetwork');
 
     renderHook(() => useUnsavedChangesGuard());
     await runSave();
@@ -102,11 +102,11 @@ describe('useUnsavedChangesGuard — onRunSave (S0-2)', () => {
       // no-op — user cancelled the picker, isDirty remains true
     });
     saveXodr.mockImplementation(async () => {
-      useEditorStore.getState().setRoadNetworkDirty(false);
+      useDocumentRegistry.getState().markLoaded('roadNetwork');
     });
 
-    useEditorStore.getState().setDirty(true);
-    useEditorStore.getState().setRoadNetworkDirty(true);
+    useDocumentRegistry.getState().markRestoredDirty('scenario');
+    useDocumentRegistry.getState().markRestoredDirty('roadNetwork');
 
     renderHook(() => useUnsavedChangesGuard());
     await runSave();
@@ -119,15 +119,15 @@ describe('useUnsavedChangesGuard — onRunSave (S0-2)', () => {
 
   it('aborts and reports false when the second save is cancelled', async () => {
     saveXosc.mockImplementation(async () => {
-      useEditorStore.getState().setDirty(false);
+      useDocumentRegistry.getState().markLoaded('scenario');
     });
     // Cancelled xodr save: dirty flag stays set.
     saveXodr.mockImplementation(async () => {
       // no-op — user cancelled the picker, isRoadNetworkDirty remains true
     });
 
-    useEditorStore.getState().setDirty(true);
-    useEditorStore.getState().setRoadNetworkDirty(true);
+    useDocumentRegistry.getState().markRestoredDirty('scenario');
+    useDocumentRegistry.getState().markRestoredDirty('roadNetwork');
 
     renderHook(() => useUnsavedChangesGuard());
     await runSave();

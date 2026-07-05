@@ -9,7 +9,6 @@ describe('EditorStore', () => {
       validationResult: null,
       roadNetwork: null,
       currentFileName: null,
-      isDirty: false,
     });
   });
 
@@ -69,11 +68,6 @@ describe('EditorStore', () => {
     it('should set file name', () => {
       useEditorStore.getState().setCurrentFileName('test.xosc');
       expect(useEditorStore.getState().currentFileName).toBe('test.xosc');
-    });
-
-    it('should set dirty flag', () => {
-      useEditorStore.getState().setDirty(true);
-      expect(useEditorStore.getState().isDirty).toBe(true);
     });
   });
 });

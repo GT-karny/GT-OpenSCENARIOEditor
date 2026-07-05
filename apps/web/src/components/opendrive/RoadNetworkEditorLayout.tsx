@@ -32,6 +32,7 @@ import { useAutoJunctionDetection } from '../../hooks/use-auto-junction-detectio
 import { changeLaneWidth } from '@osce/opendrive-engine';
 import { ValidationPanel } from '../panels/ValidationPanel';
 import { useEditorStore } from '../../stores/editor-store';
+import { useDocumentRegistry } from '../../stores/document-registry';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 import {
   useOpenDriveStore,
@@ -95,18 +96,23 @@ export function RoadNetworkEditorLayout() {
         // position stays here, the file is "unedited" and its raw text passes
         // straight through to the simulator.
         baselineRevisionRef.current = odrStoreApi.getState().getCommandHistory().getRevision();
+
+        // Registry: this post-load, post-auto-correction position is the clean
+        // baseline. Derived dirty (revision !== savedRevision) takes over from
+        // here — no hand-set flag.
+        useDocumentRegistry.getState().markLoaded('roadNetwork');
       }
     }
   }, [roadNetwork, odrStoreApi]);
 
-  // Sync openDriveStore → editorStore.roadNetwork reactively + dirty tracking.
-  // Preserve the raw xodr passthrough until the first real user edit: while the
-  // history revision matches the load baseline, re-attach the original text
-  // (restoring it even after an undo back to baseline); once edited, null it so
-  // the sim path falls back to re-serialization.
+  // Sync openDriveStore → editorStore.roadNetwork reactively. Dirty is no longer
+  // tracked here: it is derived from the command-history revision by the
+  // DocumentRegistry. Preserve the raw xodr passthrough until the first real
+  // user edit: while the history revision matches the load baseline, re-attach
+  // the original text (restoring it even after an undo back to baseline); once
+  // edited, null it so the sim path falls back to re-serialization.
   useEffect(() => {
     let mounted = true;
-    let prevDoc = odrStoreApi.getState().document;
     const unsub = odrStoreApi.subscribe((state: { document: OpenDriveDocument }) => {
       if (!mounted) return;
       const revision = odrStoreApi.getState().getCommandHistory().getRevision();
@@ -115,10 +121,6 @@ export function RoadNetworkEditorLayout() {
       useEditorStore
         .getState()
         .setRoadNetwork(state.document, atBaseline ? originalRawXmlRef.current : null);
-      if (state.document !== prevDoc) {
-        prevDoc = state.document;
-        useEditorStore.getState().setRoadNetworkDirty(true);
-      }
     });
     return () => {
       mounted = false;

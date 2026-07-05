@@ -3,7 +3,7 @@ import { renderHook } from '@testing-library/react';
 import { I18nextProvider, initI18n, i18n } from '@osce/i18n';
 import type { ReactNode } from 'react';
 import { ScenarioStoreProvider } from '../../stores/scenario-store-context';
-import { useEditorStore } from '../../stores/editor-store';
+import { useDocumentRegistry } from '../../stores/document-registry';
 import { useProjectStore } from '../../stores/project-store';
 import {
   getDiscardGuardOpen,
@@ -44,8 +44,8 @@ beforeAll(async () => {
 beforeEach(() => {
   readProjectFile.mockReset();
   readProjectFile.mockRejectedValue(new Error('io'));
-  useEditorStore.getState().setDirty(false);
-  useEditorStore.getState().setRoadNetworkDirty(false);
+  useDocumentRegistry.getState().markLoaded('scenario');
+  useDocumentRegistry.getState().markLoaded('roadNetwork');
   if (getDiscardGuardOpen()) resolveDiscardGuard('cancel');
   useProjectStore.setState({
     currentProject: {
@@ -57,7 +57,7 @@ beforeEach(() => {
 
 describe('useProjectFileOperations unsaved-changes guard', () => {
   it('aborts a dirty tree open when the user cancels (no replace)', async () => {
-    useEditorStore.getState().setDirty(true);
+    useDocumentRegistry.getState().markRestoredDirty('scenario');
     const { result } = renderHook(() => useProjectFileOperations(), { wrapper });
 
     const open = result.current.openXoscFromProject('scenarios/a.xosc');
@@ -71,7 +71,7 @@ describe('useProjectFileOperations unsaved-changes guard', () => {
   });
 
   it('proceeds with a dirty tree open when the user discards', async () => {
-    useEditorStore.getState().setDirty(true);
+    useDocumentRegistry.getState().markRestoredDirty('scenario');
     const { result } = renderHook(() => useProjectFileOperations(), { wrapper });
 
     const open = result.current.openXoscFromProject('scenarios/a.xosc');
@@ -94,7 +94,7 @@ describe('useProjectFileOperations unsaved-changes guard', () => {
   });
 
   it('skips the guard for programmatic road opens (skipGuard)', async () => {
-    useEditorStore.getState().setRoadNetworkDirty(true);
+    useDocumentRegistry.getState().markRestoredDirty('roadNetwork');
     const { result } = renderHook(() => useProjectFileOperations(), { wrapper });
 
     const open = result.current.openXodrFromProject('xodr/a.xodr', { skipGuard: true });

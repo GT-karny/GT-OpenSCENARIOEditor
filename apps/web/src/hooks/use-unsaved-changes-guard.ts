@@ -1,11 +1,10 @@
 import { useEffect } from 'react';
-import { useEditorStore } from '../stores/editor-store';
+import { useDocumentRegistry } from '../stores/document-registry';
 import { useFileOperations } from './use-file-operations';
 
-/** True when the active document (scenario or road network) has unsaved edits. */
+/** True when any registered document (scenario or road network) has unsaved edits. */
 function hasUnsavedChanges(): boolean {
-  const state = useEditorStore.getState();
-  return state.isDirty || state.isRoadNetworkDirty;
+  return useDocumentRegistry.getState().anyDirty();
 }
 
 /**
@@ -53,20 +52,22 @@ export function useUnsavedChangesGuard(): void {
           // network). Save each dirty document in turn; a single mode-specific
           // save would leave the other dirty and the window would never close.
           //
-          // Cancellation is detected via the per-document dirty flag: a
-          // successful save clears its own flag (setDirty/setRoadNetworkDirty),
-          // whereas a cancelled picker leaves it set. If a save leaves its flag
-          // dirty, the user cancelled — abort immediately and report failure.
-          if (useEditorStore.getState().isDirty) {
+          // Cancellation is detected via the per-document derived dirty state: a
+          // successful save captures a new saved revision (markSaved) and the
+          // document reads clean, whereas a cancelled picker leaves it dirty. If
+          // a save leaves its document dirty, the user cancelled — abort
+          // immediately and report failure.
+          const registry = useDocumentRegistry.getState();
+          if (registry.isDirty('scenario')) {
             await saveXosc();
-            if (useEditorStore.getState().isDirty) {
+            if (registry.isDirty('scenario')) {
               electron.respondSaveComplete(false);
               return;
             }
           }
-          if (useEditorStore.getState().isRoadNetworkDirty) {
+          if (registry.isDirty('roadNetwork')) {
             await saveXodr();
-            if (useEditorStore.getState().isRoadNetworkDirty) {
+            if (registry.isDirty('roadNetwork')) {
               electron.respondSaveComplete(false);
               return;
             }

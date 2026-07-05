@@ -6,6 +6,7 @@ import { useRouteEditStore } from '../stores/route-edit-store';
 import { useCatalogStore } from '../stores/catalog-store';
 import { resetOpenDriveStore, useOdrSidebarStore } from './use-opendrive-store';
 import { editorMetadataStoreApi } from '../stores/editor-metadata-store-instance';
+import { useDocumentRegistry } from '../stores/document-registry';
 
 /**
  * Centralized lifecycle management for app-wide state transitions.
@@ -64,6 +65,9 @@ export function useAppLifecycle() {
     // 8. Reset opendrive-engine store (empty document + undo history)
     // so a previously-edited road never leaks into the new scenario.
     resetOpenDriveStore();
+
+    // 9. Registry: the freshly-reset road network is clean at revision 0.
+    useDocumentRegistry.getState().markLoaded('roadNetwork');
   }, []);
 
   const resetForNewRoadNetwork = useCallback(() => {
@@ -75,6 +79,9 @@ export function useAppLifecycle() {
 
     // 3. Reset editor metadata (virtual roads, junction metadata)
     editorMetadataStoreApi.getState().resetMetadata();
+
+    // 4. Registry: the freshly-reset road network is clean at revision 0.
+    useDocumentRegistry.getState().markLoaded('roadNetwork');
   }, []);
 
   return { switchEditorMode, resetForNewFile, resetForNewRoadNetwork };

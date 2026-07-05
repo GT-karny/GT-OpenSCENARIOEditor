@@ -117,17 +117,13 @@ export interface EditorState {
   panelVisibility: Record<EditorPanel, boolean>;
   togglePanel: (panel: EditorPanel) => void;
 
-  // File state (.xosc)
+  // File state (.xosc). Dirty is derived in document-registry.ts, not stored here.
   currentFileName: string | null;
   setCurrentFileName: (name: string | null) => void;
-  isDirty: boolean;
-  setDirty: (dirty: boolean) => void;
 
   // File state (.xodr)
   roadNetworkFileName: string | null;
   setRoadNetworkFileName: (name: string | null) => void;
-  isRoadNetworkDirty: boolean;
-  setRoadNetworkDirty: (dirty: boolean) => void;
 
   // File handles for overwrite-save (File System Access API)
   xoscFileHandle: FileSystemFileHandle | null;
@@ -297,14 +293,10 @@ export const useEditorStore = create<EditorState>()(
       // File state (.xosc)
       currentFileName: null,
       setCurrentFileName: (name) => set({ currentFileName: name }),
-      isDirty: false,
-      setDirty: (dirty) => set({ isDirty: dirty }),
 
       // File state (.xodr)
       roadNetworkFileName: null,
       setRoadNetworkFileName: (name) => set({ roadNetworkFileName: name }),
-      isRoadNetworkDirty: false,
-      setRoadNetworkDirty: (dirty) => set({ isRoadNetworkDirty: dirty }),
 
       // File handles (not persisted)
       xoscFileHandle: null,
@@ -417,8 +409,6 @@ export const useEditorStore = create<EditorState>()(
           xodrFilePath: null,
           currentFileName: null,
           roadNetworkFileName: null,
-          isDirty: false,
-          isRoadNetworkDirty: false,
           roadNetwork: null,
           roadNetworkXml: null,
         }),
