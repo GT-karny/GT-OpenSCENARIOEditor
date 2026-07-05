@@ -355,11 +355,28 @@ export function validateJunctionPlan(
  * 2. Every junction connection's connectingRoad exists in the document
  * 3. Every incoming road has a predecessor or successor link back to the junction
  */
+/**
+ * Junction types whose connections do NOT carry a connectingRoad. These use
+ * predecessor/successor or linkedRoad topology instead (virtual/direct/crossing
+ * junctions), so the connectingRoad-based link checks below do not apply and
+ * would mis-flag/corrupt every connection. Only default/common junctions are
+ * validated and repaired via connectingRoad.
+ */
+const NON_CONNECTING_ROAD_JUNCTION_TYPES = new Set(['virtual', 'direct', 'crossing']);
+
+function usesConnectingRoadTopology(type: string | undefined): boolean {
+  return !NON_CONNECTING_ROAD_JUNCTION_TYPES.has(type ?? '');
+}
+
 export function validateJunctionLinks(doc: OpenDriveDocument): ValidationEntry[] {
   const entries: ValidationEntry[] = [];
   const roadIds = new Set(doc.roads.map((r) => r.id));
 
   for (const junction of doc.junctions) {
+    // Skip junctions whose connections are not connectingRoad-based; the
+    // checks below assume a resolvable connectingRoad and would mis-flag them.
+    if (!usesConnectingRoadTopology(junction.type)) continue;
+
     for (const conn of junction.connections) {
       // Check incomingRoad exists
       if (!roadIds.has(conn.incomingRoad)) {
@@ -421,6 +438,11 @@ export function repairJunctionLinks(
   const roadIds = new Set(doc.roads.map((r) => r.id));
 
   for (const junction of doc.junctions) {
+    // Skip virtual/direct/crossing junctions — their connections do not carry a
+    // connectingRoad, so the repair logic below would corrupt hand-authored
+    // predecessor/successor/linkedRoad topology.
+    if (!usesConnectingRoadTopology(junction.type)) continue;
+
     let connectionsModified = false;
     const repairedConnections = junction.connections.map((conn) => {
       // Fix stale incomingRoad references
