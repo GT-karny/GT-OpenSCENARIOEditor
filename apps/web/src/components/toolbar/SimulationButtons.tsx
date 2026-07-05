@@ -6,10 +6,10 @@ import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { useSimulationStore } from '../../stores/simulation-store';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
-import { useEditorStore } from '../../stores/editor-store';
 import { useCatalogStore } from '../../stores/catalog-store';
 import { useProjectStore } from '../../stores/project-store';
 import { useWasmSimulation } from '../../hooks/use-wasm-simulation';
+import { getSimulationXodr } from '../../lib/simulation-xodr';
 import * as api from '../../lib/project-api';
 
 /** Collect catalog XMLs from the catalog store */
@@ -67,7 +67,10 @@ export function SimulationButtons({ compact }: { compact?: boolean }) {
       const doc = storeApi.getState().document;
       const serializer = new XoscSerializer();
       const xml = serializer.serializeFormatted(doc);
-      const xodrXml = useEditorStore.getState().roadNetworkXml;
+      const { xml: xodrXml, degraded: xodrDegraded } = getSimulationXodr();
+      if (xodrDegraded) {
+        toast.warning(t('simulation.degradedRoad'));
+      }
 
       const hasCatalogLocations = Object.values(doc.catalogLocations).some(
         (loc) => loc?.directory,
@@ -92,7 +95,7 @@ export function SimulationButtons({ compact }: { compact?: boolean }) {
 
       // Runtime/load failures are surfaced via the WASM service onError funnel
       // (see useWasmSimulation). This catch only covers pre-flight serialization.
-      await startSimulation(xml, xodrXml ?? undefined, catalogXmls);
+      await startSimulation(xml, xodrXml, catalogXmls);
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : t('labels.serializeFailed'),

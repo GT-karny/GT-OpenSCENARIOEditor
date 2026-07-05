@@ -16,8 +16,8 @@ import {
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
-import { useEditorStore } from '../../stores/editor-store';
 import { useCatalogStore } from '../../stores/catalog-store';
+import { getSimulationXodr } from '../../lib/simulation-xodr';
 import {
   runBatch,
   defaultPoolSize,
@@ -107,7 +107,10 @@ export function BatchRunDialog({
   const handleStart = useCallback(async () => {
     if (variants.length === 0) return;
     const doc: ScenarioDocument = storeApi.getState().document;
-    const xodrData = useEditorStore.getState().roadNetworkXml ?? undefined;
+    const { xml: xodrData, degraded: xodrDegraded } = getSimulationXodr();
+    if (xodrDegraded) {
+      toast.warning(t('simulation.degradedRoad'));
+    }
 
     const hasCatalogLocations = Object.values(doc.catalogLocations).some((loc) => loc?.directory);
     const catalogs = collectCatalogXmls();
@@ -175,7 +178,10 @@ export function BatchRunDialog({
   const handleReplay = useCallback(
     async (result: BatchRunResult) => {
       const doc: ScenarioDocument = storeApi.getState().document;
-      const xodrData = useEditorStore.getState().roadNetworkXml ?? undefined;
+      const { xml: xodrData, degraded: xodrDegraded } = getSimulationXodr();
+      if (xodrDegraded) {
+        toast.warning(t('simulation.degradedRoad'));
+      }
       const catalogs = collectCatalogXmls();
       const { xml } = materializeVariant(doc, result.params);
       onOpenChange(false);

@@ -159,6 +159,8 @@ export const common = {
     missingRoad: 'Scenario references a road network (.xodr) that is not available',
     missingCatalogs:
       'Scenario references catalogs but none could be loaded. Check project catalog files.',
+    degradedRoad:
+      'Regenerating the edited road data for simulation. Unsupported elements may be lost.',
   },
   units: {
     mps: 'm/s',
