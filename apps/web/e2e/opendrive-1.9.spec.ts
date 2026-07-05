@@ -2,7 +2,7 @@ import { test, expect, type Page, type APIRequestContext } from '@playwright/tes
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { readFileSync } from 'fs';
-import { gotoEditor } from './helpers';
+import { gotoEditor, dismissDiscardDialog } from './helpers';
 
 /**
  * E2E coverage for OpenDRIVE 1.9 gap補填 (opendrive-1.9-support proposal,
@@ -152,6 +152,9 @@ async function openXodr(page: Page, filePath: string): Promise<void> {
   const fileChooserPromise = page.waitForEvent('filechooser');
   await page.getByRole('button', { name: 'File', exact: true }).click();
   await page.getByRole('menuitem', { name: /Open \.xodr/ }).click();
+  // The seeded default document marks the editor dirty, so the open guard
+  // prompts before the picker; discard to continue to the file chooser.
+  await dismissDiscardDialog(page, 'discard');
   const fileChooser = await fileChooserPromise;
   await fileChooser.setFiles(filePath);
 }

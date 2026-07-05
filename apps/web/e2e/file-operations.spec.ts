@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { gotoEditor, addEntity, entityList } from './helpers';
+import { gotoEditor, addEntity, entityList, dismissDiscardDialog } from './helpers';
 
 const CUTIN_XOSC = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -40,6 +40,10 @@ test.describe('File Operations', () => {
     await page.getByRole('button', { name: 'File', exact: true }).click();
     await page.getByRole('menuitem', { name: 'New' }).click();
 
+    // The edit made the document dirty, so the unsaved-changes guard prompts;
+    // discard to proceed with the fresh scenario.
+    await dismissDiscardDialog(page, 'discard');
+
     // Entity should be gone (fresh scenario).
     await expect(entityList(page).getByText('TempEntity')).not.toBeVisible();
   });
@@ -49,6 +53,10 @@ test.describe('File Operations', () => {
 
     await page.getByRole('button', { name: 'File', exact: true }).click();
     await page.getByRole('menuitem', { name: /Open \.xosc/ }).click();
+
+    // Opening a project seeds a default document that marks the editor dirty,
+    // so the open guard prompts before the picker; discard to continue.
+    await dismissDiscardDialog(page, 'discard');
 
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(CUTIN_XOSC);

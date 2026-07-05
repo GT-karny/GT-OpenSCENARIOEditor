@@ -52,3 +52,25 @@ export async function addEntity(page: Page, name: string): Promise<void> {
   await dialog.getByRole('button', { name: /^Add$|^追加$/ }).click();
   await expect(dialog).not.toBeVisible();
 }
+
+/**
+ * Dismiss the in-app unsaved-changes guard if it appears. Every in-app open
+ * entry point (File > New / Open) now routes through confirmDiscardIfDirty, and
+ * opening a project seeds a default scenario document that marks the editor
+ * dirty, so these menu actions surface the discard dialog. The dialog mounts
+ * lazily, so wait briefly and no-op when it does not show (clean document).
+ */
+export async function dismissDiscardDialog(
+  page: Page,
+  choice: 'discard' | 'cancel' = 'discard',
+): Promise<void> {
+  const label = choice === 'discard' ? 'Discard and continue' : 'Cancel';
+  const dialog = page.getByRole('dialog', { name: 'Unsaved changes' });
+  try {
+    await expect(dialog).toBeVisible({ timeout: 3000 });
+  } catch {
+    return;
+  }
+  await dialog.getByRole('button', { name: label, exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+}
