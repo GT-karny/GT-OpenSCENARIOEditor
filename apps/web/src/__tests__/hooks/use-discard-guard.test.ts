@@ -5,6 +5,7 @@ import {
   resolveDiscardGuard,
   getDiscardGuardOpen,
   hasUnsavedChanges,
+  runUnsavedGuard,
 } from '../../hooks/use-discard-guard';
 
 // The guard self-mounts a React dialog into document.body on first dirty use.
@@ -72,23 +73,17 @@ describe('confirmDiscardIfDirty', () => {
   });
 });
 
-// Verify the caller-facing gate semantics that use-file-operations relies on:
-// map a choice + save outcome to "proceed?" the same way runUnsavedGuard does.
-describe('guard gate semantics (as used by runUnsavedGuard)', () => {
+// Verify the caller-facing gate semantics that every open path relies on:
+// map a choice + save outcome to "proceed?" via the shared runUnsavedGuard.
+describe('runUnsavedGuard gate semantics', () => {
   beforeEach(() => {
     setClean();
     if (getDiscardGuardOpen()) resolveDiscardGuard('cancel');
   });
 
-  async function runGate(save: () => Promise<void>): Promise<boolean> {
-    const choice = await confirmDiscardIfDirty();
-    if (choice === 'cancel') return false;
-    if (choice === 'discard') return true;
-    // 'save'
-    const state = useEditorStore.getState();
-    if (state.isDirty) await save();
-    if (state.isRoadNetworkDirty) await save();
-    return !hasUnsavedChanges();
+  // Both save flows share one spy so existing assertions on call count still hold.
+  function runGate(save: () => Promise<void>): Promise<boolean> {
+    return runUnsavedGuard({ saveXosc: save, saveXodr: save });
   }
 
   it('clean document proceeds without prompting', async () => {

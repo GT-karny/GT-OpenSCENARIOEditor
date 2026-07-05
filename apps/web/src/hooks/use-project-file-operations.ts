@@ -11,6 +11,8 @@ import { useCatalogStore } from '../stores/catalog-store';
 import { buildCatalogLocationsFromProject } from '../lib/catalog-location-utils';
 import { editorMetadataStoreApi } from '../stores/editor-metadata-store-instance';
 import { useAppLifecycle } from './use-app-lifecycle';
+import { useFileOperations } from './use-file-operations';
+import { runUnsavedGuard } from './use-discard-guard';
 import * as api from '../lib/project-api';
 import { resolveCatalogEntityTypes } from '../lib/resolve-catalog-entity-types';
 
@@ -68,11 +70,21 @@ export function useProjectFileOperations() {
   const { t } = useTranslation('common');
   const scenarioStoreApi = useScenarioStoreApi();
   const { resetForNewFile, resetForNewRoadNetwork } = useAppLifecycle();
+  const { saveXosc, saveXodr } = useFileOperations();
+
+  // Gate a user-initiated project open behind the shared unsaved-changes guard,
+  // saving via the current save flows on "Save". Chained loads (e.g. a scenario's
+  // auto-loaded xodr) are part of the same user action and must not re-prompt.
+  const guardOpen = useCallback(
+    () => runUnsavedGuard({ saveXosc, saveXodr }),
+    [saveXosc, saveXodr],
+  );
 
   const openXodrFromProject = useCallback(
-    async (relativePath: string) => {
+    async (relativePath: string, options?: { skipGuard?: boolean }) => {
       const project = useProjectStore.getState().currentProject;
       if (!project) return;
+      if (!options?.skipGuard && !(await guardOpen())) return;
       try {
         const content = await api.readProjectFile(project.meta.id, relativePath);
         const parser = new XodrParser();
@@ -93,7 +105,7 @@ export function useProjectFileOperations() {
         toast.warning(t('warnings.xodrLoadFailed', { path: relativePath }));
       }
     },
-    [resetForNewRoadNetwork, t],
+    [guardOpen, resetForNewRoadNetwork, t],
   );
 
   const autoLoadXodr = useCallback(
@@ -170,9 +182,10 @@ export function useProjectFileOperations() {
   );
 
   const openXoscFromProject = useCallback(
-    async (relativePath: string) => {
+    async (relativePath: string, options?: { skipGuard?: boolean }) => {
       const project = useProjectStore.getState().currentProject;
       if (!project) return;
+      if (!options?.skipGuard && !(await guardOpen())) return;
       try {
         resetForNewFile();
         const content = await api.readProjectFile(project.meta.id, relativePath);
@@ -221,7 +234,7 @@ export function useProjectFileOperations() {
         toast.error(t('fileErrors.openXoscFailed', { message }));
       }
     },
-    [resetForNewFile, scenarioStoreApi, autoLoadXodr, t],
+    [guardOpen, resetForNewFile, scenarioStoreApi, autoLoadXodr, t],
   );
 
   const openCatalogFromProject = useCallback(

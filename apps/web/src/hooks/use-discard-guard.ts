@@ -74,6 +74,36 @@ export function confirmDiscardIfDirty(): Promise<DiscardChoice> {
   });
 }
 
+/** Save flows the guard invokes when the user chooses "Save". */
+export interface UnsavedGuardSaveFns {
+  saveXosc: () => Promise<void> | void;
+  saveXodr: () => Promise<void> | void;
+}
+
+/**
+ * Run the unsaved-changes guard and map the user's three-way choice to a
+ * proceed decision for a document-replacing action. Shared by every user-driven
+ * open path (menu picker, drag-drop, project file tree) so the semantics stay
+ * identical:
+ * - clean document or Discard: proceed (return `true`).
+ * - Save: run whichever save flow is dirty, then proceed only if the save
+ *   actually cleared the dirty state (a cancelled/failed save leaves it dirty).
+ * - Cancel: abort (return `false`).
+ */
+export async function runUnsavedGuard(saveFns: UnsavedGuardSaveFns): Promise<boolean> {
+  const choice = await confirmDiscardIfDirty();
+  if (choice === 'cancel') return false;
+  if (choice === 'discard') return true;
+
+  // choice === 'save': persist whichever document(s) are dirty.
+  const state = useEditorStore.getState();
+  if (state.isDirty) await saveFns.saveXosc();
+  if (state.isRoadNetworkDirty) await saveFns.saveXodr();
+
+  // Proceed only if the save stuck; a cancelled picker leaves it dirty.
+  return !hasUnsavedChanges();
+}
+
 // ─── Self-mount ──────────────────────────────────────────────────────────────
 
 let mounted = false;

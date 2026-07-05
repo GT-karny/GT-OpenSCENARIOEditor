@@ -28,7 +28,7 @@ import { resolveCatalogEntityTypes } from '../lib/resolve-catalog-entity-types';
 import { addWebRecentFile } from '../lib/recent-files/recent-files-db';
 import type { RecentFileKind } from '../lib/recent-files/recent-list';
 import { documentHasInclude } from '../lib/wasm';
-import { confirmDiscardIfDirty, hasUnsavedChanges } from './use-discard-guard';
+import { runUnsavedGuard as runUnsavedGuardGate } from './use-discard-guard';
 
 /**
  * Warn (non-blocking) when saving an OpenDRIVE document that uses <include>
@@ -335,31 +335,16 @@ export function useFileOperations() {
     saveXodr: () => Promise<void>;
   }>({ saveXosc: async () => {}, saveXodr: async () => {} });
 
-  /**
-   * Gate a document-replacing action (new / open / drop / reopen) behind the
-   * unsaved-changes guard.
-   *
-   * Returns `true` when the caller may proceed to replace the document:
-   * - clean document: proceeds immediately.
-   * - user picks Discard: proceeds.
-   * - user picks Save: runs the existing save flow(s) for whichever document is
-   *   dirty, then proceeds only if the save actually cleared the dirty state
-   *   (i.e. it was not cancelled/failed).
-   * - user picks Cancel: aborts (returns `false`).
-   */
-  const runUnsavedGuard = useCallback(async (): Promise<boolean> => {
-    const choice = await confirmDiscardIfDirty();
-    if (choice === 'cancel') return false;
-    if (choice === 'discard') return true;
-
-    // choice === 'save': persist whichever document(s) are dirty.
-    const state = useEditorStore.getState();
-    if (state.isDirty) await saveFnsRef.current.saveXosc();
-    if (state.isRoadNetworkDirty) await saveFnsRef.current.saveXodr();
-
-    // Proceed only if the save stuck; a cancelled picker leaves it dirty.
-    return !hasUnsavedChanges();
-  }, []);
+  // Gate a document-replacing action (new / open / drop / reopen) behind the
+  // shared unsaved-changes guard, saving via the current save flows on "Save".
+  const runUnsavedGuard = useCallback(
+    () =>
+      runUnsavedGuardGate({
+        saveXosc: () => saveFnsRef.current.saveXosc(),
+        saveXodr: () => saveFnsRef.current.saveXodr(),
+      }),
+    [],
+  );
 
   /**
    * Auto-validate a scenario before it is serialized/written.

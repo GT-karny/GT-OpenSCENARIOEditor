@@ -26,7 +26,9 @@ export function XodrFilePicker({ currentPath, onPathChange }: XodrFilePickerProp
     (path: string) => {
       onPathChange(path);
       if (path) {
-        openXodrFromProject(path);
+        // Changing the referenced logicFile is part of editing the scenario, not
+        // a discard-and-open boundary, so skip the unsaved-changes guard here.
+        openXodrFromProject(path, { skipGuard: true });
       } else {
         useEditorStore.getState().setRoadNetwork(null);
         useProjectStore.setState({ currentXodrPath: null });
