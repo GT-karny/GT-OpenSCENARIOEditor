@@ -41,6 +41,14 @@ export interface OdrRoad {
   dataQuality?: OdrDataQuality;
   /** External file includes (<include> elements). */
   includes?: OdrInclude[];
+  /**
+   * Raw XML for a temporary lane layer (<lanes layer="temporary">), preserved
+   * verbatim for lossless round-trip. OpenDRIVE 1.9 allows up to two <lanes>
+   * elements per road (permanent + temporary). Only the permanent layer is
+   * modeled today; the temporary layer is round-tripped unchanged (Phase 2
+   * will add full modeling).
+   */
+  temporaryLanesRaw?: unknown;
 }
 
 export interface OdrRoadLink {

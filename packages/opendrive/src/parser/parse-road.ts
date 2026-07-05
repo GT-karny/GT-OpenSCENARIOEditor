@@ -15,6 +15,17 @@ type Raw = Record<string, any>;
 
 export function parseRoad(raw: Raw): OdrRoad {
   const ruleStr = attrOptStr(raw, 'rule');
+
+  // OpenDRIVE 1.9 allows up to two <lanes> elements per road (permanent +
+  // temporary layer). fast-xml-parser yields a single object for one <lanes>
+  // and an array for two, so we must normalize before reading. The permanent
+  // layer (@layer != 'temporary', or the first/unlabeled element) is parsed
+  // into the typed model; a temporary layer is preserved raw (see below).
+  const lanesLayers = ensureArray(raw.lanes);
+  const permanentLanes = lanesLayers.find((l: Raw) => attrOptStr(l, 'layer') !== 'temporary')
+    ?? lanesLayers[0];
+  const temporaryLanes = lanesLayers.find((l: Raw) => attrOptStr(l, 'layer') === 'temporary');
+
   const road: OdrRoad = {
     id: attrStr(raw, 'id'),
     name: attrStr(raw, 'name'),
@@ -26,11 +37,21 @@ export function parseRoad(raw: Raw): OdrRoad {
     planView: parsePlanView(raw.planView),
     elevationProfile: parseElevations(raw.elevationProfile),
     lateralProfile: parseSuperelevations(raw.lateralProfile),
-    laneOffset: parseLaneOffsets(raw.lanes),
-    lanes: parseLaneSections(raw.lanes),
+    laneOffset: parseLaneOffsets(permanentLanes),
+    lanes: parseLaneSections(permanentLanes),
     objects: parseObjects(raw.objects),
     signals: parseSignals(raw.signals),
   };
+
+  // Temporary lane layer: preserved verbatim for lossless round-trip.
+  // Full modeling is deferred to Phase 2.
+  if (temporaryLanes !== undefined) {
+    console.warn(
+      `Road ${road.id}: temporary lane layer (<lanes layer="temporary">) is ` +
+        'preserved for round-trip but not modeled (full support is Phase 2).',
+    );
+    road.temporaryLanesRaw = temporaryLanes;
+  }
 
   // objectReference, tunnel, bridge from <objects>
   const objReferences = parseObjectReferences(raw.objects);

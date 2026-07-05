@@ -78,7 +78,17 @@ export function buildRoad(road: OdrRoad): XmlNode {
   }
 
   // lanes
-  node.lanes = buildLanes(road.laneOffset, road.lanes);
+  // OpenDRIVE 1.9 allows up to two <lanes> elements (permanent + temporary).
+  // When a temporary layer was preserved at parse time, emit both: the modeled
+  // permanent layer (tagged @layer="permanent") followed by the raw temporary
+  // layer verbatim. Single-layer roads keep the exact previous shape (no
+  // @layer attribute) so their output stays byte-identical.
+  const permanentLanes = buildLanes(road.laneOffset, road.lanes);
+  if (road.temporaryLanesRaw !== undefined) {
+    node.lanes = [{ '@_layer': 'permanent', ...permanentLanes }, road.temporaryLanesRaw];
+  } else {
+    node.lanes = permanentLanes;
+  }
 
   // objects (includes objectReference, tunnel, bridge)
   const hasObjects = road.objects.length > 0;
