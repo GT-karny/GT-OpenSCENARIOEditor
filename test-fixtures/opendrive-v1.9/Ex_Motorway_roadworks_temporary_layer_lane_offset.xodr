@@ -1,0 +1,1081 @@
+<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+    <header revMajor="1" revMinor="9" name="" version="1.00" date="Mon May 18 17:58:42 2026" north="0.0000000000000000e+00" south="0.0000000000000000e+00" east="0.0000000000000000e+00" west="0.0000000000000000e+00">
+    </header>
+    <road name="" length="7.0835666397138539e+03" id="8" junction="-1" rule="RHT">
+        <link>
+        </link>
+        <type s="0.0000000000000000e+00" country="DE" type="motorway"/>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="5.0000000000000000e+02" y="0.0000000000000000e+00" hdg="1.5707963267948966e+00" length="5.0000000000000000e+01">
+                <line/>
+            </geometry>
+            <geometry s="5.0000000000000000e+01" x="5.0000000000000000e+02" y="5.0000000000000000e+01" hdg="1.5707963267936549e+00" length="1.3333333333333334e+02">
+                <spiral curvStart="-0.0000000000000000e+00" curvEnd="-8.3333333333333339e-04"/>
+            </geometry>
+            <geometry s="1.8333333333333334e+02" x="5.0246859151398007e+02" y="1.8329218695275370e+02" hdg="1.5152407712393408e+00" length="3.8533333333333314e+02">
+                <arc curvature="-8.3333333333333339e-04"/>
+            </geometry>
+            <geometry s="5.6866666666666652e+02" x="5.8474216518287017e+02" y="5.5804724737839774e+02" hdg="1.1941296601282296e+00" length="1.6133333333333334e+02">
+                 <spiral curvStart="-8.3333333333333339e-04" curvEnd="-0.0000000000000000e+00"/>
+            </geometry>
+            <geometry s="7.2999999999999989e+02" x="6.5073255672843743e+02" y="7.0523168789341230e+02" hdg="1.1269074379059887e+00" length="9.9999999999999744e+01">
+                <line/>
+            </geometry>
+            <geometry s="8.2999999999999966e+02" x="6.9367802813376147e+02" y="7.9554052735984794e+02" hdg="1.1269074379072292e+00" length="1.6666666666666666e+02">
+                <spiral curvStart="0.0000000000000000e+00" curvEnd="6.6666666666666664e-04"/>
+            </geometry>
+            <geometry s="9.9666666666666629e+02" x="7.6244503023970583e+02" y="9.4733399660541909e+02" hdg="1.1824629934615434e+00" length="5.4333333333333348e+02">
+                <arc curvature="6.6666666666666664e-04"/>
+            </geometry>
+            <geometry s="1.5399999999999998e+03" x="8.7362158320785193e+02" y="1.4761413394081703e+03" hdg="1.5446852156837656e+00" length="2.4000000000000000e+02">
+                 <spiral curvStart="6.6666666666666664e-04" curvEnd="0.0000000000000000e+00"/>
+            </geometry>
+            <geometry s="1.7799999999999998e+03" x="8.6709056813912957e+02" y="1.7159841750950029e+03" hdg="1.6246852156837825e+00" length="1.3999999999999998e+03">
+                <line/>
+            </geometry>
+            <geometry s="3.1799999999999995e+03" x="7.9168263365936309e+02" y="3.1139518583471927e+03" hdg="1.6246852156837714e+00" length="1.6954862554617111e+02">
+                <line/>
+            </geometry>
+            <geometry s="3.3495486255461706e+03" x="7.8255026819770774e+02" y="3.2832543578138884e+03" hdg="1.6246852156788059e+00" length="3.8095238095238095e+01">
+                <spiral curvStart="-0.0000000000000000e+00" curvEnd="-9.5238095238095238e-04"/>
+            </geometry>
+            <geometry s="3.3876438636414086e+03" x="7.8072843602475189e+02" y="3.3213054503374133e+03" hdg="1.6065446261108864e+00" length="1.8488095232866499e+01">
+                <arc curvature="-9.5238095238095238e-04"/>
+            </geometry>
+            <geometry s="3.4061319588742754e+03" x="7.8023035127823618e+02" y="3.3397865960332415e+03" hdg="1.5889369163652989e+00" length="3.8095238095238095e+01">
+                 <spiral curvStart="-9.5238095238095238e-04" curvEnd="-0.0000000000000000e+00"/>
+            </geometry>
+            <geometry s="3.4442271969695134e+03" x="7.8000000000000000e+02" y="3.3778805805057127e+03" hdg="1.5707963267948966e+00" length="1.2211941949428729e+02">
+                <line/>
+            </geometry>
+            <geometry s="3.5663466164638007e+03" x="7.7999999999976490e+02" y="3.5000000000052119e+03" hdg="1.5707963267948966e+00" length="1.2095988550581524e+02">
+                <line/>
+            </geometry>
+            <geometry s="3.6873065019696160e+03" x="7.7999999999976490e+02" y="3.6209598855110271e+03" hdg="1.5707963267973819e+00" length="3.4479103428880713e+01">
+                <spiral curvStart="0.0000000000000000e+00" curvEnd="1.1111111111111111e-03"/>
+            </geometry>
+            <geometry s="3.7217856053984965e+03" x="7.7977985603361662e+02" y="3.6554377238671455e+03" hdg="1.5899513842566295e+00" length="8.1041793142238589e+01">
+                <arc curvature="1.1111111111111111e-03"/>
+            </geometry>
+            <geometry s="3.8028273985407350e+03" x="7.7458405898899480e+02" y="3.7362853540477449e+03" hdg="1.6799978210813389e+00" length="3.4479103428880713e+01">
+                 <spiral curvStart="1.1111111111111111e-03" curvEnd="0.0000000000000000e+00"/>
+            </geometry>
+            <geometry s="3.8373065019696155e+03" x="7.7038907737769841e+02" y="3.7705077433617212e+03" hdg="1.6991528785480365e+00" length="1.6838909156976476e+02">
+                <line/>
+            </geometry>
+            <geometry s="4.0056955935393803e+03" x="7.4883453482747700e+02" y="3.9375115991709249e+03" hdg="1.6991528785480472e+00" length="1.4000000000000068e+03">
+                <line/>
+            </geometry>
+            <geometry s="5.4056955935393871e+03" x="5.6962839214328551e+02" y="5.3259946413519492e+03" hdg="1.6991528785480552e+00" length="2.2786202961200041e+02">
+                <line/>
+            </geometry>
+            <geometry s="5.6335576231513878e+03" x="5.4046105257831414e+02" y="5.5519821871185286e+03" hdg="1.6991528785430878e+00" length="2.9784615384615387e+02">
+                <spiral curvStart="-0.0000000000000000e+00" curvEnd="-3.8461538461538462e-04"/>
+            </geometry>
+            <geometry s="5.9314037769975421e+03" x="5.0798652974794868e+02" y="5.8480089920356031e+03" hdg="1.6418747720354534e+00" length="3.5880880699143631e+01">
+                <arc curvature="-3.8461538461538462e-04"/>
+            </geometry>
+            <geometry s="5.9672846576966858e+03" x="5.0568535541931470e+02" y="5.8838157199566331e+03" hdg="1.6280744333050134e+00" length="2.9784615384615387e+02">
+                 <spiral curvStart="-3.8461538461538462e-04" curvEnd="-0.0000000000000000e+00"/>
+            </geometry>
+            <geometry s="6.2651308115428401e+03" x="5.0000000000000000e+02" y="6.1815641718289853e+03" hdg="1.5707963267948966e+00" length="8.1843582817101469e+02">
+                <line/>
+            </geometry>
+        </planView>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes layer="permanent">
+            <laneSection s="0.0000000000000000e+00">
+                <left>
+                    <lane id="6" type="border" level="false">
+                        <link>
+                            <successor id="6" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="5" type="stop" level="false">
+                        <link>
+                            <successor id="5" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="4" type="driving" level="false">
+                        <link>
+                            <successor id="4" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="standard" width="2.9999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="3" type="driving" level="false">
+                        <link>
+                            <successor id="3" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="2" type="driving" level="false">
+                        <link>
+                            <successor id="2" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="1" type="shoulder" level="false">
+                        <link>
+                            <successor id="1" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="standard" width="2.9999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="shoulder" level="false">
+                        <link>
+                            <successor id="-1" layer="permanent"/>
+                            <successor id="-1" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="standard" width="2.9999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                            <successor id="-2" layer="permanent"/>
+                            <successor id="-3" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-3" type="driving" level="false">
+                        <link>
+                            <successor id="-3" layer="permanent"/>
+                            <successor id="-4" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-4" type="driving" level="false">
+                        <link>
+                            <successor id="-4" layer="permanent"/>
+                            <successor id="-5" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="standard" width="2.9999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-5" type="stop" level="false">
+                        <link>
+                            <successor id="-5" layer="permanent"/>
+                            <successor id="-6" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="-6" type="border" level="false">
+                        <link>
+                            <successor id="-6" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+            <laneSection s="2.0000000000000000e+03">
+                <left>
+                    <lane id="6" type="border" level="false">
+                        <link>
+                            <predecessor id="6" layer="permanent"/>
+                            <successor id="6" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="5" type="stop" level="false">
+                        <link>
+                            <predecessor id="5" layer="permanent"/>
+                            <successor id="5" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="4" type="driving" level="false">
+                        <link>
+                            <predecessor id="4" layer="permanent"/>
+                            <successor id="4" layer="permanent"/>
+                            <successor id="3" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="standard" width="2.9999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="3" type="driving" level="false">
+                        <link>
+                            <predecessor id="3" layer="permanent"/>
+                            <successor id="3" layer="permanent"/>
+                            <successor id="2" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="2" type="driving" level="false">
+                        <link>
+                            <predecessor id="2" layer="permanent"/>
+                            <successor id="2" layer="permanent"/>
+                            <successor id="2" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="1" type="shoulder" level="false">
+                        <link>
+                            <predecessor id="1" layer="permanent"/>
+                            <successor id="1" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="standard" width="2.9999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="shoulder" level="false">
+                        <link>
+                            <predecessor id="-1" layer="permanent"/>
+                            <successor id="-1" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="standard" width="2.9999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                            <predecessor id="-2" layer="permanent"/>
+                            <successor id="-2" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-3" type="driving" level="false">
+                        <link>
+                            <predecessor id="-3" layer="permanent"/>
+                            <successor id="-3" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-4" type="driving" level="false">
+                        <link>
+                            <predecessor id="-4" layer="permanent"/>
+                            <successor id="-4" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="standard" width="2.9999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-5" type="stop" level="false">
+                        <link>
+                            <predecessor id="-5" layer="permanent"/>
+                            <successor id="-5" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="-6" type="border" level="false">
+                        <link>
+                            <predecessor id="-6" layer="permanent"/>
+                            <successor id="-6" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+            <laneSection s="2.8000000000000000e+03">
+                <left>
+                    <lane id="6" type="border" level="false">
+                        <link>
+                            <predecessor id="6" layer="permanent"/>
+                            <successor id="6" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="5" type="stop" level="false">
+                        <link>
+                            <predecessor id="5" layer="permanent"/>
+                            <successor id="5" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="4" type="driving" level="false">
+                        <link>
+                            <predecessor id="4" layer="permanent"/>
+                            <successor id="4" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="standard" width="2.9999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="3" type="driving" level="false">
+                        <link>
+                            <predecessor id="3" layer="permanent"/>
+                            <successor id="3" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="2" type="driving" level="false">
+                        <link>
+                            <predecessor id="2" layer="permanent"/>
+                            <successor id="2" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="1" type="shoulder" level="false">
+                        <link>
+                            <predecessor id="1" layer="permanent"/>
+                            <successor id="1" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="standard" width="2.9999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="shoulder" level="false">
+                        <link>
+                            <predecessor id="-1" layer="permanent"/>
+                            <successor id="-1" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="standard" width="2.9999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                            <predecessor id="-2" layer="permanent"/>
+                            <successor id="-2" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-3" type="driving" level="false">
+                        <link>
+                            <predecessor id="-3" layer="permanent"/>
+                            <successor id="-3" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-4" type="driving" level="false">
+                        <link>
+                            <predecessor id="-4" layer="permanent"/>
+                            <successor id="-4" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="standard" width="2.9999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-5" type="stop" level="false">
+                        <link>
+                            <predecessor id="-5" layer="permanent"/>
+                            <successor id="-5" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="-6" type="border" level="false">
+                        <link>
+                            <predecessor id="-6" layer="permanent"/>
+                            <successor id="-6" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+            <laneSection s="4.2830000000000000e+03">
+                <left>
+                    <lane id="6" type="border" level="false">
+                        <link>
+                            <predecessor id="6" layer="permanent"/>
+                            <successor id="6" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="5" type="stop" level="false">
+                        <link>
+                            <predecessor id="5" layer="permanent"/>
+                            <successor id="5" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="4" type="driving" level="false">
+                        <link>
+                            <predecessor id="4" layer="permanent"/>
+                            <successor id="4" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="standard" width="2.9999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="3" type="driving" level="false">
+                        <link>
+                            <predecessor id="3" layer="permanent"/>
+                            <successor id="3" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="2" type="driving" level="false">
+                        <link>
+                            <predecessor id="2" layer="permanent"/>
+                            <successor id="2" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="1" type="shoulder" level="false">
+                        <link>
+                            <predecessor id="1" layer="permanent"/>
+                            <successor id="1" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="standard" width="2.9999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="shoulder" level="false">
+                        <link>
+                            <predecessor id="-1" layer="permanent"/>
+                            <successor id="-1" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="standard" width="2.9999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                            <predecessor id="-2" layer="permanent"/>
+                            <predecessor id="-2" layer="temporary"/>
+                            <successor id="-2" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-3" type="driving" level="false">
+                        <link>
+                            <predecessor id="-3" layer="permanent"/>
+                            <predecessor id="-2" layer="temporary"/>
+                            <successor id="-3" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-4" type="driving" level="false">
+                        <link>
+                            <predecessor id="-4" layer="permanent"/>
+                            <predecessor id="-4" layer="temporary"/>
+                            <successor id="-4" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="standard" width="2.9999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-5" type="stop" level="false">
+                        <link>
+                            <predecessor id="-5" layer="permanent"/>
+                            <successor id="-5" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="-6" type="border" level="false">
+                        <link>
+                            <predecessor id="-6" layer="permanent"/>
+                            <successor id="-6" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+            <laneSection s="5.0830000000000000e+03">
+                <left>
+                    <lane id="6" type="border" level="false">
+                        <link>
+                            <predecessor id="6" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="5" type="stop" level="false">
+                        <link>
+                            <predecessor id="5" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="4" type="driving" level="false">
+                        <link>
+                            <predecessor id="4" layer="permanent"/>
+                            <predecessor id="4" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="standard" width="2.9999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="3" type="driving" level="false">
+                        <link>
+                            <predecessor id="3" layer="permanent"/>
+                            <predecessor id="-3" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="2" type="driving" level="false">
+                        <link>
+                            <predecessor id="2" layer="permanent"/>
+                            <predecessor id="-2" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="1" type="shoulder" level="false">
+                        <link>
+                            <predecessor id="1" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="standard" width="2.9999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="shoulder" level="false">
+                        <link>
+                            <predecessor id="-1" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="standard" width="2.9999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                            <predecessor id="-2" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-3" type="driving" level="false">
+                        <link>
+                            <predecessor id="-3" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-4" type="driving" level="false">
+                        <link>
+                            <predecessor id="-4" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="standard" width="2.9999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-5" type="stop" level="false">
+                        <link>
+                            <predecessor id="-5" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="-6" type="border" level="false">
+                        <link>
+                            <predecessor id="-6" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <lanes layer="temporary">
+            <laneOffset s="2.8000000000000000e+03" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="6.5249999999999998e-04" d="-2.1749999999999999e-06"/>
+            <laneOffset s="3.0000000000000000e+03" a="8.6999999999999993e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+            <laneOffset s="4.0830000000000000e+03" a="8.6999999999999993e+00" b="0.0000000000000000e+00" c="-6.5249999999999998e-04" d="2.1749999999999999e-06"/>
+            <laneOffset s="4.2830000000000000e+03" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+            <laneSection s="2.0000000000000000e+03">
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="shoulder" level="false">
+                        <link>
+                            <predecessor id="-1" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.0000000000000000e+00" b="0.0000000000000000e+00" c="-1.5000000000000001e-04" d="4.9999999999999998e-07"/>
+                    </lane>
+                    <lane id="-2" type="restricted" level="false">
+                        <link>
+                            <successor id="-1" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="4.2749999999999998e-04" d="-1.4249999999999999e-06"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="1.6999999999999998e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-3" type="driving" level="false">
+                        <link>
+                            <predecessor id="-2" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="-2.6250000000000004e-04" d="8.7500000000000009e-07"/>
+                    </lane>
+                    <lane id="-4" type="driving" level="false">
+                        <link>
+                            <predecessor id="-3" layer="permanent"/>
+                            <successor id="-2" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="-1.5000000000000012e-05" d="5.0000000000000044e-08"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="yellow" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-5" type="driving" level="false">
+                        <link>
+                            <predecessor id="-4" layer="permanent"/>
+                            <successor id="-3" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="-6" type="stop" level="false">
+                        <link>
+                            <predecessor id="-5" layer="permanent"/>
+                            <successor id="-4" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+            <laneSection s="2.2000000000000000e+03" length="6.0000000000000000e+02">
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="restricted" level="false">
+                        <link>
+                            <predecessor id="-2" layer="temporary"/>
+                            <successor id="-1" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="5.7000000000000002e+00" b="0.0000000000000000e+00" c="8.9999999999999938e-05" d="-5.9999999999999966e-07"/>
+                        <width sOffset="1.0000000000000000e+02" a="6.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="1.6999999999999998e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                            <predecessor id="-4" layer="temporary"/>
+                            <successor id="-2" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.2999999999999998e+00" b="0.0000000000000000e+00" c="-2.3999999999999990e-04" d="1.5999999999999995e-06"/>
+                        <width sOffset="1.0000000000000000e+02" a="2.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="yellow" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-3" type="driving" level="false">
+                        <link>
+                            <predecessor id="-5" layer="temporary"/>
+                            <successor id="-4" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="1.6999999999999998e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-4" type="stop" level="false">
+                        <link>
+                            <predecessor id="-6" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+            <laneSection s="2.8000000000000000e+03">
+                <left>
+                    <lane id="3" type="driving" level="false">
+                        <link>
+                            <predecessor id="4" layer="permanent"/>
+                            <successor id="2" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="1.6999999999999998e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="2" type="driving" level="false">
+                        <link>
+                            <predecessor id="3" layer="permanent"/>
+                            <predecessor id="2" layer="permanent"/>
+                            <successor id="1" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="7.0000000000000000e+00" b="0.0000000000000000e+00" c="-3.3749999999999996e-04" d="1.1250000000000000e-06"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="yellow" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="1" type="restricted" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.0000000000000000e+00" b="0.0000000000000000e+00" c="-1.5000000000000001e-04" d="4.9999999999999998e-07"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="1.6999999999999998e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="restricted" level="false">
+                        <link>
+                            <predecessor id="-1" layer="temporary"/>
+                            <successor id="-1" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="6.0000000000000000e+00" b="0.0000000000000000e+00" c="-3.7500000000000006e-04" d="1.2500000000000001e-06"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="1.6999999999999998e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                            <predecessor id="-2" layer="temporary"/>
+                            <successor id="-2" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="1.6999999999999998e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-3" type="restricted" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="1.2000000000000001e-03" d="-1.5999999999999999e-05"/>
+                        <width sOffset="5.0000000000000000e+01" a="1.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+                        <width sOffset="1.5000000000000000e+02" a="1.0000000000000000e+00" b="0.0000000000000000e+00" c="-1.2000000000000001e-03" d="1.5999999999999999e-05"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="1.6999999999999998e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-4" type="driving" level="false">
+                        <link>
+                            <predecessor id="-3" layer="temporary"/>
+                            <successor id="-3" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="2.9999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                </right>
+            </laneSection>
+            <laneSection s="3.0000000000000000e+03" >
+                <left>
+                    <lane id="2" type="driving" level="false">
+                        <link>
+                            <predecessor id="3" layer="temporary"/>
+                            <successor id="3" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="1.6999999999999998e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="1" type="driving" level="false">
+                        <link>
+                            <predecessor id="2" layer="temporary"/>
+                            <successor id="2" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="yellow" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="1.6999999999999998e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="restricted" level="false">
+                        <link>
+                            <predecessor id="-1" layer="temporary"/>
+                            <successor id="-1" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="1.6999999999999998e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                            <predecessor id="-2" layer="temporary"/>
+                            <successor id="-2" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="yellow" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-3" type="driving" level="false">
+                        <link>
+                            <predecessor id="-4" layer="temporary"/>
+                            <successor id="-4" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="2.9999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                </right>
+            </laneSection>
+            <laneSection s="4.0830000000000000e+03" >
+                <left>
+                    <lane id="3" type="driving" level="false">
+                        <link>
+                            <predecessor id="2" layer="temporary"/>
+                            <successor id="3" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="1.6999999999999998e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="2" type="driving" level="false">
+                        <link>
+                            <predecessor id="1" layer="temporary"/>
+                            <successor id="2" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="yellow" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="1" type="restricted" level="false">
+                        <link>
+                            <successor id="1" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="4.4999999999999993e-04" d="-1.4999999999999998e-06"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="1.4999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="restricted" level="false">
+                        <link>
+                            <predecessor id="-1" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.0000000000000000e+00" b="0.0000000000000000e+00" c="7.5000000000000007e-05" d="-2.4999999999999999e-07"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="1.6999999999999998e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                            <predecessor id="-2" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.5000000000000000e+00" b="0.0000000000000000e+00" c="3.3749999999999996e-04" d="-1.1250000000000000e-06"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="1.6999999999999998e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-3" type="restricted" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="1.2000000000000001e-03" d="-1.5999999999999999e-05"/>
+                        <width sOffset="5.0000000000000000e+01" a="1.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+                        <width sOffset="1.5000000000000000e+02" a="1.0000000000000000e+00" b="0.0000000000000000e+00" c="-1.2000000000000001e-03" d="1.5999999999999999e-05"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="1.6999999999999998e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-4" type="driving" level="false">
+                        <link>
+                            <predecessor id="-3" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="2.9999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                </right>
+            </laneSection>
+            <laneSection s="4.2830000000000000e+03" length="2.0000000000000000e+02">
+                <left>
+                    <lane id="3" type="driving" level="false">
+                        <link>
+                            <predecessor id="3" layer="temporary"/>
+                            <successor id="3" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="1.6999999999999998e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="2" type="driving" level="false">
+                        <link>
+                            <predecessor id="2" layer="temporary"/>
+                            <successor id="2" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="yellow" width="1.4999999999999999e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="1" type="restricted" level="false">
+                        <link>
+                            <predecessor id="1" layer="temporary"/>
+                            <successor id="1" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="6.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="1.4999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="1.6999999999999998e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                </center>
+            </laneSection>
+            <laneSection s="4.4830000000000000e+03" length="4.0000000000000000e+02">
+                <left>
+                    <lane id="3" type="driving" level="false">
+                        <link>
+                            <predecessor id="3" layer="temporary"/>
+                            <successor id="4" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="1.6999999999999998e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="2" type="driving" level="false">
+                        <link>
+                            <predecessor id="2" layer="temporary"/>
+                            <successor id="3" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.5000000000000000e+00" b="0.0000000000000000e+00" c="7.5000000000000007e-05" d="-2.4999999999999999e-07"/>
+                        <width sOffset="2.0000000000000000e+02" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="yellow" width="1.6999999999999998e-01" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="1" type="restricted" level="false">
+                        <link>
+                            <predecessor id="1" layer="temporary"/>
+                            <successor id="1" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="6.0000000000000000e+00" b="0.0000000000000000e+00" c="-3.7500000000000003e-05" d="1.2499999999999999e-07"/>
+                        <width sOffset="2.0000000000000000e+02" a="5.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="1.4999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="1.6999999999999998e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                </center>
+            </laneSection>
+            <laneSection s="4.8830000000000000e+03" length="2.0000000000000000e+02">
+                <left>
+                    <lane id="5" type="stop" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="2.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="4" type="driving" level="false">
+                        <link>
+                            <predecessor id="4" layer="temporary"/>
+                            <successor id="4" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="3" type="driving" level="false">
+                        <link>
+                            <predecessor id="3" layer="temporary"/>
+                            <successor id="3" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="2" type="driving" level="false">
+                        <link>
+                            <predecessor id="2" layer="temporary"/>
+                            <successor id="2" layer="permanent"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="2.6250000000000004e-04" d="-8.7500000000000009e-07"/>
+                        <width sOffset="2.0000000000000000e+02" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="1" type="restricted" level="false">
+                        <link>
+                            <predecessor id="1" layer="temporary"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="5.5000000000000000e+00" b="0.0000000000000000e+00" c="-2.6250000000000004e-04" d="8.7500000000000009e-07"/>
+                        <width sOffset="2.0000000000000000e+02" a="2.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="yellow" width="1.4999999999999999e-01" laneChange="none" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+            </laneSection>
+        </lanes>
+        <objects>
+        </objects>
+        <signals>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+</OpenDRIVE>
