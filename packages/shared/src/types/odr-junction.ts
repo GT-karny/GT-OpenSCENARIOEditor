@@ -3,6 +3,7 @@
  */
 
 import type { OdrSurfaceCRG } from './odr-surface.js';
+import type { OdrExtra } from './odr-common.js';
 
 export interface OdrJunction {
   id: string;
@@ -20,6 +21,8 @@ export interface OdrJunction {
   sEnd?: number;
   /** Virtual junction: relevance by driving direction, one of '+', '-', 'none' (t_junction_virtual/@orientation). */
   orientation?: string;
+  /** Unmodeled attrs/children (crossing/direct-junction subtrees, etc.) preserved for round-trip. */
+  extra?: OdrExtra;
 }
 
 export interface OdrJunctionConnection {
@@ -31,6 +34,8 @@ export interface OdrJunctionConnection {
   type?: string;
   predecessor?: OdrJunctionPredSucc;
   successor?: OdrJunctionPredSucc;
+  /** Unmodeled connection attrs (linkedRoad, overlapZone, layer, …) preserved for round-trip. */
+  extra?: OdrExtra;
 }
 
 export interface OdrJunctionPriority {
