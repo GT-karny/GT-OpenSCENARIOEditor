@@ -11,12 +11,11 @@ import { gotoEditor, addEntity, entityList } from './helpers';
  *    (`isDirty || isRoadNetworkDirty`). Cancel aborts (document untouched);
  *    Discard-and-continue proceeds (document reset to a fresh/empty one).
  *
- * 2. The StatusBar dirty indicator is currently MODE-LINKED: it reflects the
- *    active editor mode's document only (`displayDirty = isRoadNetwork
- *    ? isXodrDirty : isXoscDirty`). Editing the scenario shows the dirty dot in
- *    Scenario mode; switching to Road Network mode (whose .xodr is untouched)
- *    hides it. This baseline is intentional — S1 is expected to deliberately
- *    replace it with a multi-document display, at which point this spec updates.
+ * 2. The StatusBar dirty state is DERIVED from each document's command-history
+ *    revision (S1 DocumentRegistry): editing makes it dirty, undoing back to the
+ *    load/save baseline makes it clean again, and per-document indicators surface
+ *    a dirty document even when it is not the focused editor mode. This replaces
+ *    the S0 mode-linked single-dot baseline.
  *
  * Dialog / trigger conventions (verified against the running UI):
  * - Dialog: role="dialog", accessible title "Unsaved changes" (i18n
@@ -36,8 +35,6 @@ import { gotoEditor, addEntity, entityList } from './helpers';
  * dirty test-id — `data-testid="status-dot"` is the *simulation* status dot,
  * which is unrelated. We assert on the "Untitled ●" text instead.
  */
-
-const DIRTY_MARK = '●';
 
 test.describe('Unsaved-changes guard', () => {
   test.beforeEach(async ({ page }) => {
@@ -97,44 +94,61 @@ test.describe('Unsaved-changes guard', () => {
     await expect(statusBar).toContainText(/Entities:\s*0(?!\d)|エンティティ:\s*0(?!\d)/);
   });
 
-  // NOTE: We intentionally do NOT assert the "clean document => no dialog" path
-  // here. In this mock-backend flow, opening the seeded project mounts an
-  // in-memory document that the app already reports as dirty (the status bar
-  // shows the "●" mark on first render), so there is no reliable way to reach a
-  // genuinely-clean in-app document to exercise the guard's clean-skip branch.
-  // That branch (`confirmDiscardIfDirty` resolving 'discard' when clean) is
-  // covered by the hook unit test (use-discard-guard.test.ts).
+  test('File > New on a clean freshly-opened document does not prompt', async ({ page }) => {
+    // Regression guard for the S0 false-dirty finding: opening a project used to
+    // mark the document dirty (blanket "any mutation -> setDirty(true)"), so
+    // File > New wrongly prompted. With derived dirty, a freshly opened document
+    // is clean and File > New proceeds without a guard dialog.
+    const statusBar = page.getByTestId('status-bar');
+    await expect(statusBar).toBeVisible();
+    // No per-document dirty indicators on a clean open.
+    await expect(page.getByTestId('dirty-indicators')).not.toBeVisible();
+
+    await page.getByRole('button', { name: 'File', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'New' }).click();
+
+    // Clean document → no confirmation dialog; the new scenario is created.
+    await expect(page.getByRole('dialog', { name: 'Unsaved changes' })).not.toBeVisible();
+    await expect(statusBar).toContainText(/Entities:\s*0(?!\d)|エンティティ:\s*0(?!\d)/);
+  });
 });
 
-test.describe('Mode-dependent dirty display (S0 baseline)', () => {
+test.describe('Derived dirty display (S1 DocumentRegistry)', () => {
   test.beforeEach(async ({ page }) => {
     await gotoEditor(page);
     await page.getByRole('tab', { name: /Entities|エンティティ/ }).click();
   });
 
-  test('scenario dirty dot shows in Scenario mode and hides in Road Network mode', async ({
+  test('undo back to the load baseline restores clean display', async ({ page }) => {
+    const scenarioDirty = page.getByTestId('dirty-indicator-scenario');
+
+    // Edit the scenario → derived dirty → the per-document indicator appears.
+    await addEntity(page, 'UndoCleanEntity');
+    await expect(entityList(page).getByText('UndoCleanEntity')).toBeVisible();
+    await expect(scenarioDirty).toBeVisible();
+
+    // Undo back to the load baseline → revision === savedRevision → clean again.
+    await page.keyboard.press('Control+z');
+    await expect(entityList(page).getByText('UndoCleanEntity')).not.toBeVisible();
+    await expect(scenarioDirty).not.toBeVisible();
+  });
+
+  test('a dirty scenario stays flagged after switching to Road Network mode', async ({
     page,
   }) => {
-    const statusBar = page.getByTestId('status-bar');
+    const scenarioDirty = page.getByTestId('dirty-indicator-scenario');
 
-    // Edit the scenario so the OpenSCENARIO document is unambiguously dirty.
-    // (In this flow the freshly-opened document already reports dirty, so we
-    // don't assert a clean baseline first — we assert the mode-linked behavior
-    // around a known-dirty scenario document.)
-    await addEntity(page, 'DirtyDisplayEntity');
-    await expect(entityList(page).getByText('DirtyDisplayEntity')).toBeVisible();
+    await addEntity(page, 'CrossModeDirtyEntity');
+    await expect(entityList(page).getByText('CrossModeDirtyEntity')).toBeVisible();
+    await expect(scenarioDirty).toBeVisible();
 
-    // In Scenario mode the status bar shows the dirty indicator ("… ●").
-    await expect(statusBar).toContainText(DIRTY_MARK);
-
-    // Switch to Road Network mode. The .xodr document is untouched, and the
-    // CURRENT dirty display is mode-linked, so the indicator disappears even
-    // though the scenario still has unsaved edits.
+    // Switch to Road Network mode: the scenario is now the NON-focused document,
+    // but its unsaved state remains visible via the per-document indicator
+    // (unlike the S0 mode-linked display, which hid it).
     await page.getByRole('banner').getByRole('button', { name: 'Road Network' }).click();
-    await expect(statusBar).not.toContainText(DIRTY_MARK);
+    await expect(scenarioDirty).toBeVisible();
 
-    // Switching back to Scenario mode brings the indicator back (still dirty).
     await page.getByRole('banner').getByRole('button', { name: 'Scenario', exact: true }).click();
-    await expect(statusBar).toContainText(DIRTY_MARK);
+    await expect(scenarioDirty).toBeVisible();
   });
 });
