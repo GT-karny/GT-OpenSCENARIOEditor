@@ -159,3 +159,30 @@ S0 ∥ 1.9-P0(止血同士、worktree 並行。apps/web のファイル所有権
 - 設計・作業仕様書・差分レビュー・グローバルゲート(typecheck/lint/vitest/build/E2E): メインセッションが保持
 - 実装: 並列サブエージェント波(worktree、ファイル所有権の明示分割、パッケージ境界準拠)
 - 並行可否の要点: S0 内は全項目独立 / 共有基盤 PR(S1-1・S4-1・1.9-P1)は直列 / S4 は openscenario・scenario-engine 中心のため apps/web 中心の S1〜S3 と並行余地あり
+
+## 進捗ノート
+
+### S0 / S1 (〜2026-07-06、要約)
+
+S0(止血 10 項目)と S1(DocumentRegistry 基盤)は完了・レビュー合格済み。S1-1 の位置同一性 revision API(`6c39989`)→ DocumentRegistry と導出ダーティ(`161acc2`〜`6f84ea7`: 手書きフラグ退役、複数文書インジケータ、registry 駆動オートセーブ/ガード、E2E)。1.9-P1(消費追跡パススルー)も同列車で完了(詳細は opendrive-1.9-support.md の進捗節)。ゲート実績: unit 1,889 / E2E unsaved-guard 系通過。
+
+### S2 完了 (2026-07-06)
+
+**S2-1 logicFile 参照の registry 管理(#4 恒久修正)** — `cfb4866` + fixup `5ddd032`:
+- 道路 Save-As(プロジェクトモード)が scenario の `logicFile.filepath` を既存の `UpdateRoadNetworkCommand` 経由で即時更新(undo 可能、scenario が正しくダーティ化、info トースト)。参照を持たない scenario には参照を発明しない
+- 旧 `convertPathsForSerialization`(無警告の直列化時補正)は `lib/document-references.ts` の `reconcileLogicFileForSave` へ移設・一本化。保存時に参照を検証し、**真の不整合のみ警告**(`warnings.logicFileCorrected`)。正規化比較(`normalizeRelativePath`、先頭 `..` 保持)により `./`・バックスラッシュ等の綴り違いは無警告の正準化に留まる。scenario Save-As の位置移動による相対パス再計算も無警告(旧位置形を整合とみなす)
+- スコープ: プロジェクトモードのみ(standalone の道路 Save-As は現状維持)
+
+**S2-2 rawXml の revision タグ付きキャッシュ(#2 恒久修正)** — `e4fe9b0` + fixup `5ddd032`:
+- `editor-store.roadNetworkRawXml: {text, validForRevision}`。validity は**読み取り時に**現在の OpenDRIVE CommandHistory revision と比較して導出(S1 の導出ダーティと同型)。編集での null 化は存在せず、undo でベースラインへ戻れば自動再有効化
+- S1-1 期の暫定機構(`RoadNetworkEditorLayout` の `originalRawXmlRef`/`baselineRevisionRef`)は完全退役(grep 残存ゼロ)。reverse-sync はドキュメント転送のみに縮退
+- スタンプ点: ローダー4箇所(仮スタンプ)/ 道路モード入場時の再スタンプ(自動 lane-link 補正は編集に数えない)/ **道路保存の全経路**(保存直後から raw 直通復活 — 従来は保存後も degraded のままだった改善)/ オートセーブ復旧はキャッシュなし(次の保存まで degraded)
+- ペイロード決定の一本化: `simulation-xodr.ts` の `isRawXmlValid` が唯一の判定。シミュレーション実行・バッチ実行・リプレイ・RoadManagerClient の全消費者が「valid → raw 直通 / invalid → 再シリアライズ + degraded 警告」。**警告はオーナー決定により 1.9-P2 完了まで撤去しない**
+
+**E2E**(`586ef23` + `5ddd032`): `road-references.spec.ts` 2本 — (1) 道路 Save-As → 同期トースト・per-document ダーティ・undo/redo・保存後のディスク上 LogicFile 正準値・偽警告ゼロ、(2) 道路編集後の Run → degraded 警告 + シミュレーション到達(道路は失われない)。既存の「未編集往復で警告なし」(opendrive-1.9.spec)は緑のまま
+
+**敵対的レビュー**: 未関与 Opus による監査で BLOCKER/MAJOR ゼロ、MINOR 2件(validity 判定の重複・非正準綴りの偽警告)は fixup 済み、E2E 補強指摘も反映。判定 SHIP
+
+**ゲート実績**: typecheck / lint 0 errors / unit 1,912(+23)/ build / E2E 60 passed(gt-sim 4 は USE_GT_SIM ゲートでスキップ、従来どおり)。lht-direction-arrows の負荷フレーク1件を確認(単体通過、S5-1 の安定化対象に追加)
+
+**完了条件の充足**: #4 再現不能(Save-As 即同期 + 保存時検証の二段)/ rawXml の無音欠落が構造的に不能(無効キャッシュは必ず警告つき再シリアライズ、判定単一ソース)。詳細は `tmp/s2-report.md`
