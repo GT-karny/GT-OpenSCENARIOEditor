@@ -157,7 +157,16 @@ export function useSignalPickMode({
       allTrackSignalMap,
     };
     useEditorStore.getState().enterSignalPickMode(mode);
-  }, [pendingSignalPick, signalPickMode, selectedController, trackMetaMap, updateControllerPhases]);
+    // setTrackMetaMap is a useState setter (stable identity); it is listed only
+    // because extraction turned it into a parameter the linter cannot verify.
+  }, [
+    pendingSignalPick,
+    signalPickMode,
+    selectedController,
+    trackMetaMap,
+    setTrackMetaMap,
+    updateControllerPhases,
+  ]);
 
   // Escape key to exit pick mode
   useEffect(() => {

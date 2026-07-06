@@ -272,6 +272,8 @@ export function useRunUnsavedGuard(saveFnsRef: { current: SaveFns }) {
         saveCatalogs: () => saveFnsRef.current.saveCatalogs(),
         saveDistribution: () => saveFnsRef.current.saveDistribution(),
       }),
-    [],
+    // The ref has a stable identity; it is listed only because extraction
+    // turned it into a parameter the linter cannot verify.
+    [saveFnsRef],
   );
 }
