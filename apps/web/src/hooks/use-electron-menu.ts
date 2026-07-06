@@ -1,10 +1,9 @@
 import { useEffect } from 'react';
 import { useScenarioStoreApi } from '../stores/use-scenario-store';
-import { useEditorStore } from '../stores/editor-store';
 import { useProjectStore } from '../stores/project-store';
 import { useCatalogStore } from '../stores/catalog-store';
 import { useDistributionStore } from '../stores/distribution-store';
-import { getFocusedDocumentKind } from '../stores/document-registry';
+import { getFocusedDocumentKind, useDocumentRegistry } from '../stores/document-registry';
 import { useFileOperations } from './use-file-operations';
 import { getOpenDriveStoreApi } from './use-opendrive-store';
 import { kindFromFileName } from '../lib/recent-files/recent-list';
@@ -30,7 +29,7 @@ export function useElectronMenu() {
     if (!window.electronAPI?.isElectron) return;
 
     const cleanup = window.electronAPI.onMenuAction((action) => {
-      const isRoadNetwork = useEditorStore.getState().editorMode === 'roadNetwork';
+      const isRoadNetwork = useDocumentRegistry.getState().focusedBase === 'roadNetwork';
 
       // Open a specific recent file by absolute path (carried in the action).
       if (action.startsWith('open-recent:')) {
@@ -43,7 +42,9 @@ export function useElectronMenu() {
           const read = { text, name, filePath };
           const ok = kind === 'xosc' ? await loadXoscFromRead(read) : await loadXodrFromRead(read);
           if (ok) {
-            useEditorStore.getState().setEditorMode(kind === 'xodr' ? 'roadNetwork' : 'scenario');
+            // Bare focus switch (no lifecycle cascade); the load already primed the
+            // matching document. The cascade lives in switchEditorMode (use-app-lifecycle).
+            useDocumentRegistry.getState().setFocusedBase(kind === 'xodr' ? 'roadNetwork' : 'scenario');
             if (useProjectStore.getState().currentView !== 'editor') {
               useProjectStore.getState().setView('editor');
             }

@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { useTranslation } from '@osce/i18n';
 import { toast } from 'sonner';
 import { useFileOperations } from './use-file-operations';
-import { useEditorStore } from '../stores/editor-store';
+import { useDocumentRegistry } from '../stores/document-registry';
 import { useProjectStore } from '../stores/project-store';
 import {
   getWebRecentFiles,
@@ -76,7 +76,9 @@ export function useRecentFiles() {
   }, []);
 
   const showInEditor = useCallback((kind: RecentFileKind) => {
-    useEditorStore.getState().setEditorMode(kind === 'xodr' ? 'roadNetwork' : 'scenario');
+    // Bare focus switch (no lifecycle cascade); the cascade lives in
+    // switchEditorMode (use-app-lifecycle).
+    useDocumentRegistry.getState().setFocusedBase(kind === 'xodr' ? 'roadNetwork' : 'scenario');
     if (useProjectStore.getState().currentView !== 'editor') {
       useProjectStore.getState().setView('editor');
     }

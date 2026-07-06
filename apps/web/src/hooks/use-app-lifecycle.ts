@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import type { EditorMode } from '../stores/editor-store';
+import type { EditorMode } from '../stores/document-registry';
 import { useEditorStore } from '../stores/editor-store';
 import { useSimulationStore } from '../stores/simulation-store';
 import { useRouteEditStore } from '../stores/route-edit-store';
@@ -36,7 +36,7 @@ export function useAppLifecycle() {
     useOdrSidebarStore.getState().resetAll();
 
     // 5. Actually switch mode
-    useEditorStore.getState().setEditorMode(mode);
+    useDocumentRegistry.getState().setFocusedBase(mode);
   }, []);
 
   const resetForNewFile = useCallback(() => {

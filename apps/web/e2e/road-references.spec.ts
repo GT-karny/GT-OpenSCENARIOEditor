@@ -243,7 +243,7 @@ test.describe('Scenario/road reference sync', () => {
     await expect(page.getByTestId('dirty-indicator-roadNetwork')).not.toBeVisible();
 
     // Undo in Scenario mode targets the scenario's command history (see
-    // use-keyboard-shortcuts.ts: Ctrl+Z routes by editorMode) and reverts the
+    // use-keyboard-shortcuts.ts: Ctrl+Z routes by focusedBase) and reverts the
     // sync, bringing the revision back to the load baseline.
     await enterScenarioMode(page);
     await page.keyboard.press('Control+z');

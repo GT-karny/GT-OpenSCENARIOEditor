@@ -51,7 +51,7 @@ export function StatusBar() {
   const entityCount = useScenarioStore((s) => s.document.entities.length);
   const storyCount = useScenarioStore((s) => s.document.storyboard.stories.length);
   const validationResult = useEditorStore((s) => s.validationResult);
-  const editorMode = useEditorStore((s) => s.editorMode);
+  const isRoadNetwork = useDocumentRegistry((s) => s.focusedBase === 'roadNetwork');
   const xoscFileName = useEditorStore((s) => s.currentFileName);
   // Dirty is derived from each document's command-history revision (registry).
   const isXoscDirty = useDocumentRegistry((s) => s.current.scenario !== s.saved.scenario);
@@ -68,7 +68,6 @@ export function StatusBar() {
   const speedUnit = useEditorStore((s) => s.preferences.speedUnit);
   const updatePreferences = useEditorStore((s) => s.updatePreferences);
 
-  const isRoadNetwork = editorMode === 'roadNetwork';
   const displayName = isRoadNetwork ? xodrFileName : xoscFileName;
   const displayDirty = isRoadNetwork ? isXodrDirty : isXoscDirty;
 

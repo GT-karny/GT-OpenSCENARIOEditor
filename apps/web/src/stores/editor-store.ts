@@ -55,8 +55,6 @@ export interface SignalPickMode {
   allTrackSignalMap: ReadonlyMap<string, ReadonlySet<string>>;
 }
 
-export type EditorMode = 'scenario' | 'roadNetwork';
-
 /** Verbatim .xodr text and the OpenDRIVE history revision at which it is byte-accurate. */
 export interface RoadNetworkRawXml {
   text: string;
@@ -83,10 +81,6 @@ export type EditorPreferencesExt = EditorPreferences & {
 };
 
 export interface EditorState {
-  // Editor mode (Scenario / Road Network tab)
-  editorMode: EditorMode;
-  setEditorMode: (mode: EditorMode) => void;
-
   // Selection
   selection: EditorSelection;
   setSelection: (sel: Partial<EditorSelection>) => void;
@@ -269,10 +263,6 @@ export function migrateEditorPreferences(
 export const useEditorStore = create<EditorState>()(
   persist(
     (set) => ({
-      // Editor mode
-      editorMode: 'scenario' as EditorMode,
-      setEditorMode: (mode) => set({ editorMode: mode }),
-
       // Selection
       selection: { selectedElementIds: [], hoveredElementId: null, focusedPanelId: null },
       setSelection: (sel) =>

@@ -3,8 +3,8 @@ import { renderHook } from '@testing-library/react';
 
 // ---- Mocks ---------------------------------------------------------------
 // Imperative store APIs are mocked so we can assert which store receives the
-// undo/redo call for each editor mode. The editor store (which owns editorMode)
-// is left real and driven via setState.
+// undo/redo call for each editor mode. The document registry (which owns
+// focusedBase) is left real and driven via setFocusedBase.
 
 const scenarioUndo = vi.fn();
 const scenarioRedo = vi.fn();
@@ -38,7 +38,7 @@ vi.mock('../../hooks/use-file-operations', () => ({
 }));
 
 import { useElectronMenu } from '../../hooks/use-electron-menu';
-import { useEditorStore } from '../../stores/editor-store';
+import { useDocumentRegistry } from '../../stores/document-registry';
 
 type MenuActionHandler = (action: string) => void;
 
@@ -65,12 +65,12 @@ beforeEach(() => {
 
 afterEach(() => {
   delete (window as unknown as { electronAPI?: unknown }).electronAPI;
-  useEditorStore.getState().setEditorMode('scenario');
+  useDocumentRegistry.getState().setFocusedBase('scenario');
 });
 
 describe('useElectronMenu — undo/redo routing (S0-1)', () => {
   it('routes undo/redo to the scenario store in scenario mode', () => {
-    useEditorStore.getState().setEditorMode('scenario');
+    useDocumentRegistry.getState().setFocusedBase('scenario');
     renderHook(() => useElectronMenu());
     expect(menuHandler).toBeTypeOf('function');
 
@@ -84,7 +84,7 @@ describe('useElectronMenu — undo/redo routing (S0-1)', () => {
   });
 
   it('routes undo/redo to the OpenDRIVE store in road-network mode', () => {
-    useEditorStore.getState().setEditorMode('roadNetwork');
+    useDocumentRegistry.getState().setFocusedBase('roadNetwork');
     renderHook(() => useElectronMenu());
     expect(menuHandler).toBeTypeOf('function');
 

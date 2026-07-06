@@ -15,11 +15,11 @@ import {
 } from '../ui/dropdown-menu';
 import { useFileOperations } from '../../hooks/use-file-operations';
 import { useRecentFiles } from '../../hooks/use-recent-files';
-import { useEditorStore } from '../../stores/editor-store';
+import { useDocumentRegistry } from '../../stores/document-registry';
 
 export function FileMenu() {
   const { t } = useTranslation('common');
-  const editorMode = useEditorStore((s) => s.editorMode);
+  const isRoadNetwork = useDocumentRegistry((s) => s.focusedBase === 'roadNetwork');
   const {
     newScenario,
     openXosc,
@@ -32,7 +32,6 @@ export function FileMenu() {
   } = useFileOperations();
   const { items: recentFiles, refresh, openRecent, clearRecent } = useRecentFiles();
 
-  const isRoadNetwork = editorMode === 'roadNetwork';
   const [open, setOpen] = useState(false);
 
   const handleOpenChange = useCallback(

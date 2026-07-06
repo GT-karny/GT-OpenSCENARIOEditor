@@ -4,7 +4,8 @@ import { renderHook } from '@testing-library/react';
 // ---- Mocks ---------------------------------------------------------------
 // The save functions are mocked to model real save semantics: a successful save
 // clears its own dirty flag, while a cancelled save leaves the flag set. The
-// editor store (dirty flags + editorMode) is left real and driven via setState.
+// document registry (which derives per-document dirty) is left real and driven
+// via markLoaded / markRestoredDirty.
 
 const saveXosc = vi.fn();
 const saveXodr = vi.fn();

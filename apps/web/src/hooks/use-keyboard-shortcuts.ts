@@ -4,7 +4,7 @@ import { useEditorStore } from '../stores/editor-store';
 import { useRouteEditStore } from '../stores/route-edit-store';
 import { useCatalogStore } from '../stores/catalog-store';
 import { useDistributionStore } from '../stores/distribution-store';
-import { getFocusedDocumentKind } from '../stores/document-registry';
+import { getFocusedDocumentKind, useDocumentRegistry } from '../stores/document-registry';
 import { useFileOperations } from './use-file-operations';
 import { useElementDelete } from './use-element-delete';
 import { useCopyPaste } from './use-clipboard';
@@ -20,8 +20,7 @@ export function useKeyboardShortcuts() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const ctrl = e.ctrlKey || e.metaKey;
-      const editorMode = useEditorStore.getState().editorMode;
-      const isRoadNetwork = editorMode === 'roadNetwork';
+      const isRoadNetwork = useDocumentRegistry.getState().focusedBase === 'roadNetwork';
 
       const routeEditActive = useRouteEditStore.getState().active;
 
@@ -29,7 +28,7 @@ export function useKeyboardShortcuts() {
         e.preventDefault();
         if (!routeEditActive) {
           // Route undo to the focused document (a catalog modal / distribution
-          // affordance overrides editorMode; see getFocusedDocumentKind).
+          // affordance overrides focusedBase; see getFocusedDocumentKind).
           switch (getFocusedDocumentKind()) {
             case 'catalog':
               useCatalogStore.getState().undoCatalog();

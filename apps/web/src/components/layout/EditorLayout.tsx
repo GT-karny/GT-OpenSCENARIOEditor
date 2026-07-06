@@ -41,6 +41,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { useTranslation } from '@osce/i18n';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
+import { useDocumentRegistry } from '../../stores/document-registry';
 import { useProjectStore } from '../../stores/project-store';
 import { useSimulationStore } from '../../stores/simulation-store';
 import { useRouteEdit } from '../../hooks/use-route-edit';
@@ -93,7 +94,7 @@ export function EditorLayout() {
   const { t } = useTranslation('common');
   const scenarioStoreApi = useScenarioStoreApi();
   const currentProject = useProjectStore((s) => s.currentProject);
-  const editorMode = useEditorStore((s) => s.editorMode);
+  const focusedBase = useDocumentRegistry((s) => s.focusedBase);
   const [centerTab, setCenterTab] = useState<'composer' | 'graph'>('composer');
 
   // Click-to-navigate from the validation panel requests the Graph tab so node
@@ -314,7 +315,7 @@ export function EditorLayout() {
   // Reset viewerMode to 'edit' when switching editor modes (scenario ↔ roadNetwork)
   useEffect(() => {
     setViewerMode('edit');
-  }, [editorMode]);
+  }, [focusedBase]);
 
   const simStatus = useSimulationStore((s) => s.status);
   // NOTE: Do NOT subscribe to s.frames here — it changes 30x/sec and would
@@ -544,7 +545,7 @@ export function EditorLayout() {
       {/* Save-time validation confirmation host (mode-independent) */}
       <ValidationConfirmHost />
 
-      {editorMode === 'roadNetwork' ? (
+      {focusedBase === 'roadNetwork' ? (
         <>
           <RoadNetworkEditorLayout />
 

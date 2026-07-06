@@ -24,9 +24,11 @@ import type { ScenarioStore } from '@osce/scenario-engine';
 import { getOpenDriveStoreApi } from '../hooks/use-opendrive-store';
 import { useCatalogStore } from './catalog-store';
 import { useDistributionStore } from './distribution-store';
-import { useEditorStore } from './editor-store';
 
 export type DocumentKind = 'scenario' | 'roadNetwork' | 'catalog' | 'distribution';
+
+/** The primary editor surface (Scenario / Road Network tab). */
+export type EditorMode = 'scenario' | 'roadNetwork';
 
 const KINDS: readonly DocumentKind[] = ['scenario', 'roadNetwork', 'catalog', 'distribution'];
 
@@ -65,10 +67,20 @@ interface DocumentRegistryState {
   current: Record<DocumentKind, number>;
 
   /**
-   * Which document currently has edit focus, when it is one that lives outside
-   * the main editor view (a catalog modal / distribution affordance). `null`
-   * defers focus to {@link EditorStore.editorMode}. Drives undo/redo routing so
-   * Ctrl+Z rewinds the document the user is actually editing.
+   * Which primary editor surface is active — the scenario or the road-network
+   * view. Drives which editor renders, the save/open file-type routing, and
+   * (absent an override) the focused document. A catalog/distribution modal can
+   * transiently override it (see {@link DocumentRegistryState.focusedOverride}).
+   */
+  focusedBase: EditorMode;
+  setFocusedBase: (kind: EditorMode) => void;
+
+  /**
+   * Transient edit focus for a document that lives outside the main editor view
+   * (a catalog modal / distribution dialog). `null` when no such surface is
+   * open, deferring to {@link DocumentRegistryState.focusedBase}. Together they
+   * form the focused document ({@link getFocusedDocumentKind}); drives undo/redo
+   * routing so Ctrl+Z rewinds the document the user is actually editing.
    */
   focusedOverride: 'catalog' | 'distribution' | null;
   setFocusedOverride: (kind: 'catalog' | 'distribution' | null) => void;
@@ -87,6 +99,9 @@ interface DocumentRegistryState {
 export const useDocumentRegistry = create<DocumentRegistryState>((set, get) => ({
   saved: { scenario: 0, roadNetwork: 0, catalog: 0, distribution: 0 },
   current: { scenario: 0, roadNetwork: 0, catalog: 0, distribution: 0 },
+
+  focusedBase: 'scenario',
+  setFocusedBase: (kind) => set({ focusedBase: kind }),
 
   focusedOverride: null,
   setFocusedOverride: (kind) => set({ focusedOverride: kind }),
@@ -157,9 +172,10 @@ export function initDocumentRegistry(scenarioStoreApi: StoreApi<ScenarioStore>):
 /**
  * The document that currently owns edit focus, for undo/redo routing. A catalog
  * modal or distribution affordance sets {@link DocumentRegistryState.focusedOverride}
- * while open; otherwise focus follows the active editor view (`editorMode`).
+ * while open; otherwise focus follows the active editor surface
+ * ({@link DocumentRegistryState.focusedBase}).
  */
 export function getFocusedDocumentKind(): DocumentKind {
-  const override = useDocumentRegistry.getState().focusedOverride;
-  return override ?? useEditorStore.getState().editorMode;
+  const { focusedOverride, focusedBase } = useDocumentRegistry.getState();
+  return focusedOverride ?? focusedBase;
 }
