@@ -115,33 +115,22 @@ function roundTripPosition(pos: Position): Position {
 // Action expectations
 // ---------------------------------------------------------------------------
 //
-// Default = strict identity. Two kinds of documented deviation:
+// Default = strict identity. The only documented deviation is `normalized`: the
+// parse layer canonicalizes the value on the way in, so the round-trip is
+// intentionally not identity and the test asserts the exact normalized shape
+// (mirrors the acquirePosition special case called out in the S4 design).
 //
-//  • normalized  — the parse layer canonicalizes the value on the way in, so the
-//    round-trip is intentionally not identity. Assert the exact normalized shape
-//    (mirrors the acquirePosition special case called out in the S4 design).
-//
-//  • knownGap    — PRE-EXISTING round-trip gap, NOT introduced by S4. The minimal
-//    object from defaultActionByType has every optional field unset, so
-//    build-actions.ts serializes it to an EMPTY inner element (e.g.
-//    <AssignControllerAction/>, <SetAction/>, <TrafficSignalAction/>). On parse,
-//    parse-actions.ts dispatches with child()+truthy, and child() returns
-//    undefined for an empty element, so the branch is skipped and the dispatcher
-//    throws ("Unknown <X> type" / "element is missing"). i.e. the parser cannot
-//    read back the empty element its own serializer emits for a minimal action.
-//    Fixing it means teaching each dispatcher to detect presence with has() and
-//    tolerate absent attributes — a systemic parser change with identity
-//    subtleties (e.g. parameterAction/variableAction 'set' would then parse
-//    value:'' vs the default's absent value), out of scope for this test wave and
-//    reported as a Wave-J finding. Characterized here as currently-throwing so the
-//    suite stays green AND flips (fails) the moment the parser is hardened,
-//    prompting removal of the entry. A newly added canonical member with no entry
-//    still falls through to the strict identity assertion below.
+// Wave K note: nine action types previously failed this round-trip because their
+// minimal default serialized to an empty inner element the parser could not read
+// back. They are now brought to identity — six by completing the XSD-required
+// field in the default (entity/parameter/variable/infrastructure/traffic/
+// appearance actions), three by making parse-actions.ts tolerate the empty,
+// XSD-empty-able controller elements — so they fall through to the strict identity
+// branch below.
 
 type ActionExpectation =
   | { kind: 'identity' }
-  | { kind: 'normalized'; expected: ScenarioActionUnion; note: string }
-  | { kind: 'knownGap'; note: string };
+  | { kind: 'normalized'; expected: ScenarioActionUnion; note: string };
 
 const ACTION_EXPECTATIONS: Partial<Record<ScenarioActionType, ActionExpectation>> = {
   acquirePositionAction: {
@@ -182,16 +171,6 @@ const ACTION_EXPECTATIONS: Partial<Record<ScenarioActionType, ActionExpectation>
       },
     },
   },
-  // knownGap — empty inner element the parser cannot read back (see block comment).
-  assignControllerAction: { kind: 'knownGap', note: 'empty <AssignControllerAction/> → "Unknown ControllerAction type"' },
-  activateControllerAction: { kind: 'knownGap', note: 'empty <ActivateControllerAction/> → "Unknown ControllerAction type"' },
-  overrideControllerAction: { kind: 'knownGap', note: 'empty <OverrideControllerValueAction/> → "Unknown ControllerAction type"' },
-  appearanceAction: { kind: 'knownGap', note: 'empty <AppearanceAction/> → "Unknown PrivateAction type"' },
-  entityAction: { kind: 'knownGap', note: 'addEntity default has no Position → empty <AddEntityAction/> → "Unknown EntityAction type"' },
-  parameterAction: { kind: 'knownGap', note: 'set default has no value → empty <SetAction/> → "Unknown ParameterAction type"' },
-  variableAction: { kind: 'knownGap', note: 'set default has no value → empty <SetAction/> → "Unknown VariableAction type"' },
-  infrastructureAction: { kind: 'knownGap', note: 'empty trafficSignalAction → empty <TrafficSignalAction/> → "TrafficSignalAction element is missing"' },
-  trafficAction: { kind: 'knownGap', note: 'empty <TrafficAction/> → "Unknown GlobalAction type"' },
 };
 
 describe('S4-2: action round-trip exhaustiveness over SCENARIO_ACTION_TYPES', () => {
@@ -203,14 +182,6 @@ describe('S4-2: action round-trip exhaustiveness over SCENARIO_ACTION_TYPES', ()
 
   for (const type of SCENARIO_ACTION_TYPES) {
     const expectation: ActionExpectation = ACTION_EXPECTATIONS[type] ?? { kind: 'identity' };
-
-    if (expectation.kind === 'knownGap') {
-      it(`${type} — KNOWN GAP: minimal default currently fails to round-trip (throws)`, () => {
-        const synth = defaultActionByType(type);
-        expect(() => roundTripAction(synth)).toThrow();
-      });
-      continue;
-    }
 
     it(`${type} round-trips (${expectation.kind})`, () => {
       const synth = defaultActionByType(type);

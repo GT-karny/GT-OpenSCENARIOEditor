@@ -551,23 +551,25 @@ function parseFinalSpeed(raw: RawXml): FinalSpeed {
 // ---------------------------------------------------------------------------
 
 function parseControllerAction(raw: RawXml): PrivateAction {
-  const assignControllerAction = child(raw, 'AssignControllerAction');
-  if (assignControllerAction) {
-    return parseAssignControllerAction(assignControllerAction);
+  // Assign/Activate/OverrideControllerValueAction are all empty-able per the XSD
+  // (attributes-only, or an all-minOccurs=0 child group), so a minimal one parses
+  // as an empty element that child() reports as undefined. Dispatch on presence
+  // with has(); the sub-parsers tolerate an absent node and yield the same minimal
+  // model the defaults produce.
+  if (has(raw, 'AssignControllerAction')) {
+    return parseAssignControllerAction(child(raw, 'AssignControllerAction'));
   }
-  const activateControllerAction = child(raw, 'ActivateControllerAction');
-  if (activateControllerAction) {
-    return parseActivateControllerAction(activateControllerAction);
+  if (has(raw, 'ActivateControllerAction')) {
+    return parseActivateControllerAction(child(raw, 'ActivateControllerAction'));
   }
-  const overrideControllerValueAction = child(raw, 'OverrideControllerValueAction');
-  if (overrideControllerValueAction) {
-    return parseOverrideControllerAction(overrideControllerValueAction);
+  if (has(raw, 'OverrideControllerValueAction')) {
+    return parseOverrideControllerAction(child(raw, 'OverrideControllerValueAction'));
   }
 
   throw new Error(`Unknown ControllerAction type: ${rawKeys(raw).join(', ')}`);
 }
 
-function parseAssignControllerAction(raw: RawXml): AssignControllerAction {
+function parseAssignControllerAction(raw: RawXml | undefined): AssignControllerAction {
   const result: AssignControllerAction = {
     type: 'assignControllerAction',
     activateLateral: optBoolAttr(raw, 'activateLateral'),
@@ -603,7 +605,7 @@ function parseProperty(raw: RawXml): Property {
   };
 }
 
-function parseActivateControllerAction(raw: RawXml): ActivateControllerAction {
+function parseActivateControllerAction(raw: RawXml | undefined): ActivateControllerAction {
   return {
     type: 'activateControllerAction',
     lateral: optBoolAttr(raw, 'lateral'),
@@ -614,7 +616,7 @@ function parseActivateControllerAction(raw: RawXml): ActivateControllerAction {
   };
 }
 
-function parseOverrideControllerAction(raw: RawXml): OverrideControllerAction {
+function parseOverrideControllerAction(raw: RawXml | undefined): OverrideControllerAction {
   const throttle = child(raw, 'Throttle');
   const brake = child(raw, 'Brake');
   const clutch = child(raw, 'Clutch');
