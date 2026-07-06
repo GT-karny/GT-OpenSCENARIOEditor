@@ -1,10 +1,8 @@
 /**
- * Stage 3-A: consumption-tracking passthrough, exemplar-migrated on <junction>.
- *
- * A crossing/common junction carries a <crossPath> child that the typed model
- * does not understand. Before passthrough it was dropped on load->save; now the
- * node tracker captures it into `junction.extra` and the serializer re-emits it,
- * so it survives the round-trip.
+ * Junction round-trip: <crossPath> was originally preserved via `junction.extra`
+ * (passthrough). Phase 2 (W2) models it typed on `junction.crossPaths`; this
+ * suite now asserts the typed capture plus continued serialize survival and
+ * subtree idempotence.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
@@ -20,13 +18,15 @@ function read(file: string): string {
   return readFileSync(resolve(FIXTURES_DIR, file), 'utf-8');
 }
 
-describe('junction passthrough (extra)', () => {
-  it('captures an unmodeled <crossPath> child into junction.extra', () => {
+describe('junction crossPath (typed)', () => {
+  it('parses <crossPath> into the typed junction.crossPaths', () => {
     const doc = parser.parse(read('GT_21_common_junction_crosspath_19.xodr'));
-    const withCrossPath = doc.junctions.find((j) =>
-      j.extra?.children?.some((c) => c.name === 'crossPath'),
-    );
-    expect(withCrossPath, 'expected a junction carrying a crossPath in extra').toBeDefined();
+    const withCrossPath = doc.junctions.find((j) => j.crossPaths && j.crossPaths.length > 0);
+    expect(withCrossPath, 'expected a junction carrying a typed crossPath').toBeDefined();
+    const cp = withCrossPath!.crossPaths![0];
+    expect(cp.crossingRoad).toBe('2');
+    expect(cp.startLaneLink.from).toBe(2);
+    expect(cp.endLaneLink.to).toBe(-1);
   });
 
   it('re-emits crossPath so it survives serialize', () => {

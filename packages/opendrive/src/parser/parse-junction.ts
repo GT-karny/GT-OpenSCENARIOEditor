@@ -4,9 +4,13 @@
 import type {
   OdrJunction,
   OdrJunctionConnection,
+  OdrJunctionLaneLink,
+  OdrJunctionCrossPath,
+  OdrJunctionCrossPathLaneLink,
+  OdrJunctionRoadSection,
   OdrJunctionGroup,
-  OdrExtra,
 } from '@osce/shared';
+import { ODR_JUNCTION_TYPES, ODR_LAYER_TYPES } from '@osce/shared';
 import {
   ensureArray,
   toStr,
@@ -15,6 +19,7 @@ import {
   attrStr,
   attrOptStr,
   attrOptNum,
+  asEnum,
 } from './xml-helpers.js';
 import { trackNode } from './node-tracker.js';
 
@@ -26,9 +31,19 @@ export function parseJunction(raw: Raw): OdrJunction {
   const junction: OdrJunction = {
     id: t.str('id'),
     name: t.str('name'),
-    type: t.optStr('type'),
     connections: t.takeChildren('connection').map((c) => parseJunctionConnection(c as Raw)),
   };
+
+  // @type: validate against the enum. An unknown value is left unconsumed so it
+  // round-trips via extra (with a warning); absent stays undefined (as before).
+  const rawType = attrOptStr(raw, 'type');
+  const jType = asEnum(rawType, ODR_JUNCTION_TYPES);
+  if (jType) {
+    junction.type = jType;
+    t.takeAttr('type');
+  } else if (rawType !== undefined) {
+    console.warn(`Junction ${junction.id}: unrecognized @type "${rawType}" preserved via extra.`);
+  }
 
   // Virtual junction attributes (t_junction_virtual): mandatory for type="virtual"
   const mainRoad = t.optStr('mainRoad');
@@ -57,6 +72,18 @@ export function parseJunction(raw: Raw): OdrJunction {
       type: attrOptStr(c, 'type'),
       sequence: attrOptNum(c, 'sequence'),
     }));
+  }
+
+  // crossPath (common/virtual junctions)
+  const crossPathArr = t.takeChildren('crossPath') as Raw[];
+  if (crossPathArr.length > 0) {
+    junction.crossPaths = crossPathArr.map(parseCrossPath);
+  }
+
+  // roadSection (crossing junctions)
+  const roadSectionArr = t.takeChildren('roadSection') as Raw[];
+  if (roadSectionArr.length > 0) {
+    junction.roadSections = roadSectionArr.map(parseRoadSection);
   }
 
   // surface
@@ -98,20 +125,37 @@ function parseJunctionConnection(raw: Raw): OdrJunctionConnection {
     connectingRoad: t.str('connectingRoad'),
     contactPoint: t.str('contactPoint', 'start') as 'start' | 'end',
     laneLinks: t.takeChildren('laneLink').map((ll) => {
-      const lt = trackNode(ll as Raw);
-      const link: { from: number; to: number; extra?: OdrExtra } = {
+      const llRaw = ll as Raw;
+      const lt = trackNode(llRaw);
+      const link: OdrJunctionLaneLink = {
         from: lt.num('from'),
         to: lt.num('to'),
       };
-      // Preserve unmodeled laneLink attrs (@overlapZone/@fromLayer/@toLayer).
+      // 1.9 laneLink attrs: @overlapZone (t_grZero), @fromLayer/@toLayer (e_layerType).
+      const overlapZone = lt.optNum('overlapZone');
+      if (overlapZone !== undefined) link.overlapZone = overlapZone;
+      const fromLayer = asEnum(attrOptStr(llRaw, 'fromLayer'), ODR_LAYER_TYPES);
+      if (fromLayer) {
+        link.fromLayer = fromLayer;
+        lt.takeAttr('fromLayer');
+      }
+      const toLayer = asEnum(attrOptStr(llRaw, 'toLayer'), ODR_LAYER_TYPES);
+      if (toLayer) {
+        link.toLayer = toLayer;
+        lt.takeAttr('toLayer');
+      }
       const ex = lt.rest();
       if (ex) link.extra = ex;
       return link;
     }),
   };
 
-  // type (for virtual/direct junction connections)
-  conn.type = t.optStr('type');
+  // @type (e_connection_type). Validate; an unknown value round-trips via extra.
+  const rawConnType = attrOptStr(raw, 'type');
+  if (rawConnType === 'default' || rawConnType === 'virtual') {
+    conn.type = rawConnType;
+    t.takeAttr('type');
+  }
 
   // predecessor
   const p = t.takeChild('predecessor') as Raw | undefined;
@@ -140,6 +184,56 @@ function parseJunctionConnection(raw: Raw): OdrJunctionConnection {
   if (extra) conn.extra = extra;
 
   return conn;
+}
+
+function parseCrossPath(raw: Raw): OdrJunctionCrossPath {
+  const t = trackNode(raw);
+  const crossPath: OdrJunctionCrossPath = {
+    startLaneLink: parseCrossPathLaneLink(t.takeChild('startLaneLink') as Raw | undefined),
+    endLaneLink: parseCrossPathLaneLink(t.takeChild('endLaneLink') as Raw | undefined),
+  };
+  const id = t.optStr('id');
+  if (id !== undefined) crossPath.id = id;
+  const crossingRoad = t.optStr('crossingRoad');
+  if (crossingRoad !== undefined) crossPath.crossingRoad = crossingRoad;
+  const roadAtStart = t.optStr('roadAtStart');
+  if (roadAtStart !== undefined) crossPath.roadAtStart = roadAtStart;
+  const roadAtEnd = t.optStr('roadAtEnd');
+  if (roadAtEnd !== undefined) crossPath.roadAtEnd = roadAtEnd;
+  const extra = t.rest();
+  if (extra) crossPath.extra = extra;
+  return crossPath;
+}
+
+function parseCrossPathLaneLink(raw: Raw | undefined): OdrJunctionCrossPathLaneLink {
+  if (!raw || typeof raw !== 'object') return {};
+  const t = trackNode(raw);
+  const link: OdrJunctionCrossPathLaneLink = {};
+  const s = t.optNum('s');
+  if (s !== undefined) link.s = s;
+  const from = t.optNum('from');
+  if (from !== undefined) link.from = from;
+  const to = t.optNum('to');
+  if (to !== undefined) link.to = to;
+  const extra = t.rest();
+  if (extra) link.extra = extra;
+  return link;
+}
+
+function parseRoadSection(raw: Raw): OdrJunctionRoadSection {
+  const t = trackNode(raw);
+  const rs: OdrJunctionRoadSection = {};
+  const id = t.optStr('id');
+  if (id !== undefined) rs.id = id;
+  const roadId = t.optStr('roadId');
+  if (roadId !== undefined) rs.roadId = roadId;
+  const sStart = t.optNum('sStart');
+  if (sStart !== undefined) rs.sStart = sStart;
+  const sEnd = t.optNum('sEnd');
+  if (sEnd !== undefined) rs.sEnd = sEnd;
+  const extra = t.rest();
+  if (extra) rs.extra = extra;
+  return rs;
 }
 
 export function parseJunctionGroups(raw: Raw[] | undefined): OdrJunctionGroup[] {

@@ -51,8 +51,13 @@ export interface OdrRoad {
   /** Unmodeled direct attrs/children of <road> preserved for round-trip. */
   extra?: OdrExtra;
   /**
-   * Unmodeled children of <lateralProfile> (notably the 1.9 <crossSectionSurface>
-   * strip system) preserved for round-trip alongside superelevation/shape.
+   * 1.9 `<crossSectionSurface>` under `<lateralProfile>` — the strip surface
+   * system. Mutually exclusive with superelevation/shape (XSD assert).
+   */
+  crossSectionSurface?: OdrCrossSectionSurface;
+  /**
+   * Unmodeled children of <lateralProfile> (beyond superelevation/shape and the
+   * typed crossSectionSurface) preserved for round-trip.
    */
   lateralProfileExtra?: OdrExtra;
 }
@@ -75,5 +80,36 @@ export interface OdrRoadTypeEntry {
   type: string;
   speed?: { max: number | OdrSpeedMaxSpecial; unit: string };
   /** Unmodeled <type> attrs (e.g. @country) preserved for round-trip. */
+  extra?: OdrExtra;
+}
+
+/** Strip height-calculation mode (`e_strip_mode`). */
+export const ODR_STRIP_MODES = ['independent', 'relative'] as const;
+export type OdrStripMode = (typeof ODR_STRIP_MODES)[number];
+
+/**
+ * 1.9 `<crossSectionSurface>` (`t_road_lateralProfile_crossSectionSurface`): a
+ * lateral surface profile built from up to four `<strip>` polynomials.
+ *
+ * Modeled to strip level (typed `@id`/`@mode`); the deep, repetitive polynomial
+ * leaves (`<width>`/`<constant>`/`<linear>`/`<quadratic>`/`<cubic>` → `<coefficients>`)
+ * ride in each strip's `extra`, and the optional `<tOffset>` element in `tOffset`,
+ * so the whole subtree round-trips losslessly.
+ */
+export interface OdrCrossSectionSurface {
+  /** `<tOffset>` (optional): its `<coefficients>` series, preserved verbatim. */
+  tOffset?: OdrExtra;
+  /** `<surfaceStrips>` strips (1..4 per XSD). */
+  strips: OdrCrossSectionStrip[];
+  /** Unmodeled content under `<crossSectionSurface>`/`<surfaceStrips>`. */
+  extra?: OdrExtra;
+}
+
+export interface OdrCrossSectionStrip {
+  /** `@id` (`xs:int`): 1/-1 inner left/right, 2/-2 outer left/right. */
+  id?: number;
+  /** `@mode` (`e_strip_mode`): only valid on an outer strip. */
+  mode?: OdrStripMode;
+  /** Strip polynomial children (`<width>`/`<constant>`/`<linear>`/`<quadratic>`/`<cubic>`). */
   extra?: OdrExtra;
 }

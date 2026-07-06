@@ -1,8 +1,18 @@
 /**
  * Parse OpenDRIVE <road> elements.
  */
-import type { OdrRoad, OdrRoadLink, OdrRoadLinkElement, OdrRoadTypeEntry, OdrLanesLayer } from '@osce/shared';
-import { ensureArray, attrStr, attrOptStr, attrOptNum } from './xml-helpers.js';
+import type {
+  OdrRoad,
+  OdrRoadLink,
+  OdrRoadLinkElement,
+  OdrRoadTypeEntry,
+  OdrLanesLayer,
+  OdrCrossSectionSurface,
+  OdrCrossSectionStrip,
+  OdrExtra,
+} from '@osce/shared';
+import { ODR_STRIP_MODES } from '@osce/shared';
+import { ensureArray, attrStr, attrOptStr, attrOptNum, asEnum } from './xml-helpers.js';
 import { trackNode } from './node-tracker.js';
 import { parsePlanView, parseElevations, parseSuperelevations, parseLaneOffsets, parseShapes } from './parse-geometry.js';
 import { parseLaneSections, parseSpeedMax } from './parse-lane.js';
@@ -71,13 +81,24 @@ export function parseRoad(raw: Raw): OdrRoad {
   const sigRefs = parseSignalReferences(signalsRaw);
   if (sigRefs.length > 0) road.signalReferences = sigRefs;
 
-  // lateralProfile shapes + passthrough (crossSectionSurface etc.)
+  // lateralProfile: superelevation + shape + typed crossSectionSurface + passthrough
   const shapes = parseShapes(lateralProfileRaw);
   if (shapes.length > 0) road.shapes = shapes;
   if (lateralProfileRaw) {
     const lt = trackNode(lateralProfileRaw);
-    lt.takeChildren('superelevation');
-    lt.takeChildren('shape');
+    const superelevs = lt.takeChildren('superelevation');
+    const shapeEls = lt.takeChildren('shape');
+    const cssRaw = lt.takeChild('crossSectionSurface') as Raw | undefined;
+    if (cssRaw && typeof cssRaw === 'object') {
+      road.crossSectionSurface = parseCrossSectionSurface(cssRaw);
+      // XSD assert: crossSectionSurface is mutually exclusive with superelevation/shape.
+      if (superelevs.length > 0 || shapeEls.length > 0) {
+        console.warn(
+          `Road ${road.id}: <crossSectionSurface> coexists with superelevation/shape ` +
+            '(mutually exclusive per OpenDRIVE 1.9 XSD assert).',
+        );
+      }
+    }
     const lpExtra = lt.rest();
     if (lpExtra) road.lateralProfileExtra = lpExtra;
   }
@@ -196,4 +217,60 @@ function parseLanesLayer(raw: Raw): OdrLanesLayer {
   const extra = t.rest();
   if (extra) layer.extra = extra;
   return layer;
+}
+
+/**
+ * Merge two {@link OdrExtra} values (attrs + children). Used to fold rare
+ * surfaceStrips-level unmodeled content into the crossSectionSurface extra.
+ */
+function mergeExtra(base: OdrExtra | undefined, add: OdrExtra | undefined): OdrExtra | undefined {
+  if (!add) return base;
+  if (!base) return add;
+  const merged: OdrExtra = {};
+  const attrs = { ...base.attrs, ...add.attrs };
+  if (Object.keys(attrs).length > 0) merged.attrs = attrs;
+  const children = [...(base.children ?? []), ...(add.children ?? [])];
+  if (children.length > 0) merged.children = children;
+  return merged;
+}
+
+function parseCrossSectionSurface(raw: Raw): OdrCrossSectionSurface {
+  const t = trackNode(raw);
+  const surface: OdrCrossSectionSurface = { strips: [] };
+
+  // <tOffset> (optional): preserve its <coefficients> series verbatim.
+  const tOffsetRaw = t.takeChild('tOffset') as Raw | undefined;
+  if (tOffsetRaw && typeof tOffsetRaw === 'object') {
+    const tExtra = trackNode(tOffsetRaw).rest();
+    if (tExtra) surface.tOffset = tExtra;
+  }
+
+  // <surfaceStrips> → strips (1..4), each typed @id/@mode + polynomials in extra.
+  let surfaceStripsExtra: OdrExtra | undefined;
+  const surfaceStripsRaw = t.takeChild('surfaceStrips') as Raw | undefined;
+  if (surfaceStripsRaw && typeof surfaceStripsRaw === 'object') {
+    const st = trackNode(surfaceStripsRaw);
+    surface.strips = st.takeChildren('strip').map((s) => parseCrossSectionStrip(s as Raw));
+    surfaceStripsExtra = st.rest();
+  }
+
+  const extra = mergeExtra(t.rest(), surfaceStripsExtra);
+  if (extra) surface.extra = extra;
+  return surface;
+}
+
+function parseCrossSectionStrip(raw: Raw): OdrCrossSectionStrip {
+  const t = trackNode(raw);
+  const strip: OdrCrossSectionStrip = {};
+  const id = t.optNum('id');
+  if (id !== undefined) strip.id = id;
+  const mode = asEnum(attrOptStr(raw, 'mode'), ODR_STRIP_MODES);
+  if (mode) {
+    strip.mode = mode;
+    t.takeAttr('mode');
+  }
+  // Polynomial children (<width>/<constant>/<linear>/<quadratic>/<cubic>) ride in extra.
+  const extra = t.rest();
+  if (extra) strip.extra = extra;
+  return strip;
 }

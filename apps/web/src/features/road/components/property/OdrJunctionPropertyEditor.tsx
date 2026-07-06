@@ -1,4 +1,4 @@
-import type { OdrJunction } from '@osce/shared';
+import type { OdrJunction, OdrJunctionType } from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
@@ -52,7 +52,7 @@ export function OdrJunctionPropertyEditor({
             <EnumSelect
               value={junction.type ?? 'default'}
               options={JUNCTION_TYPES}
-              onValueChange={(v) => onUpdate(junction.id, { type: v })}
+              onValueChange={(v) => onUpdate(junction.id, { type: v as OdrJunctionType })}
               className="h-7 text-xs"
             />
           </div>

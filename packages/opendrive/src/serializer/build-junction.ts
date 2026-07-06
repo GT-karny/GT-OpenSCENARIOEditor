@@ -1,7 +1,14 @@
 /**
  * Build XML structure for OpenDRIVE <junction> elements.
  */
-import type { OdrJunction, OdrJunctionConnection, OdrJunctionGroup } from '@osce/shared';
+import type {
+  OdrJunction,
+  OdrJunctionConnection,
+  OdrJunctionCrossPath,
+  OdrJunctionCrossPathLaneLink,
+  OdrJunctionRoadSection,
+  OdrJunctionGroup,
+} from '@osce/shared';
 import { fmtNum, optAttr } from './format-utils.js';
 import { applyExtra } from './apply-extra.js';
 
@@ -24,6 +31,14 @@ export function buildJunction(junction: OdrJunction): XmlNode {
 
   if (junction.connections.length > 0) {
     node.connection = junction.connections.map(buildConnection);
+  }
+
+  // crossPath (common/virtual) then roadSection (crossing) — XSD child order.
+  if (junction.crossPaths && junction.crossPaths.length > 0) {
+    node.crossPath = junction.crossPaths.map(buildCrossPath);
+  }
+  if (junction.roadSections && junction.roadSections.length > 0) {
+    node.roadSection = junction.roadSections.map(buildRoadSection);
   }
 
   // priority — XSD 1.9 makes both @high and @low required (use="required"),
@@ -80,9 +95,13 @@ function buildConnection(conn: OdrJunctionConnection): XmlNode {
   optAttr(node, '@_type', conn.type);
 
   if (conn.laneLinks.length > 0) {
-    node.laneLink = conn.laneLinks.map((ll) =>
-      applyExtra({ '@_from': ll.from, '@_to': ll.to }, ll.extra),
-    );
+    node.laneLink = conn.laneLinks.map((ll) => {
+      const ln: XmlNode = { '@_from': ll.from, '@_to': ll.to };
+      optAttr(ln, '@_overlapZone', ll.overlapZone, fmtNum);
+      optAttr(ln, '@_fromLayer', ll.fromLayer);
+      optAttr(ln, '@_toLayer', ll.toLayer);
+      return applyExtra(ln, ll.extra);
+    });
   }
 
   // predecessor
@@ -106,6 +125,34 @@ function buildConnection(conn: OdrJunctionConnection): XmlNode {
   }
 
   return applyExtra(node, conn.extra);
+}
+
+function buildCrossPath(cp: OdrJunctionCrossPath): XmlNode {
+  const node: XmlNode = {};
+  optAttr(node, '@_crossingRoad', cp.crossingRoad);
+  optAttr(node, '@_id', cp.id);
+  optAttr(node, '@_roadAtEnd', cp.roadAtEnd);
+  optAttr(node, '@_roadAtStart', cp.roadAtStart);
+  node.startLaneLink = buildCrossPathLaneLink(cp.startLaneLink);
+  node.endLaneLink = buildCrossPathLaneLink(cp.endLaneLink);
+  return applyExtra(node, cp.extra);
+}
+
+function buildCrossPathLaneLink(link: OdrJunctionCrossPathLaneLink): XmlNode {
+  const node: XmlNode = {};
+  optAttr(node, '@_s', link.s, fmtNum);
+  optAttr(node, '@_from', link.from);
+  optAttr(node, '@_to', link.to);
+  return applyExtra(node, link.extra);
+}
+
+function buildRoadSection(rs: OdrJunctionRoadSection): XmlNode {
+  const node: XmlNode = {};
+  optAttr(node, '@_id', rs.id);
+  optAttr(node, '@_roadId', rs.roadId);
+  optAttr(node, '@_sStart', rs.sStart, fmtNum);
+  optAttr(node, '@_sEnd', rs.sEnd, fmtNum);
+  return applyExtra(node, rs.extra);
 }
 
 export function buildJunctionGroup(group: OdrJunctionGroup): XmlNode {

@@ -31,6 +31,8 @@ export {
   ODR_ACCESS_RESTRICTION_TYPES,
 } from './types/odr-lane.js';
 export { ODR_SPEED_MAX_SPECIALS } from './types/odr-common.js';
+export { ODR_STRIP_MODES } from './types/odr-road.js';
+export { ODR_JUNCTION_TYPES } from './types/odr-junction.js';
 
 // Enums (value export: includes runtime const value arrays such as
 // COORDINATE_SYSTEMS / DYNAMICS_SHAPES / RULES used to derive UI option lists)

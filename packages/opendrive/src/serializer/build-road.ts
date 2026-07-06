@@ -9,6 +9,8 @@ import type {
   OdrGeometry,
   OdrElevation,
   OdrSuperelevation,
+  OdrCrossSectionSurface,
+  OdrCrossSectionStrip,
 } from '@osce/shared';
 import { fmtNum, fmtSpeedMax, optAttr, numAttr } from './format-utils.js';
 import { buildLanes } from './build-lane.js';
@@ -58,7 +60,8 @@ export function buildRoad(road: OdrRoad): XmlNode {
   // lateralProfile (superelevation + shapes)
   const hasSuperelev = road.lateralProfile.length > 0;
   const hasShapes = road.shapes && road.shapes.length > 0;
-  if (hasSuperelev || hasShapes || road.lateralProfileExtra) {
+  const hasCss = road.crossSectionSurface !== undefined;
+  if (hasSuperelev || hasShapes || hasCss || road.lateralProfileExtra) {
     const lpNode: XmlNode = {};
     if (hasSuperelev) lpNode.superelevation = road.lateralProfile.map(buildSuperelevation);
     if (hasShapes) {
@@ -73,7 +76,9 @@ export function buildRoad(road: OdrRoad): XmlNode {
         return sn;
       });
     }
-    // Re-emit passthrough children (crossSectionSurface, …) after the known ones.
+    // crossSectionSurface after superelevation/shape (XSD sequence order).
+    if (hasCss) lpNode.crossSectionSurface = buildCrossSectionSurface(road.crossSectionSurface!);
+    // Re-emit any remaining passthrough children after the known ones.
     node.lateralProfile = applyExtra(lpNode, road.lateralProfileExtra);
   } else {
     node.lateralProfile = '';
@@ -279,4 +284,19 @@ function buildSuperelevation(se: OdrSuperelevation): XmlNode {
   numAttr(node, '@_c', se.c);
   numAttr(node, '@_d', se.d);
   return node;
+}
+
+function buildCrossSectionSurface(css: OdrCrossSectionSurface): XmlNode {
+  const node: XmlNode = {};
+  // <tOffset> first (XSD order), then <surfaceStrips>.
+  if (css.tOffset) node.tOffset = applyExtra({}, css.tOffset);
+  node.surfaceStrips = { strip: css.strips.map(buildCrossSectionStrip) };
+  return applyExtra(node, css.extra);
+}
+
+function buildCrossSectionStrip(strip: OdrCrossSectionStrip): XmlNode {
+  const node: XmlNode = {};
+  optAttr(node, '@_id', strip.id);
+  optAttr(node, '@_mode', strip.mode);
+  return applyExtra(node, strip.extra);
 }

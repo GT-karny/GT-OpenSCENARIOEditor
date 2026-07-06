@@ -157,3 +157,11 @@ export function attrBool(raw: Raw | undefined, name: string): boolean | undefine
   if (v === false || v === 'false') return false;
   return undefined;
 }
+
+/** Narrow a raw attribute string to a member of `allowed`, else `undefined`. */
+export function asEnum<T extends string>(
+  val: string | undefined,
+  allowed: readonly T[],
+): T | undefined {
+  return val !== undefined && (allowed as readonly string[]).includes(val) ? (val as T) : undefined;
+}
