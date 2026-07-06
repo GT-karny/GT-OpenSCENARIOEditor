@@ -16,6 +16,7 @@
     "maturity:validate": "node scripts/maturity/validate-capabilities.mjs",
     "maturity:matrix": "node scripts/maturity/generate-matrix.mjs",
     "maturity:view": "node scripts/maturity/serve-viewer.mjs",
+    "check:wasm": "node scripts/check-wasm-consistency.mjs",
     "test": "vitest",
     "test:e2e": "pnpm --filter @osce/web test:e2e",
     "lint": "eslint .",

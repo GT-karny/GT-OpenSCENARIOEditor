@@ -133,13 +133,16 @@ graph LR
 
 ### `packages/opendrive-engine` (@osce/opendrive-engine)
 OpenDRIVE編集のためのコアエンジン。Zustandストア、Commandパターン（Undo/Redo）、ビルダー（道路/ジャンクション/車線）、操作（レーン分割・テーパー・幅編集）。
-Undo/Redo基盤（`BaseCommand` / `CommandHistory` / `CompoundCommand`）は `@osce/scenario-engine` に単一ソース化されており、そこから再エクスポートする。道路形状計算（参照線評価・ジオメトリ評価）は `@osce/opendrive` を利用。
+Undo/Redo基盤（`BaseCommand` / `PatchCommand` / `CommandHistory` / `CompoundCommand`）は `@osce/scenario-engine` に単一ソース化されており、そこから再エクスポートする。道路形状計算（参照線評価・ジオメトリ評価）は `@osce/opendrive` を利用。
 - 依存: `zustand`, `immer`, `uuid`, `@osce/shared`, `@osce/opendrive`, `@osce/scenario-engine`
 
 ### `packages/scenario-engine` (@osce/scenario-engine)
 コアビジネスロジック。Zustandストア、Commandパターン（Undo/Redo）、コンポーネントシステム、自動整合。
 バージョン/シミュレータ互換のためのFeature Registryを内包。
 - 依存: `zustand`, `immer`, `uuid`, `@osce/shared`
+
+> **コマンド基盤ポリシー（Undo/Redo）**: `PatchCommand`（immer `produceWithPatches` によるフォワード/インバースパッチ記録、redo は記録済みフォワードパッチの再適用）は `BaseCommand` と並んで `@osce/scenario-engine` に単一ソース化され、`@osce/opendrive-engine` は再エクスポートで公開面を維持する。**両エンジンの新規コマンドは原則 `PatchCommand` を継承する**（手書きの `structuredClone`＋復元パターンは新規追加しない）。既存の `BaseCommand` 直接継承クラス（scenario-engine 側の 52 クラス）は一括書き換えせず、変更のついでに機会移行する。
+> - レビュー観点: 新規コマンドが `PatchCommand` ではなく `BaseCommand` を直接継承している場合は、その理由（パッチ化できない外部副作用など）が明示されているかを確認し、無根拠なら是正を求める。
 
 ### `packages/node-editor` (@osce/node-editor)
 React Flowベースのノードエディタ + タイムラインビュー。

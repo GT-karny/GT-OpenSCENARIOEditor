@@ -12,8 +12,8 @@ dist/
 build/
 *.tsbuildinfo
 
-# WASM binaries (built from Thirdparty/GT_Sim with emsdk)
-apps/web/public/wasm/
+# WASM binary: apps/web/public/wasm/esmini.js is deliberately committed as a
+# normal Git blob (not ignored, not git-lfs). See docs/development/wasm-build.md.
 
 # Environment
 .env

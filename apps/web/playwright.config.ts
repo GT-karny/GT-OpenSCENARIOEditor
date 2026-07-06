@@ -9,7 +9,10 @@ export default defineConfig({
   // local runs and can starve UI specs of render time (they pass in isolation).
   retries: process.env.CI ? 2 : 1,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  // CI: line reporter for readable step logs, plus a non-opening html report
+  // that the workflow uploads as a failure artifact. Local runs keep the
+  // interactive html report.
+  reporter: process.env.CI ? [['line'], ['html', { open: 'never' }]] : 'html',
 
   use: {
     baseURL: 'http://localhost:5173',

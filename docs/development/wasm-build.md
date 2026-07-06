@@ -67,8 +67,56 @@ After the first configure, `ninja` alone rebuilds only changed files.
 
 ## Output
 
-- Build artifact: `Thirdparty/GT_Sim/GT_esmini/web/wasm/build/esmini.js` (~5MB, single-file with embedded WASM; `MODULARIZE=1`, `EXPORT_NAME="esmini"`).
+- Build artifact: `Thirdparty/GT_Sim/GT_esmini/web/wasm/build/esmini.js` (single-file
+  with embedded WASM; `MODULARIZE=1`, `EXPORT_NAME="esmini"`). At the current pin it is
+  6,331,405 bytes (~6.0 MB); the authoritative size and hash live in the
+  [Provenance](#provenance) block below.
 - Deploy target: copy to `apps/web/public/wasm/esmini.js`.
+
+## Provenance
+
+The committed `apps/web/public/wasm/esmini.js` is verified against the block below by
+`pnpm check:wasm` (`scripts/check-wasm-consistency.mjs`), which runs in CI. The check
+fails if the submodule pin, the file's sha256, or its size drifts from the recorded
+values. Update this block in the **same commit** whenever you rebuild and replace the
+artifact — see the Operations note section below.
+
+```
+<!-- wasm-provenance:begin -->
+submodule_pin: db7d609e9a257609df9827106cc6021a65bdd999
+file: apps/web/public/wasm/esmini.js
+sha256: e29568f8210ef191399a3a4088c57bebfef47b25de05bcd2224f8bc673fe489e
+size_bytes: 6331405
+<!-- wasm-provenance:end -->
+```
+
+The `submodule_pin` is the gitlink commit that `HEAD` records for `Thirdparty/GT_Sim`
+(read with `git ls-tree HEAD Thirdparty/GT_Sim`), i.e. the GT_Sim revision the artifact
+was built from — not necessarily a checked-out working tree.
+
+## Operations note (運用注記)
+
+Updating the WASM artifact is a three-part atomic change. Do all three in the **same
+commit** so the provenance block never disagrees with the binary:
+
+1. **Bump the submodule pin** — move `Thirdparty/GT_Sim` to the new commit.
+2. **Rebuild** `esmini.js` per the build procedure above and copy it to
+   `apps/web/public/wasm/esmini.js`.
+3. **Update the provenance block** (`submodule_pin` / `sha256` / `size_bytes`) in this
+   document. Recompute the hash and size from the freshly built file:
+   ```bash
+   sha256sum apps/web/public/wasm/esmini.js
+   stat -c %s apps/web/public/wasm/esmini.js
+   ```
+   Then run `pnpm check:wasm` to confirm the block matches.
+
+Because `pnpm check:wasm` runs in the CI `check` job, a commit that moves the pin or the
+binary without updating the provenance block — or vice versa — fails the build.
+
+**git-lfs is deliberately NOT used** for this binary (owner decision, 2026-07-06). The
+single ~6 MB blob is tracked as an ordinary Git object. Revisit LFS only if the
+repository size becomes a real problem; if it is ever adopted, migrate forward only —
+**never rewrite history** to retrofit LFS.
 
 ## Verification
 
@@ -93,8 +141,9 @@ cd apps/web && npx playwright test wasm-simulation
 
 ### Entities stayed frozen during simulation (per-step dirty bits not cleared) — FIXED
 
-**Status:** Resolved in GT_Sim `672fb061` (included in the `f2674640` submodule pin,
-deployed with the 2026-06 rebuild). `apps/web/e2e/wasm-simulation.spec.ts` now asserts
+**Status:** Resolved in GT_Sim `672fb061`, which is included in the current submodule
+pin `db7d609e` (recorded in the [Provenance](#provenance) block above).
+`apps/web/e2e/wasm-simulation.spec.ts` now asserts
 entity positions change between the first and last frame across the seeded sample
 scenarios, so a regression of this class fails E2E.
 

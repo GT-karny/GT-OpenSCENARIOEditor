@@ -39,6 +39,8 @@ export {
 
 // Command infrastructure (single source for undo/redo; opendrive-engine re-exports)
 export { BaseCommand } from './commands/base-command.js';
+export { PatchCommand } from './commands/patch-command.js';
+export type { PatchRecipe } from './commands/patch-command.js';
 export { CommandHistory } from './commands/command-history.js';
 export { CompoundCommand } from './commands/compound-command.js';
 export { DuplicateEntityCommand } from './commands/entity-commands.js';
