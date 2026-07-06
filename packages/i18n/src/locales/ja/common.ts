@@ -77,6 +77,7 @@ export const common = {
     roadDoc: '道路',
     unsavedChanges: '未保存の変更',
     serializeFailed: 'シナリオのシリアライズに失敗しました',
+    logicFileSynced: 'シナリオの道路参照を {{path}} に更新しました(未保存)。',
     addParameter: 'パラメータを追加',
     parameterType: 'パラメータ型',
     defaultValue: 'デフォルト値',
@@ -342,6 +343,7 @@ export const common = {
     xodrNotFound: 'ロードネットワークファイルが見つかりません: {{path}}',
     xodrLoadFailed: 'ロードネットワークの読み込みに失敗しました: {{path}}',
     catalogLoadFailed: 'カタログの読み込みに失敗しました: {{path}}',
+    logicFileCorrected: 'シナリオの道路参照が不整合だったため、保存時に {{path}} へ補正しました。',
   },
   fileErrors: {
     openXoscFailed: 'シナリオを開けませんでした: {{message}}',

@@ -77,6 +77,7 @@ export const common = {
     roadDoc: 'Road',
     unsavedChanges: 'Unsaved changes',
     serializeFailed: 'Failed to serialize scenario',
+    logicFileSynced: 'Scenario road reference updated to {{path}} (unsaved).',
     addParameter: 'Add Parameter',
     parameterType: 'Parameter Type',
     defaultValue: 'Default Value',
@@ -342,6 +343,7 @@ export const common = {
     xodrNotFound: 'Road network file not found: {{path}}',
     xodrLoadFailed: 'Failed to load road network: {{path}}',
     catalogLoadFailed: 'Failed to load catalog: {{path}}',
+    logicFileCorrected: 'Scenario road reference was inconsistent and corrected to {{path}} on save.',
   },
   fileErrors: {
     openXoscFailed: 'Failed to open scenario: {{message}}',

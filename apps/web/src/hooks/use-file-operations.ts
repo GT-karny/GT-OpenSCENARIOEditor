@@ -19,10 +19,11 @@ import { useDocumentRegistry } from '../stores/document-registry';
 import { useProjectStore } from '../stores/project-store';
 import { useCatalogStore } from '../stores/catalog-store';
 import { useDistributionStore } from '../stores/distribution-store';
+import { buildCatalogLocationsFromProject } from '../lib/catalog-location-utils';
 import {
-  buildCatalogLocationsFromProject,
-  computeRelativeFilePath,
-} from '../lib/catalog-location-utils';
+  reconcileLogicFileForSave,
+  syncLogicFileAfterRoadSaveAs,
+} from '../lib/document-references';
 import { editorMetadataStoreApi } from '../stores/editor-metadata-store-instance';
 import { useAppLifecycle } from './use-app-lifecycle';
 import * as api from '../lib/project-api';
@@ -249,34 +250,6 @@ function resolvePath(base: string, relative: string): string {
     else if (p !== '.' && p !== '') resolved.push(p);
   }
   return resolved.join('/');
-}
-
-/**
- * Convert project-root-relative file references in the document to be relative
- * to the xosc file location, matching the OpenSCENARIO spec convention.
- *
- * Internal state stores paths relative to project root (e.g. "xodr/highway.xodr"),
- * but the spec expects paths relative to the .xosc file (e.g. "../xodr/highway.xodr").
- */
-function convertPathsForSerialization(
-  doc: import('@osce/shared').ScenarioDocument,
-  xoscRelativePath: string,
-): import('@osce/shared').ScenarioDocument {
-  const xodrPath = useProjectStore.getState().currentXodrPath;
-  if (!xodrPath || !doc.roadNetwork?.logicFile) return doc;
-
-  const relativeXodrPath = computeRelativeFilePath(xoscRelativePath, xodrPath);
-
-  // Only update if the path actually differs (avoid unnecessary cloning)
-  if (doc.roadNetwork.logicFile.filepath === relativeXodrPath) return doc;
-
-  return {
-    ...doc,
-    roadNetwork: {
-      ...doc.roadNetwork,
-      logicFile: { filepath: relativeXodrPath },
-    },
-  };
 }
 
 /**
@@ -529,9 +502,18 @@ export function useFileOperations() {
     if (currentProject && currentFilePath) {
       try {
         if (!(await gateSaveWithValidation(storeApi.getState().document))) return;
-        const doc = convertPathsForSerialization(storeApi.getState().document, currentFilePath);
+        // In-place save: pass no previousXoscRelativePath, so any divergence
+        // beyond the recognized internal form warns (the path did not move).
+        const reconciled = reconcileLogicFileForSave(
+          storeApi.getState().document,
+          currentFilePath,
+          useProjectStore.getState().currentXodrPath,
+        );
+        if (reconciled.inconsistent) {
+          toast.warning(t('warnings.logicFileCorrected', { path: reconciled.correctedPath }));
+        }
         const serializer = new XoscSerializer();
-        const xml = serializer.serializeFormatted(doc);
+        const xml = serializer.serializeFormatted(reconciled.doc);
         await useProjectStore.getState().saveCurrentFile(xml);
         useDocumentRegistry.getState().markSaved('scenario');
         toast.success(t('labels.fileSaved'));
@@ -614,9 +596,20 @@ export function useFileOperations() {
       if (!currentProject) return;
 
       if (!(await gateSaveWithValidation(storeApi.getState().document))) return;
-      const doc = convertPathsForSerialization(storeApi.getState().document, relativePath);
+      // Scenario Save-As moves the file: pass the pre-move path (read before the
+      // currentFilePath update below) so a reference that was correct for the old
+      // location is recomputed silently rather than warned.
+      const reconciled = reconcileLogicFileForSave(
+        storeApi.getState().document,
+        relativePath,
+        useProjectStore.getState().currentXodrPath,
+        { previousXoscRelativePath: useProjectStore.getState().currentFilePath },
+      );
+      if (reconciled.inconsistent) {
+        toast.warning(t('warnings.logicFileCorrected', { path: reconciled.correctedPath }));
+      }
       const serializer = new XoscSerializer();
-      const xml = serializer.serializeFormatted(doc);
+      const xml = serializer.serializeFormatted(reconciled.doc);
 
       await api.writeProjectFile(currentProject.meta.id, relativePath, xml);
 
@@ -866,6 +859,13 @@ export function useFileOperations() {
     }
   }, [setShowSaveAs, t]);
 
+  /**
+   * Save the current road network to a new project path. Besides tracking the
+   * new path and re-stamping the verbatim cache, this re-points the open
+   * scenario's logicFile at the new road through the undoable UpdateRoadNetwork
+   * command, keeping the scenario/road pair consistent on disk (see
+   * document-references).
+   */
   const handleSaveAsXodr = useCallback(
     async (relativePath: string) => {
       const currentProject = useProjectStore.getState().currentProject;
@@ -891,12 +891,17 @@ export function useFileOperations() {
       });
       useDocumentRegistry.getState().markSaved('roadNetwork');
 
+      // Re-point the open scenario at the new road path via the undoable command.
+      if (syncLogicFileAfterRoadSaveAs(storeApi, relativePath)) {
+        toast.info(t('labels.logicFileSynced', { path: relativePath }));
+      }
+
       // Refresh project file list
       await useProjectStore.getState().refreshProject();
 
       toast.success(t('labels.fileSaved'));
     },
-    [t],
+    [storeApi, t],
   );
 
   // Keep the guard's save-flow reference current so it can persist on "Save"
