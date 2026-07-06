@@ -9,7 +9,10 @@ import { useEditorStore } from '../stores/editor-store';
 import { useDocumentRegistry } from '../stores/document-registry';
 import { useProjectStore } from '../stores/project-store';
 import { useCatalogStore } from '../stores/catalog-store';
-import { buildCatalogLocationsFromProject } from '../lib/catalog-location-utils';
+import {
+  buildCatalogLocationsFromProject,
+  normalizeRelativePath,
+} from '../lib/catalog-location-utils';
 import { editorMetadataStoreApi } from '../stores/editor-metadata-store-instance';
 import { useAppLifecycle } from './use-app-lifecycle';
 import { useFileOperations } from './use-file-operations';
@@ -17,22 +20,6 @@ import { runUnsavedGuard } from './use-discard-guard';
 import { getOpenDriveStoreApi } from './use-opendrive-store';
 import * as api from '../lib/project-api';
 import { resolveCatalogEntityTypes } from '../lib/resolve-catalog-entity-types';
-
-/**
- * Normalize a relative path by resolving `..` segments and converting backslashes.
- */
-function normalizePath(path: string): string {
-  const parts = path.replace(/\\/g, '/').split('/');
-  const resolved: string[] = [];
-  for (const part of parts) {
-    if (part === '..') {
-      resolved.pop();
-    } else if (part !== '.' && part !== '') {
-      resolved.push(part);
-    }
-  }
-  return resolved.join('/');
-}
 
 /** Check if a file path is inside a catalogs directory */
 function isCatalogPath(path: string): boolean {
@@ -138,11 +125,11 @@ export function useProjectFileOperations() {
       const basename = xodrRef.split('/').pop() ?? xodrRef;
       const candidates = [
         // 1. Relative to xosc file directory
-        normalizePath(xoscDir ? `${xoscDir}/${xodrRef}` : xodrRef),
+        normalizeRelativePath(xoscDir ? `${xoscDir}/${xodrRef}` : xodrRef),
         // 2. Relative to project root
-        normalizePath(xodrRef),
+        normalizeRelativePath(xodrRef),
         // 3. Strip leading ../ and try
-        normalizePath(xodrRef.replace(/^(\.\.\/)+/, '')),
+        normalizeRelativePath(xodrRef.replace(/^(\.\.\/)+/, '')),
         // 4. Look in xodr/ folder by filename
         `xodr/${basename}`,
       ];

@@ -48,6 +48,7 @@ const REFSYNC_XODR_REL = 'xodr/e2e-refsync.xodr';
 const REFSYNC_XOSC_NAME = 'e2e-refsync.xosc';
 const REFSYNC_XOSC_REL = `xosc/${REFSYNC_XOSC_NAME}`;
 const REFSYNC_RENAMED_BASENAME = 'e2e-refsync-renamed';
+const REFSYNC_RENAMED_XODR_REL = `xodr/${REFSYNC_RENAMED_BASENAME}.xodr`;
 
 /** Test-owned files for the degraded-road-simulates test. */
 const DEGRADED_XODR_REL = 'xodr/e2e-degraded.xodr';
@@ -61,6 +62,17 @@ const DEGRADED_XOSC_REL = `xosc/${DEGRADED_XOSC_NAME}`;
  * matches regardless of the exact saved path.
  */
 const LOGIC_FILE_SYNCED_SUBSTRING = 'Scenario road reference updated';
+
+/**
+ * Stable substring of `warnings.logicFileCorrected`
+ * (packages/i18n .../common.ts): "Scenario road reference was inconsistent
+ * and corrected to {{path}} on save." This must NOT appear for a reference
+ * that was synced via the road Save-As path: reconcileLogicFileForSave
+ * (document-references.ts) treats the internal project-root-relative form
+ * written by the sync as consistent with the session road, so the save-time
+ * conversion to the xosc-relative form is silent, not a correction warning.
+ */
+const LOGIC_FILE_CORRECTED_SUBSTRING = 'Scenario road reference was inconsistent';
 
 /**
  * Stable substring of `simulation.degradedRoad`
@@ -141,6 +153,22 @@ async function writeProjectFile(
     { data: { content } },
   );
   expect(res.ok(), `write ${relativePath}`).toBeTruthy();
+}
+
+/**
+ * GET a file's content back from the sample project via the server file API
+ * (mirrors writeProjectFile's URL encoding), so a test can pin the actual
+ * serialized-to-disk value rather than only in-app toasts/state.
+ */
+async function readProjectFile(
+  request: APIRequestContext,
+  relativePath: string,
+): Promise<string> {
+  const encoded = relativePath.split('/').map(encodeURIComponent).join('/');
+  const res = await request.get(`/api/projects/${SAMPLE_PROJECT_ID}/files/${encoded}`);
+  expect(res.ok(), `read ${relativePath}`).toBeTruthy();
+  const body = (await res.json()) as { content: string };
+  return body.content;
 }
 
 /** Switch the editor into Road Network mode (scoped to the header toggle). */
@@ -224,6 +252,29 @@ test.describe('Scenario/road reference sync', () => {
     // Redo brings the synced reference (and the dirty flag) back.
     await page.keyboard.press('Control+y');
     await expect(page.getByTestId('dirty-indicator-scenario')).toBeVisible();
+
+    // Persist and pin the actual on-disk result. The toast/dirty-indicator
+    // checks above would pass even if the reconcile/sync path wrote the wrong
+    // path to disk — only reading the saved file back closes that gap.
+    await page.getByRole('button', { name: 'File', exact: true }).click();
+    await page.getByRole('menuitem', { name: /Save \.xosc/ }).click();
+
+    // .last(): the earlier road Save-As also toasted "File saved" and may still
+    // be visible (sonner toasts stack until their own timer expires), so two
+    // may match here — .last() always resolves to the most recently created
+    // one (this scenario save) regardless of whether the older one lingers.
+    await expect(page.getByText('File saved').last()).toBeVisible();
+    await expect(page.getByTestId('dirty-indicator-scenario')).not.toBeVisible();
+
+    // The synced reference is the internal project-root-relative form; save-time
+    // reconciliation must recognize it as consistent with the session road
+    // (silent canonical conversion), not warn that the reference was inconsistent.
+    await expect(page.getByText(LOGIC_FILE_CORRECTED_SUBSTRING)).toHaveCount(0);
+
+    // The saved xosc must carry the canonical xosc-relative LogicFile for the
+    // renamed road, proving the reconcile/sync path wrote the correct path.
+    const savedXml = await readProjectFile(request, REFSYNC_XOSC_REL);
+    expect(savedXml).toContain(`<LogicFile filepath="../${REFSYNC_RENAMED_XODR_REL}"`);
   });
 
   test('an edited road still simulates via the degraded re-serialize path', async ({

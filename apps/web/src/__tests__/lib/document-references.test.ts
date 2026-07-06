@@ -77,11 +77,36 @@ describe('reconcileLogicFileForSave', () => {
 
   it('(g) in-place save (no previous) with a would-be-previous form → inconsistent', () => {
     // Same value as (e), but without previousXoscRelativePath the move exemption
-    // does not apply, so the divergence is surfaced.
+    // does not apply, so the divergence is surfaced. This also pins that
+    // normalization does not excuse it: `scenarios/../../xodr/...` escapes the
+    // project root, and normalizeRelativePath preserves the leading `..` instead
+    // of collapsing it into the in-root spelling.
     const doc = makeDoc('../../xodr/highway.xodr');
     const result = reconcileLogicFileForSave(doc, XOSC, XODR);
     expect(result.corrected).toBe(true);
     expect(result.inconsistent).toBe(true);
+  });
+
+  it('(i) non-canonical spelling of the expected path (leading ./) → corrected silently', () => {
+    // Parsed-from-disk references keep their raw spelling. A `./`-prefixed
+    // reference to the session road denotes the same file, so correcting it to
+    // the canonical form must NOT warn (it used to be silently corrected by
+    // convertPathsForSerialization; a spelling difference is not an
+    // inconsistency).
+    const xoscAtRoot = 'main.xosc'; // expected form is then root-relative
+    const doc = makeDoc('./xodr/highway.xodr');
+    const result = reconcileLogicFileForSave(doc, xoscAtRoot, XODR);
+    expect(result.corrected).toBe(true);
+    expect(result.inconsistent).toBe(false);
+    expect(result.doc.roadNetwork.logicFile?.filepath).toBe(XODR);
+  });
+
+  it('(j) backslash spelling of the expected path → corrected silently', () => {
+    const doc = makeDoc('..\\xodr\\highway.xodr');
+    const result = reconcileLogicFileForSave(doc, XOSC, XODR);
+    expect(result.corrected).toBe(true);
+    expect(result.inconsistent).toBe(false);
+    expect(result.doc.roadNetwork.logicFile?.filepath).toBe(EXPECTED);
   });
 
   it('(h) never mutates the input; corrected doc is a distinct object graph', () => {

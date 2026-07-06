@@ -11,6 +11,7 @@ import { useRef, useEffect, useState, useMemo } from 'react';
 import { RoadManagerClient } from '../lib/wasm/index.js';
 import { useEditorStore } from '../stores/editor-store.js';
 import { useDocumentRegistry } from '../stores/document-registry';
+import { isRawXmlValid } from '../lib/simulation-xodr';
 import { XodrSerializer } from '@osce/opendrive';
 
 export function useRoadManagerClient(): RoadManagerClient | null {
@@ -27,7 +28,7 @@ export function useRoadManagerClient(): RoadManagerClient | null {
   // Derive effective XML: verbatim cache while valid for the current revision,
   // otherwise serialize from the parsed document.
   const effectiveXml = useMemo(() => {
-    if (cache && cache.validForRevision === revision) return cache.text;
+    if (isRawXmlValid(cache, revision)) return cache.text;
     if (!roadNetwork) return null;
     const serializer = new XodrSerializer();
     return serializer.serialize(roadNetwork);

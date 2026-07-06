@@ -52,6 +52,30 @@ export function buildCatalogLocationsFromProject(
 }
 
 /**
+ * Normalize a relative path to a canonical spelling: backslashes become
+ * slashes, `.` and empty segments drop, and `..` collapses its preceding
+ * segment. Leading `..` segments (nothing left to collapse) are PRESERVED —
+ * they are meaningful (they escape the base directory), and dropping them
+ * would make a root-escaping reference spell the same as an in-root one.
+ */
+export function normalizeRelativePath(path: string): string {
+  const parts = path.replace(/\\/g, '/').split('/');
+  const resolved: string[] = [];
+  for (const part of parts) {
+    if (part === '..') {
+      if (resolved.length > 0 && resolved[resolved.length - 1] !== '..') {
+        resolved.pop();
+      } else {
+        resolved.push('..');
+      }
+    } else if (part !== '.' && part !== '') {
+      resolved.push(part);
+    }
+  }
+  return resolved.join('/');
+}
+
+/**
  * Compute a relative file path from one file to another, where both paths
  * are relative to the same root (e.g., project root).
  *

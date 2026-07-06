@@ -1,7 +1,7 @@
 import type { StoreApi } from 'zustand/vanilla';
 import type { ScenarioStore } from '@osce/scenario-engine';
 import type { ScenarioDocument } from '@osce/shared';
-import { computeRelativeFilePath } from './catalog-location-utils';
+import { computeRelativeFilePath, normalizeRelativePath } from './catalog-location-utils';
 
 /**
  * Owns all logicFile (scenario → road) reference reconciliation. Keeping the
@@ -67,10 +67,17 @@ export function reconcileLogicFileForSave(
     return { doc, corrected: false, inconsistent: false };
   }
 
+  // Compare canonical spellings: parsed-from-disk references keep their raw
+  // spelling (`./xodr/x.xodr`, backslashes, redundant segments), and a spelling
+  // difference alone does not make the reference inconsistent — only denoting a
+  // different file does. The correction output stays the canonical `expected`.
   const previous = options?.previousXoscRelativePath;
+  const actualNorm = normalizeRelativePath(actual);
   const consistent =
-    actual === xodrRelativePath ||
-    (previous != null && actual === computeRelativeFilePath(previous, xodrRelativePath));
+    actualNorm === normalizeRelativePath(expected) ||
+    actualNorm === normalizeRelativePath(xodrRelativePath) ||
+    (previous != null &&
+      actualNorm === normalizeRelativePath(computeRelativeFilePath(previous, xodrRelativePath)));
 
   return {
     doc: {

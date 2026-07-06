@@ -363,7 +363,7 @@ The simulator is now ahead on 1.9. The dominant risk theme: **the editor's stric
 
 **Behavioral changes to absorb (the real integration work — product decisions, not code):**
 
-- **`<include>` xodr → hard load failure.** Flagged "most important." Currently surfaced as a generic `rm-error 'Failed to load OpenDRIVE XML'` toast (`esmini-worker.ts:333` → `onError` funnel). Make it a **specific** "include not supported" message. Highest-risk feed because `.xodr` is fed **verbatim** from `editor-store.roadNetworkXml` (`.xosc` is always re-serialized; `.xodr` is not).
+- **`<include>` xodr → hard load failure.** Flagged "most important." Currently surfaced as a generic `rm-error 'Failed to load OpenDRIVE XML'` toast (`esmini-worker.ts:333` → `onError` funnel). Make it a **specific** "include not supported" message. Highest-risk feed because `.xodr` is fed **verbatim** from `editor-store.roadNetworkXml` (`.xosc` is always re-serialized; `.xodr` is not). *[Naming update 2026-07-06: the verbatim feed is now `editor-store.roadNetworkRawXml {text, validForRevision}` (architecture S2).]*
 - **Synthetic objects with huge IDs** appear in ground truth: crosswalks 900M+, bridges 910M, objectReference clones 920M. Nothing in the wrapper filters by ID → they will render in the entity list/viewer. **Decide: show or filter.**
 - **Signal counts grow** (signalReference cloning + relaxed dynamic→TrafficLight promotion). Affects `getTrafficLightStatesOnly` (used); `getTrafficSignalStates` unused by editor.
 - **1.9 multi-layer roads → WASM always picks the permanent layer** (no env var reachable in browser).

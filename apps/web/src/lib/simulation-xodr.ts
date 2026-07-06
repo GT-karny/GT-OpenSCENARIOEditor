@@ -1,5 +1,6 @@
 import { XodrSerializer } from '@osce/opendrive';
 import { useEditorStore } from '../stores/editor-store';
+import type { RoadNetworkRawXml } from '../stores/editor-store';
 import { getOpenDriveStoreApi } from '../hooks/use-opendrive-store';
 
 /**
@@ -22,6 +23,18 @@ function currentRoadRevision(): number {
 }
 
 /**
+ * THE validity rule for the verbatim xodr cache — every consumer (imperative or
+ * reactive) must decide through this single predicate so the rule can never
+ * drift between call sites.
+ */
+export function isRawXmlValid(
+  cache: RoadNetworkRawXml | null,
+  revision: number,
+): cache is RoadNetworkRawXml {
+  return cache !== null && cache.validForRevision === revision;
+}
+
+/**
  * The verbatim xodr text, or null when the model has moved off the revision the
  * text was captured at. Validity is revision-derived, never nulled on edit: an
  * undo back to `validForRevision` (e.g. back to the load baseline) re-validates
@@ -29,7 +42,7 @@ function currentRoadRevision(): number {
  */
 export function getValidRoadXml(): string | null {
   const cache = useEditorStore.getState().roadNetworkRawXml;
-  return cache && cache.validForRevision === currentRoadRevision() ? cache.text : null;
+  return isRawXmlValid(cache, currentRoadRevision()) ? cache.text : null;
 }
 
 /**
