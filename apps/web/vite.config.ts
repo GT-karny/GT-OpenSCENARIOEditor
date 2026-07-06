@@ -40,7 +40,9 @@ export default defineConfig(({ command, mode }) => {
   // Override via VITE_API_PROXY_TARGET (see .env.example) to point at a remote
   // or containerized server.
   const env = loadEnv(mode, __dirname, 'VITE_');
-  const apiProxyTarget = env.VITE_API_PROXY_TARGET ?? 'http://localhost:3001';
+  // `||` (not ??): an empty-string VITE_API_PROXY_TARGET= line must not
+  // produce an empty proxy target.
+  const apiProxyTarget = env.VITE_API_PROXY_TARGET || 'http://localhost:3001';
 
   return {
     plugins: [react(), tailwindcss()],

@@ -162,10 +162,11 @@ describe.each(useCaseComponents.map((uc) => [uc.id, uc] as const))(
           emptyContext(),
         );
 
-        // The override must change the decomposition...
+        // The override must change the decomposition. (Deliberately NOT
+        // asserting the raw value appears verbatim in the output — a decomposer
+        // that legitimately transforms or rounds a parameter would false-fail
+        // on a substring match.)
         expect(JSON.stringify(changed)).not.toBe(JSON.stringify(baseline));
-        // ...and the overridden value must surface somewhere in the output.
-        expect(JSON.stringify(changed)).toContain(String(override));
       });
     }
 

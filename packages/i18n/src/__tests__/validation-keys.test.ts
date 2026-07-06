@@ -51,3 +51,28 @@ describe('validation i18n keys', () => {
     });
   }
 });
+
+/** Collect the sorted dot-paths of every leaf key under a locale subtree. */
+function leafPaths(node: unknown, prefix = ''): string[] {
+  if (typeof node !== 'object' || node === null) return [prefix];
+  return Object.entries(node as Record<string, unknown>)
+    .flatMap(([k, v]) => leafPaths(v, prefix ? `${prefix}.${k}` : k))
+    .sort();
+}
+
+/**
+ * en/ja key parity for the S5 greenfield i18n sections. A key added to one
+ * locale but not the other silently falls back to English at runtime; this
+ * pins the two trees to the exact same shape.
+ */
+describe('en/ja key parity (conditionEditors, odrProperty)', () => {
+  for (const section of ['conditionEditors', 'odrProperty'] as const) {
+    it(`${section} has identical key sets in en and ja`, () => {
+      const en = (resources.en.common as Record<string, unknown>)[section];
+      const ja = (resources.ja.common as Record<string, unknown>)[section];
+      expect(en, `en common.${section} missing`).toBeTruthy();
+      expect(ja, `ja common.${section} missing`).toBeTruthy();
+      expect(leafPaths(ja)).toEqual(leafPaths(en));
+    });
+  }
+});

@@ -140,6 +140,11 @@ export class ProjectService {
       try {
         await fs.stat(path.join(base, 'xosc'));
         await fs.stat(path.join(base, 'xodr'));
+        // Representative-file probe: a partial checkout (e.g. a sparse or
+        // differently-pinned submodule) can have the directories but not the
+        // content; picking it over the complete committed fixtures would yield
+        // a silently partial seed (tryCopyFile skips missing sources).
+        await fs.stat(path.join(base, 'xosc', SAMPLE_SCENARIOS[0]));
         return base;
       } catch {
         // Continue trying other candidates
