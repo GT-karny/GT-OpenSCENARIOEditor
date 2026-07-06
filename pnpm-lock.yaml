@@ -53,6 +53,9 @@ importers:
       '@osce/server':
         specifier: workspace:*
         version: link:../server
+      '@osce/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       adm-zip:
         specifier: ^0.5.16
         version: 0.5.16
@@ -472,6 +475,10 @@ importers:
       '@osce/shared':
         specifier: workspace:*
         version: link:../shared
+    devDependencies:
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@22.19.13)(jiti@2.6.1)(jsdom@25.0.1)(lightningcss@1.31.1)(tsx@4.21.0)
 
   packages/theme-apex:
     dependencies:

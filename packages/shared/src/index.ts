@@ -28,6 +28,9 @@ export { POSITION_TYPES } from './types/positions.js';
 // COORDINATE_SYSTEMS / DYNAMICS_SHAPES / RULES used to derive UI option lists)
 export * from './enums/osc-enums.js';
 
+// Constants (value export: default dev network ports)
+export * from './constants/network.js';
+
 // Utils
 export * from './utils/entity-color.js';
 export { generateId } from './utils/generate-id.js';

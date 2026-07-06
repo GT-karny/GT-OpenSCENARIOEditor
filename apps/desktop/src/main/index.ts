@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
+import { DEFAULT_WEB_PORT } from '@osce/shared';
 import { startServer, stopServer } from './server.js';
 import { createMenu } from './menu.js';
 import { registerIpcHandlers, unregisterIpcHandlers } from './ipc-handlers.js';
@@ -40,7 +41,7 @@ async function createWindow() {
   });
 
   if (IS_DEV) {
-    await mainWindow.loadURL('http://localhost:5173');
+    await mainWindow.loadURL(`http://localhost:${DEFAULT_WEB_PORT}`);
     mainWindow.webContents.openDevTools();
   } else {
     await mainWindow.loadURL(`http://127.0.0.1:${serverPort}`);

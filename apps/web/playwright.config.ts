@@ -40,6 +40,10 @@ export default defineConfig({
       : []),
   ],
 
+  // The ports below (backend 3001, frontend 5173, also in `baseURL`) mirror
+  // @osce/shared's DEFAULT_SERVER_PORT / DEFAULT_WEB_PORT, which are the source
+  // of truth. They are kept as literals (not imported) because playwright.config
+  // is evaluated before @osce/shared's dist exists.
   webServer: [
     {
       command: 'pnpm --filter @osce/server dev',

@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { resolve } from 'path';
@@ -33,24 +33,34 @@ function osceSourceAlias(): Record<string, string> {
   return alias;
 }
 
-export default defineConfig(({ command }) => ({
-  plugins: [react(), tailwindcss()],
-  resolve: {
-    alias: {
-      '@': resolve(__dirname, './src'),
-      // dev server only — build/test resolve `@osce/*` from dist exports.
-      ...(command === 'serve' ? osceSourceAlias() : {}),
-    },
-  },
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
+export default defineConfig(({ command, mode }) => {
+  // Dev API proxy target. Defaults to the backend on @osce/shared's
+  // DEFAULT_SERVER_PORT (3001); the literal is duplicated here (not imported)
+  // because vite.config is evaluated before @osce/shared's dist exists.
+  // Override via VITE_API_PROXY_TARGET (see .env.example) to point at a remote
+  // or containerized server.
+  const env = loadEnv(mode, __dirname, 'VITE_');
+  const apiProxyTarget = env.VITE_API_PROXY_TARGET ?? 'http://localhost:3001';
+
+  return {
+    plugins: [react(), tailwindcss()],
+    resolve: {
+      alias: {
+        '@': resolve(__dirname, './src'),
+        // dev server only — build/test resolve `@osce/*` from dist exports.
+        ...(command === 'serve' ? osceSourceAlias() : {}),
       },
     },
-  },
-  test: {
-    exclude: ['e2e/**', 'node_modules/**'],
-  },
-}));
+    server: {
+      proxy: {
+        '/api': {
+          target: apiProxyTarget,
+          changeOrigin: true,
+        },
+      },
+    },
+    test: {
+      exclude: ['e2e/**', 'node_modules/**'],
+    },
+  };
+});

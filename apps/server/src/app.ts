@@ -7,6 +7,7 @@ import { projectRoutes } from './routes/project-routes.js';
 import { settingsRoutes } from './routes/settings-routes.js';
 import { wsHandler } from './websocket/ws-handler.js';
 import { registerErrorHandler } from './utils/errors.js';
+import { DEFAULT_WEB_PORT } from '@osce/shared';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -24,7 +25,7 @@ export interface AppOptions {
 // Allowed CORS origins for development. Extend via CORS_ORIGINS env var
 // (comma-separated list of additional origins).
 function buildCorsOrigins(): string[] {
-  const defaults = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+  const defaults = [`http://localhost:${DEFAULT_WEB_PORT}`, `http://127.0.0.1:${DEFAULT_WEB_PORT}`];
   const extra = process.env.CORS_ORIGINS;
   if (extra) {
     return [...defaults, ...extra.split(',').map((s) => s.trim()).filter(Boolean)];
