@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { OdrLane, OdrLaneWidth, OdrRoadMark } from '@osce/shared';
+import type { OdrLane, OdrLaneWidth, OdrLaneLinkRef, OdrRoadMark } from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
@@ -289,36 +289,39 @@ export function OdrLanePropertyEditor({
         </div>
       )}
 
-      {/* Section: Lane Link */}
-      {lane.link && (
+      {/* Section: Lane Link (read-only; all predecessor/successor refs) */}
+      {lane.link && (lane.link.predecessors.length > 0 || lane.link.successors.length > 0) && (
         <div className="pb-3 border-b border-[var(--color-glass-edge)]">
           <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
             {t('odrProperty.lane.linkTitle')}
           </h3>
           <div className="grid grid-cols-2 gap-2">
-            <div className="grid gap-1">
-              <Label className="text-[var(--color-text-secondary)] text-xs">
-                {t('odrProperty.lane.predecessorId')}
-              </Label>
-              <Input
-                type="number"
-                value={lane.link.predecessors[0]?.id ?? ''}
-                readOnly
-                className="h-7 text-xs bg-[var(--color-glass-1)] opacity-60"
-              />
-            </div>
-            <div className="grid gap-1">
-              <Label className="text-[var(--color-text-secondary)] text-xs">
-                {t('odrProperty.lane.successorId')}
-              </Label>
-              <Input
-                type="number"
-                value={lane.link.successors[0]?.id ?? ''}
-                readOnly
-                className="h-7 text-xs bg-[var(--color-glass-1)] opacity-60"
-              />
-            </div>
+            <LaneLinkRefList
+              label={t('odrProperty.lane.predecessors')}
+              refs={lane.link.predecessors}
+            />
+            <LaneLinkRefList label={t('odrProperty.lane.successors')} refs={lane.link.successors} />
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LaneLinkRefList({ label, refs }: { label: string; refs: readonly OdrLaneLinkRef[] }) {
+  return (
+    <div className="grid gap-1">
+      <Label className="text-[var(--color-text-secondary)] text-xs">{label}</Label>
+      {refs.length === 0 ? (
+        <span className="text-[11px] text-[var(--color-text-secondary)] italic">—</span>
+      ) : (
+        <div className="flex flex-wrap gap-1">
+          {refs.map((ref, i) => (
+            <Badge key={i} variant="outline" className="text-[10px] py-0">
+              {ref.id}
+              {ref.layer && <span className="ml-1 opacity-70">{ref.layer}</span>}
+            </Badge>
+          ))}
         </div>
       )}
     </div>

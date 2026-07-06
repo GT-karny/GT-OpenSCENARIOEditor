@@ -1,4 +1,5 @@
-import type { OdrRoad, OdrRoadRule } from '@osce/shared';
+import type { OdrRoad, OdrRoadRule, OdrSpeedMaxSpecial } from '@osce/shared';
+import { ODR_SPEED_MAX_SPECIALS } from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
@@ -24,6 +25,9 @@ const ROAD_TYPES: readonly string[] = [
 ];
 
 const SPEED_UNITS: readonly string[] = ['m/s', 'km/h', 'mph'];
+
+// Speed-max kind: a real number, or one of the special t_maxSpeed literals.
+const SPEED_MAX_KINDS: readonly string[] = ['numeric', ...ODR_SPEED_MAX_SPECIALS];
 
 interface OdrRoadPropertyEditorProps {
   road: OdrRoad;
@@ -144,30 +148,39 @@ export function OdrRoadPropertyEditor({ road, onUpdate }: OdrRoadPropertyEditorP
                       <Label className="text-[var(--color-text-secondary)] text-xs">
                         {t('odrProperty.road.speedMax')}
                       </Label>
-                      {typeof entry.speed.max === 'number' ? (
-                        <Input
-                          type="number"
-                          value={entry.speed.max}
-                          onChange={(e) => {
+                      <div className="grid grid-cols-2 gap-1">
+                        <EnumSelect
+                          value={typeof entry.speed.max === 'number' ? 'numeric' : entry.speed.max}
+                          options={SPEED_MAX_KINDS}
+                          onValueChange={(kind) => {
+                            const max: number | OdrSpeedMaxSpecial =
+                              kind === 'numeric'
+                                ? typeof entry.speed!.max === 'number'
+                                  ? entry.speed!.max
+                                  : 0
+                                : (kind as OdrSpeedMaxSpecial);
                             const updated = [...(road.type ?? [])];
-                            updated[idx] = {
-                              ...entry,
-                              speed: { ...entry.speed!, max: Number(e.target.value) },
-                            };
+                            updated[idx] = { ...entry, speed: { ...entry.speed!, max } };
                             onUpdate(road.id, { type: updated });
                           }}
                           className="h-7 text-xs"
                         />
-                      ) : (
-                        // Special value ("no limit" / "undefined"); editing is Wave W3.
-                        <Input
-                          type="text"
-                          value={entry.speed.max}
-                          readOnly
-                          title={entry.speed.max}
-                          className="h-7 text-xs bg-[var(--color-glass-1)] opacity-60"
-                        />
-                      )}
+                        {typeof entry.speed.max === 'number' && (
+                          <Input
+                            type="number"
+                            value={entry.speed.max}
+                            onChange={(e) => {
+                              const updated = [...(road.type ?? [])];
+                              updated[idx] = {
+                                ...entry,
+                                speed: { ...entry.speed!, max: Number(e.target.value) },
+                              };
+                              onUpdate(road.id, { type: updated });
+                            }}
+                            className="h-7 text-xs"
+                          />
+                        )}
+                      </div>
                     </div>
                     <div className="grid gap-1">
                       <Label className="text-[var(--color-text-secondary)] text-xs">

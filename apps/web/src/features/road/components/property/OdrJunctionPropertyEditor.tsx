@@ -1,22 +1,23 @@
 import type { OdrJunction, OdrJunctionType } from '@osce/shared';
+import { ODR_JUNCTION_TYPES } from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { Badge } from '../../../../components/ui/badge';
 import { EnumSelect } from '../../../../components/form/EnumSelect';
 
-const JUNCTION_TYPES: readonly string[] = ['default', 'virtual'];
+const ORIENTATIONS: readonly string[] = ['+', '-', 'none'];
 
 interface OdrJunctionPropertyEditorProps {
   junction: OdrJunction;
   onUpdate: (junctionId: string, updates: Partial<OdrJunction>) => void;
 }
 
-export function OdrJunctionPropertyEditor({
-  junction,
-  onUpdate,
-}: OdrJunctionPropertyEditorProps) {
+export function OdrJunctionPropertyEditor({ junction, onUpdate }: OdrJunctionPropertyEditorProps) {
   const { t } = useTranslation('common');
+  const type = junction.type ?? 'default';
+  const numOrZero = (v: string) => Math.max(0, Number(v) || 0);
+
   return (
     <div className="space-y-4">
       {/* Section: Identity */}
@@ -50,14 +51,121 @@ export function OdrJunctionPropertyEditor({
               {t('odrProperty.common.type')}
             </Label>
             <EnumSelect
-              value={junction.type ?? 'default'}
-              options={JUNCTION_TYPES}
+              value={type}
+              options={ODR_JUNCTION_TYPES}
               onValueChange={(v) => onUpdate(junction.id, { type: v as OdrJunctionType })}
               className="h-7 text-xs"
             />
           </div>
         </div>
       </div>
+
+      {/* Section: Virtual-junction attributes (editable when type === 'virtual') */}
+      {type === 'virtual' && (
+        <div className="pb-3 border-b border-[var(--color-glass-edge)]">
+          <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
+            {t('odrProperty.junction.virtualTitle')}
+          </h3>
+          <div className="space-y-2">
+            <div className="grid gap-1">
+              <Label className="text-[var(--color-text-secondary)] text-xs">
+                {t('odrProperty.junction.mainRoad')}
+              </Label>
+              <Input
+                value={junction.mainRoad ?? ''}
+                onChange={(e) => onUpdate(junction.id, { mainRoad: e.target.value })}
+                className="h-7 text-xs"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-1">
+                <Label className="text-[var(--color-text-secondary)] text-xs">
+                  {t('odrProperty.junction.sStart')}
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={junction.sStart ?? ''}
+                  onChange={(e) => onUpdate(junction.id, { sStart: numOrZero(e.target.value) })}
+                  className="h-7 text-xs"
+                />
+              </div>
+              <div className="grid gap-1">
+                <Label className="text-[var(--color-text-secondary)] text-xs">
+                  {t('odrProperty.junction.sEnd')}
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={junction.sEnd ?? ''}
+                  onChange={(e) => onUpdate(junction.id, { sEnd: numOrZero(e.target.value) })}
+                  className="h-7 text-xs"
+                />
+              </div>
+            </div>
+            <div className="grid gap-1">
+              <Label className="text-[var(--color-text-secondary)] text-xs">
+                {t('odrProperty.junction.orientation')}
+              </Label>
+              <EnumSelect
+                value={junction.orientation ?? '+'}
+                options={ORIENTATIONS}
+                onValueChange={(v) => onUpdate(junction.id, { orientation: v })}
+                className="h-7 text-xs"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Section: Cross paths (read-only summary; common/virtual junctions) */}
+      {junction.crossPaths && junction.crossPaths.length > 0 && (
+        <div className="pb-3 border-b border-[var(--color-glass-edge)]">
+          <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
+            {t('odrProperty.junction.crossPathsTitle')}
+            <Badge variant="secondary" className="ml-2 text-[10px] py-0">
+              {junction.crossPaths.length}
+            </Badge>
+          </h3>
+          <div className="space-y-0.5">
+            {junction.crossPaths.map((cp, idx) => (
+              <div key={idx} className="flex items-center gap-2 text-[11px] pl-1">
+                <span className="text-[var(--color-text-secondary)]">
+                  {t('odrProperty.junction.crossingRoad')}
+                </span>
+                <span>{cp.crossingRoad ?? '—'}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Section: Road sections (read-only summary; crossing junctions) */}
+      {junction.roadSections && junction.roadSections.length > 0 && (
+        <div className="pb-3 border-b border-[var(--color-glass-edge)]">
+          <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
+            {t('odrProperty.junction.roadSectionsTitle')}
+            <Badge variant="secondary" className="ml-2 text-[10px] py-0">
+              {junction.roadSections.length}
+            </Badge>
+          </h3>
+          <div className="space-y-1">
+            {junction.roadSections.map((rs, idx) => (
+              <div key={idx} className="flex items-center gap-2 text-[11px] pl-1">
+                <Badge variant="outline" className="text-[10px] py-0">
+                  {t('odrProperty.junction.roadId')}: {rs.roadId ?? '—'}
+                </Badge>
+                <span className="text-[var(--color-text-secondary)]">
+                  {t('odrProperty.junction.sRange', {
+                    start: rs.sStart ?? '—',
+                    end: rs.sEnd ?? '—',
+                  })}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Section: Connections */}
       <div className="pb-3 border-b border-[var(--color-glass-edge)]">
@@ -109,16 +217,11 @@ export function OdrJunctionPropertyEditor({
                     </p>
                     <div className="space-y-0.5">
                       {conn.laneLinks.map((ll, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center gap-2 text-[11px] pl-2"
-                        >
+                        <div key={idx} className="flex items-center gap-2 text-[11px] pl-2">
                           <span className="text-[var(--color-text-secondary)]">
                             {t('odrProperty.junction.lane', { id: ll.from })}
                           </span>
-                          <span className="text-[var(--color-text-secondary)]">
-                            &rarr;
-                          </span>
+                          <span className="text-[var(--color-text-secondary)]">&rarr;</span>
                           <span>{t('odrProperty.junction.lane', { id: ll.to })}</span>
                         </div>
                       ))}
