@@ -23,7 +23,7 @@ import type { RawXml } from '../utils/xml-helpers.js';
 import { parseTrajectory } from './parse-actions.js';
 import { generateId } from '@osce/shared';
 import { parseParameterDeclarations } from './parse-parameters.js';
-import { numAttr, strAttr, optNumAttr, optStrAttr, boolAttr, pushBindingFieldPrefix, popBindingFieldPrefix, child, children } from '../utils/xml-helpers.js';
+import { numAttr, strAttr, optNumAttr, optStrAttr, boolAttr, pushBindingFieldPrefix, popBindingFieldPrefix, child, children, rawKeys } from '../utils/xml-helpers.js';
 
 export function parsePosition(raw: RawXml | undefined): Position {
   if (!raw) throw new Error('Position element is missing');
@@ -49,9 +49,13 @@ export function parsePosition(raw: RawXml | undefined): Position {
   const trajectoryPosition = child(raw, 'TrajectoryPosition');
   if (trajectoryPosition) return parseTrajectoryPosition(trajectoryPosition);
 
-  // Fallback for unsupported position types.
-  // Return a default WorldPosition since @osce/shared doesn't define these types
-  return { type: 'worldPosition', x: 0, y: 0 };
+  // No known Position child element matched. Throw — mirroring the "Unknown
+  // <X>Action type" dispatchers in parse-actions.ts — naming the child elements
+  // found, instead of silently returning a WorldPosition(0,0). The v1.3.1 XSD
+  // Position choice is fully covered above, so this only fires on schema-invalid
+  // or unsupported input, which must surface via XoscParser.parse's error path
+  // rather than corrupt data with a bogus origin position.
+  throw new Error(`Unknown Position type: ${rawKeys(raw).join(', ')}`);
 }
 
 function parseTrajectoryPosition(raw: RawXml): TrajectoryPosition {

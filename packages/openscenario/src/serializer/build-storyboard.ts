@@ -8,8 +8,8 @@ import type {
   ScenarioAction,
   PrivateAction,
   GlobalAction,
-  UserDefinedAction,
 } from '@osce/shared';
+import { GLOBAL_ACTION_TYPES } from '@osce/shared';
 import { buildPrivateAction, buildGlobalAction, buildUserDefinedAction } from './build-actions.js';
 import { buildTrigger } from './build-triggers.js';
 import { buildParameterDeclarations } from './build-parameters.js';
@@ -95,21 +95,16 @@ function buildScenarioAction(sa: ScenarioAction, allBindings: AllBindings): Reco
   const elementBindings = allBindings[sa.id] ?? {};
 
   const action = sa.action;
-  switch (action.type) {
-    case 'userDefinedAction':
-      result.UserDefinedAction = buildUserDefinedAction(action as UserDefinedAction);
-      break;
-    case 'environmentAction':
-    case 'entityAction':
-    case 'parameterAction':
-    case 'variableAction':
-    case 'infrastructureAction':
-    case 'trafficAction':
-      result.GlobalAction = buildGlobalAction(action as GlobalAction, elementBindings);
-      break;
-    default:
-      result.PrivateAction = buildPrivateAction(action as PrivateAction, elementBindings);
-      break;
+  // Route to the XSD wrapper element by the canonical GlobalAction discriminator
+  // set rather than a hand-maintained case list, so a newly added GlobalAction
+  // member (e.g. setMonitorAction) is dispatched to <GlobalAction> automatically
+  // instead of silently falling through to <PrivateAction>.
+  if (action.type === 'userDefinedAction') {
+    result.UserDefinedAction = buildUserDefinedAction(action);
+  } else if ((GLOBAL_ACTION_TYPES as readonly string[]).includes(action.type)) {
+    result.GlobalAction = buildGlobalAction(action as GlobalAction, elementBindings);
+  } else {
+    result.PrivateAction = buildPrivateAction(action as PrivateAction, elementBindings);
   }
 
   return result;

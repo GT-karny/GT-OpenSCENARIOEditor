@@ -50,6 +50,9 @@ importers:
       '@grpc/proto-loader':
         specifier: ^0.7.0
         version: 0.7.15
+      '@osce/server':
+        specifier: workspace:*
+        version: link:../server
       adm-zip:
         specifier: ^0.5.16
         version: 0.5.16
@@ -60,9 +63,6 @@ importers:
         specifier: ^5.0.0
         version: 5.7.4
     devDependencies:
-      '@osce/server':
-        specifier: workspace:*
-        version: link:../server
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.13
@@ -455,6 +455,9 @@ importers:
         specifier: ^5.0.0
         version: 5.0.11(@types/react@19.2.14)(immer@10.2.0)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
     devDependencies:
+      '@osce/openscenario':
+        specifier: workspace:*
+        version: link:../openscenario
       '@types/uuid':
         specifier: ^10.0.0
         version: 10.0.0
