@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import type { OsceNodeType } from '@osce/node-editor';
-import { useScenarioStoreApi } from '../stores/use-scenario-store';
+import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 
 /**
  * Hook that provides a dispatch function for adding child nodes.

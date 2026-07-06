@@ -2,10 +2,10 @@ import { useCallback, useMemo, useState } from 'react';
 import type { CatalogEntry, OpenDriveDocument, Route } from '@osce/shared';
 import type { RouteEditConfig } from '@osce/3d-viewer';
 import { worldToLane } from '@osce/opendrive';
-import type { useScenarioStoreApi } from '../stores/use-scenario-store';
-import type { RoadManagerClient } from '../features/simulation/lib/wasm/road-manager-client';
+import type { useScenarioStoreApi } from '../../../stores/use-scenario-store';
+import type { RoadManagerClient } from '../../simulation/lib/wasm/road-manager-client';
 import type { useRouteEdit } from './use-route-edit';
-import type { WaypointContextMenuPosition } from '../features/scenario/components/route/WaypointContextMenu';
+import type { WaypointContextMenuPosition } from '../components/route/WaypointContextMenu';
 
 interface UseRouteEditHandlersParams {
   routeEdit: ReturnType<typeof useRouteEdit>;

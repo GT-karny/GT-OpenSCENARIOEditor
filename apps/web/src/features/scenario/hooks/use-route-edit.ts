@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Route, OpenDriveDocument } from '@osce/shared';
-import { useRouteEditStore } from '../stores/route-edit-store';
-import type { RouteEditSource } from '../stores/route-edit-store';
+import { useRouteEditStore } from '../../../stores/route-edit-store';
+import type { RouteEditSource } from '../../../stores/route-edit-store';
 import {
   computeRoadFollowingSegmentsAsync,
   computeLaneChangeAwareSegmentsAsync,
   resolveRouteWaypoints,
-} from '../lib/route-path-computation';
-import type { RoadManagerClient } from '../features/simulation/lib/wasm/road-manager-client';
+} from '../../../lib/route-path-computation';
+import type { RoadManagerClient } from '../../simulation/lib/wasm/road-manager-client';
 import { useDraftEditKeyboard } from './use-draft-edit-keyboard';
 
 /**

@@ -6,7 +6,7 @@ import { ScrollArea } from '../../../../components/ui/scroll-area';
 import { Accordion } from '../../../../components/ui/accordion';
 import { TemplateCategoryGroup } from '../template/TemplateCategoryGroup';
 import { ParameterDialog } from '../template/ParameterDialog';
-import { useTemplateApply } from '../../../../hooks/use-template-apply';
+import { useTemplateApply } from '../../hooks/use-template-apply';
 
 const categories: UseCaseCategory[] = ['highway', 'intersection', 'pedestrian', 'parking', 'general'];
 

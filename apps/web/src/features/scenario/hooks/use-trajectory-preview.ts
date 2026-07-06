@@ -19,9 +19,9 @@ import type {
   PrivateAction,
 } from '@osce/shared';
 import type { WorldCoords } from '@osce/3d-viewer';
-import { resolveTrajectoryVisual } from '../lib/edit-preview-computation';
-import { useTrajectoryEditStore } from '../stores/trajectory-edit-store';
-import { useEditorStore } from '../stores/editor-store';
+import { resolveTrajectoryVisual } from '../../../lib/edit-preview-computation';
+import { useTrajectoryEditStore } from '../../../stores/trajectory-edit-store';
+import { useEditorStore } from '../../../stores/editor-store';
 
 export interface TrajectoryPreviewData {
   /** Shape type for rendering hints (e.g. NURBS shows control polygon) */
@@ -158,7 +158,7 @@ function resolveTrajectoryPreview(
  * Hook: computes trajectory preview data for the selected element.
  */
 export function useTrajectoryPreview(
-  scenarioStoreApi: ReturnType<typeof import('../stores/use-scenario-store').useScenarioStoreApi>,
+  scenarioStoreApi: ReturnType<typeof import('../../../stores/use-scenario-store').useScenarioStoreApi>,
   odrDoc: OpenDriveDocument | null,
   entityPositions?: Map<string, WorldCoords>,
 ): TrajectoryPreviewData[] {

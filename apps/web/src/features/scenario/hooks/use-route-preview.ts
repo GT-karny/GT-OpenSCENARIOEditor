@@ -20,11 +20,11 @@ import type {
 import {
   resolveRouteWaypoints,
   computeRoadFollowingSegmentsAsync,
-} from '../lib/route-path-computation';
-import type { Point3 } from '../lib/route-path-computation';
-import { useRouteEditStore } from '../stores/route-edit-store';
-import { useEditorStore } from '../stores/editor-store';
-import type { RoadManagerClient } from '../features/simulation/lib/wasm/road-manager-client';
+} from '../../../lib/route-path-computation';
+import type { Point3 } from '../../../lib/route-path-computation';
+import { useRouteEditStore } from '../../../stores/route-edit-store';
+import { useEditorStore } from '../../../stores/editor-store';
+import type { RoadManagerClient } from '../../simulation/lib/wasm/road-manager-client';
 
 export interface RoutePreviewData {
   waypoints: Array<{ x: number; y: number; z: number; h: number }>;
@@ -146,7 +146,7 @@ function extractRouteFromAction(action: unknown): Route | null {
  * Uses the same road-following path computation as the route editor.
  */
 export function useRoutePreview(
-  scenarioStoreApi: ReturnType<typeof import('../stores/use-scenario-store').useScenarioStoreApi>,
+  scenarioStoreApi: ReturnType<typeof import('../../../stores/use-scenario-store').useScenarioStoreApi>,
   odrDoc: OpenDriveDocument | null,
   rmClient: RoadManagerClient | null = null,
 ): RoutePreviewData[] {

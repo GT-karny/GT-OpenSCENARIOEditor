@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { CatalogEntry } from '@osce/shared';
 import type { TrajectoryEditConfig, WorldCoords } from '@osce/3d-viewer';
-import type { useScenarioStoreApi } from '../stores/use-scenario-store';
+import type { useScenarioStoreApi } from '../../../stores/use-scenario-store';
 import type { useTrajectoryEdit } from './use-trajectory-edit';
 
 interface TrajectoryContextMenuPosition {

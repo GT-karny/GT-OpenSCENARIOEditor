@@ -1,10 +1,10 @@
 import { useCallback, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { Trajectory, OpenDriveDocument } from '@osce/shared';
-import { useTrajectoryEditStore } from '../stores/trajectory-edit-store';
-import type { TrajectoryEditSource } from '../stores/trajectory-edit-store';
+import { useTrajectoryEditStore } from '../../../stores/trajectory-edit-store';
+import type { TrajectoryEditSource } from '../../../stores/trajectory-edit-store';
 import type { WorldCoords } from '@osce/3d-viewer';
-import { resolveTrajectoryVisual } from '../lib/edit-preview-computation';
+import { resolveTrajectoryVisual } from '../../../lib/edit-preview-computation';
 import { useDraftEditKeyboard } from './use-draft-edit-keyboard';
 
 /**

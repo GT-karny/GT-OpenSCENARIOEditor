@@ -28,11 +28,11 @@ import type {
   ParameterDeclaration,
 } from '@osce/shared';
 import type { WorldCoords } from '@osce/3d-viewer';
-import { computeLaneChangePath, NOMINAL_SPEED_MPS } from '../lib/lane-change-path-computation';
+import { computeLaneChangePath, NOMINAL_SPEED_MPS } from '../../../lib/lane-change-path-computation';
 import type { LaneChangePreviewData } from '@osce/3d-viewer';
-import { useRouteEditStore } from '../stores/route-edit-store';
-import { useTrajectoryEditStore } from '../stores/trajectory-edit-store';
-import { useEditorStore } from '../stores/editor-store';
+import { useRouteEditStore } from '../../../stores/route-edit-store';
+import { useTrajectoryEditStore } from '../../../stores/trajectory-edit-store';
+import { useEditorStore } from '../../../stores/editor-store';
 
 type Story = ScenarioDocument['storyboard']['stories'][number];
 type ManeuverGroup = Story['acts'][number]['maneuverGroups'][number];
@@ -201,7 +201,7 @@ function resolveActionTargetRefs(
  * Hook: computes lane-change preview data for the selected element.
  */
 export function useLaneChangePreview(
-  scenarioStoreApi: ReturnType<typeof import('../stores/use-scenario-store').useScenarioStoreApi>,
+  scenarioStoreApi: ReturnType<typeof import('../../../stores/use-scenario-store').useScenarioStoreApi>,
   odrDoc: OpenDriveDocument | null,
   entityPositions: Map<string, WorldCoords>,
 ): LaneChangePreviewData[] {
