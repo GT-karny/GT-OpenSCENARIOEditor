@@ -220,6 +220,10 @@ export const common = {
     fromCatalog: 'From Catalog',
     usingDefault: 'Using default',
     unloadCatalog: 'Unload Catalog',
+    unloadConfirmTitle: 'Unload catalog?',
+    unloadConfirmBody:
+      '"{{name}}" has unsaved changes. Unloading discards them (you can undo while the editor stays open).',
+    unloadConfirmAction: 'Discard and unload',
     controllerType: 'Controller Type',
     properties: 'Properties',
     addProperty: 'Add Property',

@@ -182,4 +182,47 @@ describe('applySnapshot', () => {
     expect(targets.restoreDistribution).toHaveBeenCalledWith(null);
     expect(targets.setFileName).toHaveBeenCalledWith(null);
   });
+
+  it('warns but still restores when _editor.formatVersion differs from the current default', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const scenario = createScenarioDoc();
+    // Bias the snapshot to a stale format version (D6c read-check).
+    scenario._editor = { ...scenario._editor, formatVersion: '0.0.1-legacy' };
+    const snapshot: AutosaveSnapshot = {
+      version: 2,
+      savedAt: 1,
+      scenario,
+      opendrive: null,
+      catalogs: [],
+      distribution: null,
+      fileName: null,
+    };
+    const { targets } = makeTargets();
+
+    applySnapshot(snapshot, targets);
+
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy.mock.calls[0][0]).toContain('0.0.1-legacy');
+    // The mismatch is non-blocking: the snapshot is still restored as-is.
+    expect(targets.loadScenario).toHaveBeenCalledWith(scenario);
+    expect(targets.markDirty).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not warn when _editor.formatVersion matches the current default', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const snapshot: AutosaveSnapshot = {
+      version: 2,
+      savedAt: 1,
+      scenario: createScenarioDoc(),
+      opendrive: null,
+      catalogs: [],
+      distribution: null,
+      fileName: null,
+    };
+    const { targets } = makeTargets();
+
+    applySnapshot(snapshot, targets);
+
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
 });

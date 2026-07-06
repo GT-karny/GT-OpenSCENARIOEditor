@@ -657,11 +657,11 @@ export function useFileOperations() {
     // Default the referenced scenario path from the open scenario when unset.
     const scenarioFilepath =
       doc.scenarioFilepath || useEditorStore.getState().currentFileName || '';
+    // Serialize a TRANSIENT clone carrying the defaulted path; the store is left
+    // untouched until the write actually succeeds, so a cancelled picker never
+    // dirties a previously-clean distribution (the S2 save pattern).
     const docToSave =
       scenarioFilepath === doc.scenarioFilepath ? doc : { ...doc, scenarioFilepath };
-    if (scenarioFilepath !== doc.scenarioFilepath) {
-      useDistributionStore.getState().setScenarioFilepath(scenarioFilepath);
-    }
 
     try {
       const xml = serializeParameterValueDistributionFormatted(docToSave);
@@ -669,8 +669,12 @@ export function useFileOperations() {
         ? `${useEditorStore.getState().currentFileName?.replace(/\.xosc$/i, '')}.pvd.xosc`
         : 'distribution.xosc';
       await writeFileToDisk(xml, '.xosc', { suggestedName });
-      // Capture the post-write revision (including the scenarioFilepath default
-      // command above) as the clean baseline.
+      // Write succeeded: commit the scenarioFilepath default (if any) through the
+      // undoable command, then re-baseline so the distribution reads clean. A
+      // cancel would have thrown above with the store still untouched.
+      if (scenarioFilepath !== doc.scenarioFilepath) {
+        useDistributionStore.getState().setScenarioFilepath(scenarioFilepath);
+      }
       useDocumentRegistry.getState().markSaved('distribution');
       toast.success(t('labels.fileSaved'));
       return true;

@@ -1,6 +1,16 @@
+import { useState } from 'react';
 import { useTranslation } from '@osce/i18n';
 import { useCatalogStore } from '../../stores/catalog-store';
 import { cn } from '@/lib/utils';
+import { Button } from '../ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '../ui/dialog';
 import { BookOpen, X } from 'lucide-react';
 
 export function CatalogList() {
@@ -9,6 +19,24 @@ export function CatalogList() {
   const selectedCatalogName = useCatalogStore((s) => s.selectedCatalogName);
   const selectCatalog = useCatalogStore((s) => s.selectCatalog);
   const unloadCatalog = useCatalogStore((s) => s.unloadCatalog);
+
+  // Unloading a dirty catalog drops its unsaved edits from every save guard, so
+  // it is confirmed first; clean catalogs unload immediately. Holds the name
+  // awaiting confirmation (null when no dialog is open).
+  const [pendingUnload, setPendingUnload] = useState<string | null>(null);
+
+  const requestUnload = (name: string) => {
+    if (useCatalogStore.getState().isCatalogDirty(name)) {
+      setPendingUnload(name);
+    } else {
+      unloadCatalog(name);
+    }
+  };
+
+  const confirmUnload = () => {
+    if (pendingUnload) unloadCatalog(pendingUnload);
+    setPendingUnload(null);
+  };
 
   const catalogNames = Array.from(catalogs.keys());
 
@@ -49,7 +77,7 @@ export function CatalogList() {
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                unloadCatalog(name);
+                requestUnload(name);
               }}
               className="opacity-0 group-hover:opacity-70 hover:!opacity-100 transition-opacity"
               title={t('catalog.unloadCatalog')}
@@ -59,6 +87,33 @@ export function CatalogList() {
           </div>
         );
       })}
+
+      <Dialog
+        open={pendingUnload !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingUnload(null);
+        }}
+      >
+        <DialogContent className="bg-[var(--color-bg-primary)] border-[var(--color-glass-edge-mid)] max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display text-[var(--color-text-primary)]">
+              {t('catalog.unloadConfirmTitle')}
+            </DialogTitle>
+            <DialogDescription className="text-[var(--color-text-secondary)]">
+              {t('catalog.unloadConfirmBody', { name: pendingUnload ?? '' })}
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={() => setPendingUnload(null)}>
+              {t('buttons.cancel')}
+            </Button>
+            <Button variant="destructive" size="sm" onClick={confirmUnload}>
+              {t('catalog.unloadConfirmAction')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

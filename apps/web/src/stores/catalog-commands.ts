@@ -8,9 +8,15 @@
  * side-effects included), so component behavior is unchanged; the only addition
  * is reversibility.
  *
- * Commands are defensive: if the target catalog is absent (e.g. undoing an edit
- * after the catalog was unloaded), execute/undo no-op instead of throwing or
- * resurrecting a document. {@link UnloadCatalogCommand} is the deliberate
+ * Commands are defensive: if the target catalog is absent or an index is out of
+ * range (e.g. re-executing after the catalog was unloaded), execute aborts
+ * WITHOUT mutating and undo restores nothing, rather than throwing or
+ * resurrecting a document. Aborting execute is not entirely free, though —
+ * CommandHistory still records the command and advances the shared revision,
+ * which the store would derive as a phantom-dirty catalog. The catalog-store
+ * actions therefore pre-check the same conditions before constructing a command,
+ * keeping these abort paths unreachable in practice (so the revision only
+ * advances for real mutations). {@link UnloadCatalogCommand} is the deliberate
  * exception — its undo restores the removed catalog.
  */
 import { BaseCommand } from '@osce/scenario-engine';
@@ -66,7 +72,10 @@ abstract class CatalogEntryCommand extends BaseCommand {
 
   /**
    * Derive the mutated document and (optionally) the new selected entry index,
-   * or `null` to abort the command (e.g. an out-of-range index) as a no-op.
+   * or `null` to abort (e.g. an out-of-range index). Aborting mutates nothing,
+   * but if execute is ever reached via a stale path the recorded command still
+   * advances the history revision; the catalog-store pre-checks keep that
+   * unreachable in practice (see the file header).
    */
   protected abstract mutate(
     doc: CatalogDocument,

@@ -187,6 +187,10 @@ export const useCatalogStore = create<CatalogState>((set, get) => {
     },
 
     unloadCatalog: (catalogName) => {
+      // Pre-check: an absent catalog has nothing to unload. Skipping here avoids
+      // executing a command that would mutate nothing yet still advance the shared
+      // history revision (phantom dirty). The command stays defensive regardless.
+      if (!get().catalogs.has(catalogName)) return;
       executeCatalogCommand(new UnloadCatalogCommand(catalogName, get, set));
       // Unloading a dirty catalog may empty the dirty set (its ghost is excluded).
       maybeRebaselineCatalogKind();
@@ -212,24 +216,37 @@ export const useCatalogStore = create<CatalogState>((set, get) => {
     selectCatalog: (name) => set({ selectedCatalogName: name, selectedEntryIndex: null }),
     selectEntry: (index) => set({ selectedEntryIndex: index }),
 
+    // Each mutation pre-checks its target before building a command: executing a
+    // command that would mutate nothing (absent catalog / out-of-range index)
+    // still advances the shared history revision, which reads as phantom dirty.
+    // The commands remain defensive internally (that protects undo-after-unload);
+    // these store-level guards keep the mutating actions from reaching that path.
     addEntry: (catalogName, entry) => {
+      if (!get().catalogs.has(catalogName)) return;
       executeCatalogCommand(new AddEntryCommand(catalogName, entry, get, set));
     },
 
     updateEntry: (catalogName, index, entry) => {
+      const doc = get().catalogs.get(catalogName);
+      if (!doc || index < 0 || index >= doc.entries.length) return;
       executeCatalogCommand(new UpdateEntryCommand(catalogName, index, entry, get, set));
     },
 
     removeEntry: (catalogName, index) => {
+      const doc = get().catalogs.get(catalogName);
+      if (!doc || index < 0 || index >= doc.entries.length) return;
       executeCatalogCommand(new RemoveEntryCommand(catalogName, index, get, set));
     },
 
     duplicateEntry: (catalogName, index) => {
+      const doc = get().catalogs.get(catalogName);
+      if (!doc || index < 0 || index >= doc.entries.length) return;
       executeCatalogCommand(new DuplicateEntryCommand(catalogName, index, get, set));
     },
 
     updateCatalogName: (oldName, newName) => {
       if (oldName === newName) return;
+      if (!get().catalogs.has(oldName)) return;
       executeCatalogCommand(new UpdateCatalogNameCommand(oldName, newName, get, set));
     },
 

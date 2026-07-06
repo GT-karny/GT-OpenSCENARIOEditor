@@ -221,6 +221,10 @@ export const common = {
     fromCatalog: 'カタログから参照',
     usingDefault: 'デフォルト使用',
     unloadCatalog: 'カタログを解除',
+    unloadConfirmTitle: 'カタログを閉じますか?',
+    unloadConfirmBody:
+      '「{{name}}」には未保存の変更があります。閉じると変更は破棄されます(エディタを開いている間は元に戻す操作で復元できます)。',
+    unloadConfirmAction: '破棄して閉じる',
     controllerType: 'コントローラタイプ',
     properties: 'プロパティ',
     addProperty: 'プロパティを追加',

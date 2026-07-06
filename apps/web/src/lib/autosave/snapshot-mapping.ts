@@ -3,6 +3,7 @@ import type {
   ParameterValueDistributionDocument,
   ScenarioDocument,
 } from '@osce/shared';
+import { createDefaultDocument } from '@osce/scenario-engine';
 import type { AutosaveCatalogEntry, AutosaveSnapshot, AutosaveSnapshotV1 } from './types';
 
 /** Inputs needed to build a snapshot from the current editor state. */
@@ -70,6 +71,18 @@ export interface RestoreTargets {
  * recovered state was, by definition, never saved.
  */
 export function applySnapshot(snapshot: AutosaveSnapshot, targets: RestoreTargets): void {
+  // D6c: a snapshot written by a different build may carry an _editor metadata
+  // format the current app no longer maps cleanly. We still restore as-is (best
+  // effort), but warn so a format drift is visible. The current default is read
+  // from a throwaway default document because the metadata factory itself is not
+  // individually exported from @osce/scenario-engine.
+  const currentFormatVersion = createDefaultDocument()._editor.formatVersion;
+  const snapshotFormatVersion = snapshot.scenario._editor?.formatVersion;
+  if (snapshotFormatVersion !== currentFormatVersion) {
+    console.warn(
+      `autosave snapshot _editor.formatVersion ${snapshotFormatVersion} differs from current ${currentFormatVersion}; restoring as-is`,
+    );
+  }
   targets.loadScenario(snapshot.scenario);
   targets.setOpenDrive(snapshot.opendrive);
   targets.restoreCatalogs(snapshot.catalogs);
