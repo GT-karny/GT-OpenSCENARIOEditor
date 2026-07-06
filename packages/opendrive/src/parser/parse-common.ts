@@ -2,7 +2,8 @@
  * Parse OpenDRIVE common elements shared across multiple categories.
  */
 import type { OdrLaneValidity, OdrDataQuality, OdrUserData, OdrInclude } from '@osce/shared';
-import { ensureArray, attrNum, attrStr, attrOptStr } from './xml-helpers.js';
+import { ODR_LAYER_TYPES } from '@osce/shared';
+import { ensureArray, attrNum, attrStr, attrOptStr, asEnum } from './xml-helpers.js';
 import { trackNode } from './node-tracker.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -13,10 +14,22 @@ export function parseLaneValidity(raw: Raw | undefined): OdrLaneValidity[] | und
   if (!raw) return undefined;
   const arr = ensureArray(raw);
   if (arr.length === 0) return undefined;
-  return arr.map((v: Raw) => ({
-    fromLane: attrNum(v, 'fromLane'),
-    toLane: attrNum(v, 'toLane'),
-  }));
+  return arr.map((v: Raw) => {
+    const t = trackNode(v);
+    const validity: OdrLaneValidity = {
+      fromLane: t.num('fromLane'),
+      toLane: t.num('toLane'),
+    };
+    // 1.9 @layer (e_layerType).
+    const layer = asEnum(attrOptStr(v, 'layer'), ODR_LAYER_TYPES);
+    if (layer) {
+      validity.layer = layer;
+      t.takeAttr('layer');
+    }
+    const extra = t.rest();
+    if (extra) validity.extra = extra;
+    return validity;
+  });
 }
 
 /** Parse <dataQuality> element */

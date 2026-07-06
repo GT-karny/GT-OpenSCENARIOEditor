@@ -226,8 +226,9 @@ export function buildBridge(bridge: OdrBridge): XmlNode {
 }
 
 function buildLaneValidityArray(validity: OdrLaneValidity[]): XmlNode[] {
-  return validity.map((v) => ({
-    '@_fromLane': v.fromLane,
-    '@_toLane': v.toLane,
-  }));
+  return validity.map((v) => {
+    const node: XmlNode = { '@_fromLane': v.fromLane, '@_toLane': v.toLane };
+    optAttr(node, '@_layer', v.layer);
+    return applyExtra(node, v.extra);
+  });
 }

@@ -2,9 +2,15 @@
  * OpenDRIVE common types shared across multiple categories.
  */
 
+import type { OdrLayerType } from './odr-lane.js';
+
 export interface OdrLaneValidity {
   fromLane: number;
   toLane: number;
+  /** `@layer` (`e_layerType`): layer of the lanes for which the object/signal is valid. */
+  layer?: OdrLayerType;
+  /** Unmodeled `<validity>` attrs/children (g_additionalData) preserved for round-trip. */
+  extra?: OdrExtra;
 }
 
 /**
