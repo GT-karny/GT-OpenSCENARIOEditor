@@ -12,6 +12,7 @@ import type { CatalogLocations, ScenarioDocument } from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
 import { toast } from 'sonner';
 import { runValidationOnDocument } from './use-validation';
+import { getOpenDriveStoreApi } from './use-opendrive-store';
 import { useScenarioStoreApi } from '../stores/use-scenario-store';
 import { useEditorStore } from '../stores/editor-store';
 import { useDocumentRegistry } from '../stores/document-registry';
@@ -407,7 +408,8 @@ export function useFileOperations() {
     // Fresh document: capture the post-create revision as the clean baseline.
     useDocumentRegistry.getState().markLoaded('scenario');
     setValidationResult(null);
-    setRoadNetwork(null, null);
+    setRoadNetwork(null);
+    useEditorStore.getState().setRoadNetworkRawXml(null);
     useEditorStore.getState().setXoscFileHandle(null);
     useEditorStore.getState().setXoscFilePath(null);
   }, [
@@ -675,7 +677,8 @@ export function useFileOperations() {
     if (!(await runUnsavedGuard())) return;
     resetForNewRoadNetwork();
     const doc = createDefaultDocument();
-    setRoadNetwork(doc, null);
+    setRoadNetwork(doc);
+    useEditorStore.getState().setRoadNetworkRawXml(null);
     useEditorStore.getState().setRoadNetworkFileName(null);
     // markLoaded('roadNetwork') is handled by resetForNewRoadNetwork (registry
     // reset) and re-affirmed by the RoadNetworkEditorLayout load effect.
@@ -700,10 +703,18 @@ export function useFileOperations() {
         const parser = new XodrParser();
         const doc = parser.parse(text);
         resetForNewRoadNetwork();
-        setRoadNetwork(doc, text);
+        setRoadNetwork(doc);
+        // Provisional stamp: until road-mode entry runs auto-correction and
+        // re-stamps, the odr history does not move, so tagging with the current
+        // revision keeps the verbatim text on the lossless simulation path.
+        useEditorStore.getState().setRoadNetworkRawXml({
+          text,
+          validForRevision: getOpenDriveStoreApi().getState().getCommandHistory().getRevision(),
+        });
         useEditorStore.getState().setRoadNetworkFileName(name);
-        // The RoadNetworkEditorLayout load effect captures the post-load,
-        // post-auto-correction revision as the clean baseline (markLoaded).
+        // The RoadNetworkEditorLayout load effect re-stamps the cache at the
+        // post-load, post-auto-correction revision and captures that clean
+        // baseline in the registry (markLoaded).
         useEditorStore.getState().setXodrFileHandle(handle ?? null);
         useEditorStore.getState().setXodrFilePath(filePath ?? null);
         // Reconstruct signal assemblies from signal→object references
@@ -760,6 +771,12 @@ export function useFileOperations() {
         const serializer = new XodrSerializer();
         const xml = serializer.serializeFormatted(roadNetwork);
         await api.writeProjectFile(currentProject.meta.id, currentXodrPath, xml);
+        // The just-written text is now the authoritative verbatim source: stamp
+        // it at the current revision so simulation returns to the lossless path.
+        useEditorStore.getState().setRoadNetworkRawXml({
+          text: xml,
+          validForRevision: getOpenDriveStoreApi().getState().getCommandHistory().getRevision(),
+        });
         useDocumentRegistry.getState().markSaved('roadNetwork');
         toast.success(t('labels.fileSaved'));
       } catch (err) {
@@ -789,6 +806,12 @@ export function useFileOperations() {
       useEditorStore.getState().setRoadNetworkFileName(result.fileName);
       if (result.handle) useEditorStore.getState().setXodrFileHandle(result.handle);
       if (result.filePath) useEditorStore.getState().setXodrFilePath(result.filePath);
+      // The just-written text is now the authoritative verbatim source: stamp it
+      // at the current revision so simulation returns to the lossless path.
+      useEditorStore.getState().setRoadNetworkRawXml({
+        text: xml,
+        validForRevision: getOpenDriveStoreApi().getState().getCommandHistory().getRevision(),
+      });
       useDocumentRegistry.getState().markSaved('roadNetwork');
       toast.success(t('labels.fileSaved'));
     } catch (err) {
@@ -827,6 +850,12 @@ export function useFileOperations() {
       useEditorStore.getState().setRoadNetworkFileName(result.fileName);
       if (result.handle) useEditorStore.getState().setXodrFileHandle(result.handle);
       if (result.filePath) useEditorStore.getState().setXodrFilePath(result.filePath);
+      // The just-written text is now the authoritative verbatim source: stamp it
+      // at the current revision so simulation returns to the lossless path.
+      useEditorStore.getState().setRoadNetworkRawXml({
+        text: xml,
+        validForRevision: getOpenDriveStoreApi().getState().getCommandHistory().getRevision(),
+      });
       useDocumentRegistry.getState().markSaved('roadNetwork');
       toast.success(t('labels.fileSaved'));
     } catch (err) {
@@ -854,6 +883,12 @@ export function useFileOperations() {
       useProjectStore.setState({ currentXodrPath: relativePath });
       const fileName = relativePath.split('/').pop() ?? relativePath;
       useEditorStore.getState().setRoadNetworkFileName(fileName);
+      // The just-written text is now the authoritative verbatim source: stamp it
+      // at the current revision so simulation returns to the lossless path.
+      useEditorStore.getState().setRoadNetworkRawXml({
+        text: xml,
+        validForRevision: getOpenDriveStoreApi().getState().getCommandHistory().getRevision(),
+      });
       useDocumentRegistry.getState().markSaved('roadNetwork');
 
       // Refresh project file list

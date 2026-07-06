@@ -150,8 +150,13 @@ export function useAutosave(): UseAutosaveResult {
     applySnapshot(snapshot, {
       loadScenario: (document) => scenarioStoreApi.getState().loadDocument(document),
       // Mirror the .xodr open path: the RoadNetwork editor effect syncs this
-      // into the opendrive-engine store from editorStore.roadNetwork.
-      setOpenDrive: (document) => useEditorStore.getState().setRoadNetwork(document, null),
+      // into the opendrive-engine store from editorStore.roadNetwork. A recovered
+      // snapshot carries no verbatim text, so clear the raw cache — simulation
+      // uses the re-serialized (degraded) path until the next explicit save.
+      setOpenDrive: (document) => {
+        useEditorStore.getState().setRoadNetwork(document);
+        useEditorStore.getState().setRoadNetworkRawXml(null);
+      },
       setFileName: (name) => useEditorStore.getState().setCurrentFileName(name),
       // Restored work is unsaved by definition; force each restored document
       // dirty until the next explicit save. loadDocument/setRoadNetwork reset the

@@ -57,6 +57,12 @@ export interface SignalPickMode {
 
 export type EditorMode = 'scenario' | 'roadNetwork';
 
+/** Verbatim .xodr text and the OpenDRIVE history revision at which it is byte-accurate. */
+export interface RoadNetworkRawXml {
+  text: string;
+  validForRevision: number;
+}
+
 /**
  * App-wide editor preferences plus viewer-only display flags.
  *
@@ -110,8 +116,15 @@ export interface EditorState {
 
   // Road Network (loaded .xodr)
   roadNetwork: OpenDriveDocument | null;
-  roadNetworkXml: string | null;
-  setRoadNetwork: (doc: OpenDriveDocument | null, rawXml?: string | null) => void;
+  /**
+   * Verbatim .xodr text tagged with the OpenDRIVE revision at which it is
+   * byte-accurate. Validity is derived at read time (see simulation-xodr.ts) by
+   * comparing the tag against the live command-history revision, so no code path
+   * nulls this on edit — an undo back to the tagged revision re-validates it.
+   */
+  roadNetworkRawXml: RoadNetworkRawXml | null;
+  setRoadNetwork: (doc: OpenDriveDocument | null) => void;
+  setRoadNetworkRawXml: (cache: RoadNetworkRawXml | null) => void;
 
   // Panel visibility
   panelVisibility: Record<EditorPanel, boolean>;
@@ -277,8 +290,9 @@ export const useEditorStore = create<EditorState>()(
 
       // Road Network
       roadNetwork: null,
-      roadNetworkXml: null,
-      setRoadNetwork: (doc, rawXml) => set({ roadNetwork: doc, roadNetworkXml: rawXml ?? null }),
+      roadNetworkRawXml: null,
+      setRoadNetwork: (doc) => set({ roadNetwork: doc }),
+      setRoadNetworkRawXml: (cache) => set({ roadNetworkRawXml: cache }),
 
       // Panel visibility
       panelVisibility: defaultPanelVisibility,
@@ -410,7 +424,7 @@ export const useEditorStore = create<EditorState>()(
           currentFileName: null,
           roadNetworkFileName: null,
           roadNetwork: null,
-          roadNetworkXml: null,
+          roadNetworkRawXml: null,
         }),
     }),
     {

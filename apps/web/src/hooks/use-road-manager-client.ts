@@ -2,30 +2,36 @@
  * Hook that manages a singleton RoadManagerClient for WASM-based path calculations.
  * Loads OpenDRIVE XML from the editor store and returns a ready-to-use client.
  *
- * When roadNetworkXml is not available (e.g. after OpenDRIVE editor changes),
- * falls back to serializing the in-memory document on the fly.
+ * Prefers the verbatim .xodr cache while it is valid for the live OpenDRIVE
+ * revision (registry mirror); once the model has moved off that revision, falls
+ * back to serializing the in-memory document on the fly.
  */
 
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { RoadManagerClient } from '../lib/wasm/index.js';
 import { useEditorStore } from '../stores/editor-store.js';
+import { useDocumentRegistry } from '../stores/document-registry';
 import { XodrSerializer } from '@osce/opendrive';
 
 export function useRoadManagerClient(): RoadManagerClient | null {
-  const roadNetworkXml = useEditorStore((s) => s.roadNetworkXml);
+  const cache = useEditorStore((s) => s.roadNetworkRawXml);
   const roadNetwork = useEditorStore((s) => s.roadNetwork);
+  // The registry mirrors the live OpenDRIVE revision, so this drives a re-render
+  // (and cache re-validation) whenever the model's history position moves.
+  const revision = useDocumentRegistry((s) => s.current.roadNetwork);
   const [ready, setReady] = useState(false);
   const clientRef = useRef<RoadManagerClient | null>(null);
   const workerRef = useRef<Worker | null>(null);
   const loadedXmlRef = useRef<string | null>(null);
 
-  // Derive effective XML: use stored XML if available, otherwise serialize from document
+  // Derive effective XML: verbatim cache while valid for the current revision,
+  // otherwise serialize from the parsed document.
   const effectiveXml = useMemo(() => {
-    if (roadNetworkXml) return roadNetworkXml;
+    if (cache && cache.validForRevision === revision) return cache.text;
     if (!roadNetwork) return null;
     const serializer = new XodrSerializer();
     return serializer.serialize(roadNetwork);
-  }, [roadNetworkXml, roadNetwork]);
+  }, [cache, revision, roadNetwork]);
 
   useEffect(() => {
     if (!effectiveXml) {

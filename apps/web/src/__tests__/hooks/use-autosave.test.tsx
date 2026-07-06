@@ -54,7 +54,8 @@ beforeEach(() => {
   readSnapshot.mockClear();
   registry().markLoaded('scenario');
   registry().markLoaded('roadNetwork');
-  useEditorStore.getState().setRoadNetwork(null, null);
+  useEditorStore.getState().setRoadNetwork(null);
+  useEditorStore.getState().setRoadNetworkRawXml(null);
 });
 
 afterEach(() => {
@@ -68,7 +69,7 @@ describe('useAutosave registry-driven lifecycle', () => {
     // Simulate a road-only edit: the road network becomes dirty and the editor
     // store's roadNetwork mirror updates (as RoadNetworkEditorLayout would).
     registry().markRestoredDirty('roadNetwork');
-    useEditorStore.getState().setRoadNetwork(createDefaultDocument(), null);
+    useEditorStore.getState().setRoadNetwork(createDefaultDocument());
 
     // Flush the debounce window.
     vi.advanceTimersByTime(2_500);

@@ -1,18 +1,35 @@
 import { XodrSerializer } from '@osce/opendrive';
 import { useEditorStore } from '../stores/editor-store';
+import { getOpenDriveStoreApi } from '../hooks/use-opendrive-store';
 
 /**
  * Result of resolving the OpenDRIVE payload for a simulation run.
  *
- * `degraded` is true when the raw editor XML was unavailable and we had to
- * re-serialize from the parsed road model instead (see danger sequence #2:
- * editing a road can null out `roadNetworkXml`). Callers should surface a
- * warning to the user when `degraded` is true so a stale/re-derived road is
- * never used silently.
+ * `degraded` is true when the verbatim editor XML was not valid for the current
+ * model and we re-serialized from the parsed road model instead. Callers must
+ * surface a warning when `degraded` is true so a re-derived road is never used
+ * silently (danger sequence #2 permanent fix — this warning stays until the
+ * OpenDRIVE 1.9-P2 lossless round-trip lands; do not remove it).
  */
 export interface SimulationXodr {
   xml: string | undefined;
   degraded: boolean;
+}
+
+/** Live OpenDRIVE command-history revision. */
+function currentRoadRevision(): number {
+  return getOpenDriveStoreApi().getState().getCommandHistory().getRevision();
+}
+
+/**
+ * The verbatim xodr text, or null when the model has moved off the revision the
+ * text was captured at. Validity is revision-derived, never nulled on edit: an
+ * undo back to `validForRevision` (e.g. back to the load baseline) re-validates
+ * the cached text automatically.
+ */
+export function getValidRoadXml(): string | null {
+  const cache = useEditorStore.getState().roadNetworkRawXml;
+  return cache && cache.validForRevision === currentRoadRevision() ? cache.text : null;
 }
 
 /**
@@ -20,21 +37,20 @@ export interface SimulationXodr {
  * simulation never runs against a stale/null road network.
  *
  * Priority:
- *  1. Raw editor XML (`roadNetworkXml`) — the authoritative, on-disk-equivalent
- *     source. Used verbatim when present.
- *  2. Parsed model (`roadNetwork`) — re-serialized on the fly when the raw XML
- *     is missing. Flagged `degraded` so the caller can warn.
+ *  1. Verbatim editor XML — the authoritative, on-disk-equivalent source, used
+ *     as-is while it is still valid for the current revision.
+ *  2. Parsed model (`roadNetwork`) — re-serialized on the fly when the verbatim
+ *     text is invalid for the current revision. Flagged `degraded` so the caller
+ *     can warn.
  *  3. Neither — no road network is loaded; returns `undefined` (not degraded).
  */
 export function getSimulationXodr(): SimulationXodr {
-  const state = useEditorStore.getState();
+  const raw = getValidRoadXml();
+  if (raw !== null) return { xml: raw, degraded: false };
 
-  if (state.roadNetworkXml) {
-    return { xml: state.roadNetworkXml, degraded: false };
-  }
-
-  if (state.roadNetwork) {
-    const xml = new XodrSerializer().serializeFormatted(state.roadNetwork);
+  const { roadNetwork } = useEditorStore.getState();
+  if (roadNetwork) {
+    const xml = new XodrSerializer().serializeFormatted(roadNetwork);
     return { xml, degraded: true };
   }
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import type { OdrRoad, OdrLane, OdrSignal, OdrJunction, OdrHeader, OpenDriveDocument } from '@osce/shared';
@@ -68,13 +68,6 @@ export function RoadNetworkEditorLayout() {
   const odrDocument = useOpenDriveStore((s) => s.document);
   const preferences = useEditorStore((s) => s.preferences);
 
-  // Raw xodr text and the history revision at which it is still valid. The verbatim
-  // file text is the simulator's lossless input; it stays valid until the first
-  // user edit moves the history position off `baselineRevision` (initial load and
-  // the automatic lane-link correction below do not count as edits).
-  const originalRawXmlRef = useRef<string | null>(null);
-  const baselineRevisionRef = useRef<number | null>(null);
-
   // Sync roadNetwork from editorStore → openDriveStore on mode entry and file changes.
   // Reference comparison prevents infinite loops: the reverse subscription (below)
   // sets editorStore.roadNetwork to the same object reference as odrStore.document,
@@ -82,9 +75,6 @@ export function RoadNetworkEditorLayout() {
   useEffect(() => {
     if (roadNetwork) {
       if (odrStoreApi.getState().document !== roadNetwork) {
-        // Capture the verbatim file text before any reverse-sync can null it.
-        originalRawXmlRef.current = useEditorStore.getState().roadNetworkXml;
-
         odrStoreApi.getState().loadDocument(roadNetwork);
 
         // Ensure lane-level links exist for all direct road-to-road connections.
@@ -92,10 +82,18 @@ export function RoadNetworkEditorLayout() {
         const allRoadIds = roadNetwork.roads.map((r) => r.id);
         syncLaneLinksForDirectConnections(odrStoreApi.getState(), allRoadIds);
 
-        // Baseline = the history position after load + auto-correction. While the
-        // position stays here, the file is "unedited" and its raw text passes
-        // straight through to the simulator.
-        baselineRevisionRef.current = odrStoreApi.getState().getCommandHistory().getRevision();
+        // Re-stamp the verbatim text at the post-load, post-auto-correction
+        // revision so neither the initial load nor the automatic lane-link
+        // correction counts as an edit. The provisional stamp set by the loader
+        // survives loadDocument (reverse-sync no longer touches the cache), and
+        // its validity is revision-derived in simulation-xodr.ts.
+        const cache = useEditorStore.getState().roadNetworkRawXml;
+        if (cache) {
+          useEditorStore.getState().setRoadNetworkRawXml({
+            text: cache.text,
+            validForRevision: odrStoreApi.getState().getCommandHistory().getRevision(),
+          });
+        }
 
         // Registry: this post-load, post-auto-correction position is the clean
         // baseline. Derived dirty (revision !== savedRevision) takes over from
@@ -105,22 +103,17 @@ export function RoadNetworkEditorLayout() {
     }
   }, [roadNetwork, odrStoreApi]);
 
-  // Sync openDriveStore → editorStore.roadNetwork reactively. Dirty is no longer
-  // tracked here: it is derived from the command-history revision by the
-  // DocumentRegistry. Preserve the raw xodr passthrough until the first real
-  // user edit: while the history revision matches the load baseline, re-attach
-  // the original text (restoring it even after an undo back to baseline); once
-  // edited, null it so the sim path falls back to re-serialization.
+  // Sync openDriveStore → editorStore.roadNetwork reactively. Neither dirty nor
+  // the raw xodr passthrough is handled here anymore: dirty is derived from the
+  // command-history revision by the DocumentRegistry, and the verbatim text's
+  // validity is revision-derived in simulation-xodr.ts (an undo back to the load
+  // baseline re-validates it automatically). This mirror only forwards the live
+  // document object; it deliberately does not touch roadNetworkRawXml.
   useEffect(() => {
     let mounted = true;
     const unsub = odrStoreApi.subscribe((state: { document: OpenDriveDocument }) => {
       if (!mounted) return;
-      const revision = odrStoreApi.getState().getCommandHistory().getRevision();
-      const atBaseline =
-        baselineRevisionRef.current !== null && revision === baselineRevisionRef.current;
-      useEditorStore
-        .getState()
-        .setRoadNetwork(state.document, atBaseline ? originalRawXmlRef.current : null);
+      useEditorStore.getState().setRoadNetwork(state.document);
     });
     return () => {
       mounted = false;

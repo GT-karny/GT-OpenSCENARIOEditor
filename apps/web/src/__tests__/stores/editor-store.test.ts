@@ -8,6 +8,7 @@ describe('EditorStore', () => {
       selection: { selectedElementIds: [], hoveredElementId: null, focusedPanelId: null },
       validationResult: null,
       roadNetwork: null,
+      roadNetworkRawXml: null,
       currentFileName: null,
     });
   });
@@ -68,6 +69,25 @@ describe('EditorStore', () => {
     it('should set file name', () => {
       useEditorStore.getState().setCurrentFileName('test.xosc');
       expect(useEditorStore.getState().currentFileName).toBe('test.xosc');
+    });
+  });
+
+  describe('road network raw xml cache', () => {
+    it('setRoadNetwork preserves an existing raw cache', () => {
+      const cache = { text: '<OpenDRIVE/>', validForRevision: 3 };
+      useEditorStore.getState().setRoadNetworkRawXml(cache);
+      // Swapping the document must not clear the cache — validity is
+      // revision-derived, so an undo back to the baseline re-validates it.
+      useEditorStore.getState().setRoadNetwork({ roads: [] } as never);
+      expect(useEditorStore.getState().roadNetworkRawXml).toEqual(cache);
+    });
+
+    it('setRoadNetworkRawXml sets and clears the cache', () => {
+      const cache = { text: '<OpenDRIVE/>', validForRevision: 7 };
+      useEditorStore.getState().setRoadNetworkRawXml(cache);
+      expect(useEditorStore.getState().roadNetworkRawXml).toEqual(cache);
+      useEditorStore.getState().setRoadNetworkRawXml(null);
+      expect(useEditorStore.getState().roadNetworkRawXml).toBeNull();
     });
   });
 });

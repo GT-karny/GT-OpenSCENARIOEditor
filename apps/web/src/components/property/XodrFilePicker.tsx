@@ -11,6 +11,7 @@ import { useProjectStore } from '../../stores/project-store';
 import { useEditorStore } from '../../stores/editor-store';
 import { editorMetadataStoreApi } from '../../stores/editor-metadata-store-instance';
 import { useProjectFileOperations } from '../../hooks/use-project-file-operations';
+import { getOpenDriveStoreApi } from '../../hooks/use-opendrive-store';
 
 interface XodrFilePickerProps {
   currentPath: string;
@@ -31,6 +32,10 @@ export function XodrFilePicker({ currentPath, onPathChange }: XodrFilePickerProp
         openXodrFromProject(path, { skipGuard: true });
       } else {
         useEditorStore.getState().setRoadNetwork(null);
+        // Clear the verbatim cache too: setRoadNetwork no longer touches it, and a
+        // stale cache stays valid-by-revision (clearing the reference does not move
+        // the odr history), which would feed the old road to the simulator.
+        useEditorStore.getState().setRoadNetworkRawXml(null);
         useProjectStore.setState({ currentXodrPath: null });
       }
     },
@@ -53,6 +58,14 @@ export function XodrFilePicker({ currentPath, onPathChange }: XodrFilePickerProp
         const parser = new XodrParser();
         const doc = parser.parse(text);
         useEditorStore.getState().setRoadNetwork(doc);
+        // Provisional stamp (loader pattern): tag the verbatim text with the
+        // current revision so it stays on the lossless simulation path. Without
+        // this, the RoadNetworkEditorLayout load effect would re-stamp whatever
+        // stale cache remained onto this newly loaded road.
+        useEditorStore.getState().setRoadNetworkRawXml({
+          text,
+          validForRevision: getOpenDriveStoreApi().getState().getCommandHistory().getRevision(),
+        });
         // Reconstruct signal assemblies from signal→object references
         const assemblies = buildAssembliesFromDocument(doc);
         if (assemblies.length > 0) {

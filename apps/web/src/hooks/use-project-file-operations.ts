@@ -14,6 +14,7 @@ import { editorMetadataStoreApi } from '../stores/editor-metadata-store-instance
 import { useAppLifecycle } from './use-app-lifecycle';
 import { useFileOperations } from './use-file-operations';
 import { runUnsavedGuard } from './use-discard-guard';
+import { getOpenDriveStoreApi } from './use-opendrive-store';
 import * as api from '../lib/project-api';
 import { resolveCatalogEntityTypes } from '../lib/resolve-catalog-entity-types';
 
@@ -91,7 +92,14 @@ export function useProjectFileOperations() {
         const parser = new XodrParser();
         const doc = parser.parse(content);
         resetForNewRoadNetwork();
-        useEditorStore.getState().setRoadNetwork(doc, content);
+        useEditorStore.getState().setRoadNetwork(doc);
+        // Provisional stamp: the odr history has not moved yet, so tagging the
+        // verbatim text with the current revision keeps it on the lossless
+        // simulation path until road-mode entry re-stamps after auto-correction.
+        useEditorStore.getState().setRoadNetworkRawXml({
+          text: content,
+          validForRevision: getOpenDriveStoreApi().getState().getCommandHistory().getRevision(),
+        });
         useProjectStore.setState({ currentXodrPath: relativePath });
         // Reconstruct signal assemblies from signal→object references
         const assemblies = buildAssembliesFromDocument(doc);
@@ -116,7 +124,8 @@ export function useProjectFileOperations() {
 
       // Skip empty references
       if (!xodrRef.trim()) {
-        useEditorStore.getState().setRoadNetwork(null, null);
+        useEditorStore.getState().setRoadNetwork(null);
+        useEditorStore.getState().setRoadNetworkRawXml(null);
         useProjectStore.setState({ currentXodrPath: null });
         return;
       }
@@ -155,7 +164,13 @@ export function useProjectFileOperations() {
             const content = await api.readProjectFile(project.meta.id, candidate);
             const parser = new XodrParser();
             const doc = parser.parse(content);
-            useEditorStore.getState().setRoadNetwork(doc, content);
+            useEditorStore.getState().setRoadNetwork(doc);
+            // Provisional stamp (see openXodrFromProject): keeps the verbatim text
+            // on the lossless simulation path until road-mode entry re-stamps.
+            useEditorStore.getState().setRoadNetworkRawXml({
+              text: content,
+              validForRevision: getOpenDriveStoreApi().getState().getCommandHistory().getRevision(),
+            });
             useProjectStore.setState({ currentXodrPath: candidate });
             // Reconstruct signal assemblies from signal→object references
             const assemblies = buildAssembliesFromDocument(doc);
@@ -176,7 +191,8 @@ export function useProjectFileOperations() {
 
       // Not found
       toast.warning(t('warnings.xodrNotFound', { path: xodrRef }));
-      useEditorStore.getState().setRoadNetwork(null, null);
+      useEditorStore.getState().setRoadNetwork(null);
+      useEditorStore.getState().setRoadNetworkRawXml(null);
       useProjectStore.setState({ currentXodrPath: null });
     },
     [t],
@@ -227,7 +243,8 @@ export function useProjectFileOperations() {
         if (xodrPath) {
           await autoLoadXodr(xodrPath, relativePath);
         } else {
-          useEditorStore.getState().setRoadNetwork(null, null);
+          useEditorStore.getState().setRoadNetwork(null);
+          useEditorStore.getState().setRoadNetworkRawXml(null);
           useProjectStore.setState({ currentXodrPath: null });
         }
       } catch (err) {
