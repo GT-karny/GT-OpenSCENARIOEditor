@@ -30,7 +30,7 @@ import { SignalPlaceToolPanel } from './toolbar/SignalPlaceToolPanel';
 import { JunctionRoutingPanel } from './junction/JunctionRoutingPanel';
 import { useAutoJunctionDetection } from '../hooks/use-auto-junction-detection';
 import { changeLaneWidth } from '@osce/opendrive-engine';
-import { ValidationPanel } from '../../../components/panels/ValidationPanel';
+import { ValidationPanel } from '../../scenario/components/panels/ValidationPanel';
 import { useEditorStore } from '../../../stores/editor-store';
 import { useDocumentRegistry } from '../../../stores/document-registry';
 import { useScenarioStoreApi } from '../../../stores/use-scenario-store';

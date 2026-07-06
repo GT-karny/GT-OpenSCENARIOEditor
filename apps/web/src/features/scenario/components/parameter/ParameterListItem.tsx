@@ -1,0 +1,213 @@
+import { useState, useCallback } from 'react';
+import type { ParameterDeclaration, ParameterType } from '@osce/shared';
+import { isExpression, looksLikeExpression, typeAllowsExpression } from '@/lib/expression-utils';
+import { Dices, GripVertical, Trash2, Variable } from 'lucide-react';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { EnumSelect } from '../../../../components/form/EnumSelect';
+import { ParameterAwareInput } from '../property/ParameterAwareInput';
+import { AttachDistributionDialog } from './AttachDistributionDialog';
+import { useScenarioStoreApi } from '../../../../stores/use-scenario-store';
+import {
+  useDistributionStore,
+  selectSingleParameterEntries,
+} from '../../../../stores/distribution-store';
+import { cn } from '@/lib/utils';
+
+const PARAMETER_TYPES: readonly ParameterType[] = [
+  'string',
+  'double',
+  'int',
+  'boolean',
+  'dateTime',
+  'unsignedInt',
+  'unsignedShort',
+];
+
+interface ParameterListItemProps {
+  parameter: ParameterDeclaration;
+  onDelete: () => void;
+}
+
+export const PARAMETER_DND_TYPE = 'application/osce-parameter-ref';
+
+export function ParameterListItem({ parameter, onDelete }: ParameterListItemProps) {
+  const storeApi = useScenarioStoreApi();
+  const [editingName, setEditingName] = useState(false);
+  const [editingValue, setEditingValue] = useState(false);
+  const [tempName, setTempName] = useState(parameter.name);
+  const [tempValue, setTempValue] = useState(parameter.value);
+  const [isDragging, setIsDragging] = useState(false);
+  const [attachOpen, setAttachOpen] = useState(false);
+
+  const distributionDoc = useDistributionStore((s) => s.document);
+  const mode = distributionDoc?.distribution.kind ?? 'deterministic';
+  const attachedEntry = selectSingleParameterEntries(distributionDoc).find(
+    (e) => e.parameterName === parameter.name,
+  );
+
+  const handleDragStart = useCallback(
+    (e: React.DragEvent) => {
+      e.dataTransfer.setData(PARAMETER_DND_TYPE, parameter.name);
+      e.dataTransfer.effectAllowed = 'copy';
+      setIsDragging(true);
+    },
+    [parameter.name],
+  );
+
+  const handleDragEnd = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const commitName = () => {
+    const trimmed = tempName.trim();
+    if (trimmed && trimmed !== parameter.name) {
+      storeApi.getState().renameParameter(parameter.id, trimmed);
+    }
+    setEditingName(false);
+  };
+
+  const commitValue = () => {
+    let val = tempValue;
+    // Auto-wrap bare expressions in ${...} for OpenSCENARIO compliance
+    if (
+      val &&
+      typeAllowsExpression(parameter.parameterType) &&
+      !isExpression(val) &&
+      looksLikeExpression(val)
+    ) {
+      val = `\${${val.trim()}}`;
+      setTempValue(val);
+    }
+    if (val !== parameter.value) {
+      storeApi.getState().updateParameter(parameter.id, { value: val });
+    }
+    setEditingValue(false);
+  };
+
+  const handleTypeChange = (newType: string) => {
+    storeApi.getState().updateParameter(parameter.id, { parameterType: newType as ParameterType });
+  };
+
+  return (
+    <div
+      className={cn(
+        'glass-item flex items-center gap-3 mx-3 my-1 px-3 py-3 group',
+        isDragging && 'opacity-50',
+      )}
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <GripVertical className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-50 cursor-grab" />
+      <Variable className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <div className="flex-1 min-w-0">
+        {/* Name */}
+        {editingName ? (
+          <Input
+            value={tempName}
+            onChange={(e) => setTempName(e.target.value)}
+            onBlur={commitName}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') commitName();
+              if (e.key === 'Escape') setEditingName(false);
+            }}
+            className="h-5 text-[12px] px-1"
+            autoFocus
+          />
+        ) : (
+          <p
+            className="text-[12px] font-medium truncate cursor-text hover:text-[var(--color-accent-1)]"
+            onClick={() => {
+              setTempName(parameter.name);
+              setEditingName(true);
+            }}
+          >
+            {parameter.name}
+          </p>
+        )}
+
+        {/* Type + Value row */}
+        <div className="flex items-center gap-1 mt-px">
+          <EnumSelect
+            value={parameter.parameterType}
+            options={PARAMETER_TYPES}
+            onValueChange={handleTypeChange}
+            className="h-5 text-[10px] w-20 px-1"
+          />
+          <span className="text-[10px] text-[var(--color-text-tertiary)]">=</span>
+          {editingValue ? (
+            <ParameterAwareInput
+              value={tempValue}
+              onValueChange={(v) => setTempValue(v)}
+              onBlur={commitValue}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitValue();
+                if (e.key === 'Escape') setEditingValue(false);
+              }}
+              acceptedTypes={[
+                'string',
+                'double',
+                'int',
+                'boolean',
+                'dateTime',
+                'unsignedInt',
+                'unsignedShort',
+              ]}
+              className="h-5 text-[10px] flex-1 min-w-0 px-1"
+              autoFocus
+            />
+          ) : (
+            <span
+              className="text-[10px] text-[var(--color-accent-1)] cursor-text hover:underline truncate"
+              onClick={() => {
+                setTempValue(parameter.value);
+                setEditingValue(true);
+              }}
+            >
+              {parameter.value || '""'}
+            </span>
+          )}
+        </div>
+      </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Attach distribution"
+        title="Attach distribution"
+        className={cn(
+          'h-6 w-6 shrink-0',
+          attachedEntry
+            ? 'opacity-100 text-[var(--color-accent-1)]'
+            : 'opacity-0 group-hover:opacity-100',
+        )}
+        onClick={(e) => {
+          e.stopPropagation();
+          setAttachOpen(true);
+        }}
+      >
+        <Dices className="h-3.5 w-3.5" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Delete"
+        className="h-6 w-6 opacity-0 group-hover:opacity-100 shrink-0"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
+      >
+        <Trash2 className="h-3 w-3" />
+      </Button>
+
+      <AttachDistributionDialog
+        open={attachOpen}
+        onOpenChange={setAttachOpen}
+        parameterName={parameter.name}
+        mode={mode}
+        initial={attachedEntry?.distribution}
+      />
+    </div>
+  );
+}
