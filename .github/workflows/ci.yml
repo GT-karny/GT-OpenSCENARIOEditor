@@ -17,9 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # pnpm version comes from package.json's "packageManager" field; specifying
+      # it here too makes pnpm/action-setup fail on the conflict.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - uses: actions/setup-node@v4
         with:
@@ -56,9 +56,9 @@ jobs:
       # WASM E2E specs run against it. GT_Sim is not needed for CI E2E.
       - uses: actions/checkout@v4
 
+      # pnpm version comes from package.json's "packageManager" field; specifying
+      # it here too makes pnpm/action-setup fail on the conflict.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - uses: actions/setup-node@v4
         with:
