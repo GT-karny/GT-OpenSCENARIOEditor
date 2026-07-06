@@ -5,6 +5,8 @@ import type {
   OdrLaneOffset,
   OdrLaneSection,
   OdrLane,
+  OdrLaneLink,
+  OdrLaneLinkRef,
   OdrLaneWidth,
   OdrRoadMark,
   OdrLaneBorder,
@@ -48,6 +50,10 @@ function buildLaneSection(section: OdrLaneSection): XmlNode {
     '@_s': fmtNum(section.s),
   };
 
+  if (section.length != null) {
+    node['@_length'] = fmtNum(section.length);
+  }
+
   if (section.singleSide != null) {
     node['@_singleSide'] = section.singleSide ? 'true' : 'false';
   }
@@ -59,7 +65,7 @@ function buildLaneSection(section: OdrLaneSection): XmlNode {
   }
 
   node.center = {
-    lane: buildLane(section.centerLane),
+    lane: buildCenterLane(section.centerLane),
   };
 
   if (section.rightLanes.length > 0) {
@@ -71,26 +77,72 @@ function buildLaneSection(section: OdrLaneSection): XmlNode {
   return applyExtra(node, section.extra);
 }
 
+/** Build a lane <link> from the (possibly multiple) predecessor/successor refs. */
+function buildLaneLink(link: OdrLaneLink): XmlNode {
+  const node: XmlNode = {};
+  if (link.predecessors.length > 0) {
+    node.predecessor = link.predecessors.map(buildLaneLinkRef);
+  }
+  if (link.successors.length > 0) {
+    node.successor = link.successors.map(buildLaneLinkRef);
+  }
+  return node;
+}
+
+function buildLaneLinkRef(ref: OdrLaneLinkRef): XmlNode {
+  const node: XmlNode = { '@_id': ref.id };
+  optAttr(node, '@_layer', ref.layer);
+  return node;
+}
+
+/**
+ * Build the center lane (id 0). Per OpenDRIVE 1.9 `t_road_lanes_laneSection_center_lane`
+ * its content model is only <link> + <roadMark> (no width/border/speed/etc.).
+ * Any unmodeled content a legacy file carried on the center lane rides through
+ * `extra`, so nothing is lost.
+ */
+function buildCenterLane(lane: OdrLane): XmlNode {
+  const node: XmlNode = {
+    '@_id': lane.id,
+    '@_type': lane.type,
+  };
+  if (lane.level != null) {
+    node['@_level'] = lane.level ? 'true' : 'false';
+  }
+  if (lane.link) {
+    node.link = buildLaneLink(lane.link);
+  }
+  if (lane.roadMarks.length > 0) {
+    node.roadMark = lane.roadMarks.map(buildRoadMark);
+  }
+  return applyExtra(node, lane.extra);
+}
+
 function buildLane(lane: OdrLane): XmlNode {
+  // Attributes in XSD order (t_road_lanes_laneSection_lr_lane).
   const node: XmlNode = {
     '@_id': lane.id,
     '@_type': lane.type,
   };
 
+  optAttr(node, '@_advisory', lane.advisory);
+  optAttr(node, '@_direction', lane.direction);
+  if (lane.dynamicLaneType != null) {
+    node['@_dynamicLaneType'] = lane.dynamicLaneType ? 'true' : 'false';
+  }
+  if (lane.dynamicLaneDirection != null) {
+    node['@_dynamicLaneDirection'] = lane.dynamicLaneDirection ? 'true' : 'false';
+  }
   if (lane.level != null) {
     node['@_level'] = lane.level ? 'true' : 'false';
+  }
+  if (lane.roadWorks != null) {
+    node['@_roadWorks'] = lane.roadWorks ? 'true' : 'false';
   }
 
   // link
   if (lane.link) {
-    const linkNode: XmlNode = {};
-    if (lane.link.predecessorId != null) {
-      linkNode.predecessor = { '@_id': lane.link.predecessorId };
-    }
-    if (lane.link.successorId != null) {
-      linkNode.successor = { '@_id': lane.link.successorId };
-    }
-    node.link = linkNode;
+    node.link = buildLaneLink(lane.link);
   }
 
   // width
@@ -113,7 +165,7 @@ function buildLane(lane: OdrLane): XmlNode {
     node.material = lane.material.map(buildLaneMaterial);
   }
 
-  // speed
+  // speed (lane @max is numeric per XSD; special literals are road-type only)
   if (lane.speed && lane.speed.length > 0) {
     node.speed = lane.speed.map((s) => {
       const sn: XmlNode = {};
@@ -181,7 +233,11 @@ function buildLaneAccess(a: OdrLaneAccess): XmlNode {
   const node: XmlNode = {};
   numAttr(node, '@_sOffset', a.sOffset);
   optAttr(node, '@_rule', a.rule);
-  node['@_restriction'] = a.restriction;
+  // @restriction is optional in 1.9 (superseded by <restriction> children).
+  optAttr(node, '@_restriction', a.restriction);
+  if (a.restrictions && a.restrictions.length > 0) {
+    node.restriction = a.restrictions.map((r) => applyExtra({ '@_type': r.type }, r.extra));
+  }
   return node;
 }
 

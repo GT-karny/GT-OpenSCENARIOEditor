@@ -23,6 +23,14 @@ export { PROJECT_META_SCHEMA_VERSION } from './types/project.js';
 export { PRIVATE_ACTION_TYPES, GLOBAL_ACTION_TYPES, SCENARIO_ACTION_TYPES } from './types/actions.js';
 export { ENTITY_CONDITION_TYPES, VALUE_CONDITION_TYPES } from './types/triggers.js';
 export { POSITION_TYPES } from './types/positions.js';
+// OpenDRIVE 1.9 enum arrays (welded to their unions; stripped by `export type *`).
+export {
+  ODR_LANE_DIRECTIONS,
+  ODR_LANE_ADVISORIES,
+  ODR_LAYER_TYPES,
+  ODR_ACCESS_RESTRICTION_TYPES,
+} from './types/odr-lane.js';
+export { ODR_SPEED_MAX_SPECIALS } from './types/odr-common.js';
 
 // Enums (value export: includes runtime const value arrays such as
 // COORDINATE_SYSTEMS / DYNAMICS_SHAPES / RULES used to derive UI option lists)

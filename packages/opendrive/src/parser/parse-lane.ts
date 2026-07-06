@@ -6,17 +6,21 @@ import type {
   OdrLane,
   OdrLaneWidth,
   OdrRoadMark,
-  OdrLaneLink,
   OdrLaneBorder,
   OdrLaneMaterial,
   OdrLaneAccess,
+  OdrLaneAccessRestriction,
+  OdrLaneLinkRef,
   OdrLaneRule,
   OdrRoadMarkTypeDef,
   OdrRoadMarkExplicit,
   OdrRoadMarkSway,
+  OdrSpeedMaxSpecial,
 } from '@osce/shared';
+import { ODR_LANE_DIRECTIONS, ODR_LANE_ADVISORIES } from '@osce/shared';
 import {
   ensureArray,
+  attr,
   attrNum,
   attrStr,
   attrOptStr,
@@ -26,6 +30,45 @@ import { trackNode } from './node-tracker.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Raw = Record<string, any>;
+
+/** Narrow a raw attribute string to a member of `allowed`, else `undefined`. */
+function asEnum<T extends string>(val: string | undefined, allowed: readonly T[]): T | undefined {
+  return val !== undefined && (allowed as readonly string[]).includes(val) ? (val as T) : undefined;
+}
+
+/**
+ * Parse a road-type speed `@max`. OpenDRIVE 1.9 `t_maxSpeed` is a union of a
+ * non-negative number and the literals "no limit" / "undefined". With
+ * `parseAttributeValue`, numeric values arrive as numbers and the literals as
+ * strings; an unrecognized non-numeric value falls back to 0 with a warning.
+ */
+export function parseSpeedMax(raw: Raw, label: string): number | OdrSpeedMaxSpecial {
+  const v = attr(raw, 'max');
+  if (typeof v === 'number') return v;
+  if (v === 'no limit' || v === 'undefined') return v;
+  if (v == null) return 0;
+  const n = Number(v);
+  if (!Number.isNaN(n)) return n;
+  console.warn(`${label}: unrecognized speed @max "${String(v)}"; falling back to 0.`);
+  return 0;
+}
+
+/**
+ * Parse a lane speed `@max`. Per 1.9 XSD this is `t_grEqZero` (numeric only) —
+ * the special "no limit"/"undefined" literals are valid on road-type speed but
+ * NOT on a lane, so a non-numeric value here is schema-invalid and falls back to
+ * 0 with a warning.
+ */
+function parseLaneSpeedMax(raw: Raw, label: string): number {
+  const v = attr(raw, 'max');
+  if (typeof v === 'number') return v;
+  if (v != null) {
+    const n = Number(v);
+    if (!Number.isNaN(n)) return n;
+    console.warn(`${label}: non-numeric speed @max "${String(v)}" is invalid on a lane; falling back to 0.`);
+  }
+  return 0;
+}
 
 export function parseLaneSections(raw: Raw | undefined): OdrLaneSection[] {
   if (!raw) return [];
@@ -57,7 +100,11 @@ function parseLaneSection(raw: Raw): OdrLaneSection {
     rightLanes,
   };
 
-  // Preserve unmodeled <laneSection> attrs (@length) / children.
+  // @length (valid only on a temporary layer per XSD; parsed permissively).
+  const length = t.optNum('length');
+  if (length !== undefined) section.length = length;
+
+  // Preserve unmodeled <laneSection> children (userData).
   const extra = t.rest();
   if (extra) section.extra = extra;
 
@@ -74,20 +121,33 @@ function parseLane(raw: Raw): OdrLane {
     roadMarks: t.takeChildren('roadMark').map((r) => parseRoadMark(r as Raw)),
   };
 
-  // Link
+  // New 1.9 lane attributes. direction/advisory are validated against their
+  // enum and only consumed when valid, so an unknown value round-trips via extra.
+  const direction = asEnum(attrOptStr(raw, 'direction'), ODR_LANE_DIRECTIONS);
+  if (direction) {
+    lane.direction = direction;
+    t.takeAttr('direction');
+  }
+  const advisory = asEnum(attrOptStr(raw, 'advisory'), ODR_LANE_ADVISORIES);
+  if (advisory) {
+    lane.advisory = advisory;
+    t.takeAttr('advisory');
+  }
+  const dynamicLaneType = t.bool('dynamicLaneType');
+  if (dynamicLaneType !== undefined) lane.dynamicLaneType = dynamicLaneType;
+  const dynamicLaneDirection = t.bool('dynamicLaneDirection');
+  if (dynamicLaneDirection !== undefined) lane.dynamicLaneDirection = dynamicLaneDirection;
+  const roadWorks = t.bool('roadWorks');
+  if (roadWorks !== undefined) lane.roadWorks = roadWorks;
+
+  // Link. OpenDRIVE 1.9 allows multiple <predecessor>/<successor> per link, each
+  // with its own @layer, so every ref is captured (the [0]-collapse is retired).
   const link = t.takeChild('link') as Raw | undefined;
   if (link) {
-    const laneLink: OdrLaneLink = {};
-    if (link.predecessor) {
-      const pred = ensureArray(link.predecessor);
-      if (pred.length > 0) laneLink.predecessorId = attrNum(pred[0], 'id');
-    }
-    if (link.successor) {
-      const succ = ensureArray(link.successor);
-      if (succ.length > 0) laneLink.successorId = attrNum(succ[0], 'id');
-    }
-    if (laneLink.predecessorId !== undefined || laneLink.successorId !== undefined) {
-      lane.link = laneLink;
+    const predecessors = ensureArray(link.predecessor).map(parseLaneLinkRef);
+    const successors = ensureArray(link.successor).map(parseLaneLinkRef);
+    if (predecessors.length > 0 || successors.length > 0) {
+      lane.link = { predecessors, successors };
     }
   }
 
@@ -96,7 +156,7 @@ function parseLane(raw: Raw): OdrLane {
   if (speedArr.length > 0) {
     lane.speed = speedArr.map((s) => ({
       sOffset: attrNum(s, 'sOffset'),
-      max: attrNum(s, 'max'),
+      max: parseLaneSpeedMax(s, `lane ${lane.id} speed`),
       unit: attrStr(s, 'unit', 'm/s'),
     }));
   }
@@ -142,6 +202,14 @@ function parseLane(raw: Raw): OdrLane {
   return lane;
 }
 
+function parseLaneLinkRef(raw: Raw): OdrLaneLinkRef {
+  const ref: OdrLaneLinkRef = { id: attrNum(raw, 'id') };
+  // @layer is xs:string per XSD, so any value is carried verbatim (no filtering).
+  const layer = attrOptStr(raw, 'layer');
+  if (layer !== undefined) ref.layer = layer;
+  return ref;
+}
+
 function parseLaneWidth(raw: Raw): OdrLaneWidth {
   return {
     sOffset: attrNum(raw, 'sOffset'),
@@ -173,11 +241,23 @@ function parseLaneMaterial(raw: Raw): OdrLaneMaterial {
 
 function parseLaneAccess(raw: Raw): OdrLaneAccess {
   const ruleStr = attrOptStr(raw, 'rule');
-  return {
+  const access: OdrLaneAccess = {
     sOffset: attrNum(raw, 'sOffset'),
     rule: ruleStr === 'allow' || ruleStr === 'deny' ? ruleStr : undefined,
-    restriction: attrStr(raw, 'restriction'),
+    // @restriction is optional in 1.9 (superseded by <restriction> children).
+    restriction: attrOptStr(raw, 'restriction'),
   };
+  const restrictions = ensureArray(raw.restriction).map(parseLaneAccessRestriction);
+  if (restrictions.length > 0) access.restrictions = restrictions;
+  return access;
+}
+
+function parseLaneAccessRestriction(raw: Raw): OdrLaneAccessRestriction {
+  const t = trackNode(raw);
+  const restriction: OdrLaneAccessRestriction = { type: t.str('type') };
+  const extra = t.rest();
+  if (extra) restriction.extra = extra;
+  return restriction;
 }
 
 function parseLaneRule(raw: Raw): OdrLaneRule {

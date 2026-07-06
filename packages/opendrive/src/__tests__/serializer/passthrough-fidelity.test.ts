@@ -6,9 +6,10 @@
  * survives serialization, and the gap-matrix ⚠ representatives (content that
  * used to be silently dropped) are specifically checked to reappear.
  *
- * Known deferral: 1.9 lane-link *layer multiplicity* (multiple <predecessor>/
- * <successor> per lane link) collapses to one — the tags still appear, so
- * presence-level fidelity holds; full modeling is Phase 2.
+ * Phase 2 (W1) closed the lanes-domain re-serialization losses: lane-link
+ * multiplicity AND the per-element @layer are now modeled (see
+ * GT_min_lanelink_multiplicity.xodr and Ex_Lane_MultiLaneLayer.xodr). Known
+ * residual losses for the lanes domain: NONE.
  */
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import { readFileSync, readdirSync } from 'fs';

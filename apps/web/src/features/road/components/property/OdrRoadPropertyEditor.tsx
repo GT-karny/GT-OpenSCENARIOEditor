@@ -144,19 +144,30 @@ export function OdrRoadPropertyEditor({ road, onUpdate }: OdrRoadPropertyEditorP
                       <Label className="text-[var(--color-text-secondary)] text-xs">
                         {t('odrProperty.road.speedMax')}
                       </Label>
-                      <Input
-                        type="number"
-                        value={entry.speed.max}
-                        onChange={(e) => {
-                          const updated = [...(road.type ?? [])];
-                          updated[idx] = {
-                            ...entry,
-                            speed: { ...entry.speed!, max: Number(e.target.value) },
-                          };
-                          onUpdate(road.id, { type: updated });
-                        }}
-                        className="h-7 text-xs"
-                      />
+                      {typeof entry.speed.max === 'number' ? (
+                        <Input
+                          type="number"
+                          value={entry.speed.max}
+                          onChange={(e) => {
+                            const updated = [...(road.type ?? [])];
+                            updated[idx] = {
+                              ...entry,
+                              speed: { ...entry.speed!, max: Number(e.target.value) },
+                            };
+                            onUpdate(road.id, { type: updated });
+                          }}
+                          className="h-7 text-xs"
+                        />
+                      ) : (
+                        // Special value ("no limit" / "undefined"); editing is Wave W3.
+                        <Input
+                          type="text"
+                          value={entry.speed.max}
+                          readOnly
+                          title={entry.speed.max}
+                          className="h-7 text-xs bg-[var(--color-glass-1)] opacity-60"
+                        />
+                      )}
                     </div>
                     <div className="grid gap-1">
                       <Label className="text-[var(--color-text-secondary)] text-xs">

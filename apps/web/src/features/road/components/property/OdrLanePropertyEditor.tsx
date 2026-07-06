@@ -302,7 +302,7 @@ export function OdrLanePropertyEditor({
               </Label>
               <Input
                 type="number"
-                value={lane.link.predecessorId ?? ''}
+                value={lane.link.predecessors[0]?.id ?? ''}
                 readOnly
                 className="h-7 text-xs bg-[var(--color-glass-1)] opacity-60"
               />
@@ -313,7 +313,7 @@ export function OdrLanePropertyEditor({
               </Label>
               <Input
                 type="number"
-                value={lane.link.successorId ?? ''}
+                value={lane.link.successors[0]?.id ?? ''}
                 readOnly
                 className="h-7 text-xs bg-[var(--color-glass-1)] opacity-60"
               />

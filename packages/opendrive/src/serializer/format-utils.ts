@@ -1,9 +1,18 @@
 /**
  * Shared formatting utilities for XodrSerializer.
  */
+import type { OdrSpeedMaxSpecial } from '@osce/shared';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type XmlNode = Record<string, any>;
+
+/**
+ * Format a speed `@max` value (OpenDRIVE 1.9 `t_maxSpeed`): a number via
+ * {@link fmtNum}, or a special literal ("no limit" / "undefined") verbatim.
+ */
+export function fmtSpeedMax(max: number | OdrSpeedMaxSpecial): string {
+  return typeof max === 'number' ? fmtNum(max) : max;
+}
 
 /**
  * Format a number for XML output.

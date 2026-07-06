@@ -22,7 +22,18 @@ import {
 // ----- fixture builders -----
 
 function makeLane(id: number, link?: { predecessorId?: number; successorId?: number }): OdrLane {
-  return { id, type: 'driving', width: [], roadMarks: [], link };
+  return {
+    id,
+    type: 'driving',
+    width: [],
+    roadMarks: [],
+    link: link
+      ? {
+          predecessors: link.predecessorId !== undefined ? [{ id: link.predecessorId }] : [],
+          successors: link.successorId !== undefined ? [{ id: link.successorId }] : [],
+        }
+      : undefined,
+  };
 }
 
 function makeSection(s: number, left: OdrLane[], center: OdrLane, right: OdrLane[]): OdrLaneSection {

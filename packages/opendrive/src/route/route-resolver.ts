@@ -85,8 +85,9 @@ function expand(
       const lane = findLaneAnywhere(road, exitLaneId, exitSide);
       let nextLaneId = exitLaneId;
       if (lane?.link) {
+        // Follow the first linked lane (routing walks a single continuous lane).
         const lid =
-          exitSide === 'predecessor' ? lane.link.predecessorId : lane.link.successorId;
+          exitSide === 'predecessor' ? lane.link.predecessors[0]?.id : lane.link.successors[0]?.id;
         if (lid !== undefined) nextLaneId = lid;
       }
       results.push({

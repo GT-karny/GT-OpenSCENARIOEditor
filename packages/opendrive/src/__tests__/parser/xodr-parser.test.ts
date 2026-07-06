@@ -376,8 +376,8 @@ describe('XodrParser', () => {
       const doc = parser.parse(xml);
       const lane = doc.roads[0].lanes[0].leftLanes[0];
       expect(lane.link).toBeDefined();
-      expect(lane.link!.predecessorId).toBe(1);
-      expect(lane.link!.successorId).toBe(2);
+      expect(lane.link!.predecessors).toEqual([{ id: 1 }]);
+      expect(lane.link!.successors).toEqual([{ id: 2 }]);
     });
   });
 });

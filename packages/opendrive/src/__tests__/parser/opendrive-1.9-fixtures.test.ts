@@ -10,8 +10,8 @@
  *      count; virtual-junction @mainRoad/@sStart/@sEnd/@orientation preserved).
  *
  * These fixtures exercise the Phase 0-B parser fixes:
- *   - Dual <lanes> (1.9 lane layers): permanent layer typed, temporary layer
- *     preserved raw on OdrRoad.temporaryLanesRaw + a console.warn (spied here).
+ *   - Dual <lanes> (1.9 lane layers): both layers typed — permanent flat on
+ *     OdrRoad, temporary on OdrRoad.temporaryLanes.
  *   - Virtual junctions round-trip @mainRoad/@sStart/@sEnd/@orientation.
  *   - Unknown planView geometry primitives throw explicitly (no standard sample
  *     hits this — all copied fixtures use line/arc/spiral/poly3/paramPoly3).
@@ -29,8 +29,7 @@ const serializer = new XodrSerializer();
 const FIXTURES_DIR = resolve(__dirname, '../../../../../test-fixtures/opendrive-v1.9');
 
 /**
- * Fixtures with a temporary 1.9 lane layer. Loading these legitimately emits a
- * console.warn (temporary layer preserved raw). Listed so the assertions can be
+ * Fixtures with a temporary 1.9 lane layer. Listed so the assertions can be
  * targeted; console.warn is spied globally to keep suite output clean.
  */
 const TEMP_LAYER_FIXTURES = new Set([
@@ -99,11 +98,9 @@ describe('OpenDRIVE 1.9 fixtures — load smoke test', () => {
         ).toBeDefined();
 
         if (TEMP_LAYER_FIXTURES.has(file)) {
-          // The temporary 1.9 layer must be preserved raw on some road.
-          const withTemp = doc.roads.some((r) => r.temporaryLanesRaw !== undefined);
-          expect(withTemp, `${file}: temporary lane layer not preserved`).toBe(true);
-          // And loading it must have warned.
-          expect(warnSpy, `${file}: expected a console.warn for temporary layer`).toHaveBeenCalled();
+          // The temporary 1.9 layer must be parsed into the typed model on some road.
+          const withTemp = doc.roads.some((r) => r.temporaryLanes !== undefined);
+          expect(withTemp, `${file}: temporary lane layer not parsed`).toBe(true);
         }
       });
 

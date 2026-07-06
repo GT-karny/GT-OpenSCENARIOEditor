@@ -735,8 +735,8 @@ function buildConnectingRoad(
         { sOffset: 0, type: outerEdge ? 'solid' : 'none', color: 'standard' },
       ],
       link: {
-        predecessorId: lanePair.incomingLane.id,
-        successorId: lanePair.outgoingLaneId,
+        predecessors: [{ id: lanePair.incomingLane.id }],
+        successors: [{ id: lanePair.outgoingLaneId }],
       },
     },
   ];

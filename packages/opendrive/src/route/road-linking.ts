@@ -116,8 +116,9 @@ export function traceLaneLinkAcrossBoundary(
   if (!next) return null;
   const lane = findLaneOnSide(road, laneId, leavingSide);
   if (!lane?.link) return null;
+  // Follow the first linked lane (a road-to-road hop walks one continuous lane).
   const linkedId =
-    leavingSide === 'predecessor' ? lane.link.predecessorId : lane.link.successorId;
+    leavingSide === 'predecessor' ? lane.link.predecessors[0]?.id : lane.link.successors[0]?.id;
   if (linkedId === undefined) return null;
   return {
     roadId: next.road.id,
@@ -226,9 +227,9 @@ export interface LaneSectionSpan {
  *
  * `anchor` says which end the input `laneId` is valid at:
  * - `'low'`  : `laneId` belongs to the section at `sMin`; remap downstream via
- *   each lane's `successorId`.
+ *   each lane's first `successors` entry.
  * - `'high'` : `laneId` belongs to the section at `sMax`; remap upstream via
- *   each lane's `predecessorId`.
+ *   each lane's first `predecessors` entry.
  *
  * Falls back to the same ID when the link is missing. Center lane (id 0) always
  * stays 0. Returns sub-spans in increasing-s order. A road with a single lane
@@ -271,7 +272,7 @@ export function laneSpansAcrossSections(
     for (let i = 0; i < overlapping.length; i++) {
       spans[i].laneId = cur;
       if (i + 1 < overlapping.length && cur !== 0) {
-        const next = laneInSection(overlapping[i].section, cur)?.link?.successorId;
+        const next = laneInSection(overlapping[i].section, cur)?.link?.successors[0]?.id;
         if (next !== undefined) cur = next;
       }
     }
@@ -280,7 +281,7 @@ export function laneSpansAcrossSections(
     for (let i = overlapping.length - 1; i >= 0; i--) {
       spans[i].laneId = cur;
       if (i - 1 >= 0 && cur !== 0) {
-        const prev = laneInSection(overlapping[i].section, cur)?.link?.predecessorId;
+        const prev = laneInSection(overlapping[i].section, cur)?.link?.predecessors[0]?.id;
         if (prev !== undefined) cur = prev;
       }
     }

@@ -10,7 +10,7 @@ import type {
   OdrElevation,
   OdrSuperelevation,
 } from '@osce/shared';
-import { fmtNum, optAttr, numAttr } from './format-utils.js';
+import { fmtNum, fmtSpeedMax, optAttr, numAttr } from './format-utils.js';
 import { buildLanes } from './build-lane.js';
 import { buildObject, buildObjectReference, buildTunnel, buildBridge } from './build-object.js';
 import { buildSignal, buildSignalRef } from './build-signal.js';
@@ -81,13 +81,17 @@ export function buildRoad(road: OdrRoad): XmlNode {
 
   // lanes
   // OpenDRIVE 1.9 allows up to two <lanes> elements (permanent + temporary).
-  // When a temporary layer was preserved at parse time, emit both: the modeled
-  // permanent layer (tagged @layer="permanent") followed by the raw temporary
-  // layer verbatim. Single-layer roads keep the exact previous shape (no
-  // @layer attribute) so their output stays byte-identical.
+  // When a temporary layer is present, emit both — each tagged with its @layer;
+  // both are built through the same typed lane model. Single-layer roads keep
+  // the exact previous shape (no @layer attribute) so output stays byte-identical.
   const permanentLanes = buildLanes(road.laneOffset, road.lanes);
-  if (road.temporaryLanesRaw !== undefined) {
-    node.lanes = [{ '@_layer': 'permanent', ...permanentLanes }, road.temporaryLanesRaw];
+  if (road.temporaryLanes !== undefined) {
+    const temp = road.temporaryLanes;
+    const temporaryLanes = applyExtra(
+      { '@_layer': 'temporary', ...buildLanes(temp.laneOffset, temp.sections) },
+      temp.extra,
+    );
+    node.lanes = [{ '@_layer': 'permanent', ...permanentLanes }, temporaryLanes];
   } else {
     node.lanes = permanentLanes;
   }
@@ -202,7 +206,7 @@ function buildRoadType(entry: OdrRoadTypeEntry): XmlNode {
   };
   if (entry.speed) {
     node.speed = {
-      '@_max': fmtNum(entry.speed.max),
+      '@_max': fmtSpeedMax(entry.speed.max),
       '@_unit': entry.speed.unit,
     };
   }

@@ -505,7 +505,7 @@ describe('connecting-road-builder', () => {
       for (const conn of from3Lane) {
         const road = result.roads.find((r) => r.id === conn.connectingRoad)!;
         const drivingLane = road.lanes[0].rightLanes[0];
-        const successorId = Math.abs(drivingLane.link?.successorId ?? 0);
+        const successorId = Math.abs(drivingLane.link?.successors[0]?.id ?? 0);
         expect(successorId).toBeLessThanOrEqual(2);
       }
     });
@@ -626,8 +626,8 @@ describe('connecting-road-builder', () => {
       for (const conn of fromA) {
         const road = result.roads.find((r) => r.id === conn.connectingRoad)!;
         const drivingLane = road.lanes[0].rightLanes[0];
-        expect(drivingLane.link?.predecessorId).toBe(conn.laneLinks[0].from);
-        expect(drivingLane.link?.successorId).toBeDefined();
+        expect(drivingLane.link?.predecessors[0]?.id).toBe(conn.laneLinks[0].from);
+        expect(drivingLane.link?.successors[0]?.id).toBeDefined();
       }
     });
   });

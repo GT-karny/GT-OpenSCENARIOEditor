@@ -7,6 +7,14 @@ export interface OdrLaneValidity {
   toLane: number;
 }
 
+/**
+ * Special (non-numeric) speed `@max` keywords. Per OpenDRIVE 1.9 `t_maxSpeed`
+ * (a union of `t_grEqZero` and `e_maxSpeedString`), a speed maximum may be a
+ * number or one of these literals. Used by lane and road-type speed.
+ */
+export const ODR_SPEED_MAX_SPECIALS = ['no limit', 'undefined'] as const;
+export type OdrSpeedMaxSpecial = (typeof ODR_SPEED_MAX_SPECIALS)[number];
+
 export interface OdrDataQuality {
   error?: OdrDataQualityError;
   rawData?: OdrDataQualityRawData;

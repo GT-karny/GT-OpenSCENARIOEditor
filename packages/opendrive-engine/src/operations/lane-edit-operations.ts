@@ -635,15 +635,15 @@ export function createTaperAtRange(
     const globalCoeffs = computeCubicTaperCoefficients(globalStartWidth, globalEndWidth, totalTaperLength);
 
     // Helper: renumber lanes outward by 1 to make room for the inner lane.
-    // Also updates lane link predecessorId/successorId to match the new IDs.
+    // Also shifts lane link predecessor/successor IDs to match the new IDs.
     const shiftAmount = side === 'left' ? 1 : -1;
     const renumberOutward = (lanes: OdrLaneSection['leftLanes']): OdrLaneSection['leftLanes'] => {
       if (!needsRenumber) return lanes;
       return lanes.map((l) => {
         const newId = l.id + shiftAmount;
         const newLink = l.link ? {
-          predecessorId: l.link.predecessorId != null ? l.link.predecessorId + shiftAmount : undefined,
-          successorId: l.link.successorId != null ? l.link.successorId + shiftAmount : undefined,
+          predecessors: l.link.predecessors.map((r) => ({ ...r, id: r.id + shiftAmount })),
+          successors: l.link.successors.map((r) => ({ ...r, id: r.id + shiftAmount })),
         } : undefined;
         return { ...l, id: newId, link: newLink };
       });

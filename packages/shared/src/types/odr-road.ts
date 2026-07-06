@@ -3,12 +3,12 @@
  */
 
 import type { OdrGeometry, OdrElevation, OdrSuperelevation, OdrLaneOffset, OdrShape } from './odr-geometry.js';
-import type { OdrLaneSection } from './odr-lane.js';
+import type { OdrLaneSection, OdrLanesLayer } from './odr-lane.js';
 import type { OdrRoadObject, OdrObjectReference, OdrTunnel, OdrBridge } from './odr-object.js';
 import type { OdrSignal, OdrSignalRef } from './odr-signal.js';
 import type { OdrRailroad } from './odr-railroad.js';
 import type { OdrSurfaceCRG } from './odr-surface.js';
-import type { OdrUserData, OdrDataQuality, OdrInclude, OdrExtra } from './odr-common.js';
+import type { OdrUserData, OdrDataQuality, OdrInclude, OdrExtra, OdrSpeedMaxSpecial } from './odr-common.js';
 
 export type OdrRoadRule = 'RHT' | 'LHT';
 
@@ -42,13 +42,12 @@ export interface OdrRoad {
   /** External file includes (<include> elements). */
   includes?: OdrInclude[];
   /**
-   * Raw XML for a temporary lane layer (<lanes layer="temporary">), preserved
-   * verbatim for lossless round-trip. OpenDRIVE 1.9 allows up to two <lanes>
-   * elements per road (permanent + temporary). Only the permanent layer is
-   * modeled today; the temporary layer is round-tripped unchanged (Phase 2
-   * will add full modeling).
+   * Temporary lane layer (`<lanes layer="temporary">`). OpenDRIVE 1.9 allows up
+   * to two `<lanes>` elements per road: the permanent layer is modeled flat
+   * above (`lanes`/`laneOffset`); the optional temporary layer is carried here,
+   * parsed through the same laneOffset/laneSection model.
    */
-  temporaryLanesRaw?: unknown;
+  temporaryLanes?: OdrLanesLayer;
   /** Unmodeled direct attrs/children of <road> preserved for round-trip. */
   extra?: OdrExtra;
   /**
@@ -74,7 +73,7 @@ export interface OdrRoadLinkElement {
 export interface OdrRoadTypeEntry {
   s: number;
   type: string;
-  speed?: { max: number; unit: string };
+  speed?: { max: number | OdrSpeedMaxSpecial; unit: string };
   /** Unmodeled <type> attrs (e.g. @country) preserved for round-trip. */
   extra?: OdrExtra;
 }

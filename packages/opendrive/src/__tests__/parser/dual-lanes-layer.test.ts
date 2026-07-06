@@ -3,11 +3,12 @@
  *
  * OpenDRIVE 1.9 permits up to two <lanes> elements per road (permanent +
  * temporary). Previously the parser read raw.lanes as a single object, so when
- * fast-xml-parser yielded an array (two layers) ALL lanes were lost. The fix
- * parses the permanent layer normally and preserves the temporary layer raw.
+ * fast-xml-parser yielded an array (two layers) ALL lanes were lost. The parser
+ * now parses BOTH layers through the same typed lane model (permanent flat on
+ * OdrRoad, temporary on OdrRoad.temporaryLanes).
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 import { XodrParser } from '../../parser/xodr-parser.js';
@@ -81,7 +82,7 @@ describe('FIX B2 — dual <lanes> layer', () => {
     const road = doc.roads[0];
     expect(road.lanes).toHaveLength(1);
     expect(road.lanes[0].rightLanes).toHaveLength(2);
-    expect(road.temporaryLanesRaw).toBeUndefined();
+    expect(road.temporaryLanes).toBeUndefined();
   });
 
   it('single-layer road serializes without a @layer attribute (byte-shape unchanged)', () => {
@@ -90,8 +91,7 @@ describe('FIX B2 — dual <lanes> layer', () => {
     expect(serialized).not.toContain('layer=');
   });
 
-  it('dual-layer road parses the permanent lanes (NOT zero lanes)', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  it('dual-layer road parses the permanent lanes AND the typed temporary layer', () => {
     const xml = existsSync(DUAL_LANES_FIXTURE)
       ? readFileSync(DUAL_LANES_FIXTURE, 'utf-8')
       : DUAL_LANES_XML;
@@ -104,14 +104,12 @@ describe('FIX B2 — dual <lanes> layer', () => {
       road.lanes[0].leftLanes.length + road.lanes[0].rightLanes.length;
     expect(totalLanes).toBeGreaterThan(0);
 
-    // Temporary layer preserved raw + warning emitted.
-    expect(road.temporaryLanesRaw).toBeDefined();
-    expect(warn).toHaveBeenCalled();
-    warn.mockRestore();
+    // Temporary layer parsed into the typed model (sections present, no warn).
+    expect(road.temporaryLanes).toBeDefined();
+    expect(road.temporaryLanes!.sections.length).toBeGreaterThan(0);
   });
 
   it('round-trips the temporary layer (re-emits both <lanes> elements)', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const doc = parser.parse(DUAL_LANES_XML);
     const serialized = serializer.serializeFormatted(doc);
 
@@ -119,14 +117,14 @@ describe('FIX B2 — dual <lanes> layer', () => {
     expect(serialized).toContain('layer="permanent"');
     expect(serialized).toContain('layer="temporary"');
 
-    // Reparse: permanent lanes intact, temporary still preserved.
+    // Reparse: permanent lanes intact, temporary still typed; @length round-trips.
     const reparsed = parser.parse(serialized);
     const road = reparsed.roads[0];
     expect(road.lanes.length).toBeGreaterThan(0);
     const totalLanes =
       road.lanes[0].leftLanes.length + road.lanes[0].rightLanes.length;
     expect(totalLanes).toBeGreaterThan(0);
-    expect(road.temporaryLanesRaw).toBeDefined();
-    warn.mockRestore();
+    expect(road.temporaryLanes).toBeDefined();
+    expect(road.temporaryLanes!.sections[0].length).toBe(500);
   });
 });

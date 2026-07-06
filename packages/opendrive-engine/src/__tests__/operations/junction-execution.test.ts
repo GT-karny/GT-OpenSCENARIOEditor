@@ -345,14 +345,14 @@ describe('syncLaneLinksForDirectConnections', () => {
     // Road 43's lanes should have successorId set
     const r43 = doc.roads.find((r) => r.id === '43')!;
     const r43LastSection = r43.lanes[r43.lanes.length - 1];
-    expect(r43LastSection.rightLanes[0].link?.successorId).toBe(-1);
-    expect(r43LastSection.leftLanes[0].link?.successorId).toBe(1);
+    expect(r43LastSection.rightLanes[0].link?.successors[0]?.id).toBe(-1);
+    expect(r43LastSection.leftLanes[0].link?.successors[0]?.id).toBe(1);
 
     // Road 75's lanes should have predecessorId set
     const r75 = doc.roads.find((r) => r.id === '75')!;
     const r75FirstSection = r75.lanes[0];
-    expect(r75FirstSection.rightLanes[0].link?.predecessorId).toBe(-1);
-    expect(r75FirstSection.leftLanes[0].link?.predecessorId).toBe(1);
+    expect(r75FirstSection.rightLanes[0].link?.predecessors[0]?.id).toBe(-1);
+    expect(r75FirstSection.leftLanes[0].link?.predecessors[0]?.id).toBe(1);
   });
 
   it('sets lane links on segment roads with inherited road-to-road connections', () => {
@@ -395,11 +395,11 @@ describe('syncLaneLinksForDirectConnections', () => {
 
     // Lane links should be set on segment 11 and Road C
     const seg11LastSection = seg11!.lanes[seg11!.lanes.length - 1];
-    expect(seg11LastSection.rightLanes[0].link?.successorId).toBe(-1);
+    expect(seg11LastSection.rightLanes[0].link?.successors[0]?.id).toBe(-1);
 
     const rC = doc.roads.find((r) => r.id === '3')!;
     const rCFirstSection = rC.lanes[0];
-    expect(rCFirstSection.rightLanes[0].link?.predecessorId).toBe(-1);
+    expect(rCFirstSection.rightLanes[0].link?.predecessors[0]?.id).toBe(-1);
   });
 });
 
