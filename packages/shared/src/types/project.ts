@@ -10,6 +10,13 @@ export interface ProjectFileEntry {
   modifiedAt: string;
 }
 
+/**
+ * Current project.json schema version. Bump when the persisted `ProjectMeta`
+ * shape changes and add the corresponding step to the server's
+ * `migrateProjectMeta`.
+ */
+export const PROJECT_META_SCHEMA_VERSION = 2;
+
 /** Project metadata (persisted to project.json) */
 export interface ProjectMeta {
   id: string;
@@ -18,6 +25,11 @@ export interface ProjectMeta {
   createdAt: string;
   updatedAt: string;
   defaultScenario?: string;
+  /**
+   * project.json schema version. Absent in records written before 2026-07 (read
+   * as v1); the server migrates on read and stamps the current version on write.
+   */
+  schemaVersion?: number;
 }
 
 /** Lightweight summary for the project list view */

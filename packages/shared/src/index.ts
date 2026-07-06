@@ -14,6 +14,8 @@ export type * from './types/editor.js';
 export type * from './types/esmini.js';
 export type * from './types/mcp.js';
 export type * from './types/project.js';
+// Runtime constant colocated with the project types (project.json schema version).
+export { PROJECT_META_SCHEMA_VERSION } from './types/project.js';
 
 // Enums (value export: includes runtime const value arrays such as
 // COORDINATE_SYSTEMS / DYNAMICS_SHAPES / RULES used to derive UI option lists)

@@ -240,6 +240,32 @@ const defaultPanelVisibility: Record<EditorPanel, boolean> = {
   simulation: false,
 };
 
+/**
+ * Shape persisted to localStorage under `osce-editor-preferences`. Kept in sync
+ * with `partialize` below.
+ */
+export interface EditorPersistedState {
+  preferences: EditorPreferencesExt;
+  panelVisibility: Record<EditorPanel, boolean>;
+  entityPropertyTab: 'definition' | 'initialState';
+  showIntersectionTimeline: boolean;
+}
+
+/**
+ * Structural migration for the persisted editor-preferences envelope.
+ *
+ * v0 (records written before persist versioning) is shape-compatible with v1,
+ * so it passes through unchanged; the custom `merge` below still backfills any
+ * preference keys absent from the payload. Future structural changes (renamed or
+ * relocated keys) branch on `version` here.
+ */
+export function migrateEditorPreferences(
+  persistedState: unknown,
+  _version: number,
+): EditorPersistedState {
+  return persistedState as EditorPersistedState;
+}
+
 export const useEditorStore = create<EditorState>()(
   persist(
     (set) => ({
@@ -429,12 +455,14 @@ export const useEditorStore = create<EditorState>()(
     }),
     {
       name: 'osce-editor-preferences',
-      partialize: (state) => ({
+      version: 1,
+      partialize: (state): EditorPersistedState => ({
         preferences: state.preferences,
         panelVisibility: state.panelVisibility,
         entityPropertyTab: state.entityPropertyTab,
         showIntersectionTimeline: state.showIntersectionTimeline,
       }),
+      migrate: migrateEditorPreferences,
       merge: (persisted, current) => {
         const p = persisted as Partial<EditorState>;
         return {

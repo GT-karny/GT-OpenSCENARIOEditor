@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdtemp, rm, readdir, readFile, writeFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import AdmZip from 'adm-zip';
-import { ProjectService } from '../../services/project-service.js';
+import { ProjectService, migrateProjectMeta } from '../../services/project-service.js';
 import type { ProjectMeta } from '@osce/shared';
 
 describe('ProjectService', () => {
@@ -319,5 +319,100 @@ describe('ProjectService', () => {
         service.getProject('../evil'),
       ).rejects.toThrow('Path traversal is not allowed');
     });
+  });
+
+  // ── project.json schema versioning ──────────────────────────
+
+  describe('schemaVersion migration', () => {
+    /** Overwrite a project's project.json with an arbitrary raw record. */
+    async function writeRawMeta(id: string, meta: Record<string, unknown>): Promise<string> {
+      const metaPath = path.join(tmpDir, id, 'project.json');
+      await writeFile(metaPath, JSON.stringify(meta, null, 2), 'utf-8');
+      return metaPath;
+    }
+
+    it('migrates a pre-versioning (v1) project.json to the current schema version on read', async () => {
+      const created = await service.createProject({ name: 'Legacy' });
+      // Simulate a record written before schemaVersion existed (no such field).
+      await writeRawMeta(created.meta.id, {
+        id: created.meta.id,
+        name: 'Legacy',
+        description: '',
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-01-01T00:00:00.000Z',
+      });
+
+      const detail = await service.getProject(created.meta.id);
+      expect(detail.meta.schemaVersion).toBe(2);
+    });
+
+    it('writes schemaVersion 2 on a freshly created project.json', async () => {
+      const created = await service.createProject({ name: 'Fresh' });
+      const raw = await readFile(path.join(tmpDir, created.meta.id, 'project.json'), 'utf-8');
+      expect((JSON.parse(raw) as ProjectMeta).schemaVersion).toBe(2);
+    });
+
+    it('persists the migrated schemaVersion when an edit touches the project', async () => {
+      const created = await service.createProject({ name: 'Touched' });
+      const metaPath = await writeRawMeta(created.meta.id, {
+        id: created.meta.id,
+        name: 'Touched',
+        description: '',
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-01-01T00:00:00.000Z',
+      });
+
+      // Any write path runs touchUpdatedAt, which writes back the migrated meta.
+      await service.writeFile(created.meta.id, 'xosc/a.xosc', '<OpenSCENARIO/>');
+
+      const onDisk = JSON.parse(await readFile(metaPath, 'utf-8')) as ProjectMeta;
+      expect(onDisk.schemaVersion).toBe(2);
+    });
+
+    it('preserves a newer, unknown schemaVersion instead of downgrading', async () => {
+      const created = await service.createProject({ name: 'Future' });
+      await writeRawMeta(created.meta.id, {
+        id: created.meta.id,
+        name: 'Future',
+        description: '',
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-01-01T00:00:00.000Z',
+        schemaVersion: 99,
+        futureField: 'keep-me',
+      });
+
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const detail = await service.getProject(created.meta.id);
+
+      expect(detail.meta.schemaVersion).toBe(99);
+      expect((detail.meta as unknown as Record<string, unknown>).futureField).toBe('keep-me');
+      expect(warnSpy).toHaveBeenCalledOnce();
+      warnSpy.mockRestore();
+    });
+  });
+});
+
+describe('migrateProjectMeta', () => {
+  it('stamps the current version on a record with no schemaVersion (v1)', () => {
+    const migrated = migrateProjectMeta({ id: 'a', name: 'A' });
+    expect(migrated.schemaVersion).toBe(2);
+  });
+
+  it('leaves a current-version record at the current version', () => {
+    const migrated = migrateProjectMeta({ id: 'a', name: 'A', schemaVersion: 2 });
+    expect(migrated.schemaVersion).toBe(2);
+  });
+
+  it('does not downgrade a newer version and warns', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const migrated = migrateProjectMeta({ id: 'a', name: 'A', schemaVersion: 5 });
+
+    expect(migrated.schemaVersion).toBe(5);
+    expect(warnSpy).toHaveBeenCalledOnce();
+    warnSpy.mockRestore();
+  });
+
+  it('tolerates a null record', () => {
+    expect(migrateProjectMeta(null).schemaVersion).toBe(2);
   });
 });
