@@ -1,13 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import {
   PRIVATE_ACTION_TYPES,
+  GLOBAL_ACTION_TYPES,
   ENTITY_CONDITION_TYPES,
   VALUE_CONDITION_TYPES,
 } from '@osce/shared';
 import {
   PRIVATE_ACTION_SUBCATEGORIES,
+  GLOBAL_ACTION_ORDER,
   CONDITION_SUBCATEGORIES,
   PALETTE_EXCLUDED_ACTION_TYPES,
+  PALETTE_EXCLUDED_GLOBAL_ACTION_TYPES,
   PALETTE_EXCLUDED_CONDITION_TYPES,
 } from '../../constants/osc-enum-values';
 
@@ -30,6 +33,12 @@ describe('palette subcategory completeness', () => {
   it('PRIVATE_ACTION_SUBCATEGORIES has no duplicate members across groups', () => {
     const flat = PRIVATE_ACTION_SUBCATEGORIES.flatMap((s) => [...s.types]);
     expect(flat.length).toBe(new Set(flat).size);
+  });
+
+  it('GLOBAL_ACTION_ORDER covers GLOBAL_ACTION_TYPES minus exclusions', () => {
+    const excluded = new Set<string>(PALETTE_EXCLUDED_GLOBAL_ACTION_TYPES);
+    const expected = GLOBAL_ACTION_TYPES.filter((t) => !excluded.has(t));
+    expect([...GLOBAL_ACTION_ORDER].sort()).toEqual([...expected].sort());
   });
 
   it('CONDITION_SUBCATEGORIES covers ENTITY + VALUE condition types minus exclusions', () => {

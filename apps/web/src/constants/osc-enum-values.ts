@@ -159,9 +159,10 @@ export const PRIVATE_ACTION_SUBCATEGORIES = [
 ] as const satisfies readonly { key: string; types: readonly PrivateActionType[] }[];
 
 // UI ordering for the global-action palette (distinct from GLOBAL_ACTION_TYPES
-// declaration order). Welded so every entry is a valid global discriminator.
-// setMonitorAction (v1.3) is intentionally omitted: it has no dedicated property
-// editor yet (S4); palette exposure is pending UI work.
+// declaration order). Welded so every entry is a valid global discriminator;
+// the completeness test enforces GLOBAL_ACTION_ORDER ∪ exclusions ==
+// GLOBAL_ACTION_TYPES, so an omission must be declared in
+// {@link PALETTE_EXCLUDED_GLOBAL_ACTION_TYPES} with a reason.
 export const GLOBAL_ACTION_ORDER = [
   'environmentAction',
   'entityAction',
@@ -170,6 +171,17 @@ export const GLOBAL_ACTION_ORDER = [
   'parameterAction',
   'variableAction',
 ] as const satisfies readonly GlobalActionType[];
+
+/**
+ * Global-action discriminators intentionally omitted from
+ * {@link GLOBAL_ACTION_ORDER}. Consumed by the completeness test the same way as
+ * {@link PALETTE_EXCLUDED_ACTION_TYPES}.
+ */
+export const PALETTE_EXCLUDED_GLOBAL_ACTION_TYPES: readonly GlobalActionType[] = [
+  // v1.3 type without a dedicated property editor yet (S4); palette exposure
+  // pending UI work.
+  'setMonitorAction',
+];
 
 export const CONDITION_SUBCATEGORIES = [
   { key: 'distance', types: ['distance', 'relativeDistance', 'reachPosition'] },
