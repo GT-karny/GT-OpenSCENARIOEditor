@@ -3,7 +3,7 @@ import {
   computeBatchMetrics,
   DEFAULT_COLLISION_THRESHOLD_M,
   type MetricFrame,
-} from '../../../lib/wasm/batch-metrics';
+} from '../../../../../features/simulation/lib/wasm/batch-metrics';
 
 /** Build a two-entity frame at `time` with entities at the given x positions. */
 function frame(time: number, ax: number, bx: number, dims?: { length: number; width: number }): MetricFrame {

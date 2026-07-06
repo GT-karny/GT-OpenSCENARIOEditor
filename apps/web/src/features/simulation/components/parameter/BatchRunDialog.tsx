@@ -12,11 +12,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '../ui/dialog';
-import { Button } from '../ui/button';
-import { ScrollArea } from '../ui/scroll-area';
-import { useScenarioStoreApi } from '../../stores/use-scenario-store';
-import { useCatalogStore } from '../../stores/catalog-store';
+} from '../../../../components/ui/dialog';
+import { Button } from '../../../../components/ui/button';
+import { ScrollArea } from '../../../../components/ui/scroll-area';
+import { useScenarioStoreApi } from '../../../../stores/use-scenario-store';
+import { useCatalogStore } from '../../../../stores/catalog-store';
 import { getSimulationXodr } from '../../lib/simulation-xodr';
 import {
   runBatch,

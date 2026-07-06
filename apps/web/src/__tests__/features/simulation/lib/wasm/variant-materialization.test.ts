@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createDefaultDocument } from '@osce/scenario-engine';
 import type { ScenarioDocument } from '@osce/shared';
-import { materializeVariant } from '../../../lib/wasm/variant-materialization';
+import { materializeVariant } from '../../../../../features/simulation/lib/wasm/variant-materialization';
 
 /** A document with two declared parameters to override. */
 function docWithParams(): ScenarioDocument {

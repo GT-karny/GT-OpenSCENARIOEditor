@@ -6,7 +6,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { SegmentedControl } from '../property/SegmentedControl';
 import { PreviewVariantsDialog } from './PreviewVariantsDialog';
-import { BatchRunDialog } from './BatchRunDialog';
+import { BatchRunDialog } from '../../features/simulation/components/parameter/BatchRunDialog';
 import { summarizeDistribution, summarizeMultiParameter } from './distribution-helpers';
 import {
   useDistributionStore,
@@ -15,7 +15,7 @@ import {
   type DistributionMode,
 } from '../../stores/distribution-store';
 import { useFileOperations } from '../../hooks/use-file-operations';
-import { useWasmSimulation } from '../../hooks/use-wasm-simulation';
+import { useWasmSimulation } from '../../features/simulation/hooks/use-wasm-simulation';
 import { useDocumentRegistry } from '../../stores/document-registry';
 
 const MODE_OPTIONS: readonly DistributionMode[] = ['deterministic', 'stochastic'];

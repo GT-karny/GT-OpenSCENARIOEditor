@@ -25,7 +25,7 @@ import type {
 } from './types.js';
 import { createEsminiWorker } from './worker-factory.js';
 import { filterSimObjects } from './sim-object-filter.js';
-import { useEditorStore } from '../../stores/editor-store.js';
+import { useEditorStore } from '../../../../stores/editor-store.js';
 
 /** Maximum time (ms) to wait for worker to confirm scenario loaded */
 const LOAD_TIMEOUT_MS = 30_000;

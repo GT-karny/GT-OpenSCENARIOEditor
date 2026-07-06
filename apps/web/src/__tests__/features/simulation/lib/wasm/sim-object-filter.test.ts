@@ -4,7 +4,7 @@ import {
   isSimGeneratedObject,
   isSimObjectVisible,
   filterSimObjects,
-} from '../../../lib/wasm/sim-object-filter';
+} from '../../../../../features/simulation/lib/wasm/sim-object-filter';
 
 describe('sim-object-filter', () => {
   it('flags ids at/above the synthetic threshold', () => {

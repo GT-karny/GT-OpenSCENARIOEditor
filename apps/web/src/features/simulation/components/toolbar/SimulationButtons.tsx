@@ -2,15 +2,15 @@ import { useTranslation } from '@osce/i18n';
 import { Play, Square } from 'lucide-react';
 import { toast } from 'sonner';
 import { XoscSerializer, serializeCatalog } from '@osce/openscenario';
-import { Button } from '../ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
+import { Button } from '../../../../components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../../../components/ui/tooltip';
 import { useSimulationStore } from '../../stores/simulation-store';
-import { useScenarioStoreApi } from '../../stores/use-scenario-store';
-import { useCatalogStore } from '../../stores/catalog-store';
-import { useProjectStore } from '../../stores/project-store';
+import { useScenarioStoreApi } from '../../../../stores/use-scenario-store';
+import { useCatalogStore } from '../../../../stores/catalog-store';
+import { useProjectStore } from '../../../../stores/project-store';
 import { useWasmSimulation } from '../../hooks/use-wasm-simulation';
 import { getSimulationXodr } from '../../lib/simulation-xodr';
-import * as api from '../../lib/project-api';
+import * as api from '../../../../lib/project-api';
 
 /** Collect catalog XMLs from the catalog store */
 function collectCatalogXmls(): Record<string, string> {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { SimulationFrame, SimulationResult, StoryBoardEvent } from '@osce/shared';
-import { useSimulationStore } from '../../stores/simulation-store';
+import { useSimulationStore } from '../../../../features/simulation/stores/simulation-store';
 
 /** Build a frame list with evenly spaced timestamps and a moving lead object. */
 function makeFrames(count: number, dt = 0.1): SimulationFrame[] {

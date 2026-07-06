@@ -8,7 +8,7 @@ import {
   computeLaneChangeAwareSegmentsAsync,
   resolveRouteWaypoints,
 } from '../lib/route-path-computation';
-import type { RoadManagerClient } from '../lib/wasm/road-manager-client';
+import type { RoadManagerClient } from '../features/simulation/lib/wasm/road-manager-client';
 import { useDraftEditKeyboard } from './use-draft-edit-keyboard';
 
 /**

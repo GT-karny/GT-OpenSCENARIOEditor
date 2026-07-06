@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { RoadNetworkRawXml } from '../../stores/editor-store';
+import type { RoadNetworkRawXml } from '../../../../stores/editor-store';
 
 // Shared, mutable mock state. Declared via vi.hoisted so it is initialized
 // before the (hoisted) vi.mock factories that close over it. `revision` stands
@@ -20,14 +20,14 @@ vi.mock('@osce/opendrive', () => ({
 }));
 
 // Mock the editor store; getState() returns whatever we set per-test.
-vi.mock('../../stores/editor-store', () => ({
+vi.mock('../../../../stores/editor-store', () => ({
   useEditorStore: { getState: () => h.storeState },
 }));
 
 // Mock the OpenDRIVE store so the live revision is controllable per-test. This
 // is the single source of cache validity: the verbatim text is valid iff its
 // `validForRevision` equals this revision.
-vi.mock('../../hooks/use-opendrive-store', () => ({
+vi.mock('../../../../hooks/use-opendrive-store', () => ({
   getOpenDriveStoreApi: () => ({
     getState: () => ({
       getCommandHistory: () => ({ getRevision: () => h.revision }),
@@ -35,7 +35,7 @@ vi.mock('../../hooks/use-opendrive-store', () => ({
   }),
 }));
 
-import { getSimulationXodr, getValidRoadXml } from '../../lib/simulation-xodr';
+import { getSimulationXodr, getValidRoadXml } from '../../../../features/simulation/lib/simulation-xodr';
 
 const RAW = '<OpenDRIVE from="raw"/>';
 const MODEL = '<OpenDRIVE from="model"/>';

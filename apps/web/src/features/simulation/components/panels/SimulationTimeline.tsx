@@ -8,26 +8,26 @@ import type {
   Condition,
   SimulationTimeCondition,
 } from '@osce/shared';
-import { Button } from '../ui/button';
-import { Slider } from '../ui/slider';
+import { Button } from '../../../../components/ui/button';
+import { Slider } from '../../../../components/ui/slider';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '../ui/dropdown-menu';
+} from '../../../../components/ui/dropdown-menu';
 import { useSimulationStore } from '../../stores/simulation-store';
-import { useEditorStore } from '../../stores/editor-store';
-import { useScenarioStore, useScenarioStoreApi } from '../../stores/use-scenario-store';
+import { useEditorStore } from '../../../../stores/editor-store';
+import { useScenarioStore, useScenarioStoreApi } from '../../../../stores/use-scenario-store';
 import {
   buildIdToFullPathMap,
   getRunningIntervals,
   type RunningInterval,
-} from '../../lib/fullpath-mapping';
+} from '../../../../lib/fullpath-mapping';
 import {
   buildTimeTriggerTargets,
   type TimeTriggerTarget,
-} from '../../lib/timeline-trigger-mapping';
+} from '../../../../lib/timeline-trigger-mapping';
 import {
   fullViewport,
   clamp,
@@ -35,7 +35,7 @@ import {
   fractionToTime,
   zoomViewport,
   type TimelineViewport,
-} from '../../lib/timeline-viewport';
+} from '../../../../lib/timeline-viewport';
 
 const SPEED_OPTIONS = [0.25, 0.5, 1, 2, 4] as const;
 

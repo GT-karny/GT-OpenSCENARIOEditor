@@ -31,7 +31,7 @@ import * as api from '../lib/project-api';
 import { resolveCatalogEntityTypes } from '../lib/resolve-catalog-entity-types';
 import { addWebRecentFile } from '../lib/recent-files/recent-files-db';
 import type { RecentFileKind } from '../lib/recent-files/recent-list';
-import { documentHasInclude } from '../lib/wasm';
+import { documentHasInclude } from '../features/simulation/lib/wasm';
 import { runUnsavedGuard as runUnsavedGuardGate } from './use-discard-guard';
 
 /**

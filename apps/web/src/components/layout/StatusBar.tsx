@@ -2,7 +2,7 @@ import { useTranslation } from '@osce/i18n';
 import { useScenarioStore } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
 import { useDocumentRegistry } from '../../stores/document-registry';
-import { useSimulationStore } from '../../stores/simulation-store';
+import { useSimulationStore } from '../../features/simulation/stores/simulation-store';
 import type { SimulationStatus } from '@osce/shared';
 
 function getStatusDot(

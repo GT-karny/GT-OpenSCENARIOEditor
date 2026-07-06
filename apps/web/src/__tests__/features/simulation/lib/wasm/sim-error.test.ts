@@ -5,7 +5,7 @@ import {
   xodrHasInclude,
   documentHasInclude,
   INCLUDE_UNSUPPORTED_MESSAGE,
-} from '../../../lib/wasm/sim-error';
+} from '../../../../../features/simulation/lib/wasm/sim-error';
 
 describe('sim-error', () => {
   describe('toErrorMessage', () => {

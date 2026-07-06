@@ -24,7 +24,7 @@ import {
 import type { Point3 } from '../lib/route-path-computation';
 import { useRouteEditStore } from '../stores/route-edit-store';
 import { useEditorStore } from '../stores/editor-store';
-import type { RoadManagerClient } from '../lib/wasm/road-manager-client';
+import type { RoadManagerClient } from '../features/simulation/lib/wasm/road-manager-client';
 
 export interface RoutePreviewData {
   waypoints: Array<{ x: number; y: number; z: number; h: number }>;

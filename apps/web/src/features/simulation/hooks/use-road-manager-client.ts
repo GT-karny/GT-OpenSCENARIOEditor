@@ -9,8 +9,8 @@
 
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { RoadManagerClient } from '../lib/wasm/index.js';
-import { useEditorStore } from '../stores/editor-store.js';
-import { useDocumentRegistry } from '../stores/document-registry';
+import { useEditorStore } from '../../../stores/editor-store.js';
+import { useDocumentRegistry } from '../../../stores/document-registry';
 import { isRawXmlValid } from '../lib/simulation-xodr';
 import { XodrSerializer } from '@osce/opendrive';
 

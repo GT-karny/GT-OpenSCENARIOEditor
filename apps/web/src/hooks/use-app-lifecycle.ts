@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import type { EditorMode } from '../stores/document-registry';
 import { useEditorStore } from '../stores/editor-store';
-import { useSimulationStore } from '../stores/simulation-store';
+import { useSimulationStore } from '../features/simulation/stores/simulation-store';
 import { useRouteEditStore } from '../stores/route-edit-store';
 import { useCatalogStore } from '../stores/catalog-store';
 import { useDistributionStore } from '../stores/distribution-store';

@@ -6,7 +6,7 @@ import {
   rewriteLogicFilePath,
   rewriteCatalogDirectories,
   prepareScenarioForVfs,
-} from '../../../lib/wasm/vfs-paths';
+} from '../../../../../features/simulation/lib/wasm/vfs-paths';
 
 describe('vfs-paths', () => {
   describe('catalogNameFromXml', () => {

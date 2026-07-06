@@ -1,7 +1,7 @@
 import { XodrSerializer } from '@osce/opendrive';
-import { useEditorStore } from '../stores/editor-store';
-import type { RoadNetworkRawXml } from '../stores/editor-store';
-import { getOpenDriveStoreApi } from '../hooks/use-opendrive-store';
+import { useEditorStore } from '../../../stores/editor-store';
+import type { RoadNetworkRawXml } from '../../../stores/editor-store';
+import { getOpenDriveStoreApi } from '../../../hooks/use-opendrive-store';
 
 /**
  * Result of resolving the OpenDRIVE payload for a simulation run.

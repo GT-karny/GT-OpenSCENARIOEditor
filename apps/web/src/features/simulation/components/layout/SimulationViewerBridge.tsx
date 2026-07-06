@@ -9,7 +9,7 @@ import type {
   PositionPickConfig,
 } from '@osce/3d-viewer';
 import { useSimulationStore } from '../../stores/simulation-store';
-import type { useScenarioStoreApi } from '../../stores/use-scenario-store';
+import type { useScenarioStoreApi } from '../../../../stores/use-scenario-store';
 
 interface SimulationViewerBridgeProps {
   scenarioStore: ReturnType<typeof useScenarioStoreApi>;

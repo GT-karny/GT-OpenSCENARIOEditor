@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import { useSimulationStore } from '../stores/simulation-store';
+import { useSimulationStore } from '../features/simulation/stores/simulation-store';
 import { useScenarioStoreApi } from '../stores/use-scenario-store';
 import { buildIdToFullPathMap, getRunningIntervals } from '../lib/fullpath-mapping';
 

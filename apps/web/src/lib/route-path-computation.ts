@@ -19,7 +19,7 @@ import {
   computeDrivingHeading,
   type RouteSegment,
 } from '@osce/opendrive';
-import type { RoadManagerClient } from './wasm/road-manager-client';
+import type { RoadManagerClient } from '../features/simulation/lib/wasm/road-manager-client';
 
 /**
  * A point on a computed route path.

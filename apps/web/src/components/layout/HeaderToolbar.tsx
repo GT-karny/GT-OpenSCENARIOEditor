@@ -8,7 +8,7 @@ import { UndoRedoButtons } from '../toolbar/UndoRedoButtons';
 import { ValidateButton } from '../toolbar/ValidateButton';
 import { LanguageToggle } from '../toolbar/LanguageToggle';
 import { ScenarioPropertiesButton } from '../toolbar/ScenarioPropertiesButton';
-import { SimulationButtons } from '../toolbar/SimulationButtons';
+import { SimulationButtons } from '../../features/simulation/components/toolbar/SimulationButtons';
 import { CatalogButton } from '../toolbar/CatalogButton';
 import { useProjectStore } from '../../stores/project-store';
 import { useEditorStore } from '../../stores/editor-store';
