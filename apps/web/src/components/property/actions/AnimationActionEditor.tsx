@@ -1,7 +1,7 @@
 import type { ScenarioAction, AnimationAction } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
-import { EnumSelect } from '../EnumSelect';
+import { EnumSelect } from '../../form/EnumSelect';
 import { actionBody, actionUpdate } from '../lib/typed-updates';
 
 interface AnimationActionEditorProps {

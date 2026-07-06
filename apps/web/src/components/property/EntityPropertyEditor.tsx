@@ -12,7 +12,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { EntityIcon } from '../entity/EntityIcon';
-import { EnumSelect } from './EnumSelect';
+import { EnumSelect } from '../form/EnumSelect';
 import { InitPropertyEditorContent } from './InitPropertyEditor';
 import { useScenarioStore, useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';

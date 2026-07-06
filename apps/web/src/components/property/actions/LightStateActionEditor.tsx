@@ -2,7 +2,7 @@ import type { ScenarioAction, LightStateAction } from '@osce/shared';
 import { LIGHT_MODES } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
-import { EnumSelect } from '../EnumSelect';
+import { EnumSelect } from '../../form/EnumSelect';
 import { SegmentedControl } from '../SegmentedControl';
 import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
 import { actionBody, actionUpdate } from '../lib/typed-updates';

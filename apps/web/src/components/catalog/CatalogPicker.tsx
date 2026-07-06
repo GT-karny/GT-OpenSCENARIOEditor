@@ -1,7 +1,7 @@
 import { useTranslation } from '@osce/i18n';
 import { useCatalogStore } from '../../stores/catalog-store';
 import { Label } from '../ui/label';
-import { EnumSelect } from '../property/EnumSelect';
+import { EnumSelect } from '../form/EnumSelect';
 
 interface CatalogPickerProps {
   catalogName: string;

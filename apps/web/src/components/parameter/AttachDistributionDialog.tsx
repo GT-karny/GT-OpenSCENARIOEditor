@@ -19,7 +19,7 @@ import {
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { EnumSelect } from '../property/EnumSelect';
+import { EnumSelect } from '../form/EnumSelect';
 import {
   DISTRIBUTION_TYPE_LABELS,
   defaultDeterministic,

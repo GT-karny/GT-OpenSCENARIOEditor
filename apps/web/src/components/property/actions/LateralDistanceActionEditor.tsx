@@ -10,7 +10,7 @@ import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefSelect } from '../EntityRefSelect';
 import { SegmentedControl } from '../SegmentedControl';
 import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
-import { EnumSelect } from '../EnumSelect';
+import { EnumSelect } from '../../form/EnumSelect';
 import { Label } from '../../ui/label';
 import { actionBody, actionUpdate } from '../lib/typed-updates';
 import { useSpeedUnit } from '../../../hooks/use-speed-unit';

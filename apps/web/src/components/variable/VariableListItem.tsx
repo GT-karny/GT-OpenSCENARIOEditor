@@ -4,7 +4,7 @@ import { isExpression, looksLikeExpression, typeAllowsExpression } from '@/lib/e
 import { GripVertical, Trash2, ToggleLeft } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { EnumSelect } from '../property/EnumSelect';
+import { EnumSelect } from '../form/EnumSelect';
 import { ParameterAwareInput } from '../property/ParameterAwareInput';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { cn } from '@/lib/utils';

@@ -1,6 +1,6 @@
 import type { ScenarioAction, EntityAction, Position } from '@osce/shared';
 import { Label } from '../../ui/label';
-import { EnumSelect } from '../EnumSelect';
+import { EnumSelect } from '../../form/EnumSelect';
 import { EntityRefSelect } from '../EntityRefSelect';
 import { PositionEditor } from '../PositionEditor';
 import { actionBody, actionUpdate } from '../lib/typed-updates';

@@ -2,7 +2,7 @@ import { useTranslation } from '@osce/i18n';
 import { generateId } from '@osce/shared';
 import type { ParameterDeclaration } from '@osce/shared';
 import { Input } from '../ui/input';
-import { EnumSelect } from '../property/EnumSelect';
+import { EnumSelect } from '../form/EnumSelect';
 import { PARAMETER_TYPES } from '../../constants/osc-enum-values';
 import { Plus, Trash2 } from 'lucide-react';
 import type { ParameterType } from '@osce/shared';

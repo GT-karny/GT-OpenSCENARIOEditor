@@ -6,7 +6,7 @@ import { FolderOpen } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
-import { EnumSelect } from './EnumSelect';
+import { EnumSelect } from '../form/EnumSelect';
 import { useProjectStore } from '../../stores/project-store';
 import { useEditorStore } from '../../stores/editor-store';
 import { editorMetadataStoreApi } from '../../stores/editor-metadata-store-instance';

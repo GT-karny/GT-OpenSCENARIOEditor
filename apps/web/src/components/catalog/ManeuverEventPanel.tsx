@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
-import { EnumSelect } from '../property/EnumSelect';
+import { EnumSelect } from '../form/EnumSelect';
 import { ActionPropertyEditor } from '../property/ActionPropertyEditor';
 import { TriggerSectionEditor } from '../property/TriggerSectionEditor';
 import { EVENT_PRIORITIES } from '../../constants/osc-enum-values';

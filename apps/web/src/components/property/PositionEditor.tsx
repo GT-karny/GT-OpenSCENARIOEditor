@@ -15,7 +15,7 @@ import type {
 import { REFERENCE_CONTEXTS } from '@osce/shared';
 import { Label } from '../ui/label';
 import { ParameterAwareInput } from './ParameterAwareInput';
-import { EnumSelect } from './EnumSelect';
+import { EnumSelect } from '../form/EnumSelect';
 import {
   POSITION_TYPE_OPTIONS,
   POSITION_TYPE_LABELS,

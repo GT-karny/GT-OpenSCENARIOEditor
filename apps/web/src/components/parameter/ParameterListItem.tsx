@@ -4,7 +4,7 @@ import { isExpression, looksLikeExpression, typeAllowsExpression } from '@/lib/e
 import { Dices, GripVertical, Trash2, Variable } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { EnumSelect } from '../property/EnumSelect';
+import { EnumSelect } from '../form/EnumSelect';
 import { ParameterAwareInput } from '../property/ParameterAwareInput';
 import { AttachDistributionDialog } from './AttachDistributionDialog';
 import { useScenarioStoreApi } from '../../stores/use-scenario-store';

@@ -5,7 +5,7 @@ import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { Button } from '../../ui/button';
 import { Badge } from '../../ui/badge';
-import { EnumSelect } from '../EnumSelect';
+import { EnumSelect } from '../../form/EnumSelect';
 import { PositionEditor } from '../PositionEditor';
 import { WaypointListItem } from './WaypointListItem';
 import { RouteSourceSelector } from './RouteSourceSelector';

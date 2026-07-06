@@ -65,7 +65,7 @@ import { editorMetadataStoreApi } from '../../stores/editor-metadata-store-insta
 import { evaluateReferenceLineAtS, evaluateElevation, stToXyz } from '@osce/opendrive';
 import type { PoleAssemblyInfo } from '@osce/3d-viewer';
 import { extractEntityPositions } from '@osce/3d-viewer';
-import { RoadNetworkEditorLayout } from '../opendrive/RoadNetworkEditorLayout';
+import { RoadNetworkEditorLayout } from '../../features/road/components/RoadNetworkEditorLayout';
 import { SimulationViewerBridge } from './SimulationViewerBridge';
 import { SignalPickOverlay } from './SignalPickOverlay';
 import { useRouteEditHandlers } from '../../hooks/use-route-edit-handlers';

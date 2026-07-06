@@ -1,7 +1,7 @@
 import type { ScenarioAction, TrafficAction } from '@osce/shared';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
-import { EnumSelect } from '../EnumSelect';
+import { EnumSelect } from '../../form/EnumSelect';
 import { GenericActionEditor } from './GenericActionEditor';
 import { actionBody, actionUpdate } from '../lib/typed-updates';
 

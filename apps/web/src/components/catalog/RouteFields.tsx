@@ -1,7 +1,7 @@
 import { AlertTriangle, MapPin, Navigation2, Trash2 } from 'lucide-react';
 import { Label } from '../ui/label';
 import { Button } from '../ui/button';
-import { EnumSelect } from '../property/EnumSelect';
+import { EnumSelect } from '../form/EnumSelect';
 import { ROUTE_STRATEGIES } from '../../constants/osc-enum-values';
 import { useCatalogStore } from '../../stores/catalog-store';
 import { useRouteEditStore } from '../../stores/route-edit-store';

@@ -7,7 +7,7 @@ import type {
 } from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
 import { Label } from '../../ui/label';
-import { EnumSelect } from '../EnumSelect';
+import { EnumSelect } from '../../form/EnumSelect';
 import { StoryboardElementRefSelect } from '../StoryboardElementRefSelect';
 import { valueConditionUpdate } from '../lib/typed-updates';
 
