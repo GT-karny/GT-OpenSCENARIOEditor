@@ -34,6 +34,9 @@ test.describe('driving-direction arrow overlay (RHT/LHT)', () => {
   });
 
   test('toggle arrows, flip all roads to LHT, capture RHT + LHT screenshots', async ({ page }) => {
+    // Solo run takes ~26s; under parallel WASM load (full-suite workers) this
+    // creeps close to the default 30s test timeout. 90s gives real headroom.
+    test.setTimeout(90_000);
     await gotoEditor(page);
 
     // traffic_lights.xosc references a road network that resolves in the seeded
@@ -81,10 +84,14 @@ test.describe('driving-direction arrow overlay (RHT/LHT)', () => {
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     for (let i = 0; i < 6; i++) {
       await page.mouse.wheel(0, -400);
+      // Fixed settle time per wheel tick for the canvas render pipeline (kept
+      // deliberately; the extra headroom lives in the test timeout, not here).
       await page.waitForTimeout(120);
     }
 
     // Capture the all-RHT baseline.
+    // Fixed canvas-render settle time before capture (kept deliberately; the
+    // extra headroom lives in the test timeout, not here).
     await page.waitForTimeout(500);
     await canvas.screenshot({ path: `${SHOT_DIR}/rht.png` });
 
@@ -103,11 +110,13 @@ test.describe('driving-direction arrow overlay (RHT/LHT)', () => {
     await firstRoad.click();
     const ruleRow = page.locator('div.grid', { has: page.getByText('Rule', { exact: true }) });
     const ruleTrigger = ruleRow.getByRole('combobox');
-    await expect(ruleTrigger).toBeVisible({ timeout: 10_000 });
+    await expect(ruleTrigger).toBeVisible({ timeout: 15_000 });
     await expect(ruleTrigger).toContainText('LHT');
 
     // Overlay still enabled and every road now LHT — capture for comparison.
     await expect(dirToggle).toHaveAttribute('aria-pressed', 'true');
+    // Fixed canvas-render settle time before capture (kept deliberately; the
+    // extra headroom lives in the test timeout, not here).
     await page.waitForTimeout(500);
     await canvas.screenshot({ path: `${SHOT_DIR}/lht.png` });
 

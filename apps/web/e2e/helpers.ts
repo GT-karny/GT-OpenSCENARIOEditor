@@ -43,6 +43,11 @@ export function entityList(page: Page) {
  * Open the Add Entity dialog and create an inline vehicle entity with the given
  * name. Assumes the editor is already loaded and the Entities tab is the
  * default-active left-sidebar tab.
+ *
+ * Waits for the dialog to close AND for the new entity to appear in the entity
+ * list before returning. The positive list-appearance signal — not just the
+ * closed dialog — is what makes callers reliable under CI load without
+ * leaning on retries.
  */
 export async function addEntity(page: Page, name: string): Promise<void> {
   await page.getByRole('button', { name: 'Add new entity' }).click();
@@ -50,7 +55,10 @@ export async function addEntity(page: Page, name: string): Promise<void> {
   await expect(dialog).toBeVisible();
   await dialog.getByLabel(/Name|名前/).fill(name);
   await dialog.getByRole('button', { name: /^Add$|^追加$/ }).click();
-  await expect(dialog).not.toBeVisible();
+  await expect(dialog).not.toBeVisible({ timeout: 10_000 });
+  await expect(entityList(page).getByText(name, { exact: true })).toBeVisible({
+    timeout: 10_000,
+  });
 }
 
 /**
