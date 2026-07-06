@@ -50,7 +50,7 @@ jobs:
   e2e:
     name: E2E (Playwright)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       # No submodules: apps/web/public/wasm/esmini.js is a committed blob and the
       # WASM E2E specs run against it. GT_Sim is not needed for CI E2E.

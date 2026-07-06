@@ -131,6 +131,9 @@ export class ProjectService {
       runtimeResourcesPath ? path.join(runtimeResourcesPath, 'gtsim-resources') : null,
       // Existing dev flow: from apps/server cwd -> repo/Thirdparty/GT_Sim/resources
       path.resolve(process.cwd(), '../../Thirdparty/GT_Sim/resources'),
+      // Committed fixture copies of the same esmini resources — covers checkouts
+      // without the GT_Sim submodule (notably the CI E2E job).
+      path.resolve(process.cwd(), '../../test-fixtures/esmini'),
     ].filter((p): p is string => Boolean(p));
 
     for (const base of candidates) {

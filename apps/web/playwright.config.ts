@@ -8,7 +8,13 @@ export default defineConfig({
   // One local retry: WASM-simulation specs saturate the CPU in fully-parallel
   // local runs and can starve UI specs of render time (they pass in isolation).
   retries: process.env.CI ? 2 : 1,
-  workers: process.env.CI ? 1 : undefined,
+  // CI runners have 4 vCPUs; 2 workers roughly halves the serial ~50min suite
+  // while leaving headroom for the two dev servers and the WASM specs.
+  workers: process.env.CI ? 2 : undefined,
+  // Fail fast in CI when breakage is systemic (e.g. the app fails to boot):
+  // without a cap, ~64 failing tests x 2 retries burns the whole job timeout
+  // and the cancelled job never uploads its failure artifacts.
+  maxFailures: process.env.CI ? 10 : 0,
   // CI: line reporter for readable step logs, plus a non-opening html report
   // that the workflow uploads as a failure artifact. Local runs keep the
   // interactive html report.
