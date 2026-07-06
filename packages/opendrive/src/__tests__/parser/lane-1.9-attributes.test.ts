@@ -137,6 +137,48 @@ describe('1.9 lane access restrictions', () => {
     expect(out).not.toContain('restriction=""');
     expect(out).toContain('<restriction type="pedestrian"');
   });
+
+  it('rides an <access> userData child through the extra bag', () => {
+    const xml = roadXml(`
+      <laneSection s="0">
+        <center><lane id="0" type="none" level="false"/></center>
+        <right><lane id="-1" type="driving" level="false">
+          <width sOffset="0" a="3.5" b="0" c="0" d="0"/>
+          <access sOffset="0" rule="deny" restriction="bus"><userData code="x" value="y"/></access>
+        </lane></right>
+      </laneSection>`);
+    const access = firstRightLane(xml).access![0];
+    expect(access.extra?.children?.some((c) => c.name === 'userData')).toBe(true);
+    expect(serializer.serializeFormatted(parser.parse(xml))).toContain('<userData');
+  });
+
+  it('rides an out-of-enum @rule through the extra bag', () => {
+    const xml = roadXml(`
+      <laneSection s="0">
+        <center><lane id="0" type="none" level="false"/></center>
+        <right><lane id="-1" type="driving" level="false">
+          <width sOffset="0" a="3.5" b="0" c="0" d="0"/>
+          <access sOffset="0" rule="maybe"><restriction type="bus"/></access>
+        </lane></right>
+      </laneSection>`);
+    const access = firstRightLane(xml).access![0];
+    expect(access.rule).toBeUndefined();
+    expect(access.extra?.attrs).toMatchObject({ rule: 'maybe' });
+    expect(serializer.serializeFormatted(parser.parse(xml))).toContain('rule="maybe"');
+  });
+
+  it('accepts a <restriction> without @type and emits no type=""', () => {
+    const xml = roadXml(`
+      <laneSection s="0">
+        <center><lane id="0" type="none" level="false"/></center>
+        <right><lane id="-1" type="driving" level="false">
+          <width sOffset="0" a="3.5" b="0" c="0" d="0"/>
+          <access sOffset="0" rule="allow"><restriction/></access>
+        </lane></right>
+      </laneSection>`);
+    expect(firstRightLane(xml).access![0].restrictions![0].type).toBeUndefined();
+    expect(serializer.serializeFormatted(parser.parse(xml))).not.toContain('type=""');
+  });
 });
 
 describe('lane-link multiplicity + @layer (GT_min_lanelink_multiplicity fixture)', () => {

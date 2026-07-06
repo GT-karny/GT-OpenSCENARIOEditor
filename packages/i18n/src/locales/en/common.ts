@@ -551,6 +551,7 @@ export const common = {
       roadSectionsTitle: 'Road Sections',
       roadId: 'Road ID',
       sRange: 's {{start}}–{{end}}',
+      crossingDisabledTooltip: 'Requires road sections; cannot convert a junction with connections',
     },
     laneSection: {
       noSectionSelected: 'No section selected. Hover over a road to see lane info.',

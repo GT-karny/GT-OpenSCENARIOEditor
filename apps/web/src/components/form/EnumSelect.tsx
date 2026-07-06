@@ -11,11 +11,19 @@ interface EnumSelectProps {
   options: readonly string[];
   onValueChange: (value: string) => void;
   className?: string;
+  /** Options to disable, each mapped to a tooltip (title) explaining why. */
+  disabledOptions?: Readonly<Record<string, string>>;
 }
 
 const EMPTY_SENTINEL = '__empty__';
 
-export function EnumSelect({ value, options, onValueChange, className }: EnumSelectProps) {
+export function EnumSelect({
+  value,
+  options,
+  onValueChange,
+  className,
+  disabledOptions,
+}: EnumSelectProps) {
   const hasEmpty = options.includes('');
 
   const handleChange = (v: string) => {
@@ -30,8 +38,14 @@ export function EnumSelect({ value, options, onValueChange, className }: EnumSel
       <SelectContent>
         {options.map((option) => {
           const itemValue = option === '' ? EMPTY_SENTINEL : option;
+          const disabledTitle = disabledOptions?.[option];
           return (
-            <SelectItem key={itemValue} value={itemValue}>
+            <SelectItem
+              key={itemValue}
+              value={itemValue}
+              disabled={disabledTitle !== undefined}
+              title={disabledTitle}
+            >
               {option || '(none)'}
             </SelectItem>
           );

@@ -123,7 +123,6 @@ function parseJunctionConnection(raw: Raw): OdrJunctionConnection {
     id: t.str('id'),
     incomingRoad: t.str('incomingRoad'),
     connectingRoad: t.str('connectingRoad'),
-    contactPoint: t.str('contactPoint', 'start') as 'start' | 'end',
     laneLinks: t.takeChildren('laneLink').map((ll) => {
       const llRaw = ll as Raw;
       const lt = trackNode(llRaw);
@@ -149,6 +148,10 @@ function parseJunctionConnection(raw: Raw): OdrJunctionConnection {
       return link;
     }),
   };
+
+  // @contactPoint (e_contactPoint): only set when present (absent on virtual).
+  const contactPoint = t.optStr('contactPoint');
+  if (contactPoint === 'start' || contactPoint === 'end') conn.contactPoint = contactPoint;
 
   // @type (e_connection_type). Validate; an unknown value round-trips via extra.
   const rawConnType = attrOptStr(raw, 'type');

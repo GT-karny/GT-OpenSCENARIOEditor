@@ -240,21 +240,33 @@ function parseLaneMaterial(raw: Raw): OdrLaneMaterial {
 }
 
 function parseLaneAccess(raw: Raw): OdrLaneAccess {
-  const ruleStr = attrOptStr(raw, 'rule');
+  const t = trackNode(raw);
   const access: OdrLaneAccess = {
-    sOffset: attrNum(raw, 'sOffset'),
-    rule: ruleStr === 'allow' || ruleStr === 'deny' ? ruleStr : undefined,
+    sOffset: t.num('sOffset'),
     // @restriction is optional in 1.9 (superseded by <restriction> children).
-    restriction: attrOptStr(raw, 'restriction'),
+    restriction: t.optStr('restriction'),
   };
-  const restrictions = ensureArray(raw.restriction).map(parseLaneAccessRestriction);
+  // @rule: only 'allow'/'deny' are typed; any other value rides through extra.
+  const ruleStr = attrOptStr(raw, 'rule');
+  if (ruleStr === 'allow' || ruleStr === 'deny') {
+    access.rule = ruleStr;
+    t.takeAttr('rule');
+  }
+  const restrictions = t
+    .takeChildren('restriction')
+    .map((r) => parseLaneAccessRestriction(r as Raw));
   if (restrictions.length > 0) access.restrictions = restrictions;
+  // Preserve unmodeled <access> attrs (out-of-enum @rule) / children (userData).
+  const extra = t.rest();
+  if (extra) access.extra = extra;
   return access;
 }
 
 function parseLaneAccessRestriction(raw: Raw): OdrLaneAccessRestriction {
   const t = trackNode(raw);
-  const restriction: OdrLaneAccessRestriction = { type: t.str('type') };
+  const restriction: OdrLaneAccessRestriction = {};
+  const type = t.optStr('type');
+  if (type) restriction.type = type;
   const extra = t.rest();
   if (extra) restriction.extra = extra;
   return restriction;

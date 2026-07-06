@@ -170,11 +170,13 @@ export interface OdrLaneAccess {
   restriction?: string;
   /** 1.9 `<restriction>` children — each an `e_accessRestrictionType`. */
   restrictions?: OdrLaneAccessRestriction[];
+  /** Unmodeled `<access>` attrs (out-of-enum @rule) / children (userData) preserved for round-trip. */
+  extra?: OdrExtra;
 }
 
 export interface OdrLaneAccessRestriction {
-  /** Participant type (`@type`, `e_accessRestrictionType`). */
-  type: string;
+  /** Participant type (`@type`, `e_accessRestrictionType`). Optional per XSD. */
+  type?: string;
   /** Unmodeled `<restriction>` attrs/children preserved for round-trip. */
   extra?: OdrExtra;
 }

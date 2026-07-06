@@ -552,6 +552,7 @@ export const common = {
       roadSectionsTitle: 'ロードセクション',
       roadId: '道路ID',
       sRange: 's {{start}}–{{end}}',
+      crossingDisabledTooltip: 'ロードセクションが必要です。接続を持つジャンクションは変換できません',
     },
     laneSection: {
       noSectionSelected:

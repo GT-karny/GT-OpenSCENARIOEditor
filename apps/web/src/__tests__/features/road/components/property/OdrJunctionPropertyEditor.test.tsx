@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import { cleanup, fireEvent, screen } from '@testing-library/react';
 import { createOpenDriveStore } from '@osce/opendrive-engine';
 import type { OdrJunction } from '@osce/shared';
@@ -7,6 +7,9 @@ import { OdrJunctionPropertyEditor } from '../../../../../features/road/componen
 
 beforeAll(async () => {
   await initTestI18n();
+  // Radix Select relies on these DOM APIs that jsdom does not implement.
+  window.HTMLElement.prototype.hasPointerCapture = vi.fn();
+  window.HTMLElement.prototype.scrollIntoView = vi.fn();
 });
 afterEach(cleanup);
 
@@ -84,5 +87,31 @@ describe('OdrJunctionPropertyEditor', () => {
 
     api.getState().undo();
     expect(current().mainRoad).toBe(original);
+  });
+
+  it('clears virtual attrs (undoably) when the type is switched away from virtual', () => {
+    const api = createOpenDriveStore();
+    api.getState().addJunction({ id: '900', name: 'j', type: 'virtual' });
+    api.getState().updateJunction('900', { mainRoad: '1', sStart: 10, sEnd: 20, orientation: '+' });
+    const current = () => api.getState().getDocument().junctions[0];
+
+    renderWithProviders(
+      <OdrJunctionPropertyEditor
+        junction={current()}
+        onUpdate={(id, u) => api.getState().updateJunction(id, u)}
+      />,
+    );
+
+    // Open the type dropdown (the first combobox) and pick 'default'.
+    fireEvent.click(screen.getAllByRole('combobox')[0]);
+    fireEvent.click(screen.getByRole('option', { name: 'default' }));
+
+    expect(current().type).toBe('default');
+    expect(current().mainRoad).toBeUndefined();
+    expect(current().sStart).toBeUndefined();
+
+    api.getState().undo();
+    expect(current().type).toBe('virtual');
+    expect(current().mainRoad).toBe('1');
   });
 });

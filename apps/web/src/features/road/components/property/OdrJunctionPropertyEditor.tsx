@@ -53,7 +53,24 @@ export function OdrJunctionPropertyEditor({ junction, onUpdate }: OdrJunctionPro
             <EnumSelect
               value={type}
               options={ODR_JUNCTION_TYPES}
-              onValueChange={(v) => onUpdate(junction.id, { type: v as OdrJunctionType })}
+              disabledOptions={
+                junction.connections.length > 0
+                  ? { crossing: t('odrProperty.junction.crossingDisabledTooltip') }
+                  : undefined
+              }
+              onValueChange={(v) => {
+                const next = v as OdrJunctionType;
+                const updates: Partial<OdrJunction> = { type: next };
+                // Switching away from virtual clears its virtual-only attrs
+                // (undoable; keeps the model + serialized output schema-valid).
+                if (next !== 'virtual') {
+                  updates.mainRoad = undefined;
+                  updates.sStart = undefined;
+                  updates.sEnd = undefined;
+                  updates.orientation = undefined;
+                }
+                onUpdate(junction.id, updates);
+              }}
               className="h-7 text-xs"
             />
           </div>

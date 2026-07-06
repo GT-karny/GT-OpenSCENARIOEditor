@@ -448,7 +448,7 @@ export function regenerateJunctionConnections(
     const incomingEntries = new Map<string, 'start' | 'end'>();
     for (const conn of junction.connections) {
       if (!incomingEntries.has(conn.incomingRoad)) {
-        incomingEntries.set(conn.incomingRoad, conn.contactPoint);
+        incomingEntries.set(conn.incomingRoad, conn.contactPoint ?? 'start');
       }
     }
 

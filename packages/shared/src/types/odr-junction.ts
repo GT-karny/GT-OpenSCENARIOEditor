@@ -42,7 +42,8 @@ export interface OdrJunctionConnection {
   id: string;
   incomingRoad: string;
   connectingRoad: string;
-  contactPoint: 'start' | 'end';
+  /** `@contactPoint` (`e_contactPoint`). Required for all junction types except virtual, so optional here. */
+  contactPoint?: 'start' | 'end';
   laneLinks: OdrJunctionLaneLink[];
   /** Connection type (`e_connection_type`): 'default' or 'virtual'. */
   type?: 'default' | 'virtual';

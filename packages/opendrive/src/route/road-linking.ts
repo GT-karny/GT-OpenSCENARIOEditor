@@ -162,7 +162,7 @@ export function junctionConnectionsFrom(
     // contactPoint = which end of connectingRoad touches the incoming road.
     // Exit side of connectingRoad is the opposite end.
     const incomingOnCrSide: RoadSide =
-      conn.contactPoint === 'start' ? 'predecessor' : 'successor';
+      (conn.contactPoint ?? 'start') === 'start' ? 'predecessor' : 'successor';
     const exitSide: RoadSide =
       incomingOnCrSide === 'predecessor' ? 'successor' : 'predecessor';
     const exitLink = roadLinkOn(cr, exitSide);

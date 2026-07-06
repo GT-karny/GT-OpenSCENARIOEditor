@@ -236,9 +236,15 @@ function buildLaneAccess(a: OdrLaneAccess): XmlNode {
   // @restriction is optional in 1.9 (superseded by <restriction> children).
   optAttr(node, '@_restriction', a.restriction);
   if (a.restrictions && a.restrictions.length > 0) {
-    node.restriction = a.restrictions.map((r) => applyExtra({ '@_type': r.type }, r.extra));
+    node.restriction = a.restrictions.map((r) => {
+      const rn: XmlNode = {};
+      // @type is optional per XSD — omit when absent (no more type="").
+      if (r.type) rn['@_type'] = r.type;
+      return applyExtra(rn, r.extra);
+    });
   }
-  return node;
+  // Re-emit access-level passthrough (out-of-enum @rule, userData children).
+  return applyExtra(node, a.extra);
 }
 
 function buildLaneRule(r: OdrLaneRule): XmlNode {

@@ -23,11 +23,15 @@ export function buildJunction(junction: OdrJunction): XmlNode {
 
   optAttr(node, '@_type', junction.type);
 
-  // Virtual junction attributes (t_junction_virtual)
-  optAttr(node, '@_mainRoad', junction.mainRoad);
-  optAttr(node, '@_sStart', junction.sStart, fmtNum);
-  optAttr(node, '@_sEnd', junction.sEnd, fmtNum);
-  optAttr(node, '@_orientation', junction.orientation);
+  // Virtual-junction attributes (t_junction_virtual) — schema-valid ONLY on a
+  // virtual junction, so never emit them for other types (guards a stale model
+  // after a type switch away from 'virtual').
+  if (junction.type === 'virtual') {
+    optAttr(node, '@_mainRoad', junction.mainRoad);
+    optAttr(node, '@_sStart', junction.sStart, fmtNum);
+    optAttr(node, '@_sEnd', junction.sEnd, fmtNum);
+    optAttr(node, '@_orientation', junction.orientation);
+  }
 
   if (junction.connections.length > 0) {
     node.connection = junction.connections.map(buildConnection);
@@ -85,13 +89,14 @@ export function buildJunction(junction: OdrJunction): XmlNode {
 }
 
 function buildConnection(conn: OdrJunctionConnection): XmlNode {
-  const node: XmlNode = {
-    '@_id': conn.id,
-    '@_incomingRoad': conn.incomingRoad,
-    '@_connectingRoad': conn.connectingRoad,
-    '@_contactPoint': conn.contactPoint,
-  };
-
+  // Emit road refs only when set: a direct-junction connection has no
+  // @connectingRoad (it uses @linkedRoad, preserved via extra), and a virtual
+  // connection may omit @incomingRoad/@contactPoint. Skipping empties avoids
+  // schema-invalid connectingRoad="" and spurious contactPoint attributes.
+  const node: XmlNode = { '@_id': conn.id };
+  optAttr(node, '@_incomingRoad', conn.incomingRoad || undefined);
+  optAttr(node, '@_connectingRoad', conn.connectingRoad || undefined);
+  optAttr(node, '@_contactPoint', conn.contactPoint);
   optAttr(node, '@_type', conn.type);
 
   if (conn.laneLinks.length > 0) {

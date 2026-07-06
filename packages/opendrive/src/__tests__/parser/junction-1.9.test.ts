@@ -132,6 +132,42 @@ describe('connection @type', () => {
   });
 });
 
+describe('junction virtual-attrs schema guard (serializer)', () => {
+  const VIRTUAL = odrWithJunction(
+    `<junction id="9" name="j" type="virtual" mainRoad="1" sStart="10" sEnd="20" orientation="+"><connection id="0" incomingRoad="1" connectingRoad="1" contactPoint="start"><laneLink from="-1" to="-1"/></connection></junction>`,
+  );
+
+  it('emits virtual attrs only for a virtual junction', () => {
+    expect(roundTrip(VIRTUAL)).toContain('mainRoad="1"');
+  });
+
+  it('drops stale virtual attrs when the type is switched away from virtual', () => {
+    const doc = parser.parse(VIRTUAL);
+    // Simulate a UI type switch that left the virtual attrs on the model.
+    doc.junctions[0].type = 'default';
+    const out = serializer.serializeFormatted(doc);
+    expect(out).not.toContain('mainRoad="1"');
+    expect(out).not.toContain('sStart="10"');
+    expect(out).not.toContain('sEnd="20"');
+    expect(out).not.toContain('orientation="+"');
+  });
+});
+
+describe('connection emit tightening', () => {
+  it('a direct-junction connection emits no connectingRoad="" and preserves @linkedRoad', () => {
+    const xml = odrWithJunction(
+      `<junction id="9" name="j" type="direct"><connection id="0" incomingRoad="1" linkedRoad="2" contactPoint="start"><laneLink from="-1" to="-1"/></connection></junction>`,
+    );
+    const out = roundTrip(xml);
+    expect(out).not.toContain('connectingRoad=""');
+    expect(out).toContain('linkedRoad="2"');
+    // @linkedRoad rides through extra and round-trips.
+    expect(parser.parse(out).junctions[0].connections[0].extra?.attrs).toMatchObject({
+      linkedRoad: '2',
+    });
+  });
+});
+
 describe('crossSectionSurface (Ex_CrossSectionSurface fixture)', () => {
   const src = read('Ex_CrossSectionSurface_CrossFall_LeftTurn_1.xodr');
 

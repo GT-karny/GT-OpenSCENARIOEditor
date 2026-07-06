@@ -106,7 +106,7 @@ function expand(
         if (ll.from !== exitLaneId) continue;
         // Enter connecting road at the incoming-side end
         const crEntrySide: RoadSide =
-          c.connection.contactPoint === 'start' ? 'predecessor' : 'successor';
+          (c.connection.contactPoint ?? 'start') === 'start' ? 'predecessor' : 'successor';
         const crEntryS = contactEndS(c.connectingRoad, crEntrySide);
         results.push({
           nextRoadId: c.connectingRoad.id,
