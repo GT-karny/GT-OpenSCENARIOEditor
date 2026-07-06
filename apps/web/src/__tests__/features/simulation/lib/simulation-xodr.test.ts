@@ -48,26 +48,26 @@ beforeEach(() => {
 });
 
 describe('getSimulationXodr', () => {
-  it('returns the verbatim text when the cache is valid for the current revision (not degraded)', () => {
+  it('returns the verbatim text when the cache is valid for the current revision', () => {
     h.storeState.roadNetworkRawXml = { text: RAW, validForRevision: 5 };
     h.storeState.roadNetwork = { some: 'model' };
     h.revision = 5;
 
     const result = getSimulationXodr();
 
-    expect(result).toEqual({ xml: RAW, degraded: false });
+    expect(result).toEqual({ xml: RAW });
     // Valid verbatim text wins — the serializer must not be invoked.
     expect(h.serializeFormatted).not.toHaveBeenCalled();
   });
 
-  it('re-serializes from the model when the revision has moved off the cache (degraded)', () => {
+  it('re-serializes from the model when the revision has moved off the cache (re-serialized)', () => {
     h.storeState.roadNetworkRawXml = { text: RAW, validForRevision: 5 };
     h.storeState.roadNetwork = { some: 'model' };
     h.revision = 6; // an edit moved the history position
 
     const result = getSimulationXodr();
 
-    expect(result).toEqual({ xml: MODEL, degraded: true });
+    expect(result).toEqual({ xml: MODEL });
     expect(h.serializeFormatted).toHaveBeenCalledTimes(1);
     expect(h.serializeFormatted).toHaveBeenCalledWith(h.storeState.roadNetwork);
   });
@@ -76,33 +76,33 @@ describe('getSimulationXodr', () => {
     h.storeState.roadNetworkRawXml = { text: RAW, validForRevision: 5 };
     h.storeState.roadNetwork = { some: 'model' };
 
-    // Edited away from the baseline → degraded, re-serialized.
+    // Edited away from the baseline → re-serialized.
     h.revision = 6;
-    expect(getSimulationXodr()).toEqual({ xml: MODEL, degraded: true });
+    expect(getSimulationXodr()).toEqual({ xml: MODEL });
 
     // Undo back to the baseline revision → the same cached text is valid again.
     h.revision = 5;
-    expect(getSimulationXodr()).toEqual({ xml: RAW, degraded: false });
+    expect(getSimulationXodr()).toEqual({ xml: RAW });
   });
 
-  it('re-serializes from the model when there is no cache (degraded)', () => {
+  it('re-serializes from the model when there is no cache (re-serialized)', () => {
     h.storeState.roadNetworkRawXml = null;
     h.storeState.roadNetwork = { some: 'model' };
     h.revision = 3;
 
     const result = getSimulationXodr();
 
-    expect(result).toEqual({ xml: MODEL, degraded: true });
+    expect(result).toEqual({ xml: MODEL });
     expect(h.serializeFormatted).toHaveBeenCalledTimes(1);
   });
 
-  it('returns undefined xml when neither cache nor model exists (not degraded)', () => {
+  it('returns undefined xml when neither cache nor model exists', () => {
     h.storeState.roadNetworkRawXml = null;
     h.storeState.roadNetwork = null;
 
     const result = getSimulationXodr();
 
-    expect(result).toEqual({ xml: undefined, degraded: false });
+    expect(result).toEqual({ xml: undefined });
     expect(h.serializeFormatted).not.toHaveBeenCalled();
   });
 });

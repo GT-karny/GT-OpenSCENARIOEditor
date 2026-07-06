@@ -67,10 +67,7 @@ export function SimulationButtons({ compact }: { compact?: boolean }) {
       const doc = storeApi.getState().document;
       const serializer = new XoscSerializer();
       const xml = serializer.serializeFormatted(doc);
-      const { xml: xodrXml, degraded: xodrDegraded } = getSimulationXodr();
-      if (xodrDegraded) {
-        toast.warning(t('simulation.degradedRoad'));
-      }
+      const { xml: xodrXml } = getSimulationXodr();
 
       const hasCatalogLocations = Object.values(doc.catalogLocations).some(
         (loc) => loc?.directory,

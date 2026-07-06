@@ -6,15 +6,15 @@ import { getOpenDriveStoreApi } from '../../../hooks/use-opendrive-store';
 /**
  * Result of resolving the OpenDRIVE payload for a simulation run.
  *
- * `degraded` is true when the verbatim editor XML was not valid for the current
- * model and we re-serialized from the parsed road model instead. Callers must
- * surface a warning when `degraded` is true so a re-derived road is never used
- * silently (danger sequence #2 permanent fix — this warning stays until the
- * OpenDRIVE 1.9-P2 lossless round-trip lands; do not remove it).
+ * Historically this also carried a flag that toasted a warning when the
+ * verbatim editor XML had to be re-serialized from the parsed model. That
+ * warning was removed on 2026-07-07 by owner decision: OpenDRIVE 1.9-P2 closed
+ * the known re-serialization losses, so the re-serialized path is no longer a
+ * lossy fallback worth warning about. The resolution below is unchanged; only
+ * the warning semantics are gone.
  */
 export interface SimulationXodr {
   xml: string | undefined;
-  degraded: boolean;
 }
 
 /** Live OpenDRIVE command-history revision. */
@@ -53,19 +53,17 @@ export function getValidRoadXml(): string | null {
  *  1. Verbatim editor XML — the authoritative, on-disk-equivalent source, used
  *     as-is while it is still valid for the current revision.
  *  2. Parsed model (`roadNetwork`) — re-serialized on the fly when the verbatim
- *     text is invalid for the current revision. Flagged `degraded` so the caller
- *     can warn.
- *  3. Neither — no road network is loaded; returns `undefined` (not degraded).
+ *     text is invalid for the current revision.
+ *  3. Neither — no road network is loaded; returns `undefined`.
  */
 export function getSimulationXodr(): SimulationXodr {
   const raw = getValidRoadXml();
-  if (raw !== null) return { xml: raw, degraded: false };
+  if (raw !== null) return { xml: raw };
 
   const { roadNetwork } = useEditorStore.getState();
   if (roadNetwork) {
-    const xml = new XodrSerializer().serializeFormatted(roadNetwork);
-    return { xml, degraded: true };
+    return { xml: new XodrSerializer().serializeFormatted(roadNetwork) };
   }
 
-  return { xml: undefined, degraded: false };
+  return { xml: undefined };
 }

@@ -70,15 +70,6 @@ const PASSTHROUGH_XOSC_NAME = 'e2e-vj-passthrough.xosc';
 const PASSTHROUGH_XOSC_REL = `xosc/${PASSTHROUGH_XOSC_NAME}`;
 
 /**
- * Stable substring of the degraded-road warning
- * (packages/i18n .../common.ts `simulation.degradedRoad`). It is toasted
- * synchronously at Run when the raw xodr text was lost and the sim payload had
- * to be re-serialized. With the rawXml passthrough, an unedited road never
- * degrades, so this must NOT appear.
- */
-const DEGRADED_ROAD_SUBSTRING = 'Regenerating the edited road data for simulation';
-
-/**
  * Stable substring of INCLUDE_UNSUPPORTED_MESSAGE
  * (apps/web/src/lib/wasm/sim-error.ts). Kept as a substring so incidental
  * wording tweaks around it don't break the assertion, while still proving the
@@ -282,15 +273,15 @@ test.describe('OpenDRIVE 1.9 support', () => {
   }
 
   // 1.9-P1 Stage 3-D: opening a road, visiting the Road Network editor, and
-  // running WITHOUT editing must keep the verbatim xodr flowing to the simulator
-  // — i.e. the "degraded / re-serialized road" warning must NOT fire. Validity
-  // is revision-derived (simulation-xodr.ts): entering Road Network mode
-  // re-stamps roadNetworkRawXml.validForRevision at the current OpenDRIVE
+  // running WITHOUT editing keeps the verbatim xodr flowing to the simulator.
+  // Validity is revision-derived (simulation-xodr.ts): entering Road Network
+  // mode re-stamps roadNetworkRawXml.validForRevision at the current OpenDRIVE
   // command-history revision instead of clearing the cache, so an unedited
   // visit (or an undo back to the load baseline) keeps/restores the lossless
-  // verbatim path. Before this, entering road mode nulled roadNetworkXml
-  // outright and every run degraded silently.
-  test('keeps raw xodr passthrough after visiting road mode unedited (no degraded warning)', async ({
+  // verbatim path. (The degraded-road warning that used to guard the
+  // re-serialize fallback was removed 2026-07-07 by owner decision after 1.9-P2
+  // closed the known losses, so this pins a clean run, not the warning's absence.)
+  test('keeps raw xodr passthrough after visiting road mode unedited (simulates cleanly)', async ({
     page,
     request,
   }) => {
@@ -310,11 +301,11 @@ test.describe('OpenDRIVE 1.9 support', () => {
     await expect(page.getByText(/\d+ roads?/).first()).toBeVisible({ timeout: 30_000 });
     await enterScenarioMode(page);
 
-    // Run: the degraded-road warning fires synchronously at click if the raw
-    // text was lost. It must not appear — the unedited road passes through.
+    // The unedited road passes through verbatim and simulates: playback is
+    // reached with no error.
     await page.getByRole('button', { name: /Run|実行/ }).click();
-    await page.waitForTimeout(3_000);
-    await expect(page.getByText(DEGRADED_ROAD_SUBSTRING)).toHaveCount(0);
+    await expect(page.getByTestId('playback-controls')).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByTestId('status-bar')).not.toContainText(/Error|エラー/);
   });
 
   // Phase 2 (explicit modeling): junction @type is now a 4-value union with

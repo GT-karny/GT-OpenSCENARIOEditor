@@ -176,7 +176,7 @@ export function useAutosave(): UseAutosaveResult {
       // Mirror the .xodr open path: the RoadNetwork editor effect syncs this
       // into the opendrive-engine store from editorStore.roadNetwork. A recovered
       // snapshot carries no verbatim text, so clear the raw cache — simulation
-      // uses the re-serialized (degraded) path until the next explicit save.
+      // uses the re-serialized path until the next explicit save.
       setOpenDrive: (document) => {
         useEditorStore.getState().setRoadNetwork(document);
         useEditorStore.getState().setRoadNetworkRawXml(null);

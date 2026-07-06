@@ -107,10 +107,7 @@ export function BatchRunDialog({
   const handleStart = useCallback(async () => {
     if (variants.length === 0) return;
     const doc: ScenarioDocument = storeApi.getState().document;
-    const { xml: xodrData, degraded: xodrDegraded } = getSimulationXodr();
-    if (xodrDegraded) {
-      toast.warning(t('simulation.degradedRoad'));
-    }
+    const { xml: xodrData } = getSimulationXodr();
 
     const hasCatalogLocations = Object.values(doc.catalogLocations).some((loc) => loc?.directory);
     const catalogs = collectCatalogXmls();
@@ -178,10 +175,7 @@ export function BatchRunDialog({
   const handleReplay = useCallback(
     async (result: BatchRunResult) => {
       const doc: ScenarioDocument = storeApi.getState().document;
-      const { xml: xodrData, degraded: xodrDegraded } = getSimulationXodr();
-      if (xodrDegraded) {
-        toast.warning(t('simulation.degradedRoad'));
-      }
+      const { xml: xodrData } = getSimulationXodr();
       const catalogs = collectCatalogXmls();
       const { xml } = materializeVariant(doc, result.params);
       onOpenChange(false);

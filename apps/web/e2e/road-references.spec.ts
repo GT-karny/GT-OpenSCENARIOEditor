@@ -22,11 +22,11 @@ import { gotoEditor, dismissDiscardDialog } from './helpers';
  *     editor xodr text is valid only for the OpenDRIVE command-history
  *     revision it was captured at. Editing the road through the UI (bumping
  *     that revision) invalidates the cache, so Run re-serializes the parsed
- *     road model and warns (`simulation.degradedRoad`) instead of silently
- *     using stale/incorrect text. The edited road must still reach the
- *     simulator via the re-serialized fallback — it is degraded, not lost.
- *     (The unedited-road, non-degraded case is already covered by
- *     opendrive-1.9.spec.ts's rawXml-passthrough test.)
+ *     road model instead of using stale/incorrect text. The edited road must
+ *     still reach the simulator via the re-serialized path — it is not lost.
+ *     (The former degraded-road warning was removed 2026-07-07 by owner
+ *     decision after 1.9-P2 closed the known re-serialization losses; the
+ *     unedited-road passthrough case is covered by opendrive-1.9.spec.ts.)
  *
  * Loading/mode-switch mechanics mirror opendrive-1.9.spec.ts and
  * lht-default-rule.spec.ts: scenarios are seeded into the server-backed
@@ -50,7 +50,7 @@ const REFSYNC_XOSC_REL = `xosc/${REFSYNC_XOSC_NAME}`;
 const REFSYNC_RENAMED_BASENAME = 'e2e-refsync-renamed';
 const REFSYNC_RENAMED_XODR_REL = `xodr/${REFSYNC_RENAMED_BASENAME}.xodr`;
 
-/** Test-owned files for the degraded-road-simulates test. */
+/** Test-owned files for the edited-road re-serialize test. */
 const DEGRADED_XODR_REL = 'xodr/e2e-degraded.xodr';
 const DEGRADED_XOSC_NAME = 'e2e-degraded.xosc';
 const DEGRADED_XOSC_REL = `xosc/${DEGRADED_XOSC_NAME}`;
@@ -73,15 +73,6 @@ const LOGIC_FILE_SYNCED_SUBSTRING = 'Scenario road reference updated';
  * conversion to the xosc-relative form is silent, not a correction warning.
  */
 const LOGIC_FILE_CORRECTED_SUBSTRING = 'Scenario road reference was inconsistent';
-
-/**
- * Stable substring of `simulation.degradedRoad`
- * (packages/i18n .../common.ts). Toasted synchronously at Run
- * (SimulationButtons.tsx handleRun) when the raw xodr text was invalid for
- * the current OpenDRIVE revision and the payload had to be re-serialized
- * from the parsed road model.
- */
-const DEGRADED_ROAD_SUBSTRING = 'Regenerating the edited road data for simulation';
 
 /**
  * Minimal single-entity scenario whose RoadNetwork/LogicFile points at the
@@ -277,7 +268,7 @@ test.describe('Scenario/road reference sync', () => {
     expect(savedXml).toContain(`<LogicFile filepath="../${REFSYNC_RENAMED_XODR_REL}"`);
   });
 
-  test('an edited road still simulates via the degraded re-serialize path', async ({
+  test('an edited road still simulates correctly through the re-serialize path (no warning, playback reached)', async ({
     page,
     request,
   }) => {
@@ -314,13 +305,11 @@ test.describe('Scenario/road reference sync', () => {
     await enterScenarioMode(page);
     await page.getByRole('button', { name: /Run|実行/ }).click();
 
-    // Fires synchronously at the top of handleRun (SimulationButtons.tsx),
-    // well before any WASM work — no need for a long timeout.
-    await expect(page.getByText(DEGRADED_ROAD_SUBSTRING)).toBeVisible({ timeout: 5_000 });
-
-    // The edited road is degraded (re-serialized), not lost: simulation still
-    // reaches a running/completed state, mirroring wasm-simulation.spec.ts's
-    // playback-ready signal.
+    // The edited road is re-serialized (its verbatim cache was invalidated by
+    // the edit), not lost: simulation reaches a running/completed state,
+    // mirroring wasm-simulation.spec.ts's playback-ready signal. The former
+    // degraded-road warning was removed (2026-07-07, owner decision after
+    // 1.9-P2 closed the known losses), so a clean run — not a toast — is pinned.
     await expect(page.getByTestId('playback-controls')).toBeVisible({ timeout: 90_000 });
     await expect(page.getByTestId('status-bar')).not.toContainText(/Error|エラー/);
   });
