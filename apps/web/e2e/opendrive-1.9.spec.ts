@@ -26,15 +26,20 @@ import { gotoEditor, dismissDiscardDialog } from './helpers';
  *    used — same trick as file-operations.spec.ts). That menu item only exists
  *    in Road Network editor mode, so those tests switch modes first via the
  *    header toggle (same control lht-default-rule.spec.ts uses).
- *  - The include test needs the include-bearing xodr in `roadNetworkXml` so the
- *    Run button feeds it to the simulator. The Run button reads roadNetworkXml
- *    verbatim (no serialize fallback), and loading a .xodr through the Road
- *    Network *editor* clears roadNetworkXml (the odrStore→editorStore sync calls
- *    setRoadNetwork(doc) with no rawXml). The path that populates it cleanly is
- *    the project scenario-open auto-loader (openXoscFromProject → autoLoadXodr),
- *    exactly as the seeded scenarios do. So this test seeds a scenario + its
- *    include-bearing road into the sample project via the file API, then opens
- *    the scenario from the file tree — mirroring real project usage.
+ *  - The include test needs the include-bearing xodr to be the authoritative
+ *    verbatim source so the Run button feeds it to the simulator as-is. The
+ *    verbatim text lives in `roadNetworkRawXml: {text, validForRevision}` on
+ *    the editor store; simulation-xodr.ts's getSimulationXodr() only uses it
+ *    while `validForRevision` still matches the live OpenDRIVE command-history
+ *    revision — validity is revision-derived, not a clear/null flag. Entering
+ *    Road Network *editor* mode RE-STAMPS the cache at the current revision
+ *    rather than clearing it, so an unedited visit (or an undo back to the
+ *    load baseline) keeps/restores the lossless verbatim path. The path that
+ *    populates it cleanly in the first place is the project scenario-open
+ *    auto-loader (openXoscFromProject → autoLoadXodr), exactly as the seeded
+ *    scenarios do. So this test seeds a scenario + its include-bearing road
+ *    into the sample project via the file API, then opens the scenario from
+ *    the file tree — mirroring real project usage.
  *
  * The include message is asserted against the exact user-facing string from
  * apps/web/src/lib/wasm/sim-error.ts (INCLUDE_UNSUPPORTED_MESSAGE), via a stable
@@ -213,9 +218,9 @@ test.describe('OpenDRIVE 1.9 support', () => {
 
     await gotoEditor(page);
 
-    // Opening the scenario auto-loads its LogicFile road into roadNetworkXml
-    // (openXoscFromProject → autoLoadXodr), so the Run button can feed the
-    // include-bearing road to the simulator.
+    // Opening the scenario auto-loads its LogicFile road into
+    // roadNetworkRawXml (openXoscFromProject → autoLoadXodr), so the Run
+    // button can feed the include-bearing road to the simulator verbatim.
     await openScenarioFromTree(page, INCLUDE_XOSC_NAME);
     await expect(page.getByTestId('status-bar')).not.toContainText(
       /Entities:\s*0(?!\d)/,
@@ -263,9 +268,13 @@ test.describe('OpenDRIVE 1.9 support', () => {
 
   // 1.9-P1 Stage 3-D: opening a road, visiting the Road Network editor, and
   // running WITHOUT editing must keep the verbatim xodr flowing to the simulator
-  // — i.e. the "degraded / re-serialized road" warning must NOT fire. Before the
-  // rawXml passthrough, entering road mode nulled roadNetworkXml and every run
-  // degraded silently.
+  // — i.e. the "degraded / re-serialized road" warning must NOT fire. Validity
+  // is revision-derived (simulation-xodr.ts): entering Road Network mode
+  // re-stamps roadNetworkRawXml.validForRevision at the current OpenDRIVE
+  // command-history revision instead of clearing the cache, so an unedited
+  // visit (or an undo back to the load baseline) keeps/restores the lossless
+  // verbatim path. Before this, entering road mode nulled roadNetworkXml
+  // outright and every run degraded silently.
   test('keeps raw xodr passthrough after visiting road mode unedited (no degraded warning)', async ({
     page,
     request,
@@ -275,7 +284,7 @@ test.describe('OpenDRIVE 1.9 support', () => {
 
     await gotoEditor(page);
 
-    // Scenario open auto-loads the referenced road into roadNetworkXml.
+    // Scenario open auto-loads the referenced road into roadNetworkRawXml.
     await openScenarioFromTree(page, PASSTHROUGH_XOSC_NAME);
     await expect(page.getByTestId('status-bar')).not.toContainText(/Entities:\s*0(?!\d)/, {
       timeout: 10_000,
