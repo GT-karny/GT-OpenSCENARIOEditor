@@ -1,4 +1,5 @@
 import type { OdrJunction } from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { Badge } from '../../ui/badge';
@@ -15,16 +16,19 @@ export function OdrJunctionPropertyEditor({
   junction,
   onUpdate,
 }: OdrJunctionPropertyEditorProps) {
+  const { t } = useTranslation('common');
   return (
     <div className="space-y-4">
       {/* Section: Identity */}
       <div className="pb-3 border-b border-[var(--color-glass-edge)]">
         <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
-          Junction Properties
+          {t('odrProperty.junction.title')}
         </h3>
         <div className="space-y-2">
           <div className="grid gap-1">
-            <Label className="text-[var(--color-text-secondary)] text-xs">ID</Label>
+            <Label className="text-[var(--color-text-secondary)] text-xs">
+              {t('odrProperty.common.id')}
+            </Label>
             <Input
               value={junction.id}
               readOnly
@@ -32,7 +36,9 @@ export function OdrJunctionPropertyEditor({
             />
           </div>
           <div className="grid gap-1">
-            <Label className="text-[var(--color-text-secondary)] text-xs">Name</Label>
+            <Label className="text-[var(--color-text-secondary)] text-xs">
+              {t('odrProperty.common.name')}
+            </Label>
             <Input
               value={junction.name}
               onChange={(e) => onUpdate(junction.id, { name: e.target.value })}
@@ -40,7 +46,9 @@ export function OdrJunctionPropertyEditor({
             />
           </div>
           <div className="grid gap-1">
-            <Label className="text-[var(--color-text-secondary)] text-xs">Type</Label>
+            <Label className="text-[var(--color-text-secondary)] text-xs">
+              {t('odrProperty.common.type')}
+            </Label>
             <EnumSelect
               value={junction.type ?? 'default'}
               options={JUNCTION_TYPES}
@@ -54,14 +62,14 @@ export function OdrJunctionPropertyEditor({
       {/* Section: Connections */}
       <div className="pb-3 border-b border-[var(--color-glass-edge)]">
         <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
-          Connections
+          {t('odrProperty.junction.connectionsTitle')}
           <Badge variant="secondary" className="ml-2 text-[10px] py-0">
             {junction.connections.length}
           </Badge>
         </h3>
         {junction.connections.length === 0 ? (
           <p className="text-xs text-[var(--color-text-secondary)] italic">
-            No connections defined
+            {t('odrProperty.junction.noConnections')}
           </p>
         ) : (
           <div className="space-y-2">
@@ -79,11 +87,17 @@ export function OdrJunctionPropertyEditor({
 
                 {/* Connection details table */}
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                  <div className="text-[var(--color-text-secondary)]">Incoming Road</div>
+                  <div className="text-[var(--color-text-secondary)]">
+                    {t('odrProperty.junction.incomingRoad')}
+                  </div>
                   <div>{conn.incomingRoad}</div>
-                  <div className="text-[var(--color-text-secondary)]">Connecting Road</div>
+                  <div className="text-[var(--color-text-secondary)]">
+                    {t('odrProperty.junction.connectingRoad')}
+                  </div>
                   <div>{conn.connectingRoad}</div>
-                  <div className="text-[var(--color-text-secondary)]">Contact Point</div>
+                  <div className="text-[var(--color-text-secondary)]">
+                    {t('odrProperty.junction.contactPoint')}
+                  </div>
                   <div>{conn.contactPoint}</div>
                 </div>
 
@@ -91,7 +105,7 @@ export function OdrJunctionPropertyEditor({
                 {conn.laneLinks.length > 0 && (
                   <div className="mt-1">
                     <p className="text-[10px] text-[var(--color-text-secondary)] uppercase tracking-wider mb-1">
-                      Lane Links
+                      {t('odrProperty.junction.laneLinks')}
                     </p>
                     <div className="space-y-0.5">
                       {conn.laneLinks.map((ll, idx) => (
@@ -100,12 +114,12 @@ export function OdrJunctionPropertyEditor({
                           className="flex items-center gap-2 text-[11px] pl-2"
                         >
                           <span className="text-[var(--color-text-secondary)]">
-                            Lane {ll.from}
+                            {t('odrProperty.junction.lane', { id: ll.from })}
                           </span>
                           <span className="text-[var(--color-text-secondary)]">
                             &rarr;
                           </span>
-                          <span>Lane {ll.to}</span>
+                          <span>{t('odrProperty.junction.lane', { id: ll.to })}</span>
                         </div>
                       ))}
                     </div>

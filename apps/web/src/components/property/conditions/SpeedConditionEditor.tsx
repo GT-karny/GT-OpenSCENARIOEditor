@@ -1,5 +1,6 @@
 import type { Condition, ByEntityCondition, SpeedCondition, DirectionalDimension } from '@osce/shared';
 import { DIRECTIONAL_DIMENSIONS } from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { RuleSegmentedControl } from '../RuleSegmentedControl';
@@ -14,6 +15,7 @@ interface SpeedConditionEditorProps {
 }
 
 export function SpeedConditionEditor({ condition, onUpdate }: SpeedConditionEditorProps) {
+  const { t } = useTranslation('common');
   const inner = condition.condition as ByEntityCondition;
   const cond = inner.entityCondition as SpeedCondition;
   const { label: speedLabel, toDisplay, toInternal } = useSpeedUnit();
@@ -29,9 +31,13 @@ export function SpeedConditionEditor({ condition, onUpdate }: SpeedConditionEdit
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">Speed</p>
+      <p className="text-xs font-medium text-muted-foreground">
+        {t('conditionEditors.speed.title')}
+      </p>
       <div className="grid gap-1">
-        <Label className="text-[10px]">Value ({speedLabel})</Label>
+        <Label className="text-[10px]">
+          {t('conditionEditors.common.value')} ({speedLabel})
+        </Label>
         <div className="flex gap-1">
           <ParameterAwareInput
             elementId={condition.id}
@@ -49,7 +55,7 @@ export function SpeedConditionEditor({ condition, onUpdate }: SpeedConditionEdit
         </div>
       </div>
       <OptionalFieldWrapper
-        label="Direction"
+        label={t('conditionEditors.common.direction')}
         hasValue={cond.direction !== undefined}
         onClear={clearDirection}
       >

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { Condition, ByValueCondition, ParameterCondition } from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { RuleSegmentedControl } from '../RuleSegmentedControl';
@@ -14,6 +15,7 @@ interface ParameterConditionEditorProps {
 }
 
 export function ParameterConditionEditor({ condition, onUpdate }: ParameterConditionEditorProps) {
+  const { t } = useTranslation('common');
   const inner = condition.condition as ByValueCondition;
   const cond = inner.valueCondition as ParameterCondition;
   const parameters = useScenarioStore((s) => s.document.parameterDeclarations);
@@ -29,20 +31,22 @@ export function ParameterConditionEditor({ condition, onUpdate }: ParameterCondi
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">Parameter Condition</p>
+      <p className="text-xs font-medium text-muted-foreground">
+        {t('conditionEditors.parameter.title')}
+      </p>
       <div className="grid gap-1">
-        <Label className="text-[10px]">Parameter Ref</Label>
+        <Label className="text-[10px]">{t('conditionEditors.parameter.parameterRef')}</Label>
         <RefSelect
           value={cond.parameterRef}
           onValueChange={(v) => update({ parameterRef: v })}
           items={paramItems}
-          placeholder="Select parameter..."
-          emptyMessage="No parameters declared"
+          placeholder={t('conditionEditors.parameter.selectPlaceholder')}
+          emptyMessage={t('conditionEditors.parameter.emptyMessage')}
           className="h-7 text-xs"
         />
       </div>
       <div className="grid gap-1">
-        <Label className="text-[10px]">Value</Label>
+        <Label className="text-[10px]">{t('conditionEditors.common.value')}</Label>
         <div className="flex gap-1">
           <ParameterAwareInput
             value={cond.value}

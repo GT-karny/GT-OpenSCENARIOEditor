@@ -1,5 +1,6 @@
 import type { OdrSignal } from '@osce/shared';
 import type { SignalAssemblyMetadata } from '@osce/opendrive-engine';
+import { useTranslation } from '@osce/i18n';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { Button } from '../../ui/button';
@@ -42,6 +43,7 @@ export function OdrSignalPropertyEditor({
   onChangeArmAngle,
   onCreateAssembly,
 }: OdrSignalPropertyEditorProps) {
+  const { t } = useTranslation('common');
   const handleUpdate = (updates: Partial<OdrSignal>) => {
     onUpdate(roadId, signal.id, updates);
   };
@@ -65,7 +67,9 @@ export function OdrSignalPropertyEditor({
           {assembly.poleType === 'arm' && (
             <div className="grid grid-cols-2 gap-2 mt-2">
               <div className="grid gap-1">
-                <Label className="text-[var(--color-text-secondary)] text-xs">Arm Length (m)</Label>
+                <Label className="text-[var(--color-text-secondary)] text-xs">
+                  {t('odrProperty.signal.armLength')}
+                </Label>
                 <Input
                   type="number"
                   step="0.5"
@@ -76,7 +80,9 @@ export function OdrSignalPropertyEditor({
                 />
               </div>
               <div className="grid gap-1">
-                <Label className="text-[var(--color-text-secondary)] text-xs">Arm Angle (deg)</Label>
+                <Label className="text-[var(--color-text-secondary)] text-xs">
+                  {t('odrProperty.signal.armAngle')}
+                </Label>
                 <Input
                   type="number"
                   step="5"
@@ -101,7 +107,7 @@ export function OdrSignalPropertyEditor({
             className="w-full h-7 text-xs rounded-none"
             onClick={onCreateAssembly}
           >
-            Create Assembly
+            {t('odrProperty.signal.createAssembly')}
           </Button>
         </div>
       )}
@@ -109,11 +115,13 @@ export function OdrSignalPropertyEditor({
       {/* Section: Identity */}
       <div className="pb-3 border-b border-[var(--color-glass-edge)]">
         <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
-          Signal Properties
+          {t('odrProperty.signal.title')}
         </h3>
         <div className="space-y-2">
           <div className="grid gap-1">
-            <Label className="text-[var(--color-text-secondary)] text-xs">ID</Label>
+            <Label className="text-[var(--color-text-secondary)] text-xs">
+              {t('odrProperty.common.id')}
+            </Label>
             <Input
               value={signal.id}
               readOnly
@@ -121,7 +129,9 @@ export function OdrSignalPropertyEditor({
             />
           </div>
           <div className="grid gap-1">
-            <Label className="text-[var(--color-text-secondary)] text-xs">Name</Label>
+            <Label className="text-[var(--color-text-secondary)] text-xs">
+              {t('odrProperty.common.name')}
+            </Label>
             <Input
               value={signal.name ?? ''}
               onChange={(e) => handleUpdate({ name: e.target.value })}
@@ -134,7 +144,7 @@ export function OdrSignalPropertyEditor({
       {/* Section: Position */}
       <div className="pb-3 border-b border-[var(--color-glass-edge)]">
         <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
-          Position
+          {t('odrProperty.signal.positionTitle')}
         </h3>
         <div className="grid grid-cols-3 gap-2">
           <div className="grid gap-1">
@@ -173,11 +183,13 @@ export function OdrSignalPropertyEditor({
       {/* Section: Orientation & Behavior */}
       <div className="pb-3 border-b border-[var(--color-glass-edge)]">
         <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
-          Orientation
+          {t('odrProperty.signal.orientation')}
         </h3>
         <div className="space-y-2">
           <div className="grid gap-1">
-            <Label className="text-[var(--color-text-secondary)] text-xs">Orientation</Label>
+            <Label className="text-[var(--color-text-secondary)] text-xs">
+              {t('odrProperty.signal.orientation')}
+            </Label>
             <EnumSelect
               value={signal.orientation}
               options={SIGNAL_ORIENTATIONS}
@@ -197,7 +209,7 @@ export function OdrSignalPropertyEditor({
               htmlFor={`signal-dynamic-${signal.id}`}
               className="text-[var(--color-text-secondary)] text-xs cursor-pointer"
             >
-              Dynamic
+              {t('odrProperty.signal.dynamic')}
             </Label>
           </div>
         </div>
@@ -206,21 +218,25 @@ export function OdrSignalPropertyEditor({
       {/* Section: Classification */}
       <div className="pb-3 border-b border-[var(--color-glass-edge)]">
         <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
-          Classification
+          {t('odrProperty.signal.classificationTitle')}
         </h3>
         <div className="space-y-2">
           <div className="grid gap-1">
-            <Label className="text-[var(--color-text-secondary)] text-xs">Country</Label>
+            <Label className="text-[var(--color-text-secondary)] text-xs">
+              {t('odrProperty.signal.country')}
+            </Label>
             <Input
               value={signal.country ?? ''}
               onChange={(e) => handleUpdate({ country: e.target.value })}
               className="h-7 text-xs"
-              placeholder="e.g. OpenDRIVE, DEU, USA"
+              placeholder={t('odrProperty.signal.countryPlaceholder')}
             />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="grid gap-1">
-              <Label className="text-[var(--color-text-secondary)] text-xs">Type</Label>
+              <Label className="text-[var(--color-text-secondary)] text-xs">
+                {t('odrProperty.common.type')}
+              </Label>
               <Input
                 value={signal.type ?? ''}
                 onChange={(e) => handleUpdate({ type: e.target.value })}
@@ -228,7 +244,9 @@ export function OdrSignalPropertyEditor({
               />
             </div>
             <div className="grid gap-1">
-              <Label className="text-[var(--color-text-secondary)] text-xs">Subtype</Label>
+              <Label className="text-[var(--color-text-secondary)] text-xs">
+                {t('odrProperty.signal.subtype')}
+              </Label>
               <Input
                 value={signal.subtype ?? ''}
                 onChange={(e) => handleUpdate({ subtype: e.target.value })}
@@ -242,11 +260,13 @@ export function OdrSignalPropertyEditor({
       {/* Section: Value & Text */}
       <div className="pb-3 border-b border-[var(--color-glass-edge)]">
         <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
-          Value
+          {t('odrProperty.signal.value')}
         </h3>
         <div className="space-y-2">
           <div className="grid gap-1">
-            <Label className="text-[var(--color-text-secondary)] text-xs">Value</Label>
+            <Label className="text-[var(--color-text-secondary)] text-xs">
+              {t('odrProperty.signal.value')}
+            </Label>
             <Input
               type="number"
               value={signal.value ?? ''}
@@ -257,7 +277,9 @@ export function OdrSignalPropertyEditor({
             />
           </div>
           <div className="grid gap-1">
-            <Label className="text-[var(--color-text-secondary)] text-xs">Text</Label>
+            <Label className="text-[var(--color-text-secondary)] text-xs">
+              {t('odrProperty.signal.text')}
+            </Label>
             <Input
               value={signal.text ?? ''}
               onChange={(e) => handleUpdate({ text: e.target.value })}
@@ -270,11 +292,13 @@ export function OdrSignalPropertyEditor({
       {/* Section: Physical Dimensions */}
       <div className="pb-3 border-b border-[var(--color-glass-edge)]">
         <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
-          Physical Dimensions
+          {t('odrProperty.signal.dimensionsTitle')}
         </h3>
         <div className="grid grid-cols-2 gap-2">
           <div className="grid gap-1">
-            <Label className="text-[var(--color-text-secondary)] text-xs">Width (m)</Label>
+            <Label className="text-[var(--color-text-secondary)] text-xs">
+              {t('odrProperty.common.widthM')}
+            </Label>
             <Input
               type="number"
               step="0.01"
@@ -286,7 +310,9 @@ export function OdrSignalPropertyEditor({
             />
           </div>
           <div className="grid gap-1">
-            <Label className="text-[var(--color-text-secondary)] text-xs">Height (m)</Label>
+            <Label className="text-[var(--color-text-secondary)] text-xs">
+              {t('odrProperty.signal.height')}
+            </Label>
             <Input
               type="number"
               step="0.01"

@@ -4,6 +4,7 @@
  */
 
 import type { OdrRoad, OdrLaneSection } from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 
@@ -17,6 +18,7 @@ interface OdrLaneSectionPropertyEditorProps {
 }
 
 function SectionInfo({ road, section, index }: { road: OdrRoad; section: OdrLaneSection; index: number }) {
+  const { t } = useTranslation('common');
   const nextSection = road.lanes[index + 1];
   const sectionEnd = nextSection ? nextSection.s : road.length;
   const sectionLength = sectionEnd - section.s;
@@ -24,12 +26,17 @@ function SectionInfo({ road, section, index }: { road: OdrRoad; section: OdrLane
   return (
     <div className="px-3 py-2 border-b border-[var(--color-glass-edge)]">
       <div className="text-[11px] font-medium text-[var(--color-text-primary)] mb-1">
-        Section {index}
+        {t('odrProperty.laneSection.sectionTitle', { index })}
       </div>
       <div className="grid grid-cols-3 gap-x-2 gap-y-1 text-[10px] text-[var(--color-text-muted)]">
         <div>s: {section.s.toFixed(1)}m</div>
-        <div>Length: {sectionLength.toFixed(1)}m</div>
-        <div>Lanes: {section.leftLanes.length}L / {section.rightLanes.length}R</div>
+        <div>
+          {t('odrProperty.laneSection.lengthLabel')} {sectionLength.toFixed(1)}m
+        </div>
+        <div>
+          {t('odrProperty.laneSection.lanesLabel')} {section.leftLanes.length}L /{' '}
+          {section.rightLanes.length}R
+        </div>
       </div>
       {/* Lane list */}
       <div className="mt-1.5 space-y-0.5">
@@ -60,6 +67,7 @@ export function OdrLaneSectionPropertyEditor({
   onTaperLengthChange,
   onUseLaneOffsetChange,
 }: OdrLaneSectionPropertyEditorProps) {
+  const { t } = useTranslation('common');
   const sections = selectedSectionIndices
     .filter((i) => i >= 0 && i < road.lanes.length)
     .map((i) => ({ index: i, section: road.lanes[i] }));
@@ -67,7 +75,7 @@ export function OdrLaneSectionPropertyEditor({
   if (sections.length === 0) {
     return (
       <div className="p-3 text-xs text-[var(--color-text-muted)]">
-        No section selected. Hover over a road to see lane info.
+        {t('odrProperty.laneSection.noSectionSelected')}
       </div>
     );
   }
@@ -77,10 +85,12 @@ export function OdrLaneSectionPropertyEditor({
       {/* Taper settings */}
       <div className="px-3 py-2 border-b border-[var(--color-glass-edge)]">
         <div className="text-[11px] font-medium text-[var(--color-text-primary)] mb-1.5">
-          Taper Settings
+          {t('odrProperty.laneSection.taperSettingsTitle')}
         </div>
         <div className="flex items-center gap-2">
-          <Label className="text-[10px] text-[var(--color-text-muted)] w-20">Taper Length</Label>
+          <Label className="text-[10px] text-[var(--color-text-muted)] w-20">
+            {t('odrProperty.laneSection.taperLength')}
+          </Label>
           <Input
             type="number"
             value={taperLength}
@@ -104,7 +114,7 @@ export function OdrLaneSectionPropertyEditor({
             htmlFor="use-lane-offset"
             className="text-[10px] text-[var(--color-text-muted)] cursor-pointer"
           >
-            Generate laneOffset
+            {t('odrProperty.laneSection.generateLaneOffset')}
           </label>
         </div>
       </div>

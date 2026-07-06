@@ -1,4 +1,5 @@
 import type { Condition, ByValueCondition, SimulationTimeCondition } from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { RuleSegmentedControl } from '../RuleSegmentedControl';
@@ -10,6 +11,7 @@ interface SimulationTimeConditionEditorProps {
 }
 
 export function SimulationTimeConditionEditor({ condition, onUpdate }: SimulationTimeConditionEditorProps) {
+  const { t } = useTranslation('common');
   const inner = condition.condition as ByValueCondition;
   const cond = inner.valueCondition as SimulationTimeCondition;
 
@@ -19,9 +21,11 @@ export function SimulationTimeConditionEditor({ condition, onUpdate }: Simulatio
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">Simulation Time</p>
+      <p className="text-xs font-medium text-muted-foreground">
+        {t('conditionEditors.simulationTime.title')}
+      </p>
       <div className="grid gap-1">
-        <Label className="text-[10px]">Value (s)</Label>
+        <Label className="text-[10px]">{t('conditionEditors.common.value')} (s)</Label>
         <div className="flex gap-1">
           <ParameterAwareInput
             elementId={condition.id}

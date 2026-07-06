@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Condition, ByEntityCondition, ByValueCondition } from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
 import { Label } from '../../ui/label';
 import { conditionReplace } from '../lib/typed-updates';
 
@@ -9,6 +10,7 @@ interface GenericConditionEditorProps {
 }
 
 export function GenericConditionEditor({ condition, onUpdate }: GenericConditionEditorProps) {
+  const { t } = useTranslation('common');
   const inner = condition.condition;
 
   const innerBody = inner.kind === 'byEntity' ? inner.entityCondition : inner.valueCondition;
@@ -33,13 +35,15 @@ export function GenericConditionEditor({ condition, onUpdate }: GenericCondition
       }
       onUpdate(condition.id, conditionReplace(newConditionBody));
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Invalid JSON');
+      setError(e instanceof Error ? e.message : t('conditionEditors.generic.invalidJson'));
     }
   };
 
   return (
     <div className="space-y-2">
-      <Label className="text-xs text-muted-foreground">Condition Data (JSON)</Label>
+      <Label className="text-xs text-muted-foreground">
+        {t('conditionEditors.generic.dataLabel')}
+      </Label>
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}

@@ -7,6 +7,7 @@ import type {
   OdrGeometryParamPoly3,
 } from '@osce/shared';
 import { convertGeometryType } from '@osce/opendrive';
+import { useTranslation } from '@osce/i18n';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { Badge } from '../../ui/badge';
@@ -30,6 +31,7 @@ export function OdrGeometryPropertyEditor({
   index,
   onUpdate,
 }: OdrGeometryPropertyEditorProps) {
+  const { t } = useTranslation('common');
   const isReadOnly = geometry.type === 'poly3' || geometry.type === 'paramPoly3';
 
   const handleTypeChange = (newType: string) => {
@@ -44,7 +46,7 @@ export function OdrGeometryPropertyEditor({
       <div className="pb-3 border-b border-[var(--color-glass-edge)]">
         <div className="flex items-center gap-2 mb-3">
           <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider">
-            Geometry #{index}
+            {t('odrProperty.geometry.title', { index })}
           </h3>
           {isConvertible(geometry.type) ? (
             <Select value={geometry.type} onValueChange={handleTypeChange}>
@@ -66,7 +68,7 @@ export function OdrGeometryPropertyEditor({
           )}
           {isReadOnly && (
             <Badge variant="outline" className="text-[10px] py-0 text-[var(--color-text-secondary)]">
-              Read Only
+              {t('odrProperty.geometry.readOnly')}
             </Badge>
           )}
         </div>
@@ -106,7 +108,9 @@ export function OdrGeometryPropertyEditor({
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="grid gap-1">
-              <Label className="text-[var(--color-text-secondary)] text-xs">Heading (rad)</Label>
+              <Label className="text-[var(--color-text-secondary)] text-xs">
+                {t('odrProperty.geometry.heading')}
+              </Label>
               <Input
                 type="number"
                 step="0.01"
@@ -117,7 +121,9 @@ export function OdrGeometryPropertyEditor({
               />
             </div>
             <div className="grid gap-1">
-              <Label className="text-[var(--color-text-secondary)] text-xs">Length</Label>
+              <Label className="text-[var(--color-text-secondary)] text-xs">
+                {t('odrProperty.geometry.length')}
+              </Label>
               <Input
                 type="number"
                 step="0.01"
@@ -155,13 +161,16 @@ function ArcFields({
   geometry: OdrGeometryArc;
   onUpdate: (updates: OdrGeometryUpdate) => void;
 }) {
+  const { t } = useTranslation('common');
   return (
     <div className="pb-3 border-b border-[var(--color-glass-edge)]">
       <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
-        Arc Parameters
+        {t('odrProperty.geometry.arcParams')}
       </h3>
       <div className="grid gap-1">
-        <Label className="text-[var(--color-text-secondary)] text-xs">Curvature (1/m)</Label>
+        <Label className="text-[var(--color-text-secondary)] text-xs">
+          {t('odrProperty.geometry.curvature')}
+        </Label>
         <Input
           type="number"
           step="0.001"
@@ -181,14 +190,17 @@ function SpiralFields({
   geometry: OdrGeometrySpiral;
   onUpdate: (updates: OdrGeometryUpdate) => void;
 }) {
+  const { t } = useTranslation('common');
   return (
     <div className="pb-3 border-b border-[var(--color-glass-edge)]">
       <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
-        Spiral Parameters
+        {t('odrProperty.geometry.spiralParams')}
       </h3>
       <div className="grid grid-cols-2 gap-2">
         <div className="grid gap-1">
-          <Label className="text-[var(--color-text-secondary)] text-xs">Curv Start (1/m)</Label>
+          <Label className="text-[var(--color-text-secondary)] text-xs">
+            {t('odrProperty.geometry.curvStart')}
+          </Label>
           <Input
             type="number"
             step="0.001"
@@ -198,7 +210,9 @@ function SpiralFields({
           />
         </div>
         <div className="grid gap-1">
-          <Label className="text-[var(--color-text-secondary)] text-xs">Curv End (1/m)</Label>
+          <Label className="text-[var(--color-text-secondary)] text-xs">
+            {t('odrProperty.geometry.curvEnd')}
+          </Label>
           <Input
             type="number"
             step="0.001"
@@ -213,10 +227,11 @@ function SpiralFields({
 }
 
 function Poly3Fields({ geometry }: { geometry: OdrGeometryPoly3 }) {
+  const { t } = useTranslation('common');
   return (
     <div className="pb-3 border-b border-[var(--color-glass-edge)]">
       <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
-        Poly3 Coefficients
+        {t('odrProperty.geometry.poly3Coeffs')}
       </h3>
       <div className="grid grid-cols-2 gap-2">
         {(['a', 'b', 'c', 'd'] as const).map((coeff) => (
@@ -236,11 +251,12 @@ function Poly3Fields({ geometry }: { geometry: OdrGeometryPoly3 }) {
 }
 
 function ParamPoly3Fields({ geometry }: { geometry: OdrGeometryParamPoly3 }) {
+  const { t } = useTranslation('common');
   return (
     <div className="space-y-4">
       <div className="pb-3 border-b border-[var(--color-glass-edge)]">
         <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
-          ParamPoly3 U Coefficients
+          {t('odrProperty.geometry.paramPoly3UCoeffs')}
         </h3>
         <div className="grid grid-cols-2 gap-2">
           {(['aU', 'bU', 'cU', 'dU'] as const).map((coeff) => (
@@ -259,7 +275,7 @@ function ParamPoly3Fields({ geometry }: { geometry: OdrGeometryParamPoly3 }) {
 
       <div className="pb-3 border-b border-[var(--color-glass-edge)]">
         <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
-          ParamPoly3 V Coefficients
+          {t('odrProperty.geometry.paramPoly3VCoeffs')}
         </h3>
         <div className="grid grid-cols-2 gap-2">
           {(['aV', 'bV', 'cV', 'dV'] as const).map((coeff) => (

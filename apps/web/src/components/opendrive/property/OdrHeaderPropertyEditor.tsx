@@ -1,4 +1,5 @@
 import type { OdrHeader } from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 
@@ -8,16 +9,19 @@ interface OdrHeaderPropertyEditorProps {
 }
 
 export function OdrHeaderPropertyEditor({ header, onUpdate }: OdrHeaderPropertyEditorProps) {
+  const { t } = useTranslation('common');
   return (
     <div className="space-y-4">
       {/* Section: Identity */}
       <div className="pb-3 border-b border-[var(--color-glass-edge)]">
         <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
-          Document Header
+          {t('odrProperty.header.title')}
         </h3>
         <div className="space-y-2">
           <div className="grid gap-1">
-            <Label className="text-[var(--color-text-secondary)] text-xs">Name</Label>
+            <Label className="text-[var(--color-text-secondary)] text-xs">
+              {t('odrProperty.common.name')}
+            </Label>
             <Input
               value={header.name}
               onChange={(e) => onUpdate({ name: e.target.value })}
@@ -25,7 +29,9 @@ export function OdrHeaderPropertyEditor({ header, onUpdate }: OdrHeaderPropertyE
             />
           </div>
           <div className="grid gap-1">
-            <Label className="text-[var(--color-text-secondary)] text-xs">Date</Label>
+            <Label className="text-[var(--color-text-secondary)] text-xs">
+              {t('odrProperty.header.date')}
+            </Label>
             <Input
               value={header.date}
               onChange={(e) => onUpdate({ date: e.target.value })}
@@ -34,7 +40,9 @@ export function OdrHeaderPropertyEditor({ header, onUpdate }: OdrHeaderPropertyE
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="grid gap-1">
-              <Label className="text-[var(--color-text-secondary)] text-xs">Rev Major</Label>
+              <Label className="text-[var(--color-text-secondary)] text-xs">
+                {t('odrProperty.header.revMajor')}
+              </Label>
               <Input
                 value={header.revMajor}
                 readOnly
@@ -42,7 +50,9 @@ export function OdrHeaderPropertyEditor({ header, onUpdate }: OdrHeaderPropertyE
               />
             </div>
             <div className="grid gap-1">
-              <Label className="text-[var(--color-text-secondary)] text-xs">Rev Minor</Label>
+              <Label className="text-[var(--color-text-secondary)] text-xs">
+                {t('odrProperty.header.revMinor')}
+              </Label>
               <Input
                 value={header.revMinor}
                 readOnly
@@ -56,10 +66,12 @@ export function OdrHeaderPropertyEditor({ header, onUpdate }: OdrHeaderPropertyE
       {/* Section: Geo Reference */}
       <div className="pb-3 border-b border-[var(--color-glass-edge)]">
         <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
-          Geo Reference
+          {t('odrProperty.header.geoReferenceTitle')}
         </h3>
         <div className="grid gap-1">
-          <Label className="text-[var(--color-text-secondary)] text-xs">Projection</Label>
+          <Label className="text-[var(--color-text-secondary)] text-xs">
+            {t('odrProperty.header.projection')}
+          </Label>
           <textarea
             value={header.geoReference ?? ''}
             onChange={(e) => onUpdate({ geoReference: e.target.value })}
@@ -72,11 +84,13 @@ export function OdrHeaderPropertyEditor({ header, onUpdate }: OdrHeaderPropertyE
       {/* Section: Bounds */}
       <div className="pb-3 border-b border-[var(--color-glass-edge)]">
         <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
-          Bounds
+          {t('odrProperty.header.boundsTitle')}
         </h3>
         <div className="grid grid-cols-2 gap-2">
           <div className="grid gap-1">
-            <Label className="text-[var(--color-text-secondary)] text-xs">North</Label>
+            <Label className="text-[var(--color-text-secondary)] text-xs">
+              {t('odrProperty.header.north')}
+            </Label>
             <Input
               type="number"
               value={header.north ?? ''}
@@ -85,7 +99,9 @@ export function OdrHeaderPropertyEditor({ header, onUpdate }: OdrHeaderPropertyE
             />
           </div>
           <div className="grid gap-1">
-            <Label className="text-[var(--color-text-secondary)] text-xs">South</Label>
+            <Label className="text-[var(--color-text-secondary)] text-xs">
+              {t('odrProperty.header.south')}
+            </Label>
             <Input
               type="number"
               value={header.south ?? ''}
@@ -94,7 +110,9 @@ export function OdrHeaderPropertyEditor({ header, onUpdate }: OdrHeaderPropertyE
             />
           </div>
           <div className="grid gap-1">
-            <Label className="text-[var(--color-text-secondary)] text-xs">East</Label>
+            <Label className="text-[var(--color-text-secondary)] text-xs">
+              {t('odrProperty.header.east')}
+            </Label>
             <Input
               type="number"
               value={header.east ?? ''}
@@ -103,7 +121,9 @@ export function OdrHeaderPropertyEditor({ header, onUpdate }: OdrHeaderPropertyE
             />
           </div>
           <div className="grid gap-1">
-            <Label className="text-[var(--color-text-secondary)] text-xs">West</Label>
+            <Label className="text-[var(--color-text-secondary)] text-xs">
+              {t('odrProperty.header.west')}
+            </Label>
             <Input
               type="number"
               value={header.west ?? ''}

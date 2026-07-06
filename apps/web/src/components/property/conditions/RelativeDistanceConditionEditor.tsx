@@ -5,6 +5,7 @@ import type {
   RelativeDistanceType,
 } from '@osce/shared';
 import { RELATIVE_DISTANCE_TYPES as OSC_RELATIVE_DISTANCE_TYPES } from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefSelect } from '../EntityRefSelect';
@@ -26,6 +27,7 @@ export function RelativeDistanceConditionEditor({
   condition,
   onUpdate,
 }: RelativeDistanceConditionEditorProps) {
+  const { t } = useTranslation('common');
   const inner = condition.condition as ByEntityCondition;
   const cond = inner.entityCondition as RelativeDistanceCondition;
 
@@ -35,16 +37,18 @@ export function RelativeDistanceConditionEditor({
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">Relative Distance</p>
+      <p className="text-xs font-medium text-muted-foreground">
+        {t('conditionEditors.relativeDistance.title')}
+      </p>
       <div className="grid gap-1">
-        <Label className="text-[10px]">Entity Ref</Label>
+        <Label className="text-[10px]">{t('conditionEditors.common.entityRef')}</Label>
         <EntityRefSelect
           value={cond.entityRef}
           onValueChange={(v) => update({ entityRef: v })}
         />
       </div>
       <div className="grid gap-1">
-        <Label className="text-[10px]">Distance Type</Label>
+        <Label className="text-[10px]">{t('conditionEditors.relativeDistance.distanceType')}</Label>
         <SegmentedControl
           value={cond.relativeDistanceType}
           options={RELATIVE_DISTANCE_TYPES}
@@ -53,7 +57,7 @@ export function RelativeDistanceConditionEditor({
         />
       </div>
       <div className="grid gap-1">
-        <Label className="text-[10px]">Value (m)</Label>
+        <Label className="text-[10px]">{t('conditionEditors.common.value')} (m)</Label>
         <div className="flex gap-1">
           <ParameterAwareInput
             elementId={condition.id}
@@ -76,7 +80,7 @@ export function RelativeDistanceConditionEditor({
           checked={cond.freespace}
           onChange={(e) => update({ freespace: e.target.checked })}
         />
-        Freespace
+        {t('conditionEditors.common.freespace')}
       </label>
     </div>
   );

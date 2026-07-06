@@ -1,5 +1,6 @@
 import type { Condition, ByEntityCondition, TimeHeadwayCondition, CoordinateSystemCond } from '@osce/shared';
 import { COORDINATE_SYSTEMS } from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefSelect } from '../EntityRefSelect';
@@ -14,6 +15,7 @@ interface TimeHeadwayConditionEditorProps {
 }
 
 export function TimeHeadwayConditionEditor({ condition, onUpdate }: TimeHeadwayConditionEditorProps) {
+  const { t } = useTranslation('common');
   const inner = condition.condition as ByEntityCondition;
   const cond = inner.entityCondition as TimeHeadwayCondition;
 
@@ -29,16 +31,18 @@ export function TimeHeadwayConditionEditor({ condition, onUpdate }: TimeHeadwayC
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">Time Headway</p>
+      <p className="text-xs font-medium text-muted-foreground">
+        {t('conditionEditors.timeHeadway.title')}
+      </p>
       <div className="grid gap-1">
-        <Label className="text-[10px]">Entity Ref</Label>
+        <Label className="text-[10px]">{t('conditionEditors.common.entityRef')}</Label>
         <EntityRefSelect
           value={cond.entityRef}
           onValueChange={(v) => update({ entityRef: v })}
         />
       </div>
       <div className="grid gap-1">
-        <Label className="text-[10px]">Value (s)</Label>
+        <Label className="text-[10px]">{t('conditionEditors.common.value')} (s)</Label>
         <div className="flex gap-1">
           <ParameterAwareInput
             elementId={condition.id}
@@ -61,10 +65,10 @@ export function TimeHeadwayConditionEditor({ condition, onUpdate }: TimeHeadwayC
           checked={cond.freespace}
           onChange={(e) => update({ freespace: e.target.checked })}
         />
-        Freespace
+        {t('conditionEditors.common.freespace')}
       </label>
       <OptionalFieldWrapper
-        label="Coordinate System"
+        label={t('conditionEditors.common.coordinateSystem')}
         hasValue={cond.coordinateSystem !== undefined}
         onClear={() => clearField('coordinateSystem')}
       >
@@ -76,7 +80,7 @@ export function TimeHeadwayConditionEditor({ condition, onUpdate }: TimeHeadwayC
         />
       </OptionalFieldWrapper>
       <OptionalFieldWrapper
-        label="Along Route"
+        label={t('conditionEditors.common.alongRoute')}
         hasValue={cond.alongRoute !== undefined}
         onClear={() => clearField('alongRoute')}
       >
@@ -86,7 +90,7 @@ export function TimeHeadwayConditionEditor({ condition, onUpdate }: TimeHeadwayC
             checked={cond.alongRoute ?? false}
             onChange={(e) => update({ alongRoute: e.target.checked })}
           />
-          Enabled
+          {t('conditionEditors.common.enabled')}
         </label>
       </OptionalFieldWrapper>
     </div>

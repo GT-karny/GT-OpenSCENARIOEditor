@@ -1,4 +1,5 @@
 import type { Condition, ByEntityCondition, RelativeClearanceCondition } from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefMultiSelect } from '../EntityRefMultiSelect';
@@ -14,6 +15,7 @@ export function RelativeClearanceConditionEditor({
   condition,
   onUpdate,
 }: RelativeClearanceConditionEditorProps) {
+  const { t } = useTranslation('common');
   const inner = condition.condition as ByEntityCondition;
   const cond = inner.entityCondition as RelativeClearanceCondition;
 
@@ -23,7 +25,9 @@ export function RelativeClearanceConditionEditor({
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">Relative Clearance</p>
+      <p className="text-xs font-medium text-muted-foreground">
+        {t('conditionEditors.relativeClearance.title')}
+      </p>
       <div className="flex gap-4">
         <label className="flex items-center gap-2 text-xs">
           <input
@@ -31,7 +35,7 @@ export function RelativeClearanceConditionEditor({
             checked={cond.freeSpace}
             onChange={(e) => update({ freeSpace: e.target.checked })}
           />
-          Free Space
+          {t('conditionEditors.relativeClearance.freeSpace')}
         </label>
         <label className="flex items-center gap-2 text-xs">
           <input
@@ -39,18 +43,18 @@ export function RelativeClearanceConditionEditor({
             checked={cond.oppositeLanes}
             onChange={(e) => update({ oppositeLanes: e.target.checked })}
           />
-          Opposite Lanes
+          {t('conditionEditors.relativeClearance.oppositeLanes')}
         </label>
       </div>
       <div className="grid gap-1">
-        <Label className="text-[10px]">Entity Refs</Label>
+        <Label className="text-[10px]">{t('conditionEditors.relativeClearance.entityRefs')}</Label>
         <EntityRefMultiSelect
           value={cond.entityRefs}
           onValueChange={(refs) => update({ entityRefs: refs })}
         />
       </div>
       <OptionalFieldWrapper
-        label="Distances"
+        label={t('conditionEditors.relativeClearance.distances')}
         hasValue={cond.distanceForward !== undefined || cond.distanceBackward !== undefined}
         onClear={() => {
           const { distanceForward: _df, distanceBackward: _db, ...rest } = cond;
@@ -59,7 +63,7 @@ export function RelativeClearanceConditionEditor({
       >
         <div className="grid grid-cols-2 gap-2">
           <div className="grid gap-1">
-            <Label className="text-[10px]">Forward (m)</Label>
+            <Label className="text-[10px]">{t('conditionEditors.relativeClearance.forward')}</Label>
             <ParameterAwareInput
               elementId={condition.id}
               fieldName="distanceForward"
@@ -79,7 +83,7 @@ export function RelativeClearanceConditionEditor({
             />
           </div>
           <div className="grid gap-1">
-            <Label className="text-[10px]">Backward (m)</Label>
+            <Label className="text-[10px]">{t('conditionEditors.relativeClearance.backward')}</Label>
             <ParameterAwareInput
               elementId={condition.id}
               fieldName="distanceBackward"

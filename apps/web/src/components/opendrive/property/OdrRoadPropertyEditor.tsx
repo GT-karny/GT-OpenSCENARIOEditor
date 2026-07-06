@@ -1,4 +1,5 @@
 import type { OdrRoad, OdrRoadRule } from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { Badge } from '../../ui/badge';
@@ -30,6 +31,7 @@ interface OdrRoadPropertyEditorProps {
 }
 
 export function OdrRoadPropertyEditor({ road, onUpdate }: OdrRoadPropertyEditorProps) {
+  const { t } = useTranslation('common');
   const totalLength = road.planView.reduce((sum, g) => sum + g.length, 0);
   const isJunction = road.junction !== '-1' && road.junction !== '';
 
@@ -38,11 +40,13 @@ export function OdrRoadPropertyEditor({ road, onUpdate }: OdrRoadPropertyEditorP
       {/* Section: Basic Properties */}
       <div className="pb-3 border-b border-[var(--color-glass-edge)]">
         <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
-          Road Properties
+          {t('odrProperty.road.title')}
         </h3>
         <div className="space-y-2">
           <div className="grid gap-1">
-            <Label className="text-[var(--color-text-secondary)] text-xs">ID</Label>
+            <Label className="text-[var(--color-text-secondary)] text-xs">
+              {t('odrProperty.common.id')}
+            </Label>
             <Input
               value={road.id}
               readOnly
@@ -50,7 +54,9 @@ export function OdrRoadPropertyEditor({ road, onUpdate }: OdrRoadPropertyEditorP
             />
           </div>
           <div className="grid gap-1">
-            <Label className="text-[var(--color-text-secondary)] text-xs">Name</Label>
+            <Label className="text-[var(--color-text-secondary)] text-xs">
+              {t('odrProperty.common.name')}
+            </Label>
             <Input
               value={road.name}
               onChange={(e) => onUpdate(road.id, { name: e.target.value })}
@@ -58,7 +64,9 @@ export function OdrRoadPropertyEditor({ road, onUpdate }: OdrRoadPropertyEditorP
             />
           </div>
           <div className="grid gap-1">
-            <Label className="text-[var(--color-text-secondary)] text-xs">Rule</Label>
+            <Label className="text-[var(--color-text-secondary)] text-xs">
+              {t('odrProperty.common.rule')}
+            </Label>
             <EnumSelect
               value={road.rule ?? 'RHT'}
               options={ROAD_RULES}
@@ -68,10 +76,10 @@ export function OdrRoadPropertyEditor({ road, onUpdate }: OdrRoadPropertyEditorP
           </div>
           <div className="grid gap-1">
             <Label className="text-[var(--color-text-secondary)] text-xs">
-              Junction
+              {t('odrProperty.road.junctionField')}
               {isJunction && (
                 <Badge variant="secondary" className="ml-2 text-[10px] py-0">
-                  Linked
+                  {t('odrProperty.road.linked')}
                 </Badge>
               )}
             </Label>
@@ -85,7 +93,9 @@ export function OdrRoadPropertyEditor({ road, onUpdate }: OdrRoadPropertyEditorP
             />
           </div>
           <div className="grid gap-1">
-            <Label className="text-[var(--color-text-secondary)] text-xs">Total Length</Label>
+            <Label className="text-[var(--color-text-secondary)] text-xs">
+              {t('odrProperty.road.totalLength')}
+            </Label>
             <Input
               value={totalLength.toFixed(3)}
               readOnly
@@ -98,10 +108,12 @@ export function OdrRoadPropertyEditor({ road, onUpdate }: OdrRoadPropertyEditorP
       {/* Section: Road Type */}
       <div className="pb-3 border-b border-[var(--color-glass-edge)]">
         <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
-          Road Type
+          {t('odrProperty.road.typeTitle')}
         </h3>
         {(road.type ?? []).length === 0 ? (
-          <p className="text-xs text-[var(--color-text-secondary)] italic">No type entries defined</p>
+          <p className="text-xs text-[var(--color-text-secondary)] italic">
+            {t('odrProperty.road.noTypeEntries')}
+          </p>
         ) : (
           <div className="space-y-3">
             {(road.type ?? []).map((entry, idx) => (
@@ -112,7 +124,9 @@ export function OdrRoadPropertyEditor({ road, onUpdate }: OdrRoadPropertyEditorP
                   </Badge>
                 </div>
                 <div className="grid gap-1">
-                  <Label className="text-[var(--color-text-secondary)] text-xs">Type</Label>
+                  <Label className="text-[var(--color-text-secondary)] text-xs">
+                    {t('odrProperty.common.type')}
+                  </Label>
                   <EnumSelect
                     value={entry.type}
                     options={ROAD_TYPES}
@@ -128,7 +142,7 @@ export function OdrRoadPropertyEditor({ road, onUpdate }: OdrRoadPropertyEditorP
                   <div className="grid grid-cols-2 gap-2">
                     <div className="grid gap-1">
                       <Label className="text-[var(--color-text-secondary)] text-xs">
-                        Speed Max
+                        {t('odrProperty.road.speedMax')}
                       </Label>
                       <Input
                         type="number"
@@ -145,7 +159,9 @@ export function OdrRoadPropertyEditor({ road, onUpdate }: OdrRoadPropertyEditorP
                       />
                     </div>
                     <div className="grid gap-1">
-                      <Label className="text-[var(--color-text-secondary)] text-xs">Unit</Label>
+                      <Label className="text-[var(--color-text-secondary)] text-xs">
+                        {t('odrProperty.common.unit')}
+                      </Label>
                       <EnumSelect
                         value={entry.speed.unit}
                         options={SPEED_UNITS}
@@ -171,20 +187,20 @@ export function OdrRoadPropertyEditor({ road, onUpdate }: OdrRoadPropertyEditorP
       {/* Section: Road Link */}
       <div className="pb-3 border-b border-[var(--color-glass-edge)]">
         <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
-          Road Link
+          {t('odrProperty.road.linkTitle')}
         </h3>
         {road.link ? (
           <div className="space-y-2">
             {road.link.predecessor && (
               <div className="p-2 bg-[var(--color-glass-1)]">
                 <p className="text-[10px] text-[var(--color-text-secondary)] uppercase tracking-wider mb-1">
-                  Predecessor
+                  {t('odrProperty.road.predecessor')}
                 </p>
                 <div className="flex items-center gap-2 text-xs">
                   <Badge variant="outline" className="text-[10px] py-0">
                     {road.link.predecessor.elementType}
                   </Badge>
-                  <span>ID: {road.link.predecessor.elementId}</span>
+                  <span>{t('odrProperty.road.linkId', { id: road.link.predecessor.elementId })}</span>
                   {road.link.predecessor.contactPoint && (
                     <span className="text-[var(--color-text-secondary)]">
                       @ {road.link.predecessor.contactPoint}
@@ -196,13 +212,13 @@ export function OdrRoadPropertyEditor({ road, onUpdate }: OdrRoadPropertyEditorP
             {road.link.successor && (
               <div className="p-2 bg-[var(--color-glass-1)]">
                 <p className="text-[10px] text-[var(--color-text-secondary)] uppercase tracking-wider mb-1">
-                  Successor
+                  {t('odrProperty.road.successor')}
                 </p>
                 <div className="flex items-center gap-2 text-xs">
                   <Badge variant="outline" className="text-[10px] py-0">
                     {road.link.successor.elementType}
                   </Badge>
-                  <span>ID: {road.link.successor.elementId}</span>
+                  <span>{t('odrProperty.road.linkId', { id: road.link.successor.elementId })}</span>
                   {road.link.successor.contactPoint && (
                     <span className="text-[var(--color-text-secondary)]">
                       @ {road.link.successor.contactPoint}
@@ -212,11 +228,15 @@ export function OdrRoadPropertyEditor({ road, onUpdate }: OdrRoadPropertyEditorP
               </div>
             )}
             {!road.link.predecessor && !road.link.successor && (
-              <p className="text-xs text-[var(--color-text-secondary)] italic">No links defined</p>
+              <p className="text-xs text-[var(--color-text-secondary)] italic">
+                {t('odrProperty.road.noLinksDefined')}
+              </p>
             )}
           </div>
         ) : (
-          <p className="text-xs text-[var(--color-text-secondary)] italic">No links defined</p>
+          <p className="text-xs text-[var(--color-text-secondary)] italic">
+            {t('odrProperty.road.noLinksDefined')}
+          </p>
         )}
       </div>
     </div>

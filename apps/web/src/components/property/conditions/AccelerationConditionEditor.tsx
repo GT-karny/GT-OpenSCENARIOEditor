@@ -1,5 +1,6 @@
 import type { Condition, ByEntityCondition, AccelerationCondition, DirectionalDimension } from '@osce/shared';
 import { DIRECTIONAL_DIMENSIONS } from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { RuleSegmentedControl } from '../RuleSegmentedControl';
@@ -13,6 +14,7 @@ interface AccelerationConditionEditorProps {
 }
 
 export function AccelerationConditionEditor({ condition, onUpdate }: AccelerationConditionEditorProps) {
+  const { t } = useTranslation('common');
   const inner = condition.condition as ByEntityCondition;
   const cond = inner.entityCondition as AccelerationCondition;
 
@@ -27,9 +29,11 @@ export function AccelerationConditionEditor({ condition, onUpdate }: Acceleratio
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">Acceleration</p>
+      <p className="text-xs font-medium text-muted-foreground">
+        {t('conditionEditors.acceleration.title')}
+      </p>
       <div className="grid gap-1">
-        <Label className="text-[10px]">Value (m/s²)</Label>
+        <Label className="text-[10px]">{t('conditionEditors.common.value')} (m/s²)</Label>
         <div className="flex gap-1">
           <ParameterAwareInput
             elementId={condition.id}
@@ -47,7 +51,7 @@ export function AccelerationConditionEditor({ condition, onUpdate }: Acceleratio
         </div>
       </div>
       <OptionalFieldWrapper
-        label="Direction"
+        label={t('conditionEditors.common.direction')}
         hasValue={cond.direction !== undefined}
         onClear={clearDirection}
       >

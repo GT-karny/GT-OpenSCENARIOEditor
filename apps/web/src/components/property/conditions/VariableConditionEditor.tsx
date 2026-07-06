@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { Condition, ByValueCondition, VariableCondition } from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { RuleSegmentedControl } from '../RuleSegmentedControl';
@@ -14,6 +15,7 @@ interface VariableConditionEditorProps {
 }
 
 export function VariableConditionEditor({ condition, onUpdate }: VariableConditionEditorProps) {
+  const { t } = useTranslation('common');
   const inner = condition.condition as ByValueCondition;
   const cond = inner.valueCondition as VariableCondition;
   const variables = useScenarioStore((s) => s.document.variableDeclarations);
@@ -29,20 +31,22 @@ export function VariableConditionEditor({ condition, onUpdate }: VariableConditi
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">Variable Condition</p>
+      <p className="text-xs font-medium text-muted-foreground">
+        {t('conditionEditors.variable.title')}
+      </p>
       <div className="grid gap-1">
-        <Label className="text-[10px]">Variable Ref</Label>
+        <Label className="text-[10px]">{t('conditionEditors.variable.variableRef')}</Label>
         <RefSelect
           value={cond.variableRef}
           onValueChange={(v) => update({ variableRef: v })}
           items={varItems}
-          placeholder="Select variable..."
-          emptyMessage="No variables declared"
+          placeholder={t('conditionEditors.variable.selectPlaceholder')}
+          emptyMessage={t('conditionEditors.variable.emptyMessage')}
           className="h-7 text-xs"
         />
       </div>
       <div className="grid gap-1">
-        <Label className="text-[10px]">Value</Label>
+        <Label className="text-[10px]">{t('conditionEditors.common.value')}</Label>
         <div className="flex gap-1">
           <ParameterAwareInput
             value={cond.value}

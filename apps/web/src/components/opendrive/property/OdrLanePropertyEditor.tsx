@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { OdrLane, OdrLaneWidth, OdrRoadMark } from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
 import { Badge } from '../../ui/badge';
@@ -84,6 +85,7 @@ export function OdrLanePropertyEditor({
   sectionIdx,
   onUpdate,
 }: OdrLanePropertyEditorProps) {
+  const { t } = useTranslation('common');
   const [showAdvancedWidth, setShowAdvancedWidth] = useState(false);
 
   const handleUpdateLane = (updates: Partial<OdrLane>) => {
@@ -97,11 +99,13 @@ export function OdrLanePropertyEditor({
       {/* Section: Lane Identity */}
       <div className="pb-3 border-b border-[var(--color-glass-edge)]">
         <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
-          Lane Properties
+          {t('odrProperty.lane.title')}
         </h3>
         <div className="space-y-2">
           <div className="grid gap-1">
-            <Label className="text-[var(--color-text-secondary)] text-xs">ID</Label>
+            <Label className="text-[var(--color-text-secondary)] text-xs">
+              {t('odrProperty.common.id')}
+            </Label>
             <Input
               value={lane.id}
               readOnly
@@ -109,7 +113,9 @@ export function OdrLanePropertyEditor({
             />
           </div>
           <div className="grid gap-1">
-            <Label className="text-[var(--color-text-secondary)] text-xs">Type</Label>
+            <Label className="text-[var(--color-text-secondary)] text-xs">
+              {t('odrProperty.common.type')}
+            </Label>
             <EnumSelect
               value={lane.type}
               options={LANE_TYPES}
@@ -129,7 +135,7 @@ export function OdrLanePropertyEditor({
               htmlFor={`lane-level-${lane.id}`}
               className="text-[var(--color-text-secondary)] text-xs cursor-pointer"
             >
-              Level (keep lane level regardless of superelevation)
+              {t('odrProperty.lane.level')}
             </Label>
           </div>
         </div>
@@ -139,20 +145,22 @@ export function OdrLanePropertyEditor({
       <div className="pb-3 border-b border-[var(--color-glass-edge)]">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider">
-            Width
+            {t('odrProperty.lane.widthTitle')}
           </h3>
           <button
             type="button"
             onClick={() => setShowAdvancedWidth(!showAdvancedWidth)}
             className="text-[10px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
           >
-            {showAdvancedWidth ? 'Simple' : 'Advanced'}
+            {showAdvancedWidth
+              ? t('odrProperty.lane.simple')
+              : t('odrProperty.lane.advanced')}
           </button>
         </div>
         {!showAdvancedWidth ? (
           <div className="grid gap-1">
             <Label className="text-[var(--color-text-secondary)] text-xs">
-              Constant Width (m)
+              {t('odrProperty.lane.constantWidth')}
             </Label>
             <Input
               type="number"
@@ -197,7 +205,7 @@ export function OdrLanePropertyEditor({
             ))}
             {lane.width.length === 0 && (
               <p className="text-xs text-[var(--color-text-secondary)] italic">
-                No width entries defined
+                {t('odrProperty.lane.noWidthEntries')}
               </p>
             )}
           </div>
@@ -207,11 +215,11 @@ export function OdrLanePropertyEditor({
       {/* Section: Road Marks */}
       <div className="pb-3 border-b border-[var(--color-glass-edge)]">
         <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
-          Road Marks
+          {t('odrProperty.lane.roadMarksTitle')}
         </h3>
         {lane.roadMarks.length === 0 ? (
           <p className="text-xs text-[var(--color-text-secondary)] italic">
-            No road marks defined
+            {t('odrProperty.lane.noRoadMarksDefined')}
           </p>
         ) : (
           <div className="space-y-3">
@@ -235,7 +243,7 @@ export function OdrLanePropertyEditor({
       {lane.speed && lane.speed.length > 0 && (
         <div className="pb-3 border-b border-[var(--color-glass-edge)]">
           <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
-            Speed Limits
+            {t('odrProperty.lane.speedLimitsTitle')}
           </h3>
           <div className="space-y-2">
             {lane.speed.map((sp, idx) => (
@@ -245,7 +253,9 @@ export function OdrLanePropertyEditor({
                 </Badge>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="grid gap-1">
-                    <Label className="text-[var(--color-text-secondary)] text-xs">Max Speed</Label>
+                    <Label className="text-[var(--color-text-secondary)] text-xs">
+                      {t('odrProperty.lane.maxSpeed')}
+                    </Label>
                     <Input
                       type="number"
                       value={sp.max}
@@ -258,7 +268,9 @@ export function OdrLanePropertyEditor({
                     />
                   </div>
                   <div className="grid gap-1">
-                    <Label className="text-[var(--color-text-secondary)] text-xs">Unit</Label>
+                    <Label className="text-[var(--color-text-secondary)] text-xs">
+                      {t('odrProperty.common.unit')}
+                    </Label>
                     <EnumSelect
                       value={sp.unit}
                       options={SPEED_UNITS}
@@ -281,11 +293,13 @@ export function OdrLanePropertyEditor({
       {lane.link && (
         <div className="pb-3 border-b border-[var(--color-glass-edge)]">
           <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
-            Lane Link
+            {t('odrProperty.lane.linkTitle')}
           </h3>
           <div className="grid grid-cols-2 gap-2">
             <div className="grid gap-1">
-              <Label className="text-[var(--color-text-secondary)] text-xs">Predecessor ID</Label>
+              <Label className="text-[var(--color-text-secondary)] text-xs">
+                {t('odrProperty.lane.predecessorId')}
+              </Label>
               <Input
                 type="number"
                 value={lane.link.predecessorId ?? ''}
@@ -294,7 +308,9 @@ export function OdrLanePropertyEditor({
               />
             </div>
             <div className="grid gap-1">
-              <Label className="text-[var(--color-text-secondary)] text-xs">Successor ID</Label>
+              <Label className="text-[var(--color-text-secondary)] text-xs">
+                {t('odrProperty.lane.successorId')}
+              </Label>
               <Input
                 type="number"
                 value={lane.link.successorId ?? ''}
@@ -318,6 +334,7 @@ function RoadMarkEditor({
   index: number;
   onChange: (updated: OdrRoadMark) => void;
 }) {
+  const { t } = useTranslation('common');
   return (
     <div className="p-2 bg-[var(--color-glass-1)] space-y-2">
       <div className="flex items-center gap-2">
@@ -330,7 +347,9 @@ function RoadMarkEditor({
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div className="grid gap-1">
-          <Label className="text-[var(--color-text-secondary)] text-xs">Type</Label>
+          <Label className="text-[var(--color-text-secondary)] text-xs">
+            {t('odrProperty.common.type')}
+          </Label>
           <EnumSelect
             value={mark.type}
             options={ROAD_MARK_TYPES}
@@ -339,7 +358,9 @@ function RoadMarkEditor({
           />
         </div>
         <div className="grid gap-1">
-          <Label className="text-[var(--color-text-secondary)] text-xs">Color</Label>
+          <Label className="text-[var(--color-text-secondary)] text-xs">
+            {t('odrProperty.lane.color')}
+          </Label>
           <EnumSelect
             value={mark.color ?? 'standard'}
             options={ROAD_MARK_COLORS}
@@ -350,7 +371,9 @@ function RoadMarkEditor({
       </div>
       <div className="grid grid-cols-3 gap-2">
         <div className="grid gap-1">
-          <Label className="text-[var(--color-text-secondary)] text-xs">Width (m)</Label>
+          <Label className="text-[var(--color-text-secondary)] text-xs">
+            {t('odrProperty.common.widthM')}
+          </Label>
           <Input
             type="number"
             step="0.01"
@@ -362,7 +385,9 @@ function RoadMarkEditor({
           />
         </div>
         <div className="grid gap-1">
-          <Label className="text-[var(--color-text-secondary)] text-xs">Weight</Label>
+          <Label className="text-[var(--color-text-secondary)] text-xs">
+            {t('odrProperty.lane.weight')}
+          </Label>
           <EnumSelect
             value={mark.weight ?? 'standard'}
             options={ROAD_MARK_WEIGHTS}
@@ -371,7 +396,9 @@ function RoadMarkEditor({
           />
         </div>
         <div className="grid gap-1">
-          <Label className="text-[var(--color-text-secondary)] text-xs">Lane Change</Label>
+          <Label className="text-[var(--color-text-secondary)] text-xs">
+            {t('odrProperty.lane.laneChange')}
+          </Label>
           <EnumSelect
             value={mark.laneChange ?? 'none'}
             options={LANE_CHANGE_OPTIONS}

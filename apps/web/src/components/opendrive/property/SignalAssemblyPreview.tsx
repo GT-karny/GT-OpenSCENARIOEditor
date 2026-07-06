@@ -13,6 +13,7 @@ import {
   computeHeadHeight,
   renderSignalHeadToCanvas,
 } from '@osce/opendrive-engine';
+import { useTranslation } from '@osce/i18n';
 import { Button } from '../../ui/button';
 
 interface SignalAssemblyPreviewProps {
@@ -42,6 +43,7 @@ export function SignalAssemblyPreview({
   onRemoveHead,
   onChangePoleType,
 }: SignalAssemblyPreviewProps) {
+  const { t } = useTranslation('common');
   const isArm = assembly.poleType === 'arm';
 
   const heads = useMemo(
@@ -62,15 +64,15 @@ export function SignalAssemblyPreview({
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider">
-          Assembly Preview
+          {t('odrProperty.signalAssembly.previewTitle')}
         </h3>
         <select
           value={assembly.poleType}
           onChange={(e) => onChangePoleType(e.target.value as 'straight' | 'arm')}
           className="h-6 text-xs bg-[var(--color-glass-1)] text-[var(--color-text-primary)] border border-[var(--color-glass-edge)] rounded-none px-1"
         >
-          <option value="straight">Straight</option>
-          <option value="arm">Arm</option>
+          <option value="straight">{t('odrProperty.signalAssembly.straight')}</option>
+          <option value="arm">{t('odrProperty.signalAssembly.arm')}</option>
         </select>
       </div>
 
@@ -162,7 +164,7 @@ export function SignalAssemblyPreview({
             fill="var(--color-text-secondary)"
             fontSize={11}
           >
-            No signal heads
+            {t('odrProperty.signalAssembly.noSignalHeads')}
           </text>
         )}
       </svg>
@@ -174,7 +176,7 @@ export function SignalAssemblyPreview({
           className="flex-1 h-6 text-xs rounded-none"
           onClick={onAddHead}
         >
-          Add Head
+          {t('odrProperty.signalAssembly.addHead')}
         </Button>
         {selectedHeadId && (
           <Button
@@ -183,7 +185,7 @@ export function SignalAssemblyPreview({
             className="h-6 text-xs rounded-none text-[var(--color-danger)]"
             onClick={() => onRemoveHead(selectedHeadId)}
           >
-            Remove
+            {t('odrProperty.signalAssembly.remove')}
           </Button>
         )}
       </div>

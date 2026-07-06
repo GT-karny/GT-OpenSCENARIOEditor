@@ -1,4 +1,5 @@
 import type { Condition, ByEntityCondition, ReachPositionCondition } from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { PositionEditor } from '../PositionEditor';
@@ -10,6 +11,7 @@ interface ReachPositionConditionEditorProps {
 }
 
 export function ReachPositionConditionEditor({ condition, onUpdate }: ReachPositionConditionEditorProps) {
+  const { t } = useTranslation('common');
   const inner = condition.condition as ByEntityCondition;
   const cond = inner.entityCondition as ReachPositionCondition;
 
@@ -20,9 +22,11 @@ export function ReachPositionConditionEditor({ condition, onUpdate }: ReachPosit
   return (
     <div className="space-y-3">
       <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Reach Position</p>
+        <p className="text-xs font-medium text-muted-foreground">
+          {t('conditionEditors.reachPosition.title')}
+        </p>
         <div className="grid gap-1">
-          <Label className="text-[10px]">Tolerance (m)</Label>
+          <Label className="text-[10px]">{t('conditionEditors.common.tolerance')} (m)</Label>
           <ParameterAwareInput
             elementId={condition.id}
             fieldName="tolerance"

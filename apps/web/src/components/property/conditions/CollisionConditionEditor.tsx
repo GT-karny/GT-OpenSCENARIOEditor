@@ -4,6 +4,7 @@ import type {
   CollisionCondition,
   CollisionTarget,
 } from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefSelect } from '../EntityRefSelect';
@@ -21,6 +22,7 @@ export function CollisionConditionEditor({
   condition,
   onUpdate,
 }: CollisionConditionEditorProps) {
+  const { t } = useTranslation('common');
   const inner = condition.condition as ByEntityCondition;
   const cond = inner.entityCondition as CollisionCondition;
 
@@ -39,9 +41,11 @@ export function CollisionConditionEditor({
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">Collision</p>
+      <p className="text-xs font-medium text-muted-foreground">
+        {t('conditionEditors.collision.title')}
+      </p>
       <div className="grid gap-1">
-        <Label className="text-[10px]">Target Kind</Label>
+        <Label className="text-[10px]">{t('conditionEditors.collision.targetKind')}</Label>
         <SegmentedControl
           value={cond.target.kind}
           options={TARGET_KINDS}
@@ -51,7 +55,7 @@ export function CollisionConditionEditor({
       </div>
       {cond.target.kind === 'entity' && (
         <div className="grid gap-1">
-          <Label className="text-[10px]">Entity Ref</Label>
+          <Label className="text-[10px]">{t('conditionEditors.common.entityRef')}</Label>
           <EntityRefSelect
             value={cond.target.entityRef}
             onValueChange={(v) => updateTarget({ kind: 'entity', entityRef: v })}
@@ -60,7 +64,7 @@ export function CollisionConditionEditor({
       )}
       {cond.target.kind === 'objectType' && (
         <div className="grid gap-1">
-          <Label className="text-[10px]">Object Type</Label>
+          <Label className="text-[10px]">{t('conditionEditors.collision.objectType')}</Label>
           <ParameterAwareInput
             elementId={condition.id}
             fieldName="objectType"

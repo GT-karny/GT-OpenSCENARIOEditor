@@ -5,6 +5,7 @@ import type {
   TrafficSignalCondition,
   TrafficSignalController,
 } from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { RefSelect } from '../RefSelect';
@@ -23,6 +24,7 @@ export function TrafficSignalConditionEditor({
   condition,
   onUpdate,
 }: TrafficSignalConditionEditorProps) {
+  const { t } = useTranslation('common');
   const inner = condition.condition as ByValueCondition;
   const cond = inner.valueCondition as TrafficSignalCondition;
   const controllers = useScenarioStore((s) => s.document.roadNetwork.trafficSignals ?? EMPTY_SIGNALS);
@@ -46,23 +48,25 @@ export function TrafficSignalConditionEditor({
   return (
     <div className="space-y-3">
       <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Traffic Signal Condition</p>
+        <p className="text-xs font-medium text-muted-foreground">
+          {t('conditionEditors.trafficSignal.title')}
+        </p>
         <div className="grid gap-1">
-          <Label className="text-[10px]">Signal Name</Label>
+          <Label className="text-[10px]">{t('conditionEditors.trafficSignal.signalName')}</Label>
           <RefSelect
             value={cond.name}
             onValueChange={(v) => update({ name: v })}
             items={signalItems}
-            placeholder="Select signal..."
-            emptyMessage="No traffic signals defined"
+            placeholder={t('conditionEditors.trafficSignal.selectPlaceholder')}
+            emptyMessage={t('conditionEditors.trafficSignal.emptyMessage')}
             className="h-7 text-xs"
           />
         </div>
         <div className="grid gap-1">
-          <Label className="text-[10px]">State</Label>
+          <Label className="text-[10px]">{t('conditionEditors.trafficSignal.state')}</Label>
           <ParameterAwareInput
             value={cond.state}
-            placeholder="e.g. red, green, yellow"
+            placeholder={t('conditionEditors.trafficSignal.statePlaceholder')}
             onValueChange={(v) => update({ state: v })}
             acceptedTypes={['string']}
             className="h-7 text-xs"

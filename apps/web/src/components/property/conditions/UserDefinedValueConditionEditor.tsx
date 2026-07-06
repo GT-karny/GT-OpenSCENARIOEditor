@@ -1,4 +1,5 @@
 import type { Condition, ByValueCondition, UserDefinedValueCondition } from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { RuleSegmentedControl } from '../RuleSegmentedControl';
@@ -13,6 +14,7 @@ export function UserDefinedValueConditionEditor({
   condition,
   onUpdate,
 }: UserDefinedValueConditionEditorProps) {
+  const { t } = useTranslation('common');
   const inner = condition.condition as ByValueCondition;
   const cond = inner.valueCondition as UserDefinedValueCondition;
 
@@ -22,9 +24,11 @@ export function UserDefinedValueConditionEditor({
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">User Defined Value</p>
+      <p className="text-xs font-medium text-muted-foreground">
+        {t('conditionEditors.userDefinedValue.title')}
+      </p>
       <div className="grid gap-1">
-        <Label className="text-[10px]">Name</Label>
+        <Label className="text-[10px]">{t('conditionEditors.userDefinedValue.name')}</Label>
         <ParameterAwareInput
           value={cond.name}
           onValueChange={(v) => update({ name: v })}
@@ -33,7 +37,7 @@ export function UserDefinedValueConditionEditor({
         />
       </div>
       <div className="grid gap-1">
-        <Label className="text-[10px]">Value</Label>
+        <Label className="text-[10px]">{t('conditionEditors.common.value')}</Label>
         <div className="flex gap-1">
           <ParameterAwareInput
             value={cond.value}

@@ -1,5 +1,6 @@
 import type { Condition, ByEntityCondition, RelativeSpeedCondition, DirectionalDimension } from '@osce/shared';
 import { DIRECTIONAL_DIMENSIONS } from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { EntityRefSelect } from '../EntityRefSelect';
@@ -15,6 +16,7 @@ interface RelativeSpeedConditionEditorProps {
 }
 
 export function RelativeSpeedConditionEditor({ condition, onUpdate }: RelativeSpeedConditionEditorProps) {
+  const { t } = useTranslation('common');
   const inner = condition.condition as ByEntityCondition;
   const cond = inner.entityCondition as RelativeSpeedCondition;
   const { label: speedLabel, toDisplay, toInternal } = useSpeedUnit();
@@ -30,16 +32,20 @@ export function RelativeSpeedConditionEditor({ condition, onUpdate }: RelativeSp
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium text-muted-foreground">Relative Speed</p>
+      <p className="text-xs font-medium text-muted-foreground">
+        {t('conditionEditors.relativeSpeed.title')}
+      </p>
       <div className="grid gap-1">
-        <Label className="text-[10px]">Entity Ref</Label>
+        <Label className="text-[10px]">{t('conditionEditors.common.entityRef')}</Label>
         <EntityRefSelect
           value={cond.entityRef}
           onValueChange={(v) => update({ entityRef: v })}
         />
       </div>
       <div className="grid gap-1">
-        <Label className="text-[10px]">Value ({speedLabel})</Label>
+        <Label className="text-[10px]">
+          {t('conditionEditors.common.value')} ({speedLabel})
+        </Label>
         <div className="flex gap-1">
           <ParameterAwareInput
             elementId={condition.id}
@@ -57,7 +63,7 @@ export function RelativeSpeedConditionEditor({ condition, onUpdate }: RelativeSp
         </div>
       </div>
       <OptionalFieldWrapper
-        label="Direction"
+        label={t('conditionEditors.common.direction')}
         hasValue={cond.direction !== undefined}
         onClear={clearDirection}
       >

@@ -6,6 +6,7 @@ import type {
   RelativeDistanceType,
 } from '@osce/shared';
 import { COORDINATE_SYSTEMS as OSC_COORDINATE_SYSTEMS, RELATIVE_DISTANCE_TYPES as OSC_RELATIVE_DISTANCE_TYPES } from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
 import { Label } from '../../ui/label';
 import { ParameterAwareInput } from '../ParameterAwareInput';
 import { RuleSegmentedControl } from '../RuleSegmentedControl';
@@ -26,6 +27,7 @@ interface DistanceConditionEditorProps {
 }
 
 export function DistanceConditionEditor({ condition, onUpdate }: DistanceConditionEditorProps) {
+  const { t } = useTranslation('common');
   const inner = condition.condition as ByEntityCondition;
   const cond = inner.entityCondition as DistanceCondition;
 
@@ -42,9 +44,11 @@ export function DistanceConditionEditor({ condition, onUpdate }: DistanceConditi
   return (
     <div className="space-y-3">
       <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Distance</p>
+        <p className="text-xs font-medium text-muted-foreground">
+          {t('conditionEditors.distance.title')}
+        </p>
         <div className="grid gap-1">
-          <Label className="text-[10px]">Value (m)</Label>
+          <Label className="text-[10px]">{t('conditionEditors.common.value')} (m)</Label>
           <div className="flex gap-1">
             <ParameterAwareInput
               elementId={condition.id}
@@ -67,10 +71,10 @@ export function DistanceConditionEditor({ condition, onUpdate }: DistanceConditi
             checked={cond.freespace}
             onChange={(e) => update({ freespace: e.target.checked })}
           />
-          Freespace
+          {t('conditionEditors.common.freespace')}
         </label>
         <OptionalFieldWrapper
-          label="Coordinate System"
+          label={t('conditionEditors.common.coordinateSystem')}
           hasValue={cond.coordinateSystem !== undefined}
           onClear={() => clearField('coordinateSystem')}
         >
@@ -82,7 +86,7 @@ export function DistanceConditionEditor({ condition, onUpdate }: DistanceConditi
           />
         </OptionalFieldWrapper>
         <OptionalFieldWrapper
-          label="Relative Distance Type"
+          label={t('conditionEditors.common.relativeDistanceType')}
           hasValue={cond.relativeDistanceType !== undefined}
           onClear={() => clearField('relativeDistanceType')}
         >

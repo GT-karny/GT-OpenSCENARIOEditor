@@ -5,6 +5,7 @@ import type {
   StoryboardElementType,
   StoryboardElementState,
 } from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
 import { Label } from '../../ui/label';
 import { EnumSelect } from '../EnumSelect';
 import { StoryboardElementRefSelect } from '../StoryboardElementRefSelect';
@@ -35,6 +36,7 @@ interface StoryboardElementStateConditionEditorProps {
 }
 
 export function StoryboardElementStateConditionEditor({ condition, onUpdate }: StoryboardElementStateConditionEditorProps) {
+  const { t } = useTranslation('common');
   const inner = condition.condition as ByValueCondition;
   const cond = inner.valueCondition as StoryboardElementStateCondition;
 
@@ -45,9 +47,13 @@ export function StoryboardElementStateConditionEditor({ condition, onUpdate }: S
   return (
     <div className="space-y-3">
       <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">Storyboard Element State</p>
+        <p className="text-xs font-medium text-muted-foreground">
+          {t('conditionEditors.storyboardElementState.title')}
+        </p>
         <div className="grid gap-1">
-          <Label className="text-[10px]">Storyboard Element Ref</Label>
+          <Label className="text-[10px]">
+            {t('conditionEditors.storyboardElementState.elementRef')}
+          </Label>
           <StoryboardElementRefSelect
             value={cond.storyboardElementRef}
             onValueChange={(v) => update({ storyboardElementRef: v })}
@@ -56,7 +62,9 @@ export function StoryboardElementStateConditionEditor({ condition, onUpdate }: S
           />
         </div>
         <div className="grid gap-1">
-          <Label className="text-[10px]">Storyboard Element Type</Label>
+          <Label className="text-[10px]">
+            {t('conditionEditors.storyboardElementState.elementType')}
+          </Label>
           <EnumSelect
             value={cond.storyboardElementType}
             options={STORYBOARD_ELEMENT_TYPES}
@@ -65,7 +73,9 @@ export function StoryboardElementStateConditionEditor({ condition, onUpdate }: S
           />
         </div>
         <div className="grid gap-1">
-          <Label className="text-[10px]">State</Label>
+          <Label className="text-[10px]">
+            {t('conditionEditors.storyboardElementState.state')}
+          </Label>
           <EnumSelect
             value={cond.state}
             options={STORYBOARD_ELEMENT_STATES}
