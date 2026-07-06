@@ -15,6 +15,7 @@ import type {
   StoryboardElementState,
   TriggeringEntitiesRule,
 } from '../enums/osc-enums.js';
+import type { Assert, Equals } from './type-utils.js';
 
 // --- Trigger structure ---
 
@@ -64,6 +65,29 @@ export type EntityCondition =
   | CollisionCondition
   | OffroadCondition
   | RelativeClearanceCondition;
+
+/**
+ * Discriminators of {@link EntityCondition}, in union declaration order. Welded
+ * to the union by {@link _WeldEntityConditionTypes}.
+ */
+export const ENTITY_CONDITION_TYPES = [
+  'distance',
+  'relativeDistance',
+  'timeHeadway',
+  'timeToCollision',
+  'acceleration',
+  'speed',
+  'relativeSpeed',
+  'reachPosition',
+  'standStill',
+  'traveledDistance',
+  'endOfRoad',
+  'collision',
+  'offroad',
+  'relativeClearance',
+] as const;
+export type EntityConditionType = (typeof ENTITY_CONDITION_TYPES)[number];
+type _WeldEntityConditionTypes = Assert<Equals<EntityConditionType, EntityCondition['type']>>;
 
 export interface DistanceCondition {
   type: 'distance';
@@ -190,6 +214,22 @@ export type ValueCondition =
   | TrafficSignalCondition
   | TrafficSignalControllerCondition
   | UserDefinedValueCondition;
+
+/**
+ * Discriminators of {@link ValueCondition}, in union declaration order. Welded
+ * to the union by {@link _WeldValueConditionTypes}.
+ */
+export const VALUE_CONDITION_TYPES = [
+  'simulationTime',
+  'storyboardElementState',
+  'parameter',
+  'variable',
+  'trafficSignal',
+  'trafficSignalController',
+  'userDefinedValue',
+] as const;
+export type ValueConditionType = (typeof VALUE_CONDITION_TYPES)[number];
+type _WeldValueConditionTypes = Assert<Equals<ValueConditionType, ValueCondition['type']>>;
 
 export interface SimulationTimeCondition {
   type: 'simulationTime';

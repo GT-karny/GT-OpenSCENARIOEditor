@@ -2,7 +2,12 @@
  * Human-readable display strings for condition types.
  */
 
-import type { Condition, Trigger } from '@osce/shared';
+import type {
+  Condition,
+  Trigger,
+  EntityConditionType,
+  ValueConditionType,
+} from '@osce/shared';
 
 type Bindings = Record<string, Record<string, string>>;
 type ElementBindings = Record<string, string> | undefined;
@@ -15,7 +20,10 @@ function rv(value: number | string | undefined | null, field: string, eb: Elemen
   return String(value ?? '');
 }
 
-const conditionTypeLabels: Record<string, string> = {
+// Typed as Record<EntityConditionType | ValueConditionType, ...>: a new
+// condition discriminator without a label here (or a stale key) is a compile
+// error.
+const conditionTypeLabels: Record<EntityConditionType | ValueConditionType, string> = {
   distance: 'Distance',
   relativeDistance: 'Relative Distance',
   timeHeadway: 'Time Headway',
@@ -40,7 +48,9 @@ const conditionTypeLabels: Record<string, string> = {
 };
 
 export function getConditionTypeLabel(conditionType: string): string {
-  return conditionTypeLabels[conditionType] ?? conditionType;
+  // Tolerant lookup: unknown/legacy discriminators echo back as their raw
+  // string. The weld lives on the object literal above, not this read.
+  return (conditionTypeLabels as Record<string, string | undefined>)[conditionType] ?? conditionType;
 }
 
 export function getConditionSummary(condition: Condition, bindings?: Bindings): string {

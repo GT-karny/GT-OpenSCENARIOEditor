@@ -23,6 +23,7 @@ import type {
   LightMode,
   ReferenceContext,
 } from '../enums/osc-enums.js';
+import type { Assert, Equals } from './type-utils.js';
 
 // --- Top-level Action wrapper ---
 
@@ -55,6 +56,37 @@ export type PrivateAction =
   | LightStateAction
   | ConnectTrailerAction
   | DisconnectTrailerAction;
+
+/**
+ * Discriminators of {@link PrivateAction}, in union declaration order. Single
+ * source of truth for runtime consumers (palettes, defaults, feature registry).
+ * Welded to the union by {@link _WeldPrivateActionTypes}: adding a member to the
+ * union without adding it here — or vice versa — is a compile error.
+ */
+export const PRIVATE_ACTION_TYPES = [
+  'speedAction',
+  'speedProfileAction',
+  'laneChangeAction',
+  'laneOffsetAction',
+  'lateralDistanceAction',
+  'longitudinalDistanceAction',
+  'teleportAction',
+  'synchronizeAction',
+  'followTrajectoryAction',
+  'acquirePositionAction',
+  'routingAction',
+  'assignControllerAction',
+  'activateControllerAction',
+  'overrideControllerAction',
+  'visibilityAction',
+  'appearanceAction',
+  'animationAction',
+  'lightStateAction',
+  'connectTrailerAction',
+  'disconnectTrailerAction',
+] as const;
+export type PrivateActionType = (typeof PRIVATE_ACTION_TYPES)[number];
+type _WeldPrivateActionTypes = Assert<Equals<PrivateActionType, PrivateAction['type']>>;
 
 export interface SpeedAction {
   type: 'speedAction';
@@ -245,6 +277,21 @@ export type GlobalAction =
   | InfrastructureAction
   | TrafficAction;
 
+/**
+ * Discriminators of {@link GlobalAction}, in union declaration order. Welded to
+ * the union by {@link _WeldGlobalActionTypes}.
+ */
+export const GLOBAL_ACTION_TYPES = [
+  'environmentAction',
+  'entityAction',
+  'parameterAction',
+  'variableAction',
+  'infrastructureAction',
+  'trafficAction',
+] as const;
+export type GlobalActionType = (typeof GLOBAL_ACTION_TYPES)[number];
+type _WeldGlobalActionTypes = Assert<Equals<GlobalActionType, GlobalAction['type']>>;
+
 export interface EnvironmentAction {
   type: 'environmentAction';
   /** Inline environment. Mutually exclusive with `catalogReference`. */
@@ -341,6 +388,21 @@ export interface UserDefinedAction {
   type: 'userDefinedAction';
   customCommandAction: string;
 }
+
+/**
+ * All action discriminators: every {@link PrivateAction} and {@link GlobalAction}
+ * plus the `userDefinedAction` wrapper — i.e. the discriminators of
+ * {@link ScenarioAction.action}. Welded by {@link _WeldScenarioActionTypes}.
+ */
+export const SCENARIO_ACTION_TYPES = [
+  ...PRIVATE_ACTION_TYPES,
+  ...GLOBAL_ACTION_TYPES,
+  'userDefinedAction',
+] as const;
+export type ScenarioActionType = (typeof SCENARIO_ACTION_TYPES)[number];
+type _WeldScenarioActionTypes = Assert<
+  Equals<ScenarioActionType, (PrivateAction | GlobalAction | UserDefinedAction)['type']>
+>;
 
 // --- Supporting types ---
 

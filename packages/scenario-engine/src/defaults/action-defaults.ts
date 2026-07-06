@@ -4,10 +4,32 @@
  * Only required fields are set; optional fields are omitted.
  */
 
-import type { PrivateAction, GlobalAction, UserDefinedAction } from '@osce/shared';
+import type {
+  PrivateAction,
+  GlobalAction,
+  UserDefinedAction,
+  ScenarioActionType,
+} from '@osce/shared';
+import { SCENARIO_ACTION_TYPES } from '@osce/shared';
 
+/**
+ * Minimal valid inner action for a given discriminator, e.g. when switching an
+ * action's type in the editor. Accepts a raw `string` because call sites read
+ * the value from `<Select>` handlers (widened to string); an unknown value is
+ * rejected instead of silently defaulting. Delegates to {@link buildActionDefault},
+ * whose switch is compile-time exhaustive over {@link ScenarioActionType}.
+ */
 export function defaultActionByType(
   type: string,
+): PrivateAction | GlobalAction | UserDefinedAction {
+  if (!(SCENARIO_ACTION_TYPES as readonly string[]).includes(type)) {
+    throw new Error(`defaultActionByType: unknown action type "${type}"`);
+  }
+  return buildActionDefault(type as ScenarioActionType);
+}
+
+function buildActionDefault(
+  type: ScenarioActionType,
 ): PrivateAction | GlobalAction | UserDefinedAction {
   switch (type) {
     // --- Private: Longitudinal ---
@@ -135,7 +157,12 @@ export function defaultActionByType(
     case 'userDefinedAction':
       return { type: 'userDefinedAction', customCommandAction: '' };
 
-    default:
-      return { type: 'speedAction', dynamics: { dynamicsShape: 'step', dynamicsDimension: 'time', value: 0 }, target: { kind: 'absolute', value: 0 } };
+    default: {
+      // Exhaustiveness weld: adding a ScenarioActionType member without a case
+      // above makes this `never` assignment a compile error. Unreachable at
+      // runtime because defaultActionByType rejects non-canonical strings first.
+      const _exhaustive: never = type;
+      throw new Error(`buildActionDefault: unhandled action type "${_exhaustive}"`);
+    }
   }
 }

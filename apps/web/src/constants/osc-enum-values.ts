@@ -14,8 +14,23 @@ import type {
   ControllerType,
   ParameterType,
   RouteStrategy,
+  PrivateActionType,
+  GlobalActionType,
+  EntityConditionType,
+  ValueConditionType,
 } from '@osce/shared';
 import type { EventPriority } from '@osce/shared';
+
+// Canonical discriminator lists are the single source of truth in @osce/shared
+// (welded to the action/condition type unions there). Re-exported here so the
+// property editors keep a single import site; the subcategory/ordering lists
+// further down are welded against these via `satisfies`.
+export {
+  PRIVATE_ACTION_TYPES,
+  GLOBAL_ACTION_TYPES,
+  ENTITY_CONDITION_TYPES,
+  VALUE_CONDITION_TYPES,
+} from '@osce/shared';
 
 export const VEHICLE_CATEGORIES: readonly VehicleCategory[] = [
   'bicycle',
@@ -110,38 +125,6 @@ export const ROUTE_STRATEGIES: readonly RouteStrategy[] = [
   'shortest',
 ] as const;
 
-export const PRIVATE_ACTION_TYPES = [
-  'speedAction',
-  'speedProfileAction',
-  'laneChangeAction',
-  'laneOffsetAction',
-  'lateralDistanceAction',
-  'longitudinalDistanceAction',
-  'teleportAction',
-  'synchronizeAction',
-  'followTrajectoryAction',
-  'acquirePositionAction',
-  'routingAction',
-  'assignControllerAction',
-  'activateControllerAction',
-  'overrideControllerAction',
-  'visibilityAction',
-  'appearanceAction',
-  'animationAction',
-  'lightStateAction',
-  'connectTrailerAction',
-  'disconnectTrailerAction',
-] as const;
-
-export const GLOBAL_ACTION_TYPES = [
-  'environmentAction',
-  'entityAction',
-  'parameterAction',
-  'variableAction',
-  'infrastructureAction',
-  'trafficAction',
-] as const;
-
 export const PRIVATE_ACTION_SUBCATEGORIES = [
   {
     key: 'longitudinal',
@@ -173,8 +156,10 @@ export const PRIVATE_ACTION_SUBCATEGORIES = [
     key: 'trailer',
     types: ['connectTrailerAction', 'disconnectTrailerAction'],
   },
-] as const;
+] as const satisfies readonly { key: string; types: readonly PrivateActionType[] }[];
 
+// UI ordering for the global-action palette (distinct from GLOBAL_ACTION_TYPES
+// declaration order). Welded so every entry is a valid global discriminator.
 export const GLOBAL_ACTION_ORDER = [
   'environmentAction',
   'entityAction',
@@ -182,24 +167,7 @@ export const GLOBAL_ACTION_ORDER = [
   'infrastructureAction',
   'parameterAction',
   'variableAction',
-] as const;
-
-export const ENTITY_CONDITION_TYPES = [
-  'distance',
-  'relativeDistance',
-  'timeHeadway',
-  'timeToCollision',
-  'acceleration',
-  'speed',
-  'relativeSpeed',
-  'reachPosition',
-  'standStill',
-  'traveledDistance',
-  'endOfRoad',
-  'collision',
-  'offroad',
-  'relativeClearance',
-] as const;
+] as const satisfies readonly GlobalActionType[];
 
 export const CONDITION_SUBCATEGORIES = [
   { key: 'distance', types: ['distance', 'relativeDistance', 'reachPosition'] },
@@ -210,4 +178,26 @@ export const CONDITION_SUBCATEGORIES = [
   { key: 'signal', types: ['trafficSignal', 'trafficSignalController'] },
   { key: 'storyboard', types: ['storyboardElementState'] },
   { key: 'data', types: ['parameter', 'variable', 'userDefinedValue'] },
-] as const;
+] as const satisfies readonly {
+  key: string;
+  types: readonly (EntityConditionType | ValueConditionType)[];
+}[];
+
+/**
+ * Action discriminators intentionally omitted from
+ * {@link PRIVATE_ACTION_SUBCATEGORIES} (e.g. a type without a palette entry
+ * yet). Empty today. The completeness test treats the palette's expected member
+ * set as `PRIVATE_ACTION_TYPES` minus this set, so add a type here (with a
+ * reason) instead of leaving the palette silently incomplete.
+ */
+export const PALETTE_EXCLUDED_ACTION_TYPES: readonly PrivateActionType[] = [];
+
+/**
+ * Condition discriminators intentionally omitted from
+ * {@link CONDITION_SUBCATEGORIES}. Empty today; consumed by the completeness
+ * test the same way as {@link PALETTE_EXCLUDED_ACTION_TYPES}.
+ */
+export const PALETTE_EXCLUDED_CONDITION_TYPES: readonly (
+  | EntityConditionType
+  | ValueConditionType
+)[] = [];

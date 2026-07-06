@@ -2,7 +2,8 @@
  * Human-readable display strings for action types.
  */
 
-import type { PrivateAction, GlobalAction } from '@osce/shared';
+import type { PrivateAction, GlobalAction, ScenarioActionType } from '@osce/shared';
+import { GLOBAL_ACTION_TYPES } from '@osce/shared';
 
 type ElementBindings = Record<string, string> | undefined;
 
@@ -14,7 +15,10 @@ function rv(value: number | string | undefined | null, field: string, eb: Elemen
   return String(value ?? '');
 }
 
-const actionTypeLabels: Record<string, string> = {
+// Typed as Record<ScenarioActionType, ...>: a new action discriminator that
+// lacks a label here (or a stale key that is no longer a discriminator) is a
+// compile error.
+const actionTypeLabels: Record<ScenarioActionType, string> = {
   speedAction: 'Speed',
   speedProfileAction: 'Speed Profile',
   laneChangeAction: 'Lane Change',
@@ -45,7 +49,9 @@ const actionTypeLabels: Record<string, string> = {
 };
 
 export function getActionTypeLabel(actionType: string): string {
-  return actionTypeLabels[actionType] ?? actionType;
+  // Tolerant lookup: unknown/legacy discriminators echo back as their raw
+  // string. The weld lives on the object literal above, not this read.
+  return (actionTypeLabels as Record<string, string | undefined>)[actionType] ?? actionType;
 }
 
 export function getPrivateActionSummary(action: PrivateAction, eb?: ElementBindings): string {
@@ -133,5 +139,5 @@ export function getActionSummary(action: PrivateAction | GlobalAction | { type: 
 }
 
 function isGlobalAction(type: string): boolean {
-  return ['environmentAction', 'entityAction', 'parameterAction', 'variableAction', 'infrastructureAction', 'trafficAction'].includes(type);
+  return (GLOBAL_ACTION_TYPES as readonly string[]).includes(type);
 }

@@ -14,8 +14,15 @@ export type * from './types/editor.js';
 export type * from './types/esmini.js';
 export type * from './types/mcp.js';
 export type * from './types/project.js';
+export type * from './types/type-utils.js';
 // Runtime constant colocated with the project types (project.json schema version).
 export { PROJECT_META_SCHEMA_VERSION } from './types/project.js';
+// Canonical discriminator arrays colocated with the action/condition/position
+// unions (welded to those unions). `export type *` above strips these runtime
+// values, so re-export them explicitly (mirrors PROJECT_META_SCHEMA_VERSION).
+export { PRIVATE_ACTION_TYPES, GLOBAL_ACTION_TYPES, SCENARIO_ACTION_TYPES } from './types/actions.js';
+export { ENTITY_CONDITION_TYPES, VALUE_CONDITION_TYPES } from './types/triggers.js';
+export { POSITION_TYPES } from './types/positions.js';
 
 // Enums (value export: includes runtime const value arrays such as
 // COORDINATE_SYSTEMS / DYNAMICS_SHAPES / RULES used to derive UI option lists)

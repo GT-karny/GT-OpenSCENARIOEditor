@@ -6,6 +6,7 @@
 import type { RouteStrategy } from '../enums/osc-enums.js';
 import type { ParameterDeclaration } from './parameters.js';
 import type { Trajectory } from './actions.js';
+import type { Assert, Equals } from './type-utils.js';
 
 export type Position =
   | WorldPosition
@@ -18,6 +19,25 @@ export type Position =
   | RoutePosition
   | GeoPosition
   | TrajectoryPosition;
+
+/**
+ * Discriminators of {@link Position}, in union declaration order. Welded to the
+ * union by {@link _WeldPositionTypes}.
+ */
+export const POSITION_TYPES = [
+  'worldPosition',
+  'lanePosition',
+  'relativeLanePosition',
+  'roadPosition',
+  'relativeRoadPosition',
+  'relativeObjectPosition',
+  'relativeWorldPosition',
+  'routePosition',
+  'geoPosition',
+  'trajectoryPosition',
+] as const;
+export type PositionType = (typeof POSITION_TYPES)[number];
+type _WeldPositionTypes = Assert<Equals<PositionType, Position['type']>>;
 
 export interface WorldPosition {
   type: 'worldPosition';
