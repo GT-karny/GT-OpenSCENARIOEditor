@@ -59,6 +59,10 @@ export function StatusBar() {
   const isXodrDirty = useDocumentRegistry(
     (s) => s.current.roadNetwork !== s.saved.roadNetwork,
   );
+  const isCatalogDirty = useDocumentRegistry((s) => s.current.catalog !== s.saved.catalog);
+  const isDistributionDirty = useDocumentRegistry(
+    (s) => s.current.distribution !== s.saved.distribution,
+  );
   const simStatus = useSimulationStore((s) => s.status);
   const compatibilityProfile = useEditorStore((s) => s.preferences.compatibilityProfile);
   const speedUnit = useEditorStore((s) => s.preferences.speedUnit);
@@ -103,10 +107,10 @@ export function StatusBar() {
         )}
       </div>
       <div className="flex items-center gap-6">
-        {/* Per-document dirty indicators: surface unsaved state for BOTH the
-            focused and non-focused documents, so a dirty road network is visible
+        {/* Per-document dirty indicators: surface unsaved state for every
+            document independently, so a dirty road network or catalog is visible
             while editing a scenario (and vice versa). */}
-        {(isXoscDirty || isXodrDirty) && (
+        {(isXoscDirty || isXodrDirty || isCatalogDirty || isDistributionDirty) && (
           <span
             className="flex items-center gap-3"
             data-testid="dirty-indicators"
@@ -127,6 +131,24 @@ export function StatusBar() {
                 className="flex items-center gap-1 text-[var(--color-text-secondary)]"
               >
                 {t('labels.roadDoc')}
+                <span className="text-[var(--color-warning,#f59e0b)]">●</span>
+              </span>
+            )}
+            {isCatalogDirty && (
+              <span
+                data-testid="dirty-indicator-catalog"
+                className="flex items-center gap-1 text-[var(--color-text-secondary)]"
+              >
+                {t('labels.catalogDoc')}
+                <span className="text-[var(--color-warning,#f59e0b)]">●</span>
+              </span>
+            )}
+            {isDistributionDirty && (
+              <span
+                data-testid="dirty-indicator-distribution"
+                className="flex items-center gap-1 text-[var(--color-text-secondary)]"
+              >
+                {t('labels.distributionDoc')}
                 <span className="text-[var(--color-warning,#f59e0b)]">●</span>
               </span>
             )}

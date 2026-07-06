@@ -75,6 +75,8 @@ export const common = {
     fileSaved: 'ファイルを保存しました',
     scenarioDoc: 'シナリオ',
     roadDoc: '道路',
+    catalogDoc: 'カタログ',
+    distributionDoc: '分布',
     unsavedChanges: '未保存の変更',
     serializeFailed: 'シナリオのシリアライズに失敗しました',
     logicFileSynced: 'シナリオの道路参照を {{path}} に更新しました(未保存)。',

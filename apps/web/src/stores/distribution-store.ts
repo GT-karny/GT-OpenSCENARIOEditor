@@ -8,6 +8,7 @@ import type {
   StochasticDistributionType,
 } from '@osce/shared';
 import { generateId } from '@osce/shared';
+import { CommandHistory } from '@osce/scenario-engine';
 
 /**
  * The distribution mode selects which of the two mutually-exclusive XSD
@@ -60,6 +61,14 @@ function createEmptyDocument(mode: DistributionMode): ParameterValueDistribution
 export interface DistributionState {
   /** The current side-document, or null when no distribution has been created. */
   document: ParameterValueDistributionDocument | null;
+
+  /**
+   * Command history for undo/redo. Wave D only wires the instance so the
+   * document registry can derive dirty from its revision; the mutations are
+   * converted to commands in Wave E. With no commands executed, the revision
+   * stays 0 and the document reads clean — a harmless intermediate state.
+   */
+  getCommandHistory: () => CommandHistory;
 
   // --- Mode ---
   /**
@@ -144,8 +153,13 @@ function withDistribution(
   return { ...doc, distribution };
 }
 
+// One command history per store instance (mirrors scenario/catalog stores).
+const commandHistory = new CommandHistory();
+
 export const useDistributionStore = create<DistributionState>((set, get) => ({
   document: null,
+
+  getCommandHistory: () => commandHistory,
 
   getMode: () => get().document?.distribution.kind ?? 'deterministic',
 

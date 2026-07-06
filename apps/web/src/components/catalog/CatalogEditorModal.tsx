@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { useTranslation } from '@osce/i18n';
 import { Dialog, DialogContent, DialogTitle } from '../ui/dialog';
 import { useCatalogStore } from '../../stores/catalog-store';
+import { useDocumentRegistry } from '../../stores/document-registry';
 import { useCatalogOperations } from '../../hooks/use-catalog-operations';
 import { CatalogList } from './CatalogList';
 import { CatalogEntryList } from './CatalogEntryList';
@@ -12,7 +14,16 @@ export function CatalogEditorModal() {
   const editorOpen = useCatalogStore((s) => s.editorOpen);
   const closeEditor = useCatalogStore((s) => s.closeEditor);
   const selectedCatalogName = useCatalogStore((s) => s.selectedCatalogName);
+  const setFocusedOverride = useDocumentRegistry((s) => s.setFocusedOverride);
   const { loadCatalogFile, saveCatalogFile } = useCatalogOperations();
+
+  // While the modal is open the catalog is the focused document, so Ctrl+Z
+  // rewinds catalog edits (not the scenario behind the modal). Clear on close
+  // and on unmount so undo routing returns to the active editor view.
+  useEffect(() => {
+    setFocusedOverride(editorOpen ? 'catalog' : null);
+    return () => setFocusedOverride(null);
+  }, [editorOpen, setFocusedOverride]);
 
   return (
     <Dialog open={editorOpen} onOpenChange={(open) => { if (!open) closeEditor(); }}>

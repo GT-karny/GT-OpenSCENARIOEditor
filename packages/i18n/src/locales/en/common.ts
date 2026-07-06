@@ -75,6 +75,8 @@ export const common = {
     fileSaved: 'File saved',
     scenarioDoc: 'Scenario',
     roadDoc: 'Road',
+    catalogDoc: 'Catalogs',
+    distributionDoc: 'Distribution',
     unsavedChanges: 'Unsaved changes',
     serializeFailed: 'Failed to serialize scenario',
     logicFileSynced: 'Scenario road reference updated to {{path}} (unsaved).',

@@ -2,6 +2,9 @@ import { useEffect } from 'react';
 import { useScenarioStoreApi } from '../stores/use-scenario-store';
 import { useEditorStore } from '../stores/editor-store';
 import { useRouteEditStore } from '../stores/route-edit-store';
+import { useCatalogStore } from '../stores/catalog-store';
+import { useDistributionStore } from '../stores/distribution-store';
+import { getFocusedDocumentKind } from '../stores/document-registry';
 import { useFileOperations } from './use-file-operations';
 import { useElementDelete } from './use-element-delete';
 import { useCopyPaste } from './use-clipboard';
@@ -25,19 +28,39 @@ export function useKeyboardShortcuts() {
       if (ctrl && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
         if (!routeEditActive) {
-          if (isRoadNetwork) {
-            getOpenDriveStoreApi().getState().undo();
-          } else {
-            storeApi.getState().undo();
+          // Route undo to the focused document (a catalog modal / distribution
+          // affordance overrides editorMode; see getFocusedDocumentKind).
+          switch (getFocusedDocumentKind()) {
+            case 'catalog':
+              useCatalogStore.getState().undoCatalog();
+              break;
+            case 'roadNetwork':
+              getOpenDriveStoreApi().getState().undo();
+              break;
+            case 'distribution':
+              // Wave E converts distribution mutations to commands; routing to
+              // the stub history now is a harmless no-op (revision stays 0).
+              useDistributionStore.getState().getCommandHistory().undo();
+              break;
+            default:
+              storeApi.getState().undo();
           }
         }
       } else if (ctrl && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
         e.preventDefault();
         if (!routeEditActive) {
-          if (isRoadNetwork) {
-            getOpenDriveStoreApi().getState().redo();
-          } else {
-            storeApi.getState().redo();
+          switch (getFocusedDocumentKind()) {
+            case 'catalog':
+              useCatalogStore.getState().redoCatalog();
+              break;
+            case 'roadNetwork':
+              getOpenDriveStoreApi().getState().redo();
+              break;
+            case 'distribution':
+              useDistributionStore.getState().getCommandHistory().redo();
+              break;
+            default:
+              storeApi.getState().redo();
           }
         }
       } else if (ctrl && e.shiftKey && e.key === 'S') {

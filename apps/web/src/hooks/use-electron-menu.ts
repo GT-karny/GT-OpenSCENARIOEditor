@@ -2,6 +2,9 @@ import { useEffect } from 'react';
 import { useScenarioStoreApi } from '../stores/use-scenario-store';
 import { useEditorStore } from '../stores/editor-store';
 import { useProjectStore } from '../stores/project-store';
+import { useCatalogStore } from '../stores/catalog-store';
+import { useDistributionStore } from '../stores/distribution-store';
+import { getFocusedDocumentKind } from '../stores/document-registry';
 import { useFileOperations } from './use-file-operations';
 import { getOpenDriveStoreApi } from './use-opendrive-store';
 import { kindFromFileName } from '../lib/recent-files/recent-list';
@@ -74,17 +77,34 @@ export function useElectronMenu() {
           }
           break;
         case 'undo':
-          if (isRoadNetwork) {
-            getOpenDriveStoreApi().getState().undo();
-          } else {
-            storeApi.getState().undo();
+          // Route to the focused document (catalog modal / distribution override).
+          switch (getFocusedDocumentKind()) {
+            case 'catalog':
+              useCatalogStore.getState().undoCatalog();
+              break;
+            case 'roadNetwork':
+              getOpenDriveStoreApi().getState().undo();
+              break;
+            case 'distribution':
+              useDistributionStore.getState().getCommandHistory().undo();
+              break;
+            default:
+              storeApi.getState().undo();
           }
           break;
         case 'redo':
-          if (isRoadNetwork) {
-            getOpenDriveStoreApi().getState().redo();
-          } else {
-            storeApi.getState().redo();
+          switch (getFocusedDocumentKind()) {
+            case 'catalog':
+              useCatalogStore.getState().redoCatalog();
+              break;
+            case 'roadNetwork':
+              getOpenDriveStoreApi().getState().redo();
+              break;
+            case 'distribution':
+              useDistributionStore.getState().getCommandHistory().redo();
+              break;
+            default:
+              storeApi.getState().redo();
           }
           break;
       }
