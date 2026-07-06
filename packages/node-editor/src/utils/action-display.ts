@@ -45,6 +45,7 @@ const actionTypeLabels: Record<ScenarioActionType, string> = {
   variableAction: 'Variable',
   infrastructureAction: 'Infrastructure',
   trafficAction: 'Traffic',
+  setMonitorAction: 'Set Monitor',
   userDefinedAction: 'User Defined',
 };
 
@@ -125,6 +126,8 @@ export function getGlobalActionSummary(action: GlobalAction, eb?: ElementBinding
       return 'Infrastructure';
     case 'trafficAction':
       return 'Traffic';
+    case 'setMonitorAction':
+      return `Monitor ${action.monitorRef} = ${action.value}`;
   }
 }
 

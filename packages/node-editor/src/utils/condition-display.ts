@@ -38,6 +38,8 @@ const conditionTypeLabels: Record<EntityConditionType | ValueConditionType, stri
   collision: 'Collision',
   offroad: 'Offroad',
   relativeClearance: 'Relative Clearance',
+  angle: 'Angle',
+  relativeAngle: 'Relative Angle',
   simulationTime: 'Simulation Time',
   storyboardElementState: 'Element State',
   parameter: 'Parameter',
@@ -108,6 +110,10 @@ export function getConditionSummary(condition: Condition, bindings?: Bindings): 
         return `Offroad ${v(ec.duration, 'duration')}s`;
       case 'relativeClearance':
         return 'Relative Clearance';
+      case 'angle':
+        return `Angle ${ec.angleType} ${v(ec.angle, 'angle')}±${v(ec.angleTolerance, 'angleTolerance')}`;
+      case 'relativeAngle':
+        return `RelAngle to ${ec.entityRef} ${ec.angleType} ${v(ec.angle, 'angle')}`;
     }
   }
   return 'Unknown';

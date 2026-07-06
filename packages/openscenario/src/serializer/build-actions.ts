@@ -443,10 +443,19 @@ export function buildGlobalAction(action: GlobalAction, elementBindings: Record<
       };
 
     case 'trafficAction': {
-       
+
       const { type: _type, ...rest } = action;
       return { TrafficAction: rest };
     }
+
+    case 'setMonitorAction':
+      // XSD SetMonitorAction (v1.3): monitorRef + value attributes.
+      return {
+        SetMonitorAction: buildAttrs({
+          monitorRef: action.monitorRef,
+          value: action.value,
+        }),
+      };
   }
 }
 

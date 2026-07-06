@@ -152,6 +152,8 @@ function buildActionDefault(
       return { type: 'infrastructureAction', trafficSignalAction: {} };
     case 'trafficAction':
       return { type: 'trafficAction' };
+    case 'setMonitorAction':
+      return { type: 'setMonitorAction', monitorRef: '', value: false };
 
     // --- UserDefined ---
     case 'userDefinedAction':

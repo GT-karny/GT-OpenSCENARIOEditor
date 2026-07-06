@@ -17,6 +17,8 @@ import type {
   CollisionCondition,
   OffroadCondition,
   RelativeClearanceCondition,
+  AngleCondition,
+  RelativeAngleCondition,
   SimulationTimeCondition,
   StoryboardElementStateCondition,
   ParameterCondition,
@@ -85,6 +87,10 @@ function buildEntityCondition(ec: EntityCondition, bindings: Record<string, stri
       return { OffroadCondition: buildOffroadCondition(ec, bindings) };
     case 'relativeClearance':
       return { RelativeClearanceCondition: buildRelativeClearanceCondition(ec, bindings) };
+    case 'angle':
+      return { AngleCondition: buildAngleCondition(ec, bindings) };
+    case 'relativeAngle':
+      return { RelativeAngleCondition: buildRelativeAngleCondition(ec, bindings) };
   }
 }
 
@@ -216,6 +222,25 @@ function buildRelativeClearanceCondition(c: RelativeClearanceCondition, bindings
   }
 
   return result;
+}
+
+function buildAngleCondition(c: AngleCondition, bindings: Record<string, string>): Record<string, string> {
+  return buildAttrs({
+    angleType: c.angleType,
+    angle: c.angle,
+    angleTolerance: c.angleTolerance,
+    coordinateSystem: c.coordinateSystem,
+  }, bindings);
+}
+
+function buildRelativeAngleCondition(c: RelativeAngleCondition, bindings: Record<string, string>): Record<string, string> {
+  return buildAttrs({
+    entityRef: c.entityRef,
+    angleType: c.angleType,
+    angle: c.angle,
+    angleTolerance: c.angleTolerance,
+    coordinateSystem: c.coordinateSystem,
+  }, bindings);
 }
 
 // ---------------------------------------------------------------------------

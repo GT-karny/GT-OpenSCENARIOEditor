@@ -160,6 +160,8 @@ export const PRIVATE_ACTION_SUBCATEGORIES = [
 
 // UI ordering for the global-action palette (distinct from GLOBAL_ACTION_TYPES
 // declaration order). Welded so every entry is a valid global discriminator.
+// setMonitorAction (v1.3) is intentionally omitted: it has no dedicated property
+// editor yet (S4); palette exposure is pending UI work.
 export const GLOBAL_ACTION_ORDER = [
   'environmentAction',
   'entityAction',
@@ -194,10 +196,15 @@ export const PALETTE_EXCLUDED_ACTION_TYPES: readonly PrivateActionType[] = [];
 
 /**
  * Condition discriminators intentionally omitted from
- * {@link CONDITION_SUBCATEGORIES}. Empty today; consumed by the completeness
- * test the same way as {@link PALETTE_EXCLUDED_ACTION_TYPES}.
+ * {@link CONDITION_SUBCATEGORIES}. Consumed by the completeness test the same way
+ * as {@link PALETTE_EXCLUDED_ACTION_TYPES}.
  */
 export const PALETTE_EXCLUDED_CONDITION_TYPES: readonly (
   | EntityConditionType
   | ValueConditionType
-)[] = [];
+)[] = [
+  // v1.3 types without a dedicated property editor yet (S4); palette exposure
+  // pending UI work.
+  'angle',
+  'relativeAngle',
+];

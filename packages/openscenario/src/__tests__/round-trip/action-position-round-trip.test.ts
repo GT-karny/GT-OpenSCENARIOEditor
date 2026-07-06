@@ -7,7 +7,12 @@ import type {
   FollowTrajectoryAction,
   EnvironmentAction,
   RoutingAction,
+  SetMonitorAction,
   TrajectoryPosition,
+  EntityCondition,
+  ByEntityCondition,
+  AngleCondition,
+  RelativeAngleCondition,
 } from '@osce/shared';
 import {
   parsePrivateAction,
@@ -17,6 +22,8 @@ import {
   buildPrivateAction,
   buildGlobalAction,
 } from '../../serializer/build-actions.js';
+import { parseConditionBody } from '../../parser/parse-conditions.js';
+import { buildConditionBody } from '../../serializer/build-conditions.js';
 import { parsePosition } from '../../parser/parse-positions.js';
 import { buildPositionWrapped } from '../../serializer/build-positions.js';
 import { createXoscXmlParser } from '../../parser/fxp-config.js';
@@ -50,6 +57,22 @@ function roundTripPosition(pos: TrajectoryPosition): { pos: ReturnType<typeof pa
   const xml = xmlBuilder.build(built);
   const reparsed = xmlParser.parse(xml);
   return { pos: parsePosition(reparsed.Position), xml };
+}
+
+// Round-trip an EntityCondition through the real serialize → parse cycle by
+// wrapping it in a ByEntityCondition (the condition body serializer entry point).
+function roundTripEntityCondition(ec: EntityCondition): { ec: EntityCondition; xml: string } {
+  const body: ByEntityCondition = {
+    kind: 'byEntity',
+    triggeringEntities: { triggeringEntitiesRule: 'any', entityRefs: ['Ego'] },
+    entityCondition: ec,
+  };
+  // Wrap in a neutral element, not <Condition> — the parser treats Condition as
+  // an always-array element, which would re-parse the body as an array.
+  const xml = xmlBuilder.build({ Root: buildConditionBody(body) });
+  const reparsed = xmlParser.parse(xml);
+  const parsed = parseConditionBody(reparsed.Root) as ByEntityCondition;
+  return { ec: parsed.entityCondition, xml };
 }
 
 describe('AnimationAction round-trip (XSD AnimationType + loop/animationDuration)', () => {
@@ -283,5 +306,106 @@ describe('TrajectoryPosition round-trip (XSD TrajectoryRef + s + Orientation)', 
     };
     const { pos } = roundTripPosition(input);
     expect(pos).toEqual(input);
+  });
+});
+
+describe('SetMonitorAction round-trip (XSD monitorRef + value, v1.3)', () => {
+  it('round-trips monitorRef and value=true', () => {
+    const input: SetMonitorAction = {
+      type: 'setMonitorAction',
+      monitorRef: 'Monitor1',
+      value: true,
+    };
+
+    const { action, xml } = roundTripGlobalAction(input);
+
+    expect(xml).toContain('<SetMonitorAction monitorRef="Monitor1" value="true"');
+    expect(action).toEqual(input);
+  });
+
+  it('round-trips value=false', () => {
+    const input: SetMonitorAction = {
+      type: 'setMonitorAction',
+      monitorRef: 'M2',
+      value: false,
+    };
+    const { action } = roundTripGlobalAction(input);
+    expect(action).toEqual(input);
+  });
+});
+
+describe('AngleCondition round-trip (XSD angleType/angle/angleTolerance, v1.3)', () => {
+  it('round-trips an absolute angle condition with coordinateSystem', () => {
+    const input: AngleCondition = {
+      type: 'angle',
+      angleType: 'heading',
+      angle: 1.57,
+      angleTolerance: 0.1,
+      coordinateSystem: 'road',
+    };
+
+    const { ec, xml } = roundTripEntityCondition(input);
+
+    expect(xml).toContain(
+      '<AngleCondition angleType="heading" angle="1.57" angleTolerance="0.1" coordinateSystem="road"',
+    );
+    expect(ec).toEqual(input);
+  });
+
+  it('round-trips a minimal angle condition without coordinateSystem', () => {
+    const input: AngleCondition = {
+      type: 'angle',
+      angleType: 'pitch',
+      angle: 0,
+      angleTolerance: 0,
+    };
+    const { ec } = roundTripEntityCondition(input);
+    expect(ec).toEqual(input);
+  });
+});
+
+describe('RelativeAngleCondition round-trip (XSD entityRef + angle attrs, v1.3)', () => {
+  it('round-trips a relative angle condition', () => {
+    const input: RelativeAngleCondition = {
+      type: 'relativeAngle',
+      entityRef: 'Target',
+      angleType: 'roll',
+      angle: -0.2,
+      angleTolerance: 0.05,
+      coordinateSystem: 'entity',
+    };
+
+    const { ec, xml } = roundTripEntityCondition(input);
+
+    expect(xml).toContain('<RelativeAngleCondition entityRef="Target"');
+    expect(ec).toEqual(input);
+  });
+});
+
+describe('TrafficAreaAction passthrough round-trip (XSD TrafficAction child, v1.3)', () => {
+  it('preserves a TrafficAreaAction child through parse + serialize', () => {
+    // TrafficAreaAction has no dedicated union member; it rides the trafficAction
+    // passthrough. This asserts the child element survives a full round-trip.
+    const xml =
+      '<GlobalAction><TrafficAction>' +
+      '<TrafficAreaAction numberOfEntities="5" continuous="true">' +
+      '<TrafficDistribution><TrafficDistributionEntry weight="1"/></TrafficDistribution>' +
+      '<TrafficArea><RoadRange length="100"/></TrafficArea>' +
+      '</TrafficAreaAction></TrafficAction></GlobalAction>';
+
+    const parsed = parseGlobalAction(xmlParser.parse(xml).GlobalAction);
+    expect(parsed.type).toBe('trafficAction');
+    expect(parsed).toHaveProperty('TrafficAreaAction');
+
+    const rebuilt = xmlBuilder.build({ GlobalAction: buildGlobalAction(parsed) });
+    expect(rebuilt).toContain('<TrafficAreaAction');
+    expect(rebuilt).toContain('numberOfEntities="5"');
+    expect(rebuilt).toContain('continuous="true"');
+    expect(rebuilt).toContain('<TrafficArea>');
+    expect(rebuilt).toContain('<RoadRange');
+
+    // Re-parsing the rebuilt XML yields an equivalent model (idempotent passthrough).
+    const reparsed = parseGlobalAction(xmlParser.parse(rebuilt).GlobalAction);
+    expect(reparsed).toEqual(parsed);
   });
 });

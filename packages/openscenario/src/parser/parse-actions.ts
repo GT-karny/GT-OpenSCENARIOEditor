@@ -28,6 +28,7 @@ import type {
   VariableAction,
   InfrastructureAction,
   TrafficAction,
+  SetMonitorAction,
   TransitionDynamics,
   SpeedTarget,
   LaneChangeTarget,
@@ -229,6 +230,10 @@ export function parseGlobalAction(raw: RawXml | undefined): GlobalAction {
   const trafficAction = child(raw, 'TrafficAction');
   if (trafficAction) {
     return parseTrafficAction(trafficAction);
+  }
+  const setMonitorAction = child(raw, 'SetMonitorAction');
+  if (setMonitorAction) {
+    return parseSetMonitorAction(setMonitorAction);
   }
 
   throw new Error(`Unknown GlobalAction type: ${rawKeys(raw).join(', ')}`);
@@ -1274,7 +1279,9 @@ function parseTrafficSignalAction(raw: RawXml | undefined): TrafficSignalAction 
 }
 
 function parseTrafficAction(raw: RawXml): TrafficAction {
-  // TrafficAction is a placeholder with [key: string]: unknown
+  // TrafficAction is a placeholder with [key: string]: unknown. Its child
+  // elements (TrafficSource/Sink/Swarm/Area/Stop) are copied verbatim so they
+  // survive a round-trip; TrafficAreaAction (v1.3) rides this passthrough.
   const result: TrafficAction = { type: 'trafficAction' };
   for (const key of Object.keys(raw)) {
     if (!key.startsWith('@_')) {
@@ -1282,4 +1289,13 @@ function parseTrafficAction(raw: RawXml): TrafficAction {
     }
   }
   return result;
+}
+
+function parseSetMonitorAction(raw: RawXml): SetMonitorAction {
+  // XSD SetMonitorAction (v1.3): monitorRef + value, both required.
+  return {
+    type: 'setMonitorAction',
+    monitorRef: strAttr(raw, 'monitorRef'),
+    value: boolAttr(raw, 'value'),
+  };
 }

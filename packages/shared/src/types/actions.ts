@@ -275,7 +275,8 @@ export type GlobalAction =
   | ParameterAction
   | VariableAction
   | InfrastructureAction
-  | TrafficAction;
+  | TrafficAction
+  | SetMonitorAction;
 
 /**
  * Discriminators of {@link GlobalAction}, in union declaration order. Welded to
@@ -288,6 +289,7 @@ export const GLOBAL_ACTION_TYPES = [
   'variableAction',
   'infrastructureAction',
   'trafficAction',
+  'setMonitorAction',
 ] as const;
 export type GlobalActionType = (typeof GLOBAL_ACTION_TYPES)[number];
 type _WeldGlobalActionTypes = Assert<Equals<GlobalActionType, GlobalAction['type']>>;
@@ -380,8 +382,22 @@ export interface TrafficAction {
   type: 'trafficAction';
   trafficName?: string;
   trafficActionType?: string;
-  /** Traffic action details - source, sink, swarm, etc. */
+  /**
+   * Traffic action details - source, sink, swarm, area, stop. TrafficAreaAction
+   * (XSD, new in v1.3) is one of these passthrough children and round-trips as-is
+   * via this index signature; it has no dedicated typed member.
+   */
   [key: string]: unknown;
+}
+
+/**
+ * XSD SetMonitorAction (GlobalAction member, new in OpenSCENARIO v1.3): sets a
+ * declared monitor's boolean value.
+ */
+export interface SetMonitorAction {
+  type: 'setMonitorAction';
+  monitorRef: string;
+  value: boolean;
 }
 
 export interface UserDefinedAction {

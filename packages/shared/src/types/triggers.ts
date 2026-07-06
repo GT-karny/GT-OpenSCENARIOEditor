@@ -6,6 +6,7 @@
 
 import type { Position } from './positions.js';
 import type {
+  AngleType,
   ConditionEdge,
   CoordinateSystem,
   Rule,
@@ -64,7 +65,9 @@ export type EntityCondition =
   | EndOfRoadCondition
   | CollisionCondition
   | OffroadCondition
-  | RelativeClearanceCondition;
+  | RelativeClearanceCondition
+  | AngleCondition
+  | RelativeAngleCondition;
 
 /**
  * Discriminators of {@link EntityCondition}, in union declaration order. Welded
@@ -85,6 +88,8 @@ export const ENTITY_CONDITION_TYPES = [
   'collision',
   'offroad',
   'relativeClearance',
+  'angle',
+  'relativeAngle',
 ] as const;
 export type EntityConditionType = (typeof ENTITY_CONDITION_TYPES)[number];
 type _WeldEntityConditionTypes = Assert<Equals<EntityConditionType, EntityCondition['type']>>;
@@ -197,6 +202,32 @@ export interface RelativeClearanceCondition {
   oppositeLanes: boolean;
   entityRefs: string[];
   laneRange?: { from: number; to: number }[];
+}
+
+/**
+ * XSD AngleCondition (new in OpenSCENARIO v1.3): compares an entity's absolute
+ * orientation angle against a target within a tolerance. Note the XSD defines no
+ * `rule` attribute — the tolerance band is the comparison.
+ */
+export interface AngleCondition {
+  type: 'angle';
+  angleType: AngleType;
+  angle: number;
+  angleTolerance: number;
+  coordinateSystem?: CoordinateSystemCond;
+}
+
+/**
+ * XSD RelativeAngleCondition (new in OpenSCENARIO v1.3): like {@link
+ * AngleCondition} but relative to a referenced entity (`entityRef`).
+ */
+export interface RelativeAngleCondition {
+  type: 'relativeAngle';
+  entityRef: string;
+  angleType: AngleType;
+  angle: number;
+  angleTolerance: number;
+  coordinateSystem?: CoordinateSystemCond;
 }
 
 // --- By Value Condition ---

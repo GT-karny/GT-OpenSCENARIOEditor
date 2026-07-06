@@ -20,6 +20,9 @@ import type {
   CollisionTarget,
   OffroadCondition,
   RelativeClearanceCondition,
+  AngleCondition,
+  RelativeAngleCondition,
+  AngleType,
   SimulationTimeCondition,
   StoryboardElementStateCondition,
   StoryboardElementType,
@@ -104,6 +107,10 @@ function parseEntityCondition(raw: RawXml | undefined): EntityCondition {
   if (offroad) return parseOffroadCondition(offroad);
   const relativeClearance = child(raw, 'RelativeClearanceCondition');
   if (relativeClearance) return parseRelativeClearanceCondition(relativeClearance);
+  const angle = child(raw, 'AngleCondition');
+  if (angle) return parseAngleCondition(angle);
+  const relativeAngle = child(raw, 'RelativeAngleCondition');
+  if (relativeAngle) return parseRelativeAngleCondition(relativeAngle);
 
   throw new Error(`Unknown EntityCondition type: ${rawKeys(raw).join(', ')}`);
 }
@@ -288,6 +295,27 @@ function parseRelativeClearanceCondition(raw: RawXml): RelativeClearanceConditio
           to: numAttr(lr, 'to'),
         }))
       : undefined,
+  };
+}
+
+function parseAngleCondition(raw: RawXml): AngleCondition {
+  return {
+    type: 'angle',
+    angleType: strAttr(raw, 'angleType') as AngleType,
+    angle: numAttr(raw, 'angle'),
+    angleTolerance: numAttr(raw, 'angleTolerance'),
+    coordinateSystem: optStrAttr(raw, 'coordinateSystem') as CoordinateSystemCond | undefined,
+  };
+}
+
+function parseRelativeAngleCondition(raw: RawXml): RelativeAngleCondition {
+  return {
+    type: 'relativeAngle',
+    entityRef: strAttr(raw, 'entityRef'),
+    angleType: strAttr(raw, 'angleType') as AngleType,
+    angle: numAttr(raw, 'angle'),
+    angleTolerance: numAttr(raw, 'angleTolerance'),
+    coordinateSystem: optStrAttr(raw, 'coordinateSystem') as CoordinateSystemCond | undefined,
   };
 }
 

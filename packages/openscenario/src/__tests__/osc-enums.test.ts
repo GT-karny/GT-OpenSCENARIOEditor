@@ -98,9 +98,11 @@ describe('canonical discriminator lists', () => {
 
   it('has the expected member counts', () => {
     expect(PRIVATE_ACTION_TYPES.length).toBe(20);
-    expect(GLOBAL_ACTION_TYPES.length).toBe(6);
-    expect(SCENARIO_ACTION_TYPES.length).toBe(27);
-    expect(ENTITY_CONDITION_TYPES.length).toBe(14);
+    // +1 setMonitorAction (v1.3)
+    expect(GLOBAL_ACTION_TYPES.length).toBe(7);
+    expect(SCENARIO_ACTION_TYPES.length).toBe(28);
+    // +2 angle, relativeAngle (v1.3)
+    expect(ENTITY_CONDITION_TYPES.length).toBe(16);
     expect(VALUE_CONDITION_TYPES.length).toBe(7);
     expect(POSITION_TYPES.length).toBe(10);
   });
