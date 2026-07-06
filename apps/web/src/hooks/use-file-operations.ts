@@ -26,6 +26,7 @@ import {
 } from '../lib/document-references';
 import { editorMetadataStoreApi } from '../stores/editor-metadata-store-instance';
 import { useAppLifecycle } from './use-app-lifecycle';
+import { useCatalogOperations } from './use-catalog-operations';
 import * as api from '../lib/project-api';
 import { resolveCatalogEntityTypes } from '../lib/resolve-catalog-entity-types';
 import { addWebRecentFile } from '../lib/recent-files/recent-files-db';
@@ -297,6 +298,7 @@ export function useFileOperations() {
   const storeApi = useScenarioStoreApi();
   const { t } = useTranslation('common');
   const { resetForNewFile, resetForNewRoadNetwork } = useAppLifecycle();
+  const { saveAllDirtyCatalogs } = useCatalogOperations();
   const setCurrentFileName = useEditorStore((s) => s.setCurrentFileName);
   const setValidationResult = useEditorStore((s) => s.setValidationResult);
   const setRoadNetwork = useEditorStore((s) => s.setRoadNetwork);
@@ -307,7 +309,14 @@ export function useFileOperations() {
   const saveFnsRef = useRef<{
     saveXosc: () => Promise<void>;
     saveXodr: () => Promise<void>;
-  }>({ saveXosc: async () => {}, saveXodr: async () => {} });
+    saveCatalogs: () => Promise<boolean>;
+    saveDistribution: () => Promise<boolean>;
+  }>({
+    saveXosc: async () => {},
+    saveXodr: async () => {},
+    saveCatalogs: async () => true,
+    saveDistribution: async () => true,
+  });
 
   // Gate a document-replacing action (new / open / drop / reopen) behind the
   // shared unsaved-changes guard, saving via the current save flows on "Save".
@@ -316,6 +325,8 @@ export function useFileOperations() {
       runUnsavedGuardGate({
         saveXosc: () => saveFnsRef.current.saveXosc(),
         saveXodr: () => saveFnsRef.current.saveXodr(),
+        saveCatalogs: () => saveFnsRef.current.saveCatalogs(),
+        saveDistribution: () => saveFnsRef.current.saveDistribution(),
       }),
     [],
   );
@@ -632,12 +643,15 @@ export function useFileOperations() {
    * as a standalone `.xosc`. Reuses the same disk-writer plumbing as the
    * scenario. When the document has no `scenarioFilepath`, it is defaulted to
    * the current scenario file name so the exported file references its base.
+   *
+   * Returns true when written and false when there is nothing to export or the
+   * user cancelled/failed the picker, so the unsaved-changes guard can detect it.
    */
-  const saveDistribution = useCallback(async () => {
+  const saveDistribution = useCallback(async (): Promise<boolean> => {
     const doc = useDistributionStore.getState().document;
     if (!doc) {
       toast.error(t('distributions.nothingToExport'));
-      return;
+      return false;
     }
 
     // Default the referenced scenario path from the open scenario when unset.
@@ -655,12 +669,17 @@ export function useFileOperations() {
         ? `${useEditorStore.getState().currentFileName?.replace(/\.xosc$/i, '')}.pvd.xosc`
         : 'distribution.xosc';
       await writeFileToDisk(xml, '.xosc', { suggestedName });
+      // Capture the post-write revision (including the scenarioFilepath default
+      // command above) as the clean baseline.
+      useDocumentRegistry.getState().markSaved('distribution');
       toast.success(t('labels.fileSaved'));
+      return true;
     } catch (err) {
       if (err instanceof Error && err.name !== 'AbortError') {
         console.error('Export distribution failed:', err);
         toast.error(t('labels.serializeFailed'));
       }
+      return false;
     }
   }, [t]);
 
@@ -906,7 +925,12 @@ export function useFileOperations() {
 
   // Keep the guard's save-flow reference current so it can persist on "Save"
   // without creating a declaration-order dependency on these callbacks.
-  saveFnsRef.current = { saveXosc, saveXodr };
+  saveFnsRef.current = {
+    saveXosc,
+    saveXodr,
+    saveCatalogs: saveAllDirtyCatalogs,
+    saveDistribution,
+  };
 
   return {
     newScenario,

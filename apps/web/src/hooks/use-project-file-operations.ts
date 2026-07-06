@@ -16,6 +16,7 @@ import {
 import { editorMetadataStoreApi } from '../stores/editor-metadata-store-instance';
 import { useAppLifecycle } from './use-app-lifecycle';
 import { useFileOperations } from './use-file-operations';
+import { useCatalogOperations } from './use-catalog-operations';
 import { runUnsavedGuard } from './use-discard-guard';
 import { getOpenDriveStoreApi } from './use-opendrive-store';
 import * as api from '../lib/project-api';
@@ -59,14 +60,21 @@ export function useProjectFileOperations() {
   const { t } = useTranslation('common');
   const scenarioStoreApi = useScenarioStoreApi();
   const { resetForNewFile, resetForNewRoadNetwork } = useAppLifecycle();
-  const { saveXosc, saveXodr } = useFileOperations();
+  const { saveXosc, saveXodr, saveDistribution } = useFileOperations();
+  const { saveAllDirtyCatalogs } = useCatalogOperations();
 
   // Gate a user-initiated project open behind the shared unsaved-changes guard,
   // saving via the current save flows on "Save". Chained loads (e.g. a scenario's
   // auto-loaded xodr) are part of the same user action and must not re-prompt.
   const guardOpen = useCallback(
-    () => runUnsavedGuard({ saveXosc, saveXodr }),
-    [saveXosc, saveXodr],
+    () =>
+      runUnsavedGuard({
+        saveXosc,
+        saveXodr,
+        saveCatalogs: saveAllDirtyCatalogs,
+        saveDistribution,
+      }),
+    [saveXosc, saveXodr, saveAllDirtyCatalogs, saveDistribution],
   );
 
   const openXodrFromProject = useCallback(

@@ -77,6 +77,10 @@ export function confirmDiscardIfDirty(): Promise<DiscardChoice> {
 export interface UnsavedGuardSaveFns {
   saveXosc: () => Promise<void> | void;
   saveXodr: () => Promise<void> | void;
+  /** Save every dirty catalog; false when one is cancelled/failed. */
+  saveCatalogs: () => Promise<boolean>;
+  /** Save the distribution side-document; false when cancelled/failed. */
+  saveDistribution: () => Promise<boolean>;
 }
 
 /**
@@ -94,10 +98,15 @@ export async function runUnsavedGuard(saveFns: UnsavedGuardSaveFns): Promise<boo
   if (choice === 'cancel') return false;
   if (choice === 'discard') return true;
 
-  // choice === 'save': persist whichever document(s) are dirty.
+  // choice === 'save': persist whichever document(s) are dirty, in a stable
+  // order. Catalog and distribution report their own cancel/failure (a picker
+  // abort), so a false return aborts the replace; scenario/road cancellation is
+  // detected by the final dirty re-check.
   const registry = useDocumentRegistry.getState();
   if (registry.isDirty('scenario')) await saveFns.saveXosc();
   if (registry.isDirty('roadNetwork')) await saveFns.saveXodr();
+  if (registry.isDirty('catalog') && !(await saveFns.saveCatalogs())) return false;
+  if (registry.isDirty('distribution') && !(await saveFns.saveDistribution())) return false;
 
   // Proceed only if the save stuck; a cancelled picker leaves it dirty.
   return !hasUnsavedChanges();

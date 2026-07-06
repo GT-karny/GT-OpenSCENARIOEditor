@@ -33,6 +33,7 @@ import {
   type DistributionMode,
   type SingleParameterEntry,
 } from '../../stores/distribution-store';
+import { useDocumentRegistry } from '../../stores/document-registry';
 
 interface AttachDistributionDialogProps {
   open: boolean;
@@ -58,6 +59,17 @@ export function AttachDistributionDialog({
 }: AttachDistributionDialogProps) {
   const { t } = useTranslation('common');
   const attachToParameter = useDistributionStore((s) => s.attachToParameter);
+  const setFocusedOverride = useDocumentRegistry((s) => s.setFocusedOverride);
+
+  // While open, the distribution is the focused document so Ctrl+Z rewinds
+  // distribution edits. Guard on `open` (this dialog is rendered per-parameter,
+  // so the many closed instances must not clear an open one's override); clear
+  // on close/unmount to return undo routing to the active editor view.
+  useEffect(() => {
+    if (!open) return;
+    setFocusedOverride('distribution');
+    return () => setFocusedOverride(null);
+  }, [open, setFocusedOverride]);
 
   const options = typeOptionsForMode(mode);
   const [distribution, setDistribution] = useState<

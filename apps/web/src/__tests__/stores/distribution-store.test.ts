@@ -1,16 +1,26 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { ParameterValueDistributionDocument } from '@osce/shared';
+import { createScenarioStore } from '@osce/scenario-engine';
 import {
   useDistributionStore,
   selectSingleParameterEntries,
   selectMultiParameterEntries,
 } from '../../stores/distribution-store';
+import { useDocumentRegistry, initDocumentRegistry } from '../../stores/document-registry';
 
 const store = useDistributionStore;
 
 beforeEach(() => {
   store.getState().clear();
 });
+
+function det(parameterName: string, value: string) {
+  return {
+    mode: 'deterministic' as const,
+    parameterName,
+    distribution: { kind: 'set' as const, values: [value] },
+  };
+}
 
 describe('distribution-store mode enforcement', () => {
   it('defaults to deterministic mode with no document', () => {
@@ -188,5 +198,92 @@ describe('distribution-store entry CRUD', () => {
     });
     store.getState().clear();
     expect(store.getState().document).toBeNull();
+  });
+});
+
+describe('distribution-store command history + registry dirty', () => {
+  const registry = () => useDocumentRegistry.getState();
+  const steps = () => store.getState().getCommandHistory().getUndoStack().length;
+  let cleanup: () => void;
+
+  beforeEach(() => {
+    // Wiring the registry activates the distribution subscription (revision
+    // mirroring), exactly as the app does at mount.
+    cleanup = initDocumentRegistry(createScenarioStore());
+    store.getState().clear();
+  });
+
+  afterEach(() => cleanup());
+
+  it('each mutation is one undo step; undo restores the prior document', () => {
+    store.getState().attachToParameter(det('Speed', '1'));
+    expect(steps()).toBe(1);
+    store.getState().attachToParameter(det('Distance', '5'));
+    expect(steps()).toBe(2);
+    expect(selectSingleParameterEntries(store.getState().document)).toHaveLength(2);
+
+    store.getState().undoDistribution();
+    expect(selectSingleParameterEntries(store.getState().document)).toHaveLength(1);
+    // Undo of the first attach removes the document it created.
+    store.getState().undoDistribution();
+    expect(store.getState().document).toBeNull();
+  });
+
+  it('setMode / setStochasticSettings / setScenarioFilepath are each one undo step', () => {
+    store.getState().setScenarioFilepath('base.xosc');
+    expect(steps()).toBe(1);
+    store.getState().setMode('stochastic');
+    expect(steps()).toBe(2);
+    store.getState().setStochasticSettings({ numberOfTestRuns: 20 });
+    expect(steps()).toBe(3);
+
+    store.getState().undoDistribution(); // undo the settings change
+    expect(store.getState().document?.distribution.kind).toBe('stochastic');
+    store.getState().undoDistribution(); // undo the mode switch → back to deterministic
+    expect(store.getState().document?.distribution.kind).toBe('deterministic');
+  });
+
+  it('redo re-applies an undone edit', () => {
+    store.getState().attachToParameter(det('Speed', '1'));
+    store.getState().undoDistribution();
+    expect(store.getState().document).toBeNull();
+
+    store.getState().redoDistribution();
+    expect(selectSingleParameterEntries(store.getState().document)).toHaveLength(1);
+  });
+
+  it('an edit is dirty; save then undo-to-save-point reads clean via the registry', () => {
+    expect(registry().isDirty('distribution')).toBe(false);
+
+    store.getState().attachToParameter(det('Speed', '1'));
+    expect(registry().isDirty('distribution')).toBe(true);
+    expect(registry().dirtyKinds()).toContain('distribution');
+
+    // Save at this position: dirty clears without any undo.
+    registry().markSaved('distribution');
+    expect(registry().isDirty('distribution')).toBe(false);
+
+    // A further edit is dirty again; undoing to the save point clears it.
+    store.getState().attachToParameter(det('Distance', '5'));
+    expect(registry().isDirty('distribution')).toBe(true);
+    store.getState().undoDistribution();
+    expect(registry().isDirty('distribution')).toBe(false);
+  });
+
+  it('loadDocument clears the command history and reads clean', () => {
+    store.getState().attachToParameter(det('Speed', '1'));
+    expect(steps()).toBe(1);
+    registry().markSaved('distribution');
+
+    const doc: ParameterValueDistributionDocument = {
+      id: 'x',
+      fileHeader: { revMajor: 1, revMinor: 3, date: '2026-01-01', description: '', author: '' },
+      scenarioFilepath: 'base.xosc',
+      distribution: { kind: 'deterministic', entries: [] },
+    };
+    store.getState().loadDocument(doc);
+    // History is cleared (single-document replacement) and the load is clean.
+    expect(steps()).toBe(0);
+    expect(registry().isDirty('distribution')).toBe(false);
   });
 });

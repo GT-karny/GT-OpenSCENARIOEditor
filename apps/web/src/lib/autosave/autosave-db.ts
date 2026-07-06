@@ -1,4 +1,5 @@
-import type { AutosaveSnapshot } from './types';
+import { migrateSnapshot } from './snapshot-mapping';
+import type { AutosaveSnapshot, AutosaveSnapshotV1 } from './types';
 
 /**
  * Minimal promise-based IndexedDB wrapper for the autosave snapshot.
@@ -49,7 +50,11 @@ export async function readSnapshot(): Promise<AutosaveSnapshot | null> {
     return await new Promise<AutosaveSnapshot | null>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readonly');
       const request = tx.objectStore(STORE_NAME).get(SNAPSHOT_KEY);
-      request.onsuccess = () => resolve((request.result as AutosaveSnapshot | undefined) ?? null);
+      request.onsuccess = () => {
+        // Normalize any legacy (v1) record to the current envelope on the way out.
+        const raw = request.result as AutosaveSnapshot | AutosaveSnapshotV1 | undefined;
+        resolve(raw ? migrateSnapshot(raw) : null);
+      };
       request.onerror = () => reject(request.error);
     });
   } finally {

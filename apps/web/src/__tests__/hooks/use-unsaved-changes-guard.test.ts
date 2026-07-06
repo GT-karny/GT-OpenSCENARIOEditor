@@ -8,9 +8,14 @@ import { renderHook } from '@testing-library/react';
 
 const saveXosc = vi.fn();
 const saveXodr = vi.fn();
+const saveDistribution = vi.fn(async () => true);
+const saveAllDirtyCatalogs = vi.fn(async () => true);
 
 vi.mock('../../hooks/use-file-operations', () => ({
-  useFileOperations: () => ({ saveXosc, saveXodr }),
+  useFileOperations: () => ({ saveXosc, saveXodr, saveDistribution }),
+}));
+vi.mock('../../hooks/use-catalog-operations', () => ({
+  useCatalogOperations: () => ({ saveAllDirtyCatalogs }),
 }));
 
 import { useUnsavedChangesGuard } from '../../hooks/use-unsaved-changes-guard';
@@ -24,6 +29,10 @@ let saveComplete: boolean | null = null;
 beforeEach(() => {
   saveXosc.mockReset();
   saveXodr.mockReset();
+  saveDistribution.mockReset();
+  saveDistribution.mockResolvedValue(true);
+  saveAllDirtyCatalogs.mockReset();
+  saveAllDirtyCatalogs.mockResolvedValue(true);
   runSaveHandler = null;
   saveComplete = null;
 
@@ -47,6 +56,8 @@ afterEach(() => {
   delete (window as unknown as { electronAPI?: unknown }).electronAPI;
   useDocumentRegistry.getState().markLoaded('scenario');
   useDocumentRegistry.getState().markLoaded('roadNetwork');
+  useDocumentRegistry.getState().markLoaded('catalog');
+  useDocumentRegistry.getState().markLoaded('distribution');
 });
 
 /** Run the captured onRunSave callback and wait for its async body to settle. */
@@ -134,6 +145,42 @@ describe('useUnsavedChangesGuard — onRunSave (S0-2)', () => {
 
     expect(saveXosc).toHaveBeenCalledTimes(1);
     expect(saveXodr).toHaveBeenCalledTimes(1);
+    expect(saveComplete).toBe(false);
+  });
+
+  it('saves a dirty catalog and distribution and reports success', async () => {
+    saveAllDirtyCatalogs.mockImplementation(async () => {
+      useDocumentRegistry.getState().markLoaded('catalog');
+      return true;
+    });
+    saveDistribution.mockImplementation(async () => {
+      useDocumentRegistry.getState().markLoaded('distribution');
+      return true;
+    });
+
+    useDocumentRegistry.getState().markRestoredDirty('catalog');
+    useDocumentRegistry.getState().markRestoredDirty('distribution');
+
+    renderHook(() => useUnsavedChangesGuard());
+    await runSave();
+
+    expect(saveXosc).not.toHaveBeenCalled(); // scenario/road were clean
+    expect(saveAllDirtyCatalogs).toHaveBeenCalledTimes(1);
+    expect(saveDistribution).toHaveBeenCalledTimes(1);
+    expect(saveComplete).toBe(true);
+  });
+
+  it('aborts (does not reach distribution) when the catalog save is cancelled', async () => {
+    saveAllDirtyCatalogs.mockResolvedValue(false); // user cancelled a catalog picker
+
+    useDocumentRegistry.getState().markRestoredDirty('catalog');
+    useDocumentRegistry.getState().markRestoredDirty('distribution');
+
+    renderHook(() => useUnsavedChangesGuard());
+    await runSave();
+
+    expect(saveAllDirtyCatalogs).toHaveBeenCalledTimes(1);
+    expect(saveDistribution).not.toHaveBeenCalled();
     expect(saveComplete).toBe(false);
   });
 });

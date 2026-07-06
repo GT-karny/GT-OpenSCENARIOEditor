@@ -38,9 +38,7 @@ export function useKeyboardShortcuts() {
               getOpenDriveStoreApi().getState().undo();
               break;
             case 'distribution':
-              // Wave E converts distribution mutations to commands; routing to
-              // the stub history now is a harmless no-op (revision stays 0).
-              useDistributionStore.getState().getCommandHistory().undo();
+              useDistributionStore.getState().undoDistribution();
               break;
             default:
               storeApi.getState().undo();
@@ -57,7 +55,7 @@ export function useKeyboardShortcuts() {
               getOpenDriveStoreApi().getState().redo();
               break;
             case 'distribution':
-              useDistributionStore.getState().getCommandHistory().redo();
+              useDistributionStore.getState().redoDistribution();
               break;
             default:
               storeApi.getState().redo();

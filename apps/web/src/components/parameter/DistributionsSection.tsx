@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { FocusEvent } from 'react';
 import { useTranslation } from '@osce/i18n';
 import { Download, Grid3x3, Play, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -15,6 +16,7 @@ import {
 } from '../../stores/distribution-store';
 import { useFileOperations } from '../../hooks/use-file-operations';
 import { useWasmSimulation } from '../../hooks/use-wasm-simulation';
+import { useDocumentRegistry } from '../../stores/document-registry';
 
 const MODE_OPTIONS: readonly DistributionMode[] = ['deterministic', 'stochastic'];
 
@@ -31,9 +33,22 @@ export function DistributionsSection() {
   const setStochasticSettings = useDistributionStore((s) => s.setStochasticSettings);
   const { saveDistribution } = useFileOperations();
   const { startSimulation } = useWasmSimulation();
+  const setFocusedOverride = useDocumentRegistry((s) => s.setFocusedOverride);
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [batchOpen, setBatchOpen] = useState(false);
+
+  // Focus within the section makes the distribution the focused document (undo
+  // routing). Clear only when focus actually leaves the section, and only if we
+  // still own the override — a catalog modal that took focus must keep 'catalog'.
+  useEffect(() => () => setFocusedOverride(null), [setFocusedOverride]);
+  const handleFocusCapture = () => setFocusedOverride('distribution');
+  const handleBlurCapture = (event: FocusEvent<HTMLDivElement>) => {
+    if (event.currentTarget.contains(event.relatedTarget)) return;
+    if (useDocumentRegistry.getState().focusedOverride === 'distribution') {
+      setFocusedOverride(null);
+    }
+  };
 
   const mode: DistributionMode = document?.distribution.kind ?? 'deterministic';
   const entries = useMemo(() => selectSingleParameterEntries(document), [document]);
@@ -51,7 +66,11 @@ export function DistributionsSection() {
   };
 
   return (
-    <div className="px-3 py-2 grid gap-2">
+    <div
+      className="px-3 py-2 grid gap-2"
+      onFocusCapture={handleFocusCapture}
+      onBlurCapture={handleBlurCapture}
+    >
       <SegmentedControl
         value={mode}
         options={MODE_OPTIONS}

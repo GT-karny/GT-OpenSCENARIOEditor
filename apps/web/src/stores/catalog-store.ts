@@ -17,6 +17,7 @@ import {
 } from './catalog-commands';
 import type { CatalogCommand } from './catalog-commands';
 import { useDocumentRegistry } from './document-registry';
+import type { AutosaveCatalogEntry } from '../lib/autosave/types';
 
 export interface ResolvedCatalogEntry {
   catalogType: CatalogEntry['catalogType'];
@@ -68,6 +69,12 @@ export interface CatalogState {
   // --- Catalog I/O ---
   loadCatalog: (xml: string, sourcePath?: string) => CatalogDocument;
   unloadCatalog: (catalogName: string) => void;
+  /**
+   * Repopulate catalog documents from an autosave snapshot (recovery only). Sets
+   * the parsed documents directly without running commands, and biases each saved
+   * baseline dirty so the recovered work is included in save-all until saved.
+   */
+  restoreCatalogs: (entries: AutosaveCatalogEntry[]) => void;
 
   // --- Selection ---
   selectCatalog: (name: string | null) => void;
@@ -104,6 +111,11 @@ export interface CatalogState {
 // One shared history for all catalogs; per-catalog dirty is derived from editLog
 // (see design D1). resetAll clears it — the reset path tests rely on.
 const commandHistory = new CommandHistory();
+
+// A saved-baseline sentinel below any real edit id (ids start at 1), so a catalog
+// restored from an autosave snapshot reads dirty until explicitly saved — the
+// per-catalog analogue of the registry's RESTORED_DIRTY.
+const RESTORED_DIRTY_EDIT_ID = -1;
 
 export const useCatalogStore = create<CatalogState>((set, get) => {
   /**
@@ -178,6 +190,23 @@ export const useCatalogStore = create<CatalogState>((set, get) => {
       executeCatalogCommand(new UnloadCatalogCommand(catalogName, get, set));
       // Unloading a dirty catalog may empty the dirty set (its ghost is excluded).
       maybeRebaselineCatalogKind();
+    },
+
+    restoreCatalogs: (entries) => {
+      // Recovery-only: repopulate documents without commands (parsed docs, no
+      // rawXml — re-serialization is fine post-recovery). The kind-level dirty is
+      // set by the caller via markRestoredDirty('catalog'); here we bias each
+      // per-catalog saved baseline dirty so dirtyCatalogNames() includes them.
+      if (entries.length === 0) return;
+      set((state) => {
+        const catalogs = new Map(state.catalogs);
+        const savedEditIds = new Map(state.savedEditIds);
+        for (const { name, doc, sourcePath } of entries) {
+          catalogs.set(name, sourcePath ? { ...doc, _sourcePath: sourcePath } : doc);
+          savedEditIds.set(name, RESTORED_DIRTY_EDIT_ID);
+        }
+        return { catalogs, savedEditIds };
+      });
     },
 
     selectCatalog: (name) => set({ selectedCatalogName: name, selectedEntryIndex: null }),

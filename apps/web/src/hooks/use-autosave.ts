@@ -3,6 +3,8 @@ import type { ScenarioDocument, OpenDriveDocument } from '@osce/shared';
 import { useScenarioStoreApi } from '../stores/use-scenario-store';
 import { useEditorStore } from '../stores/editor-store';
 import { useDocumentRegistry } from '../stores/document-registry';
+import { useCatalogStore } from '../stores/catalog-store';
+import { useDistributionStore } from '../stores/distribution-store';
 import {
   readSnapshot,
   writeSnapshot,
@@ -11,7 +13,17 @@ import {
   applySnapshot,
   DebounceScheduler,
   type AutosaveSnapshot,
+  type AutosaveCatalogEntry,
 } from '../lib/autosave';
+
+/** Snapshot the loaded catalog documents (name + parsed doc + source path). */
+function collectCatalogEntries(): AutosaveCatalogEntry[] {
+  return Array.from(useCatalogStore.getState().catalogs.entries()).map(([name, doc]) => ({
+    name,
+    doc,
+    sourcePath: doc._sourcePath,
+  }));
+}
 
 /** Quiet period after the last edit before a snapshot is written. */
 const DEBOUNCE_MS = 2_000;
@@ -79,6 +91,8 @@ export function useAutosave(): UseAutosaveResult {
       const snapshot = buildSnapshot({
         scenario: scenarioRef.current,
         opendrive: roadNetwork ?? opendriveRef.current,
+        catalogs: collectCatalogEntries(),
+        distribution: useDistributionStore.getState().document,
         fileName: currentFileName,
       });
       writeSnapshot(snapshot).catch((err) => {
@@ -118,6 +132,12 @@ export function useAutosave(): UseAutosaveResult {
       }
     });
 
+    // Catalog and distribution edits also warrant a snapshot; a bare subscription
+    // funnels them through the same dirty-gated scheduler (onChange no-ops while
+    // clean, so selection-only notifications never schedule a write).
+    const unsubCatalog = useCatalogStore.subscribe(onChange);
+    const unsubDistribution = useDistributionStore.subscribe(onChange);
+
     // Delete the snapshot only when EVERY document transitions to clean (all
     // saved / newly loaded), so saving the scenario never discards a still-dirty
     // road network's recovery snapshot (danger sequence #7 permanent fix).
@@ -125,7 +145,9 @@ export function useAutosave(): UseAutosaveResult {
     const unsubRegistry = useDocumentRegistry.subscribe((state) => {
       const nowAnyDirty =
         state.current.scenario !== state.saved.scenario ||
-        state.current.roadNetwork !== state.saved.roadNetwork;
+        state.current.roadNetwork !== state.saved.roadNetwork ||
+        state.current.catalog !== state.saved.catalog ||
+        state.current.distribution !== state.saved.distribution;
       if (prevAnyDirty && !nowAnyDirty) {
         scheduler.cancel();
         deleteSnapshot().catch((err) => {
@@ -138,6 +160,8 @@ export function useAutosave(): UseAutosaveResult {
     return () => {
       unsubScenario();
       unsubEditor();
+      unsubCatalog();
+      unsubDistribution();
       unsubRegistry();
       scheduler.cancel();
     };
@@ -157,14 +181,25 @@ export function useAutosave(): UseAutosaveResult {
         useEditorStore.getState().setRoadNetwork(document);
         useEditorStore.getState().setRoadNetworkRawXml(null);
       },
+      restoreCatalogs: (entries) => useCatalogStore.getState().restoreCatalogs(entries),
+      restoreDistribution: (document) => {
+        if (document) useDistributionStore.getState().loadDocument(document);
+      },
       setFileName: (name) => useEditorStore.getState().setCurrentFileName(name),
       // Restored work is unsaved by definition; force each restored document
-      // dirty until the next explicit save. loadDocument/setRoadNetwork reset the
-      // engine revision to a clean baseline, so mark AFTER applying the snapshot.
+      // dirty until the next explicit save. loadDocument/setRoadNetwork/restore
+      // reset the engine revision to a clean baseline, so mark AFTER applying the
+      // snapshot. Kinds restored empty stay clean (never marked).
       markDirty: () => {
         useDocumentRegistry.getState().markRestoredDirty('scenario');
         if (snapshot.opendrive) {
           useDocumentRegistry.getState().markRestoredDirty('roadNetwork');
+        }
+        if (snapshot.catalogs.length > 0) {
+          useDocumentRegistry.getState().markRestoredDirty('catalog');
+        }
+        if (snapshot.distribution) {
+          useDocumentRegistry.getState().markRestoredDirty('distribution');
         }
       },
     });

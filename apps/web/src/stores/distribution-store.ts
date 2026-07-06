@@ -2,13 +2,19 @@ import { create } from 'zustand';
 import type {
   DeterministicEntry,
   DeterministicSingleDistributionType,
-  DistributionDefinition,
   ParameterValueDistributionDocument,
-  StochasticDistributionEntry,
   StochasticDistributionType,
 } from '@osce/shared';
-import { generateId } from '@osce/shared';
 import { CommandHistory } from '@osce/scenario-engine';
+import {
+  AttachParameterCommand,
+  RemoveEntryCommand,
+  SetModeCommand,
+  SetScenarioFilepathCommand,
+  SetStochasticSettingsCommand,
+} from './distribution-commands';
+import type { DistributionCommand } from './distribution-commands';
+import { useDocumentRegistry } from './document-registry';
 
 /**
  * The distribution mode selects which of the two mutually-exclusive XSD
@@ -37,38 +43,16 @@ export interface StochasticSettings {
   randomSeed?: number;
 }
 
-const DEFAULT_STOCHASTIC_TEST_RUNS = 10;
-
-/** A stable empty document header used when the store first receives an entry. */
-function createEmptyDocument(mode: DistributionMode): ParameterValueDistributionDocument {
-  return {
-    id: generateId(),
-    fileHeader: {
-      revMajor: 1,
-      revMinor: 3,
-      date: new Date().toISOString().split('T')[0],
-      description: 'Parameter value distribution',
-      author: '',
-    },
-    scenarioFilepath: '',
-    distribution:
-      mode === 'deterministic'
-        ? { kind: 'deterministic', entries: [] }
-        : { kind: 'stochastic', numberOfTestRuns: DEFAULT_STOCHASTIC_TEST_RUNS, distributions: [] },
-  };
-}
-
 export interface DistributionState {
   /** The current side-document, or null when no distribution has been created. */
   document: ParameterValueDistributionDocument | null;
 
-  /**
-   * Command history for undo/redo. Wave D only wires the instance so the
-   * document registry can derive dirty from its revision; the mutations are
-   * converted to commands in Wave E. With no commands executed, the revision
-   * stays 0 and the document reads clean — a harmless intermediate state.
-   */
+  /** Command history for undo/redo; the document registry derives dirty from it. */
   getCommandHistory: () => CommandHistory;
+  /** Undo the last distribution edit (focus-routed from keyboard/menu). */
+  undoDistribution: () => void;
+  /** Redo the last undone distribution edit. */
+  redoDistribution: () => void;
 
   // --- Mode ---
   /**
@@ -142,145 +126,72 @@ export function selectMultiParameterEntries(
   );
 }
 
-/**
- * Replace the distribution definition on a document with `mutate` applied to a
- * shallow clone, keeping the rest of the document intact.
- */
-function withDistribution(
-  doc: ParameterValueDistributionDocument,
-  distribution: DistributionDefinition,
-): ParameterValueDistributionDocument {
-  return { ...doc, distribution };
-}
-
 // One command history per store instance (mirrors scenario/catalog stores).
 const commandHistory = new CommandHistory();
 
-export const useDistributionStore = create<DistributionState>((set, get) => ({
-  document: null,
+export const useDistributionStore = create<DistributionState>((set, get) => {
+  /**
+   * Run a mutation command through the shared history. The command's own set
+   * fires before the history revision advances, so nudge subscribers afterwards
+   * to re-read the now-current revision (the registry mirrors it as dirty).
+   */
+  const runCommand = (cmd: DistributionCommand): void => {
+    commandHistory.execute(cmd);
+    set((s) => ({ document: s.document }));
+  };
 
-  getCommandHistory: () => commandHistory,
+  return {
+    document: null,
 
-  getMode: () => get().document?.distribution.kind ?? 'deterministic',
+    getCommandHistory: () => commandHistory,
 
-  setMode: (mode) => {
-    set((state) => {
-      const current = state.document;
-      if (current && current.distribution.kind === mode) return state;
-      const base = current ?? createEmptyDocument(mode);
-      // Switching kind clears entries (the two kinds are mutually exclusive).
-      if (mode === 'deterministic') {
-        return { document: withDistribution(base, { kind: 'deterministic', entries: [] }) };
-      }
-      const testRuns =
-        base.distribution.kind === 'stochastic'
-          ? base.distribution.numberOfTestRuns
-          : DEFAULT_STOCHASTIC_TEST_RUNS;
-      const seed =
-        base.distribution.kind === 'stochastic' ? base.distribution.randomSeed : undefined;
-      return {
-        document: withDistribution(base, {
-          kind: 'stochastic',
-          numberOfTestRuns: testRuns,
-          randomSeed: seed,
-          distributions: [],
-        }),
-      };
-    });
-  },
+    undoDistribution: () => {
+      commandHistory.undo();
+      // The revision moved even if the command no-op'd; nudge subscribers so the
+      // registry mirror re-reads it (mirrors catalog-store's undoCatalog).
+      set((s) => ({ document: s.document }));
+    },
+    redoDistribution: () => {
+      commandHistory.redo();
+      set((s) => ({ document: s.document }));
+    },
 
-  attachToParameter: (entry) => {
-    set((state) => {
-      const base = state.document ?? createEmptyDocument(entry.mode);
-      const dist = base.distribution;
+    getMode: () => get().document?.distribution.kind ?? 'deterministic',
 
-      if (entry.mode === 'deterministic') {
-        if (dist.kind !== 'deterministic') return state; // mode mismatch — ignore
-        const others = dist.entries.filter(
-          (e) => !(e.kind === 'singleParameter' && e.parameterName === entry.parameterName),
-        );
-        const next: DeterministicEntry = {
-          kind: 'singleParameter',
-          parameterName: entry.parameterName,
-          distribution: entry.distribution,
-        };
-        return {
-          document: withDistribution(base, {
-            kind: 'deterministic',
-            entries: [...others, next],
-          }),
-        };
-      }
+    setMode: (mode) => {
+      const current = get().document;
+      if (current && current.distribution.kind === mode) return; // no-op — no command
+      runCommand(new SetModeCommand(mode, get, set));
+    },
 
-      if (dist.kind !== 'stochastic') return state; // mode mismatch — ignore
-      const others = dist.distributions.filter((e) => e.parameterName !== entry.parameterName);
-      const next: StochasticDistributionEntry = {
-        parameterName: entry.parameterName,
-        distribution: entry.distribution,
-      };
-      return {
-        document: withDistribution(base, {
-          kind: 'stochastic',
-          numberOfTestRuns: dist.numberOfTestRuns,
-          randomSeed: dist.randomSeed,
-          distributions: [...others, next],
-        }),
-      };
-    });
-  },
+    attachToParameter: (entry) => runCommand(new AttachParameterCommand(entry, get, set)),
 
-  updateEntry: (entry) => get().attachToParameter(entry),
+    updateEntry: (entry) => get().attachToParameter(entry),
 
-  removeEntry: (parameterName) => {
-    set((state) => {
-      const doc = state.document;
-      if (!doc) return state;
-      const dist = doc.distribution;
-      if (dist.kind === 'deterministic') {
-        return {
-          document: withDistribution(doc, {
-            kind: 'deterministic',
-            entries: dist.entries.filter(
-              (e) => !(e.kind === 'singleParameter' && e.parameterName === parameterName),
-            ),
-          }),
-        };
-      }
-      return {
-        document: withDistribution(doc, {
-          kind: 'stochastic',
-          numberOfTestRuns: dist.numberOfTestRuns,
-          randomSeed: dist.randomSeed,
-          distributions: dist.distributions.filter((e) => e.parameterName !== parameterName),
-        }),
-      };
-    });
-  },
+    removeEntry: (parameterName) => {
+      if (!get().document) return; // nothing to remove
+      runCommand(new RemoveEntryCommand(parameterName, get, set));
+    },
 
-  setStochasticSettings: ({ numberOfTestRuns, randomSeed }) => {
-    set((state) => {
-      const base = state.document ?? createEmptyDocument('stochastic');
-      const dist = base.distribution;
-      if (dist.kind !== 'stochastic') return state; // only meaningful in stochastic mode
-      return {
-        document: withDistribution(base, {
-          kind: 'stochastic',
-          numberOfTestRuns,
-          randomSeed,
-          distributions: dist.distributions,
-        }),
-      };
-    });
-  },
+    setStochasticSettings: (settings) =>
+      runCommand(new SetStochasticSettingsCommand(settings, get, set)),
 
-  setScenarioFilepath: (filepath) => {
-    set((state) => {
-      const base = state.document ?? createEmptyDocument('deterministic');
-      return { document: { ...base, scenarioFilepath: filepath } };
-    });
-  },
+    setScenarioFilepath: (filepath) =>
+      runCommand(new SetScenarioFilepathCommand(filepath, get, set)),
 
-  loadDocument: (doc) => set({ document: doc }),
+    loadDocument: (doc) => {
+      // Loading replaces the document wholesale (single-document semantics, like
+      // scenario loadDocument): clear the history and re-baseline the registry —
+      // a freshly loaded document is clean.
+      commandHistory.clear();
+      set({ document: doc });
+      useDocumentRegistry.getState().markLoaded('distribution');
+    },
 
-  clear: () => set({ document: null }),
-}));
+    clear: () => {
+      commandHistory.clear();
+      set({ document: null });
+      useDocumentRegistry.getState().markLoaded('distribution');
+    },
+  };
+});

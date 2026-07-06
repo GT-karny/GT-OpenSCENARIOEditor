@@ -4,6 +4,7 @@ import { useEditorStore } from '../stores/editor-store';
 import { useSimulationStore } from '../stores/simulation-store';
 import { useRouteEditStore } from '../stores/route-edit-store';
 import { useCatalogStore } from '../stores/catalog-store';
+import { useDistributionStore } from '../stores/distribution-store';
 import { resetOpenDriveStore, useOdrSidebarStore } from './use-opendrive-store';
 import { editorMetadataStoreApi } from '../stores/editor-metadata-store-instance';
 import { useDocumentRegistry } from '../stores/document-registry';
@@ -52,6 +53,10 @@ export function useAppLifecycle() {
 
     // 4. Clear loaded catalogs (will be re-populated by file loading)
     useCatalogStore.getState().resetAll();
+
+    // 4b. Clear the distribution side-document — it must not survive File>New
+    // (clear() re-baselines the registry so the kind ends clean).
+    useDistributionStore.getState().clear();
 
     // 5. Reset OpenDRIVE sidebar tool state
     useOdrSidebarStore.getState().resetAll();

@@ -86,7 +86,7 @@ export function useElectronMenu() {
               getOpenDriveStoreApi().getState().undo();
               break;
             case 'distribution':
-              useDistributionStore.getState().getCommandHistory().undo();
+              useDistributionStore.getState().undoDistribution();
               break;
             default:
               storeApi.getState().undo();
@@ -101,7 +101,7 @@ export function useElectronMenu() {
               getOpenDriveStoreApi().getState().redo();
               break;
             case 'distribution':
-              useDistributionStore.getState().getCommandHistory().redo();
+              useDistributionStore.getState().redoDistribution();
               break;
             default:
               storeApi.getState().redo();
