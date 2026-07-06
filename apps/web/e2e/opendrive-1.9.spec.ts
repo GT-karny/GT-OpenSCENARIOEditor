@@ -192,6 +192,21 @@ async function openXodr(page: Page, filePath: string): Promise<void> {
   await fileChooser.setFiles(filePath);
 }
 
+/**
+ * The `<input>` immediately following a given exact-text `<label>` in the
+ * OpenDRIVE property editors. Addressed via XPath sibling rather than a
+ * `div.grid` parent + `has:` filter: OdrJunctionPropertyEditor renders
+ * Start S / End S as two `grid gap-1` fields nested inside a shared
+ * `grid grid-cols-2 gap-2` row, so `div.grid` matches BOTH the wrapper and
+ * the field's own div (same ambiguity documented in catalog-guard.spec.ts's
+ * `entryNameInput` helper) — the label-sibling XPath is unambiguous either way.
+ */
+function labeledInput(page: Page, labelText: string) {
+  return page.locator(
+    `xpath=.//label[normalize-space(text())="${labelText}"]/following-sibling::input[1]`,
+  );
+}
+
 test.describe('OpenDRIVE 1.9 support', () => {
   // WASM compile + load inside Chromium can exceed the default 30s.
   test.setTimeout(120_000);
@@ -300,5 +315,52 @@ test.describe('OpenDRIVE 1.9 support', () => {
     await page.getByRole('button', { name: /Run|実行/ }).click();
     await page.waitForTimeout(3_000);
     await expect(page.getByText(DEGRADED_ROAD_SUBSTRING)).toHaveCount(0);
+  });
+
+  // Phase 2 (explicit modeling): junction @type is now a 4-value union with
+  // editable virtual-junction attributes (odr-junction.ts, W2/W3 of the P2
+  // plan). This pins the property-editor surface against the fixture's
+  // junction id=888 (name="virtualJunction", type="virtual", mainRoad="1",
+  // sStart="95", sEnd="105", orientation="+") — see
+  // apps/web/e2e/fixtures/opendrive/GT_23_virtual_junction_17.xodr.
+  test('junction property editor shows and edits virtual-junction attributes (Ctrl+Z undoes)', async ({
+    page,
+  }) => {
+    await gotoEditor(page);
+    await enterRoadNetworkMode(page);
+    await openXodr(page, VIRTUAL_JUNCTION_XODR);
+    await expect(page.getByText(/\d+ roads?/).first()).toBeVisible({ timeout: 30_000 });
+
+    // Switch to the Junctions tab and select the fixture's single junction.
+    await page.getByRole('tab', { name: 'Junctions' }).click();
+    await page.getByText('virtualJunction', { exact: true }).click();
+
+    // Type dropdown reflects the loaded @type="virtual". The Identity
+    // section's "Type" row is a standalone div.grid (not nested inside
+    // another grid), so a has: filter is unambiguous here (unlike Start
+    // S/End S below).
+    const typeRow = page.locator('div.grid', { has: page.getByText('Type', { exact: true }) });
+    await expect(typeRow.getByRole('combobox')).toHaveText('virtual');
+
+    // The VIRTUAL JUNCTION section renders the fixture's mainRoad/sStart/
+    // sEnd/orientation values.
+    await expect(page.getByText('Virtual Junction', { exact: true })).toBeVisible();
+    await expect(labeledInput(page, 'Main Road')).toHaveValue('1');
+    const startSInput = labeledInput(page, 'Start S');
+    await expect(startSInput).toHaveValue('95');
+    await expect(labeledInput(page, 'End S')).toHaveValue('105');
+    const orientationRow = page.locator('div.grid', {
+      has: page.getByText('Orientation', { exact: true }),
+    });
+    await expect(orientationRow.getByRole('combobox')).toHaveText('+');
+
+    // Editing Start S persists through the undoable UpdateJunctionCommand;
+    // road-focused Ctrl+Z (focusedBase === 'roadNetwork' in Road Network
+    // mode — use-keyboard-shortcuts.ts) reverts it.
+    await startSInput.fill('50');
+    await expect(startSInput).toHaveValue('50');
+
+    await page.keyboard.press('Control+z');
+    await expect(startSInput).toHaveValue('95');
   });
 });
