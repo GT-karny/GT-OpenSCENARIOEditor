@@ -3,9 +3,11 @@ import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { gotoEditor, addEntity, entityList, dismissDiscardDialog } from './helpers';
 
+// Committed fixture copy (test-fixtures) rather than Thirdparty/, which is a
+// local-only directory absent from CI checkouts.
 const CUTIN_XOSC = resolve(
   dirname(fileURLToPath(import.meta.url)),
-  '../../../Thirdparty/openscenario-v1.2.0/Examples/CutIn.xosc',
+  '../../../test-fixtures/openscenario-v1.2.0/Examples/CutIn.xosc',
 );
 
 test.describe('File Operations', () => {

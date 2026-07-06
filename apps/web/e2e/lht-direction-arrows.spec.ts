@@ -34,6 +34,12 @@ test.describe('driving-direction arrow overlay (RHT/LHT)', () => {
   });
 
   test('toggle arrows, flip all roads to LHT, capture RHT + LHT screenshots', async ({ page }) => {
+    // CI: skipped. This is a visual-capture spec (its output is the screenshot
+    // pair for human review); under the CI runner's software WebGL the Three.js
+    // render loop starves the main thread and even trivial toolbar clicks never
+    // complete within 90s (observed on run 28781306023, incl. both retries).
+    // Functional LHT coverage in CI lives in lht-default-rule.spec.ts.
+    test.skip(!!process.env.CI, 'visual-capture spec; software-WebGL starvation on CI runners');
     // Solo run takes ~26s; under parallel WASM load (full-suite workers) this
     // creeps close to the default 30s test timeout. 90s gives real headroom.
     test.setTimeout(90_000);
