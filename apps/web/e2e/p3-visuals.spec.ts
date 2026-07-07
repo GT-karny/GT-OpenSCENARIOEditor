@@ -126,8 +126,9 @@ async function focusViaMinimap(page: Page, xFrac = 0.5, yFrac = 0.5): Promise<vo
   const box = await minimap.boundingBox();
   if (!box) throw new Error('minimap canvas not found');
   await minimap.click({ position: { x: box.width * xFrac, y: box.height * yFrac } });
-  // FOCUS_DURATION (CameraController.tsx) is 0.3s; give it headroom to settle.
-  await page.waitForTimeout(600);
+  // FOCUS_DURATION (CameraController.tsx) is 0.3s; give it headroom to settle
+  // under parallel-worker CPU contention (see zoomOutFromCenter's comment).
+  await page.waitForTimeout(1000);
 }
 
 /** Fixed canvas-render settle time before a capture (kept deliberately). */
@@ -156,8 +157,16 @@ async function zoomOutFromCenter(
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   for (let i = 0; i < ticks; i++) {
     await page.mouse.wheel(0, 400);
-    await page.waitForTimeout(120);
+    // OrbitControls has enableDamping (CameraController.tsx) — the zoom eases
+    // in over several frames rather than applying instantly. Under parallel
+    // full-suite worker load the render loop can be starved, so a generous
+    // per-tick wait (observed flaky at 120ms under 5 parallel workers — one
+    // run left the camera far more zoomed out than intended) plus an extra
+    // final settle below are both needed for a consistent result regardless
+    // of CPU contention.
+    await page.waitForTimeout(200);
   }
+  await page.waitForTimeout(400);
 }
 
 test.describe('OpenDRIVE 1.9 Phase 3 — visual capture', () => {
@@ -201,8 +210,12 @@ test.describe('OpenDRIVE 1.9 Phase 3 — visual capture', () => {
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     for (let i = 0; i < 6; i++) {
       await page.mouse.wheel(0, -400);
-      await page.waitForTimeout(120);
+      // See zoomOutFromCenter's comment — generous per-tick + final settle
+      // needed for OrbitControls damping to converge under parallel-worker
+      // CPU contention.
+      await page.waitForTimeout(200);
     }
+    await page.waitForTimeout(400);
 
     await settle(page);
     await canvas.screenshot({ path: `${SHOT_DIR}/banking.png` });
