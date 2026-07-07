@@ -43,7 +43,11 @@ import { gotoEditor, dismissDiscardDialog } from './helpers';
  *    object visualization together, not the `slipLane` swatch specifically.
  */
 
-const SHOT_DIR = 'test-results/p3-visuals';
+// Not test-results/ — Playwright wipes its outputDir at the start of every
+// run (including -g filtered runs, which would delete screenshots from
+// tests not selected that invocation). tmp/ is gitignored and untouched by
+// Playwright, so captures survive across repeated/filtered runs.
+const SHOT_DIR = 'tmp/p3-visuals';
 const FIXTURE_DIR = resolve(dirname(fileURLToPath(import.meta.url)), 'fixtures/opendrive');
 
 const BANKING_XODR = resolve(FIXTURE_DIR, 'velodrome.xodr');

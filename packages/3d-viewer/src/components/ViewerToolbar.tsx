@@ -53,6 +53,10 @@ const toolbarStyle: React.CSSProperties = {
   position: 'absolute',
   top: 8,
   left: 8,
+  // Bound the row so flex wrapping engages before the fly-speed slider's
+  // column (top-right, ~180px wide) — otherwise trailing buttons render
+  // underneath it and become unclickable.
+  right: 200,
   display: 'flex',
   gap: '4px',
   flexWrap: 'wrap',
