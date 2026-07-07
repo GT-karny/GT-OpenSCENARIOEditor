@@ -12,6 +12,10 @@ export { XodrSerializer } from './serializer/xodr-serializer.js';
 export { evaluateReferenceLineAtS, evaluateGeometry } from './geometry/reference-line.js';
 export { evaluateElevation, evaluateElevationGradient } from './geometry/elevation.js';
 export { evaluateSuperelevation } from './geometry/superelevation.js';
+export {
+  buildCrossSectionEvaluator,
+  crossSectionCriticalS,
+} from './geometry/cross-section-profile.js';
 export { evaluateLaneOffset } from './geometry/lane-offset.js';
 export {
   computeLaneBoundaries,

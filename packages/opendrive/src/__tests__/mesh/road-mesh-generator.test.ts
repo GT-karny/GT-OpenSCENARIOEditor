@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import { generateRoadMesh } from '../../mesh/road-mesh-generator.js';
+import { XodrParser } from '../../parser/xodr-parser.js';
 import type { OdrRoad } from '@osce/shared';
 
 function makeStraightRoad(): OdrRoad {
@@ -151,5 +154,63 @@ describe('generateRoadMesh', () => {
     const mesh = generateRoadMesh(road);
     expect(mesh.laneSections).toHaveLength(1);
     expect(mesh.laneSections[0].lanes).toHaveLength(0);
+  });
+});
+
+/** Min/max z across every surface vertex of a road mesh. */
+function meshZRange(road: OdrRoad): { min: number; max: number } {
+  const mesh = generateRoadMesh(road);
+  let min = Infinity;
+  let max = -Infinity;
+  for (const section of mesh.laneSections) {
+    for (const lane of section.lanes) {
+      for (let i = 2; i < lane.vertices.length; i += 3) {
+        min = Math.min(min, lane.vertices[i]);
+        max = Math.max(max, lane.vertices[i]);
+      }
+    }
+  }
+  return { min, max };
+}
+
+describe('generateRoadMesh road-surface banking (integration)', () => {
+  it('banks a superelevation road so the two edges sit at different heights', () => {
+    // Flat elevation but constant 5% roll → the outer edges rise/fall symmetrically.
+    const road: OdrRoad = {
+      id: '1', name: '', length: 100, junction: '-1',
+      planView: [{ s: 0, x: 0, y: 0, hdg: 0, length: 100, type: 'line' }],
+      elevationProfile: [{ s: 0, a: 0, b: 0, c: 0, d: 0 }],
+      lateralProfile: [{ s: 0, a: 0.05, b: 0, c: 0, d: 0 }],
+      laneOffset: [],
+      lanes: [{
+        s: 0,
+        leftLanes: [{ id: 1, type: 'driving', width: [{ sOffset: 0, a: 3.5, b: 0, c: 0, d: 0 }], roadMarks: [] }],
+        centerLane: { id: 0, type: 'none', width: [], roadMarks: [] },
+        rightLanes: [{ id: -1, type: 'driving', width: [{ sOffset: 0, a: 3.5, b: 0, c: 0, d: 0 }], roadMarks: [] }],
+      }],
+      objects: [], signals: [],
+    };
+    const { min, max } = meshZRange(road);
+    // 3.5 m half-width at 5% roll → ±0.175 m; a flat road would give spread 0.
+    expect(max - min).toBeCloseTo(2 * 3.5 * Math.sin(0.05), 3);
+  });
+
+  it('banks an authored crossSectionSurface road end to end', () => {
+    const road = new XodrParser()
+      .parse(
+        readFileSync(
+          resolve(
+            __dirname,
+            '../../../../../test-fixtures/opendrive-v1.9/Ex_CrossSectionSurface_CrossFall_LeftTurn_1.xodr',
+          ),
+          'utf-8',
+        ),
+      )
+      .roads[0];
+    const { min, max } = meshZRange(road);
+    // Authored crossfall (tOffset -0.375 + linear ±0.02) tilts the surface: a
+    // clearly non-flat spread, seated below the reference line by the tOffset.
+    expect(max - min).toBeGreaterThan(0.2);
+    expect(max).toBeLessThan(0); // whole surface sits below z=0 (tOffset base)
   });
 });

@@ -3,6 +3,7 @@
  * Generates s-coordinate sample points along a road segment.
  */
 import type { OdrRoad } from '@osce/shared';
+import { crossSectionCriticalS } from '../geometry/cross-section-profile.js';
 
 export interface SamplingOptions {
   /** Base step size in meters (default: 2.0) */
@@ -48,6 +49,20 @@ export function generateSamplePoints(
   for (const elev of road.elevationProfile) {
     if (elev.s > sStart && elev.s < sEnd) {
       criticalS.add(elev.s);
+    }
+  }
+
+  // Superelevation (lateral profile) boundaries — banking transitions
+  for (const se of road.lateralProfile) {
+    if (se.s > sStart && se.s < sEnd) {
+      criticalS.add(se.s);
+    }
+  }
+
+  // Cross-section surface polynomial-segment boundaries
+  for (const s of crossSectionCriticalS(road)) {
+    if (s > sStart && s < sEnd) {
+      criticalS.add(s);
     }
   }
 
@@ -101,6 +116,12 @@ export function generateCurvatureAdaptiveSamples(
   }
   for (const elev of road.elevationProfile) {
     if (elev.s > sStart && elev.s < sEnd) criticalS.add(elev.s);
+  }
+  for (const se of road.lateralProfile) {
+    if (se.s > sStart && se.s < sEnd) criticalS.add(se.s);
+  }
+  for (const s of crossSectionCriticalS(road)) {
+    if (s > sStart && s < sEnd) criticalS.add(s);
   }
   for (const ls of road.lanes) {
     if (ls.s > sStart && ls.s < sEnd) criticalS.add(ls.s);

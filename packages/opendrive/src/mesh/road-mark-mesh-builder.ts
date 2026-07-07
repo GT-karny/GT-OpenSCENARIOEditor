@@ -5,8 +5,10 @@
 import type { OdrRoad, OdrLaneSection, OdrLane, OdrRoadMark, RoadMarkMeshData } from '@osce/shared';
 import { evaluateReferenceLineAtS } from '../geometry/reference-line.js';
 import { evaluateElevation } from '../geometry/elevation.js';
+import { evaluateSuperelevation } from '../geometry/superelevation.js';
 import { evaluateLaneOffset } from '../geometry/lane-offset.js';
 import { computeLaneOuterT, stToXyz } from '../geometry/lane-boundary.js';
+import { buildCrossSectionEvaluator } from '../geometry/cross-section-profile.js';
 
 /**
  * Build road mark mesh for a specific road mark on a lane.
@@ -20,15 +22,22 @@ export function buildRoadMarkMesh(
   sValues: readonly number[],
 ): RoadMarkMeshData {
   const verts: number[] = [];
+  // Marks sit at the lane's outer edge, so they bank with the surface: a
+  // cross-section surface adds a per-edge height, otherwise superelevation rolls
+  // the section about the reference line (mutually exclusive per XSD).
+  const crossSection = buildCrossSectionEvaluator(road);
 
   for (const s of sValues) {
     const dsFromSectionStart = s - laneSection.s;
     const t = computeLaneOuterT(laneSection, lane, dsFromSectionStart);
     const offset = evaluateLaneOffset(road.laneOffset, s);
+    const tt = t + offset;
     const pose = evaluateReferenceLineAtS(road.planView, s);
     // Slight z-offset above road surface to prevent z-fighting
     const z = evaluateElevation(road.elevationProfile, s) + 0.01;
-    const pos = stToXyz(pose, t + offset, z);
+    const pos = crossSection
+      ? stToXyz(pose, tt, z + crossSection(s, tt))
+      : stToXyz(pose, tt, z, evaluateSuperelevation(road.lateralProfile, s));
     verts.push(pos.x, pos.y, pos.z);
   }
 
