@@ -84,6 +84,20 @@ describe('computeRoadArrowPlacements', () => {
     for (const p of placements) expect(p.z).toBeCloseTo(0, 5);
   });
 
+  it('places arrows on the banked surface under superelevation', () => {
+    const road = makeStraightRoad(); // lanes ±1, each 3.5m → centers at t=±1.75
+    const roll = 0.1;
+    road.elevationProfile = [{ s: 0, a: 1, b: 0, c: 0, d: 0 }];
+    road.lateralProfile = [{ s: 0, a: roll, b: 0, c: 0, d: 0 }];
+    const placements = computeRoadArrowPlacements(road, 20);
+    const right = placements.find((p) => p.laneId === -1)!; // t = -1.75
+    const left = placements.find((p) => p.laneId === 1)!; // t = +1.75
+    // z = elevation + t·sin(roll) — arrows ride the bank instead of the flat plane.
+    expect(right.z).toBeCloseTo(1 + -1.75 * Math.sin(roll), 5);
+    expect(left.z).toBeCloseTo(1 + 1.75 * Math.sin(roll), 5);
+    expect(left.z).toBeGreaterThan(right.z);
+  });
+
   it('skips non-driving lanes', () => {
     const road = makeStraightRoad();
     // Turn the left lane into a sidewalk; only the right driving lane remains.

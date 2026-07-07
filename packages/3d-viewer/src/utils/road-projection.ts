@@ -8,14 +8,13 @@ import {
   evaluateReferenceLineAtS,
   evaluateElevation,
   evaluateElevationGradient,
-  evaluateSuperelevation,
   evaluateLaneOffset,
   computeLaneInnerT,
   computeLaneOuterT,
-  stToXyz,
   computeDrivingHeading,
   findLaneSectionAtS,
 } from '@osce/opendrive';
+import { bankedSurfacePoint } from './banked-surface.js';
 
 export interface RoadProjectionResult {
   x: number;
@@ -62,23 +61,22 @@ export function roadCoordsToWorld(
 
   const pose = evaluateReferenceLineAtS(road.planView, clampedS);
   const z = evaluateElevation(road.elevationProfile, clampedS);
-  const worldPos = stToXyz(pose, t, z);
+  const surf = bankedSurfacePoint(road, pose, clampedS, t, z);
   const h = computeDrivingHeading(road, laneId, clampedS);
 
   const gradient = evaluateElevationGradient(road.elevationProfile, clampedS);
   const pitch = Math.atan(gradient);
-  const roll = evaluateSuperelevation(road.lateralProfile, clampedS);
 
   return {
-    x: worldPos.x,
-    y: worldPos.y,
-    z: worldPos.z,
+    x: surf.x,
+    y: surf.y,
+    z: surf.z,
     h,
     roadId,
     laneId,
     s: clampedS,
     pitch,
-    roll,
+    roll: surf.roll,
   };
 }
 

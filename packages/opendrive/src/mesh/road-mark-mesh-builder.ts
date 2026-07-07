@@ -8,7 +8,7 @@ import { evaluateElevation } from '../geometry/elevation.js';
 import { evaluateSuperelevation } from '../geometry/superelevation.js';
 import { evaluateLaneOffset } from '../geometry/lane-offset.js';
 import { computeLaneOuterT, stToXyz } from '../geometry/lane-boundary.js';
-import { buildCrossSectionEvaluator } from '../geometry/cross-section-profile.js';
+import { getCrossSectionEvaluator } from '../geometry/cross-section-profile.js';
 
 /**
  * Build road mark mesh for a specific road mark on a lane.
@@ -25,7 +25,7 @@ export function buildRoadMarkMesh(
   // Marks sit at the lane's outer edge, so they bank with the surface: a
   // cross-section surface adds a per-edge height, otherwise superelevation rolls
   // the section about the reference line (mutually exclusive per XSD).
-  const crossSection = buildCrossSectionEvaluator(road);
+  const crossSection = getCrossSectionEvaluator(road);
 
   for (const s of sValues) {
     const dsFromSectionStart = s - laneSection.s;

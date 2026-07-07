@@ -1,8 +1,9 @@
 /**
  * Resolves OpenDRIVE road-object positions (s, t, zOffset) to world coordinates.
  *
- * Mirrors signal-position-resolver: reference-line + elevation + superelevation
- * roll place the object on the (possibly banked) road surface, and the authored
+ * Mirrors signal-position-resolver: the reference line + elevation + surface
+ * banking (superelevation roll or a crossSectionSurface height field, whichever
+ * the road carries) place the object on the road surface, and the authored
  * hdg/pitch/roll compose on top of the road-frame orientation.
  */
 
@@ -11,10 +12,9 @@ import {
   evaluateReferenceLineAtS,
   evaluateElevation,
   evaluateElevationGradient,
-  evaluateSuperelevation,
-  stToXyz,
 } from '@osce/opendrive';
 import type { WorldCoords } from './position-resolver.js';
+import { bankedSurfacePoint } from './banked-surface.js';
 
 /**
  * Resolve a road-relative object pose (s, t, zOffset + orientation deltas) to
@@ -38,21 +38,20 @@ export function resolveObjectPose(
   if (!pose) return null;
 
   const zBase = evaluateElevation(road.elevationProfile, s);
-  const surfaceRoll = evaluateSuperelevation(road.lateralProfile, s);
 
-  // Place on the banked surface: the superelevation roll rotates the lateral
-  // offset about the reference line (t·sin(roll) rise), same as the road mesh.
-  const worldPos = stToXyz(pose, t, zBase + zOffset, surfaceRoll);
+  // Place on the banked surface (superelevation roll or crossSectionSurface
+  // height field), same as the road mesh; zOffset stays a vertical rise above it.
+  const surf = bankedSurfacePoint(road, pose, s, t, zBase + zOffset);
 
   // Orientation: object hdg/pitch/roll are relative to the road frame.
   const gradient = evaluateElevationGradient(road.elevationProfile, s);
   return {
-    x: worldPos.x,
-    y: worldPos.y,
-    z: worldPos.z,
+    x: surf.x,
+    y: surf.y,
+    z: surf.z,
     h: pose.hdg + hdg,
     pitch: Math.atan(gradient) + pitch,
-    roll: surfaceRoll + roll,
+    roll: surf.roll + roll,
   };
 }
 

@@ -7,10 +7,9 @@ import {
   evaluateReferenceLineAtS,
   evaluateElevation,
   evaluateElevationGradient,
-  evaluateSuperelevation,
-  stToXyz,
 } from '@osce/opendrive';
 import type { WorldCoords } from './position-resolver.js';
+import { bankedSurfacePoint } from './banked-surface.js';
 import { DEFAULT_SIGNAL_HEIGHT } from './signal-geometry.js';
 
 /**
@@ -34,8 +33,9 @@ export function resolveSignalPosition(
   const zBase = evaluateElevation(road.elevationProfile, signal.s);
   const zOffset = signal.zOffset ?? DEFAULT_SIGNAL_HEIGHT;
 
-  // 3. Convert (s, t) to world XY, with z = ground elevation + zOffset
-  const worldPos = stToXyz(pose, signal.t, zBase + zOffset);
+  // 3. Convert (s, t) to world XY, seating the base on the banked surface
+  //    (zOffset remains a vertical rise above it), matching the road mesh.
+  const surf = bankedSurfacePoint(road, pose, signal.s, signal.t, zBase + zOffset);
 
   // 4. Compute heading: signal faces oncoming traffic.
   //    orientation '+' (default) = applies to +s traffic → face against road direction (+π)
@@ -45,10 +45,9 @@ export function resolveSignalPosition(
     h += Math.PI;
   }
 
-  // 5. Compute pitch (from road slope) and roll (from superelevation)
+  // 5. Compute pitch (from road slope); roll comes from the surface (superelevation)
   const gradient = evaluateElevationGradient(road.elevationProfile, signal.s);
   const pitch = Math.atan(gradient);
-  const roll = evaluateSuperelevation(road.lateralProfile, signal.s);
 
-  return { x: worldPos.x, y: worldPos.y, z: worldPos.z, h, pitch, roll };
+  return { x: surf.x, y: surf.y, z: surf.z, h, pitch, roll: surf.roll };
 }

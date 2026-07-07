@@ -13,16 +13,15 @@ import {
   evaluateReferenceLineAtS,
   evaluateElevation,
   evaluateElevationGradient,
-  evaluateSuperelevation,
   evaluateLaneOffset,
   computeLaneInnerT,
   computeLaneOuterT,
-  stToXyz,
   computeDrivingHeading,
   findLaneSectionAtS,
   resolveRoute,
   type RouteSegment,
 } from '@osce/opendrive';
+import { bankedSurfacePoint } from './banked-surface.js';
 
 /**
  * World coordinates for 3D rendering (in OpenDRIVE coordinate system).
@@ -133,7 +132,8 @@ function resolveLanePosition(
 
   const pose = evaluateReferenceLineAtS(road.planView, pos.s);
   const z = evaluateElevation(road.elevationProfile, pos.s);
-  const worldPos = stToXyz(pose, t, z);
+  // Place the reference point on the banked surface (matches the road mesh).
+  const surf = bankedSurfacePoint(road, pose, pos.s, t, z);
 
   // Compute heading based on driving direction (accounts for lane side + road rule)
   let h: number;
@@ -149,15 +149,14 @@ function resolveLanePosition(
   // Road surface tilt
   const gradient = evaluateElevationGradient(road.elevationProfile, pos.s);
   const pitch = Math.atan(gradient);
-  const roll = evaluateSuperelevation(road.lateralProfile, pos.s);
 
   return {
-    x: worldPos.x,
-    y: worldPos.y,
-    z: worldPos.z,
+    x: surf.x,
+    y: surf.y,
+    z: surf.z,
     h,
     pitch,
-    roll,
+    roll: surf.roll,
   };
 }
 
@@ -172,20 +171,19 @@ function resolveRoadPosition(
 
   const pose = evaluateReferenceLineAtS(road.planView, pos.s);
   const z = evaluateElevation(road.elevationProfile, pos.s);
-  const worldPos = stToXyz(pose, pos.t, z);
+  const surf = bankedSurfacePoint(road, pose, pos.s, pos.t, z);
 
   // Road surface tilt
   const gradient = evaluateElevationGradient(road.elevationProfile, pos.s);
   const pitch = Math.atan(gradient);
-  const roll = evaluateSuperelevation(road.lateralProfile, pos.s);
 
   return {
-    x: worldPos.x,
-    y: worldPos.y,
-    z: worldPos.z,
+    x: surf.x,
+    y: surf.y,
+    z: surf.z,
     h: pose.hdg,
     pitch,
-    roll,
+    roll: surf.roll,
   };
 }
 

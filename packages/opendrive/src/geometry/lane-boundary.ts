@@ -8,7 +8,7 @@ import { evaluateReferenceLineAtS } from './reference-line.js';
 import { evaluateElevation } from './elevation.js';
 import { evaluateSuperelevation } from './superelevation.js';
 import { evaluateLaneOffset } from './lane-offset.js';
-import { buildCrossSectionEvaluator } from './cross-section-profile.js';
+import { getCrossSectionEvaluator } from './cross-section-profile.js';
 import { evalCubic, findRecordAtS } from '../utils/math.js';
 
 export interface LaneBoundaryPoint {
@@ -122,7 +122,7 @@ export function computeLaneBoundaries(
   // Road-surface banking. crossSectionSurface and superelevation are mutually
   // exclusive (XSD assert): a cross-section surface is a height field applied
   // per-edge with no rotation; superelevation is a roll about the reference line.
-  const crossSection = buildCrossSectionEvaluator(road);
+  const crossSection = getCrossSectionEvaluator(road);
 
   return sValues.map((s) => {
     const dsFromSectionStart = s - laneSection.s;

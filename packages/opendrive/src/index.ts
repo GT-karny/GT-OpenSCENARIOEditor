@@ -14,6 +14,7 @@ export { evaluateElevation, evaluateElevationGradient } from './geometry/elevati
 export { evaluateSuperelevation } from './geometry/superelevation.js';
 export {
   buildCrossSectionEvaluator,
+  getCrossSectionEvaluator,
   crossSectionCriticalS,
 } from './geometry/cross-section-profile.js';
 export { evaluateLaneOffset } from './geometry/lane-offset.js';

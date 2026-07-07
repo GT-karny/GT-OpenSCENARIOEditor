@@ -14,10 +14,10 @@ import {
   evaluateLaneOffset,
   computeLaneInnerT,
   computeLaneOuterT,
-  stToXyz,
   computeDrivingHeading,
   findLaneSectionAtS,
 } from '@osce/opendrive';
+import { bankedSurfacePoint } from '../utils/banked-surface.js';
 
 /** A single arrow placement in OpenDRIVE world coordinates (z-up). */
 export interface ArrowPlacement {
@@ -88,7 +88,9 @@ export function computeRoadArrowPlacements(
       const outerT = computeLaneOuterT(laneSection, lane, dsFromSection) + laneOff;
       const t = (innerT + outerT) / 2;
 
-      const worldPos = stToXyz(pose, t, z);
+      // Sit on the banked surface (superelevation roll / crossSectionSurface
+      // height), same as the road mesh, so arrows aren't buried on a rolled road.
+      const worldPos = bankedSurfacePoint(road, pose, s, t, z);
       const heading = computeDrivingHeading(road, lane.id, s);
 
       placements.push({

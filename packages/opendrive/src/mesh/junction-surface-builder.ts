@@ -18,7 +18,7 @@ import { evaluateSuperelevation } from '../geometry/superelevation.js';
 import { evaluateLaneOffset } from '../geometry/lane-offset.js';
 import { computeLaneOuterT } from '../geometry/lane-boundary.js';
 import { stToXyz } from '../geometry/lane-boundary.js';
-import { buildCrossSectionEvaluator } from '../geometry/cross-section-profile.js';
+import { getCrossSectionEvaluator } from '../geometry/cross-section-profile.js';
 
 /** Height field applied to a road's surface (crossSectionSurface), or null. */
 type CrossSection = ((s: number, t: number) => number) | null;
@@ -76,7 +76,7 @@ export function buildJunctionSurfaceMesh(
     if (!hasJunctionLink(road, junction.id)) continue;
 
     const s = getJunctionFacingS(road, junction.id);
-    const bp = getBoundaryPair(road, s, buildCrossSectionEvaluator(road));
+    const bp = getBoundaryPair(road, s, getCrossSectionEvaluator(road));
     if (bp) {
       candidates.push(bp.left);
       candidates.push(bp.right);
@@ -96,7 +96,7 @@ export function buildJunctionSurfaceMesh(
     const road = roadMap.get(conn.connectingRoad);
     if (!road || road.lanes.length === 0) continue;
 
-    const crossSection = buildCrossSectionEvaluator(road);
+    const crossSection = getCrossSectionEvaluator(road);
     for (let i = 0; i <= CONNECTING_SAMPLES; i++) {
       const s = (road.length * i) / CONNECTING_SAMPLES;
       const pose = evaluateReferenceLineAtS(road.planView, s);

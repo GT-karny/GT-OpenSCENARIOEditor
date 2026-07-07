@@ -239,6 +239,26 @@ export function buildCrossSectionEvaluator(
   };
 }
 
+/** Per-road memo of {@link buildCrossSectionEvaluator} (null cached too). */
+const evaluatorCache = new WeakMap<OdrRoad, ((s: number, t: number) => number) | null>();
+
+/**
+ * Cached {@link buildCrossSectionEvaluator}: builds a road's evaluator once and
+ * memoizes it, keyed by the road object. Lets the mesh and the position
+ * resolvers share one evaluator per road instead of re-parsing the strip
+ * polynomials on every lookup, guaranteeing they bank identically. Safe on the
+ * read-only render path — editing yields new road objects (fresh cache entries).
+ */
+export function getCrossSectionEvaluator(
+  road: OdrRoad,
+): ((s: number, t: number) => number) | null {
+  const cached = evaluatorCache.get(road);
+  if (cached !== undefined) return cached;
+  const evaluator = buildCrossSectionEvaluator(road);
+  evaluatorCache.set(road, evaluator);
+  return evaluator;
+}
+
 /**
  * Critical s-values where a road's cross-section surface changes polynomial
  * segment (tOffset + every strip leaf's `<coefficients>` rows). Sampling adds

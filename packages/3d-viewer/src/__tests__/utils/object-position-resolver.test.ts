@@ -1,8 +1,11 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import {
   resolveObjectPosition,
   resolveObjectPose,
 } from '../../utils/object-position-resolver.js';
+import { XodrParser } from '@osce/opendrive';
 import type { OdrRoad, OdrRoadObject } from '@osce/shared';
 
 function makeRoad(overrides: Partial<OdrRoad> = {}): OdrRoad {
@@ -50,6 +53,25 @@ describe('resolveObjectPosition', () => {
     expect(result!.z).toBeCloseTo(2 + 0.5 + 3 * Math.sin(roll), 6);
     // Orientation roll = surface roll + authored roll(0).
     expect(result!.roll).toBeCloseTo(roll, 6);
+  });
+
+  it('offsets an object by the crossSectionSurface height field (roll stays authored)', () => {
+    const road = new XodrParser()
+      .parse(
+        readFileSync(
+          resolve(
+            __dirname,
+            '../../../../../test-fixtures/opendrive-v1.9/Ex_CrossSectionSurface_CrossFall_LeftTurn_1.xodr',
+          ),
+          'utf-8',
+        ),
+      )
+      .roads[0];
+    const result = resolveObjectPosition(makeObject({ s: 0, t: 0, zOffset: 0.5 }), road);
+    expect(result).not.toBeNull();
+    // elevation 0 + zOffset 0.5 + tOffset base (-0.375). No superelevation → roll 0.
+    expect(result!.z).toBeCloseTo(0.5 - 0.375, 3);
+    expect(result!.roll).toBe(0);
   });
 
   it('adds object hdg to the road heading', () => {
