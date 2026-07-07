@@ -38,6 +38,17 @@ export {
 } from './road/driving-direction-arrows.js';
 export type { ArrowPlacement } from './road/driving-direction-arrows.js';
 
+// Authored road-object visualization (OpenDRIVE <object>) + pure helpers
+export { RoadObjectsGroup } from './road/RoadObjectsGroup.js';
+export {
+  selectObjectGeometry,
+  expandObjectRepeat,
+  DEFAULT_OBJECT_SIZE,
+  MAX_REPEAT_INSTANCES,
+} from './road/road-object-geometry.js';
+export type { ObjectGeometryKind, RepeatInstance } from './road/road-object-geometry.js';
+export { resolveObjectPosition, resolveObjectPose } from './utils/object-position-resolver.js';
+
 // Utility functions
 export { resolvePositionToWorld } from './utils/position-resolver.js';
 export type { WorldCoords, PositionResolveOptions } from './utils/position-resolver.js';

@@ -70,6 +70,7 @@ export type { AutoArcResult } from './geometry/arc-math.js';
 
 // Mesh generation
 export { generateRoadMesh } from './mesh/road-mesh-generator.js';
+export type { RoadMeshOptions } from './mesh/road-mesh-generator.js';
 export { buildLaneMesh } from './mesh/lane-mesh-builder.js';
 export { buildRoadMarkMesh } from './mesh/road-mark-mesh-builder.js';
 export { generateSamplePoints, generateCurvatureAdaptiveSamples } from './mesh/sampling.js';

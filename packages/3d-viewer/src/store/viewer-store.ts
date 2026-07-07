@@ -23,6 +23,8 @@ import type {
  */
 export type ViewerPreferences = Partial<EditorPreferences> & {
   showDrivingDirection?: boolean;
+  showTemporaryLanes?: boolean;
+  showObjects?: boolean;
 };
 
 /**
@@ -36,6 +38,8 @@ export function createViewerStore(preferences?: ViewerPreferences) {
     showLaneIds: preferences?.showLaneIds ?? false,
     showRoadIds: preferences?.showRoadIds ?? false,
     showDrivingDirection: preferences?.showDrivingDirection ?? false,
+    showTemporaryLanes: preferences?.showTemporaryLanes ?? true,
+    showObjects: preferences?.showObjects ?? true,
     showEntityLabels: true,
     showTrafficSignals: true,
 
@@ -66,6 +70,8 @@ export function createViewerStore(preferences?: ViewerPreferences) {
     toggleLaneIds: () => set((s) => ({ showLaneIds: !s.showLaneIds })),
     toggleRoadIds: () => set((s) => ({ showRoadIds: !s.showRoadIds })),
     toggleDrivingDirection: () => set((s) => ({ showDrivingDirection: !s.showDrivingDirection })),
+    toggleTemporaryLanes: () => set((s) => ({ showTemporaryLanes: !s.showTemporaryLanes })),
+    toggleObjects: () => set((s) => ({ showObjects: !s.showObjects })),
     toggleEntityLabels: () => set((s) => ({ showEntityLabels: !s.showEntityLabels })),
     toggleTrafficSignals: () => set((s) => ({ showTrafficSignals: !s.showTrafficSignals })),
 

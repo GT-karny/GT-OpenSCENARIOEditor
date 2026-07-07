@@ -3,7 +3,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { generateRoadMesh } from '../../mesh/road-mesh-generator.js';
 import { XodrParser } from '../../parser/xodr-parser.js';
-import type { OdrRoad } from '@osce/shared';
+import type { OdrRoad, RoadMeshData } from '@osce/shared';
 
 function makeStraightRoad(): OdrRoad {
   return {
@@ -172,6 +172,95 @@ function meshZRange(road: OdrRoad): { min: number; max: number } {
   }
   return { min, max };
 }
+
+/** Total surface-lane count across all sections of a road mesh. */
+function totalLaneCount(mesh: RoadMeshData): number {
+  return mesh.laneSections.reduce((sum, s) => sum + s.lanes.length, 0);
+}
+
+describe('generateRoadMesh temporary lane layer', () => {
+  /** Permanent = 1 left + 1 right; temporary = 1 right only, wider, offset laterally. */
+  function makeDualLayerRoad(): OdrRoad {
+    return {
+      id: '7', name: 'Roadworks', length: 100, junction: '-1',
+      planView: [{ s: 0, x: 0, y: 0, hdg: 0, length: 100, type: 'line' }],
+      elevationProfile: [{ s: 0, a: 0, b: 0, c: 0, d: 0 }],
+      lateralProfile: [],
+      laneOffset: [],
+      lanes: [{
+        s: 0,
+        leftLanes: [{ id: 1, type: 'driving', width: [{ sOffset: 0, a: 3.5, b: 0, c: 0, d: 0 }], roadMarks: [] }],
+        centerLane: { id: 0, type: 'none', width: [], roadMarks: [] },
+        rightLanes: [{ id: -1, type: 'driving', width: [{ sOffset: 0, a: 3.5, b: 0, c: 0, d: 0 }], roadMarks: [] }],
+      }],
+      objects: [], signals: [],
+      temporaryLanes: {
+        // Distinct from permanent: a single 4.0 m lane shifted by a +1 m lane offset.
+        laneOffset: [{ s: 0, a: 1, b: 0, c: 0, d: 0 }],
+        sections: [{
+          s: 0,
+          leftLanes: [],
+          centerLane: { id: 0, type: 'none', width: [], roadMarks: [] },
+          rightLanes: [{ id: -1, type: 'driving', width: [{ sOffset: 0, a: 4.0, b: 0, c: 0, d: 0 }], roadMarks: [] }],
+        }],
+      },
+    };
+  }
+
+  it('returns an empty mesh for the temporary layer when the road has none', () => {
+    const road = makeStraightRoad();
+    const mesh = generateRoadMesh(road, { layer: 'temporary' });
+    expect(mesh.roadId).toBe('1');
+    expect(mesh.laneSections).toHaveLength(0);
+  });
+
+  it('meshes the temporary layer through the same machinery, distinct from permanent', () => {
+    const road = makeDualLayerRoad();
+    const permanent = generateRoadMesh(road);
+    const temporary = generateRoadMesh(road, { layer: 'temporary' });
+
+    expect(totalLaneCount(permanent)).toBe(2); // left + right
+    expect(totalLaneCount(temporary)).toBe(1); // single temporary lane
+    expect(totalLaneCount(temporary)).not.toBe(totalLaneCount(permanent));
+  });
+
+  it("applies the temporary layer's own laneOffset (not the permanent one)", () => {
+    const road = makeDualLayerRoad();
+    const temporary = generateRoadMesh(road, { layer: 'temporary' });
+
+    // Temporary lane: right lane of width 4.0 under a +1 m lane offset. Its inner
+    // edge sits at t = +1 (offset) and outer at t = +1 - 4 = -3 → y spans [-3, +1].
+    let minY = Infinity, maxY = -Infinity;
+    for (const section of temporary.laneSections) {
+      for (const lane of section.lanes) {
+        for (let i = 1; i < lane.vertices.length; i += 3) {
+          minY = Math.min(minY, lane.vertices[i]);
+          maxY = Math.max(maxY, lane.vertices[i]);
+        }
+      }
+    }
+    expect(maxY).toBeCloseTo(1, 3);
+    expect(minY).toBeCloseTo(-3, 3);
+  });
+
+  it('meshes the temporary layer of a parsed 1.9 dual-layer fixture', () => {
+    const road = new XodrParser()
+      .parse(
+        readFileSync(
+          resolve(
+            __dirname,
+            '../../../../../test-fixtures/opendrive-v1.9/GT_g2_lanes_layer_19.xodr',
+          ),
+          'utf-8',
+        ),
+      )
+      .roads[0];
+
+    expect(road.temporaryLanes).toBeDefined();
+    const temporary = generateRoadMesh(road, { layer: 'temporary' });
+    expect(totalLaneCount(temporary)).toBeGreaterThan(0);
+  });
+});
 
 describe('generateRoadMesh road-surface banking (integration)', () => {
   it('banks a superelevation road so the two edges sit at different heights', () => {

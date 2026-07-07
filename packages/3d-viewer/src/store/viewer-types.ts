@@ -46,6 +46,10 @@ export interface ViewerState {
   showRoadIds: boolean;
   /** Per-lane driving-direction arrows (rule-aware, RHT/LHT) */
   showDrivingDirection: boolean;
+  /** Temporary (roadworks) lane-layer overlay (OpenDRIVE 1.9) */
+  showTemporaryLanes: boolean;
+  /** Authored road-object visualization (OpenDRIVE `<object>`) */
+  showObjects: boolean;
   showEntityLabels: boolean;
   showTrafficSignals: boolean;
 
@@ -91,6 +95,8 @@ export interface ViewerActions {
   toggleLaneIds: () => void;
   toggleRoadIds: () => void;
   toggleDrivingDirection: () => void;
+  toggleTemporaryLanes: () => void;
+  toggleObjects: () => void;
   toggleEntityLabels: () => void;
   toggleTrafficSignals: () => void;
 

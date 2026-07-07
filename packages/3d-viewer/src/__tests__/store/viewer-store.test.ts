@@ -133,4 +133,31 @@ describe('createViewerStore', () => {
       expect(store.getState().hoverLaneInfo).toBeNull();
     });
   });
+
+  describe('temporary lanes and objects', () => {
+    it('both default to true', () => {
+      const store = createViewerStore();
+      expect(store.getState().showTemporaryLanes).toBe(true);
+      expect(store.getState().showObjects).toBe(true);
+    });
+
+    it('toggles flip each flag', () => {
+      const store = createViewerStore();
+      store.getState().toggleTemporaryLanes();
+      expect(store.getState().showTemporaryLanes).toBe(false);
+      store.getState().toggleTemporaryLanes();
+      expect(store.getState().showTemporaryLanes).toBe(true);
+
+      store.getState().toggleObjects();
+      expect(store.getState().showObjects).toBe(false);
+      store.getState().toggleObjects();
+      expect(store.getState().showObjects).toBe(true);
+    });
+
+    it('seed from preferences', () => {
+      const store = createViewerStore({ showTemporaryLanes: false, showObjects: false });
+      expect(store.getState().showTemporaryLanes).toBe(false);
+      expect(store.getState().showObjects).toBe(false);
+    });
+  });
 });

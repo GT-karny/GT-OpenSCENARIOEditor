@@ -18,6 +18,7 @@ import { RoadLabels } from './RoadLabels.js';
 import { JunctionMesh } from './JunctionMesh.js';
 import { LaneHighlightManager } from './LaneHighlightManager.js';
 import { DrivingDirectionArrows } from './DrivingDirectionArrows.js';
+import { TemporaryLaneMesh } from './TemporaryLaneMesh.js';
 
 interface RoadNetworkProps {
   odrDocument: OpenDriveDocument | null;
@@ -26,6 +27,8 @@ interface RoadNetworkProps {
   showLaneIds?: boolean;
   /** Render per-lane driving-direction arrows (rule-aware, RHT/LHT). */
   showDrivingDirection?: boolean;
+  /** Overlay the temporary (roadworks) lane layer where present (OpenDRIVE 1.9). */
+  showTemporaryLanes?: boolean;
   /** Ref-based lane highlight for hover feedback (read in useFrame, no re-renders) */
   highlightedLaneRef?: React.RefObject<{ roadId: string; laneId: number } | null>;
   /** Currently selected junction ID (renders with highlight) */
@@ -46,6 +49,7 @@ export const RoadNetwork = forwardRef<THREE.Group, RoadNetworkProps>(
       showRoadIds = false,
       showLaneIds = false,
       showDrivingDirection = false,
+      showTemporaryLanes = true,
       highlightedLaneRef,
       selectedJunctionId,
       ghostJunctionSurface,
@@ -85,6 +89,40 @@ export const RoadNetwork = forwardRef<THREE.Group, RoadNetworkProps>(
       });
     }, [odrDocument]);
 
+    // Per-road temporary-layer mesh cache. Keyed on road reference identity like
+    // the permanent cache: an immer edit to temporaryLanes yields a new road ref.
+    const tempMeshCacheRef = useRef<Map<string, { road: OdrRoad; meshData: RoadMeshData }>>(new Map());
+
+    const tempMeshMap = useMemo(() => {
+      const result = new Map<string, RoadMeshData>();
+      if (!odrDocument) {
+        tempMeshCacheRef.current.clear();
+        return result;
+      }
+
+      const cache = tempMeshCacheRef.current;
+      const currentRoadIds = new Set(odrDocument.roads.map((r) => r.id));
+      for (const id of cache.keys()) {
+        if (!currentRoadIds.has(id)) cache.delete(id);
+      }
+
+      for (const road of odrDocument.roads) {
+        if (!road.temporaryLanes) {
+          cache.delete(road.id);
+          continue;
+        }
+        const cached = cache.get(road.id);
+        if (cached && cached.road === road) {
+          result.set(road.id, cached.meshData);
+          continue;
+        }
+        const meshData = generateRoadMesh(road, { layer: 'temporary' });
+        cache.set(road.id, { road, meshData });
+        result.set(road.id, meshData);
+      }
+      return result;
+    }, [odrDocument]);
+
     // Per-junction surface cache
     const junctionCacheRef = useRef<Map<string, { junction: unknown; surface: JunctionSurfaceData }>>(new Map());
 
@@ -121,15 +159,19 @@ export const RoadNetwork = forwardRef<THREE.Group, RoadNetworkProps>(
 
     return (
       <group ref={ref} rotation={[-Math.PI / 2, 0, 0]}>
-        {roadMeshes.map(({ road, meshData }) => (
-          <group key={road.id} userData={{ roadId: road.id }}>
-            <RoadMesh
-              road={road}
-              roadMeshData={meshData}
-              showRoadMarks={showRoadMarks}
-            />
-          </group>
-        ))}
+        {roadMeshes.map(({ road, meshData }) => {
+          const tempMesh = showTemporaryLanes ? tempMeshMap.get(road.id) : undefined;
+          return (
+            <group key={road.id} userData={{ roadId: road.id }}>
+              <RoadMesh
+                road={road}
+                roadMeshData={meshData}
+                showRoadMarks={showRoadMarks}
+              />
+              {tempMesh && <TemporaryLaneMesh meshData={tempMesh} />}
+            </group>
+          );
+        })}
         {/* Per-lane driving-direction arrows (rule-aware, RHT/LHT) */}
         {showDrivingDirection && <DrivingDirectionArrows roads={odrDocument.roads} />}
         {/* Junction surface fills (rendered behind roads via polygonOffset) */}
