@@ -16,6 +16,7 @@ const LANE_TYPES: readonly string[] = [
   'parking',
   'median',
   'biking',
+  'shared',
   'sidewalk',
   'curb',
   'exit',
@@ -35,6 +36,8 @@ const LANE_TYPES: readonly string[] = [
   'HOV',
   'mwyEntry',
   'mwyExit',
+  'walking',
+  'slipLane',
 ];
 
 // Values are the OpenDRIVE XSD e_roadMarkType tokens (space-separated for compound
@@ -62,6 +65,7 @@ const ROAD_MARK_COLORS: readonly string[] = [
   'red',
   'white',
   'yellow',
+  'black',
   'orange',
   'violet',
 ];

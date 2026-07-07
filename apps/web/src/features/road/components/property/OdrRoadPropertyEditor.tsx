@@ -109,6 +109,17 @@ export function OdrRoadPropertyEditor({ road, onUpdate }: OdrRoadPropertyEditorP
         </div>
       </div>
 
+      {/* Section: Cross-Section Surface note (1.9 crossSectionSurface — authored values shown, sim approximates) */}
+      {road.crossSectionSurface && (
+        <div className="pb-3 border-b border-[var(--color-glass-edge)]">
+          <div className="p-2 bg-[var(--color-glass-1)]">
+            <p className="text-[11px] text-[var(--color-text-secondary)]">
+              {t('odrProperty.road.crossSectionSurfaceNote')}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Section: Road Type */}
       <div className="pb-3 border-b border-[var(--color-glass-edge)]">
         <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">

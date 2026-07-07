@@ -58,6 +58,8 @@ function mapRoadMarkColor(color: string | undefined): string {
     case 'green': return '#00CC00';
     case 'orange': return '#FF8800';
     case 'violet': return '#8800FF';
+    // Lifted slightly above pure black so marks stay visible on the dark surface.
+    case 'black': return '#1A1A1A';
     case 'standard':
     default:
       return '#FFFFFF';

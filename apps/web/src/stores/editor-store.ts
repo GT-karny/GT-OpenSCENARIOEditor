@@ -78,6 +78,18 @@ export type EditorPreferencesExt = EditorPreferences & {
    * scenario, so they are hidden by default. Persisted alongside display toggles.
    */
   showSimGeneratedObjects: boolean;
+  /**
+   * Show the temporary lane layer (`<lanes layer="temporary">`), overlaid on
+   * the permanent road surface with a distinct tint. 1.9-P3 (D3) display
+   * toggle, persisted alongside the other display toggles.
+   */
+  showTemporaryLanes: boolean;
+  /**
+   * Show document-authored `<object>` entries in the 3D viewer (boxes/cylinders
+   * resolved from s/t/zOffset + repeat). 1.9-P3 (D4) display toggle, persisted
+   * alongside the other display toggles.
+   */
+  showObjects: boolean;
 };
 
 export interface EditorState {
@@ -216,6 +228,8 @@ const defaultPreferences: EditorPreferencesExt = {
   showRoadIds: false,
   showDrivingDirection: false,
   showSimGeneratedObjects: false,
+  showTemporaryLanes: true,
+  showObjects: true,
   speedUnit: 'mps',
   compatibilityProfile: {
     oscVersion: '1.3',

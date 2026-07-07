@@ -43,6 +43,9 @@ export const common = {
     zoomHint: 'Ctrl + scroll to zoom',
     eventBlock: 'Drag to change trigger time',
     ambiguousTrigger: 'Trigger has no single simulation-time condition — not draggable',
+    showSimGeneratedObjects: 'Show simulator-generated objects',
+    showSimGeneratedObjectsHint:
+      'Reveals runtime objects the simulator generates during playback (id ≥ 9.0e8), such as crosswalks, bridges, and objectReference clones. Unrelated to the document objects authored in the road network — see the Objects tab in the road-network sidebar for those.',
   },
   labels: {
     name: 'Name',
@@ -516,6 +519,7 @@ export const common = {
       unit: 'Unit',
       rule: 'Rule',
       widthM: 'Width (m)',
+      readOnly: 'Read Only',
     },
     header: {
       title: 'Document Header',
@@ -573,6 +577,8 @@ export const common = {
       successor: 'Successor',
       noLinksDefined: 'No links defined',
       linkId: 'ID: {{id}}',
+      crossSectionSurfaceNote:
+        'Cross-section surface authored values are shown; the simulator approximates this profile.',
     },
     signal: {
       title: 'Signal Properties',
@@ -633,6 +639,46 @@ export const common = {
       color: 'Color',
       weight: 'Weight',
       laneChange: 'Lane Change',
+    },
+    object: {
+      title: 'Object Properties',
+      subtype: 'Subtype',
+      dynamic: 'Dynamic',
+      positionTitle: 'Position',
+      s: 'S',
+      t: 'T',
+      zOffset: 'Z Offset (m)',
+      rotationTitle: 'Rotation',
+      heading: 'Heading (rad)',
+      pitch: 'Pitch (rad)',
+      roll: 'Roll (rad)',
+      orientation: 'Orientation',
+      dimensionsTitle: 'Dimensions',
+      length: 'Length (m)',
+      width: 'Width (m)',
+      height: 'Height (m)',
+      radius: 'Radius (m)',
+      noDimensions: 'No dimensions defined',
+      repeatTitle: 'Repeat',
+      repeatCount: '{{count}} repeat entries',
+      validityTitle: 'Validity',
+      noValidityDefined: 'No validity restrictions defined',
+      fromLane: 'From Lane',
+      toLane: 'To Lane',
+      layer: 'Layer',
+      contentTitle: 'Content',
+      outlinesCount: '{{count}} outlines',
+      markingsCount: '{{count}} markings',
+      bordersCount: '{{count}} borders',
+      documentObjectsHeader: 'Document objects',
+      documentObjectsHint:
+        'Objects authored in this file. Simulator-generated runtime objects appear separately during playback — see the "Show simulator-generated objects" toggle in the simulation timeline.',
+    },
+  },
+  odrSidebar: {
+    objectList: {
+      tunnelBadge: 'Tunnel',
+      bridgeBadge: 'Bridge',
     },
   },
 } as const;

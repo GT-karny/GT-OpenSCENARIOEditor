@@ -32,6 +32,8 @@ interface SimulationViewerBridgeProps {
     showLaneIds: boolean;
     showRoadIds: boolean;
     showDrivingDirection: boolean;
+    showTemporaryLanes?: boolean;
+    showObjects?: boolean;
   };
   focusEntityId?: string | null;
   routeEdit?: RouteEditConfig;

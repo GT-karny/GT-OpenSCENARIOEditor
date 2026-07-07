@@ -603,7 +603,9 @@ function PlaybackControls() {
       </span>
 
       {/* Toggle: show simulator-generated synthetic objects (crosswalks/bridges/
-          objectReference clones with id >= 900000000), hidden by default. */}
+          objectReference clones with id >= 900000000), hidden by default.
+          Distinct from the document-authored objects in the road-network
+          Objects tab (string ids) — the title hint cross-references that. */}
       <Button
         variant="ghost"
         size="icon"
@@ -613,9 +615,9 @@ function PlaybackControls() {
             ? 'text-[var(--color-text-primary)]'
             : 'text-[var(--color-text-secondary)]')
         }
-        aria-label="Show simulator-generated objects"
+        aria-label={t('timeline.showSimGeneratedObjects')}
         aria-pressed={showSimGeneratedObjects}
-        title="Show simulator-generated objects"
+        title={t('timeline.showSimGeneratedObjectsHint')}
         onClick={() =>
           updatePreferences({ showSimGeneratedObjects: !showSimGeneratedObjects })
         }

@@ -2,7 +2,8 @@
  * React-compatible Zustand hooks for the OpenDRIVE editor.
  * - useOpenDriveStore / useOpenDriveStoreApi: vanilla store wrapper (opendrive-engine)
  * - useOdrSidebarStore: sidebar UI state (selection, search)
- * - useOdrRoads / useOdrJunctions / useOdrSignals: derived data selectors
+ * - useOdrRoads / useOdrJunctions / useOdrSignals / useOdrRoadObjects /
+ *   useOdrRoadStructures: derived data selectors
  */
 
 import { useMemo } from 'react';
@@ -11,7 +12,13 @@ import { useStore } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 import { createOpenDriveStore } from '@osce/opendrive-engine';
 import type { OpenDriveStore } from '@osce/opendrive-engine';
-import type { OdrRoad, OdrRoadRule, OdrJunction, OdrSignal } from '@osce/shared';
+import type {
+  OdrRoad,
+  OdrRoadRule,
+  OdrJunction,
+  OdrSignal,
+  OdrRoadObject,
+} from '@osce/shared';
 import type { EndpointLaneRouting, TurnType } from '@osce/opendrive-engine';
 import { useEditorStore } from '../stores/editor-store';
 
@@ -52,7 +59,7 @@ export function useOpenDriveStore<T>(selector: (state: OpenDriveStore) => T): T 
 // ---- Sidebar UI State ----
 
 interface OdrSidebarSelection {
-  type: 'road' | 'junction' | 'signal' | null;
+  type: 'road' | 'junction' | 'signal' | 'object' | null;
   id: string | null;
   roadId?: string;
 }
@@ -489,6 +496,84 @@ export function useOdrSignals(): Array<OdrSignal & { roadId: string; roadName: s
           ...signal,
           roadId: road.id,
           roadName: road.name || `Road ${road.id}`,
+        });
+      }
+    }
+    return result;
+  }, [roads]);
+}
+
+/** Document-authored `<object>` entries (string ids), decorated with their owning road. */
+export type OdrRoadObjectWithRoad = OdrRoadObject & { roadId: string; roadName: string };
+
+/**
+ * All authored road objects across the document, decorated with roadId/roadName.
+ * These are document-authored objects (string ids) — unrelated to the
+ * simulator-generated runtime objects (id >= 9.0e8) shown/hidden via
+ * `showSimGeneratedObjects` in the simulation timeline.
+ */
+export function useOdrRoadObjects(): OdrRoadObjectWithRoad[] {
+  const roads = useOdrRoads();
+  return useMemo(() => {
+    const result: OdrRoadObjectWithRoad[] = [];
+    for (const road of roads) {
+      for (const obj of road.objects) {
+        result.push({
+          ...obj,
+          roadId: road.id,
+          roadName: road.name || `Road ${road.id}`,
+        });
+      }
+    }
+    return result;
+  }, [roads]);
+}
+
+/** A `<tunnel>` or `<bridge>` entry, normalized to a common shape for listing. */
+export interface OdrRoadStructureEntry {
+  kind: 'tunnel' | 'bridge';
+  id: string;
+  name?: string;
+  type: string;
+  s: number;
+  length: number;
+  roadId: string;
+  roadName: string;
+}
+
+/**
+ * All tunnels/bridges across the document, decorated with roadId/roadName.
+ * Display-only in the Objects panel (P3 scope has no 3D representation for
+ * these — see 1.9-P3 design notes D4).
+ */
+export function useOdrRoadStructures(): OdrRoadStructureEntry[] {
+  const roads = useOdrRoads();
+  return useMemo(() => {
+    const result: OdrRoadStructureEntry[] = [];
+    for (const road of roads) {
+      const roadName = road.name || `Road ${road.id}`;
+      for (const tunnel of road.tunnels ?? []) {
+        result.push({
+          kind: 'tunnel',
+          id: tunnel.id,
+          name: tunnel.name,
+          type: tunnel.type,
+          s: tunnel.s,
+          length: tunnel.length,
+          roadId: road.id,
+          roadName,
+        });
+      }
+      for (const bridge of road.bridges ?? []) {
+        result.push({
+          kind: 'bridge',
+          id: bridge.id,
+          name: bridge.name,
+          type: bridge.type,
+          s: bridge.s,
+          length: bridge.length,
+          roadId: road.id,
+          roadName,
         });
       }
     }

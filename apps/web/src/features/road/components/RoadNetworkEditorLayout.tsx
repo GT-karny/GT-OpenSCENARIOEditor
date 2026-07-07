@@ -151,6 +151,7 @@ export function RoadNetworkEditorLayout() {
     selectedJunctionId,
     selectedSignalId,
     selectedSignalKey,
+    selectedObjectId,
     selectedRoad,
     activeLaneSectionIdx,
     activeLaneSection,
@@ -444,6 +445,8 @@ export function RoadNetworkEditorLayout() {
                     showLaneIds: preferences.showLaneIds,
                     showRoadIds: preferences.showRoadIds,
                     showDrivingDirection: preferences.showDrivingDirection,
+                    showTemporaryLanes: preferences.showTemporaryLanes,
+                    showObjects: preferences.showObjects,
                   }}
                   showPerf={false}
                   className="h-full w-full"
@@ -660,6 +663,7 @@ export function RoadNetworkEditorLayout() {
                   selectedRoadId={selectedRoadId}
                   selectedJunctionId={selectedJunctionId}
                   selectedSignalId={selectedSignalId}
+                  selectedObjectId={selectedObjectId}
                   selectedLaneId={selectedLaneId}
                   activeSectionIdx={selectedLaneSectionIdx ?? activeLaneSectionIdx}
                   selectedGeometryIndex={planView.selectedGeometryIndex}

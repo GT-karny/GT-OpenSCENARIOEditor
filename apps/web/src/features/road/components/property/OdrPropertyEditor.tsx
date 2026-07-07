@@ -14,6 +14,7 @@ import { OdrGeometryPropertyEditor } from './OdrGeometryPropertyEditor';
 import { OdrLanePropertyEditor } from './OdrLanePropertyEditor';
 import { OdrSignalPropertyEditor } from './OdrSignalPropertyEditor';
 import { OdrJunctionPropertyEditor } from './OdrJunctionPropertyEditor';
+import { OdrObjectPropertyEditor } from './OdrObjectPropertyEditor';
 
 interface OdrPropertyEditorProps {
   selectedRoadId: string | null;
@@ -23,6 +24,8 @@ interface OdrPropertyEditorProps {
   selectedSignalId: string | null;
   selectedJunctionId: string | null;
   selectedGeometryIndex: number | null;
+  /** Document-authored `<object>` selected via the Objects sidebar tab (P3: read-only) */
+  selectedObjectId?: string | null;
   document: OpenDriveDocument;
   onUpdateRoad: (roadId: string, updates: Partial<OdrRoad>) => void;
   onUpdateLane: (
@@ -43,6 +46,7 @@ export function OdrPropertyEditor({
   selectedSignalId,
   selectedJunctionId,
   selectedGeometryIndex,
+  selectedObjectId,
   document,
   onUpdateRoad,
   onUpdateLane,
@@ -77,6 +81,18 @@ export function OdrPropertyEditor({
             roadId={road.id}
             onUpdate={onUpdateSignal}
           />
+        </div>
+      );
+    }
+  }
+
+  // Object editor (requires a road context; P3 is read-only — see design notes D4)
+  if (selectedObjectId && road) {
+    const object = road.objects.find((o) => o.id === selectedObjectId);
+    if (object) {
+      return (
+        <div className="panel-scroll overflow-y-auto bg-[var(--color-glass-1)] p-3">
+          <OdrObjectPropertyEditor object={object} />
         </div>
       );
     }

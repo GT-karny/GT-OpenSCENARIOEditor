@@ -43,6 +43,9 @@ export const common = {
     zoomHint: 'Ctrl + スクロールでズーム',
     eventBlock: 'ドラッグしてトリガー時刻を変更',
     ambiguousTrigger: 'シミュレーション時刻条件が1つに定まらないためドラッグできません',
+    showSimGeneratedObjects: 'シミュレータ生成オブジェクトを表示',
+    showSimGeneratedObjectsHint:
+      '再生中にシミュレータが生成するランタイムオブジェクト(id ≥ 9.0e8。横断歩道、橋、objectReference の複製など)を表示します。道路ネットワークに記述されたドキュメントオブジェクトとは無関係です — そちらは道路ネットワークサイドバーの Objects タブを参照してください。',
   },
   labels: {
     name: '名前',
@@ -517,6 +520,7 @@ export const common = {
       unit: '単位',
       rule: 'ルール',
       widthM: '幅 (m)',
+      readOnly: '読み取り専用',
     },
     header: {
       title: 'ドキュメントヘッダー',
@@ -575,6 +579,8 @@ export const common = {
       successor: '後続道路',
       noLinksDefined: 'リンクが定義されていません',
       linkId: 'ID: {{id}}',
+      crossSectionSurfaceNote:
+        '断面サーフェスの記述値を表示しています。シミュレータはこのプロファイルを近似します。',
     },
     signal: {
       title: '信号プロパティ',
@@ -635,6 +641,46 @@ export const common = {
       color: '色',
       weight: '太さ',
       laneChange: 'レーン変更',
+    },
+    object: {
+      title: 'オブジェクトプロパティ',
+      subtype: 'サブタイプ',
+      dynamic: '動的',
+      positionTitle: '位置',
+      s: 'S',
+      t: 'T',
+      zOffset: 'Zオフセット (m)',
+      rotationTitle: '回転',
+      heading: '方位角 (rad)',
+      pitch: 'ピッチ (rad)',
+      roll: 'ロール (rad)',
+      orientation: '向き',
+      dimensionsTitle: '寸法',
+      length: '長さ (m)',
+      width: '幅 (m)',
+      height: '高さ (m)',
+      radius: '半径 (m)',
+      noDimensions: '寸法が定義されていません',
+      repeatTitle: '繰り返し',
+      repeatCount: '{{count}} 件の繰り返しエントリ',
+      validityTitle: '有効範囲',
+      noValidityDefined: '有効範囲の制限が定義されていません',
+      fromLane: '開始レーン',
+      toLane: '終了レーン',
+      layer: 'レイヤー',
+      contentTitle: '構成要素',
+      outlinesCount: '{{count}} 件のアウトライン',
+      markingsCount: '{{count}} 件のマーキング',
+      bordersCount: '{{count}} 件のボーダー',
+      documentObjectsHeader: 'ドキュメントオブジェクト',
+      documentObjectsHint:
+        'このファイルに記述されたオブジェクトです。シミュレータが生成するランタイムオブジェクトは再生中に別途表示されます — シミュレーションタイムラインの「シミュレータ生成オブジェクトを表示」トグルを参照してください。',
+    },
+  },
+  odrSidebar: {
+    objectList: {
+      tunnelBadge: 'トンネル',
+      bridgeBadge: '橋',
     },
   },
 } as const;

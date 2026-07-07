@@ -530,6 +530,8 @@ export function ScenarioEditorLayout() {
                       showLaneIds: preferences.showLaneIds,
                       showRoadIds: preferences.showRoadIds,
                       showDrivingDirection: preferences.showDrivingDirection,
+                      showTemporaryLanes: preferences.showTemporaryLanes,
+                      showObjects: preferences.showObjects,
                     }}
                     focusEntityId={focusEntityId}
                     routeEdit={routeEditConfig}
