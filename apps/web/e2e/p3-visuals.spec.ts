@@ -256,15 +256,7 @@ test.describe('OpenDRIVE 1.9 Phase 3 — visual capture', () => {
     await settle(page);
     await canvas.screenshot({ path: `${SHOT_DIR}/temporary-on.png` });
 
-    // Keyboard activation, not a mouse click — see the "KNOWN BUG" comment on
-    // the toggle test in opendrive-1.9.spec.ts: at this viewport the
-    // toolbar's tail end (Temp, Objects) sits under the always-on-top Speed
-    // fly-control slider, so neither a real mouse click nor `click({force:
-    // true})` reaches this button (the browser's own hit-testing routes the
-    // event to whatever is topmost). Focus + Enter is unaffected by screen
-    // coordinates and still exercises the real toggle handler.
-    await tempToggle.focus();
-    await tempToggle.press('Enter');
+    await tempToggle.click();
     await expect(tempToggle).toHaveAttribute('aria-pressed', 'false');
     await settle(page);
     await canvas.screenshot({ path: `${SHOT_DIR}/temporary-off.png` });
@@ -283,13 +275,7 @@ test.describe('OpenDRIVE 1.9 Phase 3 — visual capture', () => {
     await settle(page);
     await canvas.screenshot({ path: `${SHOT_DIR}/objects-on.png` });
 
-    // Keyboard activation, not a mouse click — see the "KNOWN BUG" comment in
-    // opendrive-1.9.spec.ts: the Speed fly-control slider overlaps this
-    // button at this viewport, so neither a real mouse click nor
-    // `click({force: true})` reaches it (real browser hit-testing routes the
-    // event to whatever is topmost, regardless of which locator issued it).
-    await objectsToggle.focus();
-    await objectsToggle.press('Enter');
+    await objectsToggle.click();
     await expect(objectsToggle).toHaveAttribute('aria-pressed', 'false');
     await settle(page);
     await canvas.screenshot({ path: `${SHOT_DIR}/objects-off.png` });

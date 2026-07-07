@@ -378,47 +378,22 @@ test.describe('OpenDRIVE 1.9 support', () => {
     await expect(tempToggle).toHaveAttribute('aria-pressed', 'true');
     await expect(objectsToggle).toHaveAttribute('aria-pressed', 'true');
 
-    // KNOWN BUG (found by this test, reported — not fixed here; out of scope,
-    // ViewerToolbar.tsx is packages/3d-viewer src): at the standard 1600x900
-    // e2e viewport, in Road Network mode with the sidebar/cross-section/
-    // properties panels open, the single-row viewer toolbar (toolbarStyle,
-    // left:8, no width/wrap-triggering constraint) now runs long enough that
-    // its tail end sits directly under the always-on-top "Speed" fly-control
-    // slider (speedSliderStyle, right:8, top:8 — ScenarioViewer.tsx). Measured
-    // this session: Speed's container spans x:[1019,1190] y:[92,118.5];
-    // "Temp" (x:[1032,1074]) and "Objects" (x:[1078,1138]) fall FULLY inside
-    // that range, and "Dir" (x:[991,1028]) clips its last ~8px. A real mouse
-    // click at those screen coordinates hits the Speed slider, not the toggle
-    // button — confirmed two ways: (1) a plain `.click()` times out after 60+
-    // retries with Playwright reporting "<span>Speed</span> ... intercepts
-    // pointer events"; (2) `.click({force: true})` (which bypasses Playwright's
-    // pre-check but still dispatches a real, coordinate-targeted mouse event)
-    // ALSO fails to flip aria-pressed — the browser's own hit-testing routes
-    // the event to whatever is topmost at that pixel regardless of which
-    // locator issued it, so `force` does not help here either. This predates
-    // P3 for "Dir" (already clipped at its trailing edge) but P3's two new
-    // buttons (Temp, Objects) are the first to land FULLY inside the collision
-    // zone, making them unclickable by mouse for a real user at this viewport.
-    // Keyboard activation (focus + Enter) is used below instead — it dispatches
-    // directly to the focused element with no coordinate/z-order involved, so
-    // it is unaffected by the overlap and genuinely exercises the toggle logic
-    // (viewer-store wiring, aria-pressed) through a real, valid interaction
-    // path (keyboard/a11y navigation). It does NOT prove a mouse click reaches
-    // the button — that path is broken. See the P3 progress notes / team
-    // report for the full repro; a layout fix (e.g. bounding the toolbar's
-    // width so it wraps before reaching the Speed slider's column, or moving
-    // Speed's container so it can't overlap a top:8 toolbar row) is follow-up
-    // work, not part of this E2E+docs wave.
-    await tempToggle.focus();
-    await tempToggle.press('Enter');
+    // This test originally found the toolbar's tail end (Temp, Objects, and
+    // Dir's trailing edge) rendering underneath — and unclickable through —
+    // the always-on-top Speed fly-control slider at this viewport (real
+    // click and even `click({force:true})` both failed to reach the button;
+    // only keyboard focus+Enter did). Fixed in ViewerToolbar.tsx (`right:
+    // 200` on toolbarStyle bounds the row so flexWrap engages before
+    // reaching Speed's column) — real `.click()` is used below now that the
+    // overlap no longer exists.
+    await tempToggle.click();
     await expect(tempToggle).toHaveAttribute('aria-pressed', 'false');
-    await tempToggle.press('Enter');
+    await tempToggle.click();
     await expect(tempToggle).toHaveAttribute('aria-pressed', 'true');
 
-    await objectsToggle.focus();
-    await objectsToggle.press('Enter');
+    await objectsToggle.click();
     await expect(objectsToggle).toHaveAttribute('aria-pressed', 'false');
-    await objectsToggle.press('Enter');
+    await objectsToggle.click();
     await expect(objectsToggle).toHaveAttribute('aria-pressed', 'true');
   });
 
