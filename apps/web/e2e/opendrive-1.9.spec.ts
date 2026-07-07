@@ -55,6 +55,8 @@ const INCLUDE_XODR = resolve(FIXTURE_DIR, 'include_error.xodr');
 const MULTILAYER_XODR = resolve(FIXTURE_DIR, 'Ex_Lane_MultiLaneLayer.xodr');
 /** Virtual-junction fixture (GT_23_virtual_junction_17, 3 roads). */
 const VIRTUAL_JUNCTION_XODR = resolve(FIXTURE_DIR, 'GT_23_virtual_junction_17.xodr');
+/** ASAM 1.9 official example: single road, 12 authored `<object>` entries (1.9-P3 D4/D6). */
+const OBJECTS_XODR = resolve(FIXTURE_DIR, 'Ex_Objects.xodr');
 
 /** Stable ID of the server-seeded sample project (project-service.ts). */
 const SAMPLE_PROJECT_ID = 'esmini-samples';
@@ -353,5 +355,103 @@ test.describe('OpenDRIVE 1.9 support', () => {
 
     await page.keyboard.press('Control+z');
     await expect(startSInput).toHaveValue('95');
+  });
+
+  // Phase 3 (visualization, D3/D4): the temporary-lane-layer and road-object
+  // viewer toggles are a permanent viewer preference (viewer-store.ts), so
+  // both buttons render in Road Network mode regardless of which fixture is
+  // loaded — MULTILAYER_XODR is used here only because it is already a known
+  // multi-lane-layer fixture, not because the toggles depend on its content.
+  // Both default ON (showTemporaryLanes/showObjects seed `true`).
+  test('temporary-lane and objects viewer toggles flip aria-pressed (default ON)', async ({
+    page,
+  }) => {
+    await gotoEditor(page);
+    await enterRoadNetworkMode(page);
+    await openXodr(page, MULTILAYER_XODR);
+    await expect(page.getByText(/\d+ roads?/).first()).toBeVisible({ timeout: 30_000 });
+
+    const tempToggle = page.getByTestId('toggle-temporary-lanes');
+    const objectsToggle = page.getByTestId('toggle-objects');
+    await expect(tempToggle).toBeVisible();
+    await expect(objectsToggle).toBeVisible();
+    await expect(tempToggle).toHaveAttribute('aria-pressed', 'true');
+    await expect(objectsToggle).toHaveAttribute('aria-pressed', 'true');
+
+    // KNOWN BUG (found by this test, reported — not fixed here; out of scope,
+    // ViewerToolbar.tsx is packages/3d-viewer src): at the standard 1600x900
+    // e2e viewport, in Road Network mode with the sidebar/cross-section/
+    // properties panels open, the single-row viewer toolbar (toolbarStyle,
+    // left:8, no width/wrap-triggering constraint) now runs long enough that
+    // its tail end sits directly under the always-on-top "Speed" fly-control
+    // slider (speedSliderStyle, right:8, top:8 — ScenarioViewer.tsx). Measured
+    // this session: Speed's container spans x:[1019,1190] y:[92,118.5];
+    // "Temp" (x:[1032,1074]) and "Objects" (x:[1078,1138]) fall FULLY inside
+    // that range, and "Dir" (x:[991,1028]) clips its last ~8px. A real mouse
+    // click at those screen coordinates hits the Speed slider, not the toggle
+    // button — confirmed two ways: (1) a plain `.click()` times out after 60+
+    // retries with Playwright reporting "<span>Speed</span> ... intercepts
+    // pointer events"; (2) `.click({force: true})` (which bypasses Playwright's
+    // pre-check but still dispatches a real, coordinate-targeted mouse event)
+    // ALSO fails to flip aria-pressed — the browser's own hit-testing routes
+    // the event to whatever is topmost at that pixel regardless of which
+    // locator issued it, so `force` does not help here either. This predates
+    // P3 for "Dir" (already clipped at its trailing edge) but P3's two new
+    // buttons (Temp, Objects) are the first to land FULLY inside the collision
+    // zone, making them unclickable by mouse for a real user at this viewport.
+    // Keyboard activation (focus + Enter) is used below instead — it dispatches
+    // directly to the focused element with no coordinate/z-order involved, so
+    // it is unaffected by the overlap and genuinely exercises the toggle logic
+    // (viewer-store wiring, aria-pressed) through a real, valid interaction
+    // path (keyboard/a11y navigation). It does NOT prove a mouse click reaches
+    // the button — that path is broken. See the P3 progress notes / team
+    // report for the full repro; a layout fix (e.g. bounding the toolbar's
+    // width so it wraps before reaching the Speed slider's column, or moving
+    // Speed's container so it can't overlap a top:8 toolbar row) is follow-up
+    // work, not part of this E2E+docs wave.
+    await tempToggle.focus();
+    await tempToggle.press('Enter');
+    await expect(tempToggle).toHaveAttribute('aria-pressed', 'false');
+    await tempToggle.press('Enter');
+    await expect(tempToggle).toHaveAttribute('aria-pressed', 'true');
+
+    await objectsToggle.focus();
+    await objectsToggle.press('Enter');
+    await expect(objectsToggle).toHaveAttribute('aria-pressed', 'false');
+    await objectsToggle.press('Enter');
+    await expect(objectsToggle).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  // Phase 3 (D4): the Objects sidebar tab lists document-authored `<object>`
+  // entries (ObjectListPanel) grouped by road, and selecting one renders the
+  // read-only OdrObjectPropertyEditor (editing is P4 scope). Ex_Objects.xodr
+  // (ASAM official example) carries exactly 12 <object> elements — its single
+  // <repeat> (on the id=4000203 guardRail barrier) has 12 sub-entries but does
+  // NOT add additional top-level objects, so the header count pins at 12, not
+  // 12+12. First object (id=0): type=building/subtype=building name="house"
+  // s=24.0281... (renders "s=24.0" in the list row via toFixed(1)).
+  test('Objects tab lists document objects and shows a read-only property editor', async ({
+    page,
+  }) => {
+    await gotoEditor(page);
+    await enterRoadNetworkMode(page);
+    await openXodr(page, OBJECTS_XODR);
+    await expect(page.getByText(/\d+ roads?/).first()).toBeVisible({ timeout: 30_000 });
+
+    await page.getByRole('tab', { name: 'Objects' }).click();
+
+    // Header count — ObjectListPanel's "{totalCount} object(s)" text.
+    await expect(page.getByText('12 objects', { exact: true })).toBeVisible();
+
+    // First object's list row (name + s), then select it.
+    await expect(page.getByText('s=24.0', { exact: true })).toBeVisible();
+    await page.getByText('house', { exact: true }).click();
+
+    // Read-only property editor (OdrObjectPropertyEditor) shows the fixture's
+    // values via label-sibling <input readOnly> fields (labeledInput helper).
+    await expect(page.getByText('Object Properties')).toBeVisible();
+    await expect(labeledInput(page, 'Name')).toHaveValue('house');
+    await expect(labeledInput(page, 'Type')).toHaveValue('building');
+    await expect(labeledInput(page, 'Subtype')).toHaveValue('building');
   });
 });
