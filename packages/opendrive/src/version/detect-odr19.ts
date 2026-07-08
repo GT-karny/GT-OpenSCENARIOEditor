@@ -39,6 +39,11 @@ export function detectOdr19Constructs(doc: OpenDriveDocument): string[] {
       }
     }
 
+    // signal <semantics> (t_signals_semantics is new in 1.9)
+    for (const s of road.signals) {
+      if (s.semantics) found.add('signal semantics');
+    }
+
     // validity @layer on signals/objects (and their references)
     for (const s of road.signals) inspectValidityLayer(s.validity, found);
     for (const o of road.objects) inspectValidityLayer(o.validity, found);

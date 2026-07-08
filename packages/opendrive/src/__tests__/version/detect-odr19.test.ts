@@ -149,6 +149,21 @@ describe('detectOdr19Constructs', () => {
     </road>`;
     expect(constructs(doc({ road }))).toContain('validity layer');
   });
+
+  it('detects signal <semantics> (added to the detector after X4 typed it)', () => {
+    const road = `<road name="R" length="100" id="1" junction="-1">
+      <link/>
+      <planView><geometry s="0" x="0" y="0" hdg="0" length="100"><line/></geometry></planView>
+      <elevationProfile/><lateralProfile/>
+      <lanes><laneSection s="0">
+        <center><lane id="0" type="none" level="false"/></center>
+        <right><lane id="-1" type="driving" level="false"><width sOffset="0" a="3.5" b="0" c="0" d="0"/></lane></right>
+      </laneSection></lanes>
+      <objects/>
+      <signals><signal id="s1" s="10" t="0" name="" dynamic="no" orientation="+" zOffset="0" country="DEU" type="1" subtype="-1" value="0" unit="km/h" height="0" width="0"><semantics><speed type="maximum" value="50" unit="km/h"/></semantics></signal></signals>
+    </road>`;
+    expect(constructs(doc({ road }))).toContain('signal semantics');
+  });
 });
 
 describe('resolveVersion serializer output', () => {
