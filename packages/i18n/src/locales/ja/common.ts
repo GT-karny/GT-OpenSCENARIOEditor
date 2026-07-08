@@ -555,6 +555,7 @@ export const common = {
       roadId: '道路ID',
       sRange: 's {{start}}–{{end}}',
       crossingDisabledTooltip: 'ロードセクションが必要です。接続を持つジャンクションは変換できません',
+      deleteConnection: '接続を削除',
     },
     laneSection: {
       noSectionSelected:
@@ -571,8 +572,13 @@ export const common = {
       junctionField: 'ジャンクション',
       linked: 'リンク済み',
       totalLength: '総延長',
+      planViewTitle: '平面ビュー',
+      addSegment: 'セグメントを追加',
+      segmentsCount: '{{count}} セグメント',
       typeTitle: '道路タイプ',
       noTypeEntries: 'タイプエントリが定義されていません',
+      addTypeEntry: 'タイプエントリを追加',
+      removeTypeEntry: 'タイプエントリを削除',
       speedMax: '最高速度',
       linkTitle: '道路リンク',
       predecessor: '先行道路',
@@ -620,6 +626,8 @@ export const common = {
       poly3Coeffs: 'Poly3係数',
       paramPoly3UCoeffs: 'ParamPoly3 U係数',
       paramPoly3VCoeffs: 'ParamPoly3 V係数',
+      deleteSegment: 'セグメントを削除',
+      deleteSegmentDisabled: '道路には少なくとも1つのジオメトリセグメントが必要です',
     },
     lane: {
       title: 'レーンプロパティ',
@@ -676,11 +684,28 @@ export const common = {
       documentObjectsHint:
         'このファイルに記述されたオブジェクトです。シミュレータが生成するランタイムオブジェクトは再生中に別途表示されます — シミュレーションタイムラインの「シミュレータ生成オブジェクトを表示」トグルを参照してください。',
     },
+    controller: {
+      title: 'コントローラープロパティ',
+      sequence: 'シーケンス',
+      controlsTitle: 'コントロール',
+      noControls: 'コントロールが定義されていません',
+      signalId: '信号 ID',
+      addControl: 'コントロールを追加',
+      removeControl: 'コントロールを削除',
+    },
   },
   odrSidebar: {
     objectList: {
       tunnelBadge: 'トンネル',
       bridgeBadge: '橋',
+    },
+    controllerList: {
+      add: 'コントローラーを追加',
+      controls: '{{count}} 件のコントロール',
+      deleteAria: 'コントローラーを削除',
+      rename: '名前を変更',
+      empty: 'コントローラーがありません。「追加」で作成してください。',
+      emptyFilter: 'フィルターに一致するコントローラーがありません。',
     },
   },
 } as const;

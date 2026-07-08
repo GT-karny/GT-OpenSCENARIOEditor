@@ -4,6 +4,7 @@ import type {
   OdrLane,
   OdrSignal,
   OdrJunction,
+  OdrController,
   OdrHeader,
   OdrGeometry,
   OdrGeometryUpdate,
@@ -15,6 +16,7 @@ import { OdrLanePropertyEditor } from './OdrLanePropertyEditor';
 import { OdrSignalPropertyEditor } from './OdrSignalPropertyEditor';
 import { OdrJunctionPropertyEditor } from './OdrJunctionPropertyEditor';
 import { OdrObjectPropertyEditor } from './OdrObjectPropertyEditor';
+import { OdrControllerPropertyEditor } from './OdrControllerPropertyEditor';
 
 interface OdrPropertyEditorProps {
   selectedRoadId: string | null;
@@ -26,6 +28,8 @@ interface OdrPropertyEditorProps {
   selectedGeometryIndex: number | null;
   /** Document-authored `<object>` selected via the Objects sidebar tab (P3: read-only) */
   selectedObjectId?: string | null;
+  /** Document-level `<controller>` selected via the Controllers sidebar tab */
+  selectedControllerId?: string | null;
   document: OpenDriveDocument;
   onUpdateRoad: (roadId: string, updates: Partial<OdrRoad>) => void;
   onUpdateLane: (
@@ -36,7 +40,13 @@ interface OdrPropertyEditorProps {
   ) => void;
   onUpdateSignal: (roadId: string, signalId: string, updates: Partial<OdrSignal>) => void;
   onUpdateJunction: (junctionId: string, updates: Partial<OdrJunction>) => void;
+  onRemoveJunctionConnection: (junctionId: string, connectionId: string) => void;
+  onUpdateController: (controllerId: string, updates: Partial<OdrController>) => void;
   onUpdateHeader: (updates: Partial<OdrHeader>) => void;
+  /** Append a geometry segment to a road's planView (Plan View → Add segment). */
+  onAddGeometry: (roadId: string, geometry: OdrGeometryUpdate) => void;
+  /** Remove a geometry segment by index from a road's planView. */
+  onRemoveGeometry: (roadId: string, index: number) => void;
 }
 
 export function OdrPropertyEditor({
@@ -47,16 +57,33 @@ export function OdrPropertyEditor({
   selectedJunctionId,
   selectedGeometryIndex,
   selectedObjectId,
+  selectedControllerId,
   document,
   onUpdateRoad,
   onUpdateLane,
   onUpdateSignal,
   onUpdateJunction,
+  onRemoveJunctionConnection,
+  onUpdateController,
   onUpdateHeader,
+  onAddGeometry,
+  onRemoveGeometry,
 }: OdrPropertyEditorProps) {
   const road = selectedRoadId
     ? document.roads.find((r) => r.id === selectedRoadId)
     : undefined;
+
+  // Controller editor (document-level element; no road context needed)
+  if (selectedControllerId) {
+    const controller = document.controllers.find((c) => c.id === selectedControllerId);
+    if (controller) {
+      return (
+        <div className="panel-scroll overflow-y-auto bg-[var(--color-glass-1)] p-3">
+          <OdrControllerPropertyEditor controller={controller} onUpdate={onUpdateController} />
+        </div>
+      );
+    }
+  }
 
   // Junction editor
   if (selectedJunctionId) {
@@ -64,7 +91,11 @@ export function OdrPropertyEditor({
     if (junction) {
       return (
         <div className="panel-scroll overflow-y-auto bg-[var(--color-glass-1)] p-3">
-          <OdrJunctionPropertyEditor junction={junction} onUpdate={onUpdateJunction} />
+          <OdrJunctionPropertyEditor
+            junction={junction}
+            onUpdate={onUpdateJunction}
+            onRemoveConnection={onRemoveJunctionConnection}
+          />
         </div>
       );
     }
@@ -124,6 +155,8 @@ export function OdrPropertyEditor({
           <OdrGeometryPropertyEditor
             geometry={geometry}
             index={selectedGeometryIndex}
+            canRemove={road.planView.length > 1}
+            onRemove={() => onRemoveGeometry(road.id, selectedGeometryIndex)}
             onUpdate={(updates) => {
               const updatedPlanView = [...road.planView];
               updatedPlanView[selectedGeometryIndex] = applyGeometryUpdate(geometry, updates);
@@ -139,7 +172,7 @@ export function OdrPropertyEditor({
   if (road) {
     return (
       <div className="panel-scroll overflow-y-auto bg-[var(--color-glass-1)] p-3">
-        <OdrRoadPropertyEditor road={road} onUpdate={onUpdateRoad} />
+        <OdrRoadPropertyEditor road={road} onUpdate={onUpdateRoad} onAddGeometry={onAddGeometry} />
       </div>
     );
   }

@@ -6,12 +6,13 @@ import { RoadListPanel } from './RoadListPanel';
 import { JunctionListPanel } from './JunctionListPanel';
 import { SignalListPanel } from './SignalListPanel';
 import { ObjectListPanel } from './ObjectListPanel';
+import { ControllerListPanel } from './ControllerListPanel';
 import { useOdrSidebarStore } from '../../../../hooks/use-opendrive-store';
 
 /**
  * Main sidebar container for the Road Network editor mode.
- * Provides tabbed navigation between Roads, Junctions, Signals, and Objects,
- * with a shared search/filter input at the top.
+ * Provides tabbed navigation between Roads, Junctions, Signals, Objects, and
+ * Controllers, with a shared search/filter input at the top.
  */
 export function OdrSidebar() {
   const [activeTab, setActiveTab] = useState<string>('roads');
@@ -60,6 +61,12 @@ export function OdrSidebar() {
           >
             Objects
           </TabsTrigger>
+          <TabsTrigger
+            value="controllers"
+            className="flex-1 text-[11px] data-[state=active]:bg-[var(--color-glass-active)] data-[state=active]:text-[var(--color-text-primary)]"
+          >
+            Controllers
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="roads" className="flex-1 mt-0 min-h-0">
@@ -76,6 +83,10 @@ export function OdrSidebar() {
 
         <TabsContent value="objects" className="flex-1 mt-0 min-h-0">
           <ObjectListPanel searchQuery={searchQuery} />
+        </TabsContent>
+
+        <TabsContent value="controllers" className="flex-1 mt-0 min-h-0">
+          <ControllerListPanel searchQuery={searchQuery} />
         </TabsContent>
       </Tabs>
     </div>

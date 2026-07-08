@@ -26,6 +26,7 @@ export interface UseEditorSelectionResult {
   selectedSignalId: string | null;
   selectedSignalKey: string | null;
   selectedObjectId: string | null;
+  selectedControllerId: string | null;
   // Resolved road + active section
   selectedRoad: OdrRoad | null;
   activeLaneSectionIdx: number;
@@ -63,6 +64,8 @@ export function useEditorSelection({
   const selectedJunctionId = sidebarSelection.type === 'junction' ? sidebarSelection.id : null;
   const selectedSignalId = sidebarSelection.type === 'signal' ? sidebarSelection.id : null;
   const selectedObjectId = sidebarSelection.type === 'object' ? sidebarSelection.id : null;
+  const selectedControllerId =
+    sidebarSelection.type === 'controller' ? sidebarSelection.id : null;
 
   // Signal key for 3D viewer selection (roadId:signalId format)
   const selectedSignalKey = useMemo(() => {
@@ -147,6 +150,7 @@ export function useEditorSelection({
     selectedSignalId,
     selectedSignalKey,
     selectedObjectId,
+    selectedControllerId,
     selectedRoad,
     activeLaneSectionIdx,
     activeLaneSection,

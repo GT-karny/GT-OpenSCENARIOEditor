@@ -91,6 +91,64 @@ describe('OpenDriveStore', () => {
     });
   });
 
+  describe('geometry operations', () => {
+    it('addGeometry appends a segment and marks the road dirty', () => {
+      const road = s.addRoad({ name: 'R1' });
+      s = store.getState();
+      const before = s.getDocument().roads[0].planView.length;
+      s.consumeDirtyRoadIds();
+
+      s.addGeometry(road.id, { type: 'line', s: 100, x: 10, y: 20, hdg: 0, length: 50 });
+      s = store.getState();
+      const planView = s.getDocument().roads[0].planView;
+      expect(planView).toHaveLength(before + 1);
+      expect(planView[planView.length - 1]).toMatchObject({ type: 'line', s: 100, length: 50 });
+      expect(s.consumeDirtyRoadIds().has(road.id)).toBe(true);
+    });
+
+    it('addGeometry is undoable', () => {
+      const road = s.addRoad({ name: 'R1' });
+      s = store.getState();
+      const before = s.getDocument().roads[0].planView.length;
+
+      s.addGeometry(road.id, { type: 'line', s: 100, length: 50 });
+      s = store.getState();
+      expect(s.getDocument().roads[0].planView).toHaveLength(before + 1);
+
+      s.undo();
+      s = store.getState();
+      expect(s.getDocument().roads[0].planView).toHaveLength(before);
+    });
+
+    it('removeGeometry deletes a segment by index and marks dirty', () => {
+      const road = s.addRoad({ name: 'R1' });
+      s = store.getState();
+      s.addGeometry(road.id, { type: 'line', s: 100, length: 50 });
+      s = store.getState();
+      const count = s.getDocument().roads[0].planView.length;
+      s.consumeDirtyRoadIds();
+
+      s.removeGeometry(road.id, count - 1);
+      s = store.getState();
+      expect(s.getDocument().roads[0].planView).toHaveLength(count - 1);
+      expect(s.consumeDirtyRoadIds().has(road.id)).toBe(true);
+    });
+
+    it('removeGeometry is undoable', () => {
+      const road = s.addRoad({ name: 'R1' });
+      s = store.getState();
+      const original = structuredClone(s.getDocument().roads[0].planView);
+
+      s.removeGeometry(road.id, 0);
+      s = store.getState();
+      expect(s.getDocument().roads[0].planView).toHaveLength(original.length - 1);
+
+      s.undo();
+      s = store.getState();
+      expect(s.getDocument().roads[0].planView).toEqual(original);
+    });
+  });
+
   describe('lane operations', () => {
     it('addLane adds a lane to a road section', () => {
       const road = s.addRoad({ name: 'R1' });
@@ -172,6 +230,29 @@ describe('OpenDriveStore', () => {
       expect(conn.incomingRoad).toBe('road1');
     });
 
+    it('removeJunctionConnection removes a connection and is undoable', () => {
+      const junction = s.addJunction({ name: 'J1' });
+      s = store.getState();
+      const conn = s.addJunctionConnection(junction.id, {
+        incomingRoad: 'road1',
+        connectingRoad: 'road2',
+        contactPoint: 'start',
+      });
+      s = store.getState();
+      expect(s.getDocument().junctions[0].connections).toHaveLength(1);
+      s.consumeDirtyJunctionIds();
+
+      s.removeJunctionConnection(junction.id, conn.id);
+      s = store.getState();
+      expect(s.getDocument().junctions[0].connections).toHaveLength(0);
+      expect(s.consumeDirtyJunctionIds().has(junction.id)).toBe(true);
+
+      s.undo();
+      s = store.getState();
+      expect(s.getDocument().junctions[0].connections).toHaveLength(1);
+      expect(s.getDocument().junctions[0].connections[0].id).toBe(conn.id);
+    });
+
     it('tracks dirty junction IDs', () => {
       const junction = s.addJunction({ name: 'J1' });
       s = store.getState();
@@ -200,6 +281,30 @@ describe('OpenDriveStore', () => {
       s.updateController(ctrl.id, { name: 'UpdatedCtrl' });
       s = store.getState();
       expect(s.getDocument().controllers[0].name).toBe('UpdatedCtrl');
+    });
+
+    it('tracks dirty controller IDs', () => {
+      const ctrl = s.addController({ name: 'Ctrl1' });
+      s = store.getState();
+      const dirty = s.consumeDirtyControllerIds();
+      expect(dirty.has(ctrl.id)).toBe(true);
+      // After consuming, the set should be empty
+      s = store.getState();
+      expect(s.consumeDirtyControllerIds().size).toBe(0);
+    });
+
+    it('marks dirty on update and remove', () => {
+      const ctrl = s.addController({ name: 'Ctrl1' });
+      s = store.getState();
+      s.consumeDirtyControllerIds();
+
+      s.updateController(ctrl.id, { name: 'Renamed' });
+      s = store.getState();
+      expect(s.consumeDirtyControllerIds().has(ctrl.id)).toBe(true);
+
+      s.removeController(ctrl.id);
+      s = store.getState();
+      expect(s.consumeDirtyControllerIds().has(ctrl.id)).toBe(true);
     });
   });
 

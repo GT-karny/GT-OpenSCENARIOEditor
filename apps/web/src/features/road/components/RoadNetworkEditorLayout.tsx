@@ -1,7 +1,17 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import type { OdrRoad, OdrLane, OdrSignal, OdrJunction, OdrHeader, OpenDriveDocument } from '@osce/shared';
+import type {
+  OdrRoad,
+  OdrLane,
+  OdrSignal,
+  OdrJunction,
+  OdrController,
+  OdrHeader,
+  OdrElevation,
+  OdrGeometryUpdate,
+  OpenDriveDocument,
+} from '@osce/shared';
 import { syncLaneLinksForDirectConnections } from '@osce/opendrive-engine';
 import { ScenarioViewer } from '@osce/3d-viewer';
 import type {
@@ -152,6 +162,7 @@ export function RoadNetworkEditorLayout() {
     selectedSignalId,
     selectedSignalKey,
     selectedObjectId,
+    selectedControllerId,
     selectedRoad,
     activeLaneSectionIdx,
     activeLaneSection,
@@ -250,11 +261,69 @@ export function RoadNetworkEditorLayout() {
     [odrStoreApi],
   );
 
+  const handleRemoveJunctionConnection = useCallback(
+    (junctionId: string, connectionId: string) => {
+      odrStoreApi.getState().removeJunctionConnection(junctionId, connectionId);
+    },
+    [odrStoreApi],
+  );
+
+  const handleUpdateController = useCallback(
+    (controllerId: string, updates: Partial<OdrController>) => {
+      odrStoreApi.getState().updateController(controllerId, updates);
+    },
+    [odrStoreApi],
+  );
+
+  const handleAddGeometry = useCallback(
+    (roadId: string, geometry: OdrGeometryUpdate) => {
+      odrStoreApi.getState().addGeometry(roadId, geometry);
+    },
+    [odrStoreApi],
+  );
+
+  const handleRemoveGeometry = useCallback(
+    (roadId: string, index: number) => {
+      odrStoreApi.getState().removeGeometry(roadId, index);
+    },
+    [odrStoreApi],
+  );
+
   const handleUpdateHeader = useCallback(
     (updates: Partial<OdrHeader>) => {
       odrStoreApi.getState().updateHeader(updates);
     },
     [odrStoreApi],
+  );
+
+  // --- Elevation graph: live drag preview + a single undoable commit on mouse-up ---
+  const [elevationPreview, setElevationPreview] = useState<OdrElevation[] | null>(null);
+
+  // Drop any in-progress preview when the selected road changes.
+  useEffect(() => {
+    setElevationPreview(null);
+  }, [selectedRoadId]);
+
+  const handleElevationPreview = useCallback(
+    (index: number, newA: number) => {
+      setElevationPreview((prev) => {
+        const base = prev ?? selectedRoad?.elevationProfile ?? [];
+        return base.map((e, i) => (i === index ? { ...e, a: newA } : e));
+      });
+    },
+    [selectedRoad],
+  );
+
+  const handleElevationCommit = useCallback(
+    (index: number, newA: number) => {
+      if (!selectedRoad) return;
+      const updated = selectedRoad.elevationProfile.map((e, i) =>
+        i === index ? { ...e, a: newA } : e,
+      );
+      odrStoreApi.getState().updateRoad(selectedRoad.id, { elevationProfile: updated });
+      setElevationPreview(null);
+    },
+    [odrStoreApi, selectedRoad],
   );
 
   // Grouped viewer config objects, referentially stable so ScenarioViewer
@@ -589,9 +658,11 @@ export function RoadNetworkEditorLayout() {
                 <TabsContent value="elevation" className="flex-1 overflow-hidden mt-0">
                   {selectedRoad ? (
                     <ElevationGraphEditor
-                      elevations={selectedRoad.elevationProfile}
+                      elevations={elevationPreview ?? selectedRoad.elevationProfile}
                       roadLength={selectedRoad.length}
                       sPosition={sPosition}
+                      onControlPointChange={handleElevationPreview}
+                      onControlPointCommit={handleElevationCommit}
                       onSPositionChange={setSPosition}
                     />
                   ) : (
@@ -664,6 +735,7 @@ export function RoadNetworkEditorLayout() {
                   selectedJunctionId={selectedJunctionId}
                   selectedSignalId={selectedSignalId}
                   selectedObjectId={selectedObjectId}
+                  selectedControllerId={selectedControllerId}
                   selectedLaneId={selectedLaneId}
                   activeSectionIdx={selectedLaneSectionIdx ?? activeLaneSectionIdx}
                   selectedGeometryIndex={planView.selectedGeometryIndex}
@@ -671,7 +743,11 @@ export function RoadNetworkEditorLayout() {
                   onUpdateLane={handleUpdateLane}
                   onUpdateSignal={handleUpdateSignal}
                   onUpdateJunction={handleUpdateJunction}
+                  onRemoveJunctionConnection={handleRemoveJunctionConnection}
+                  onUpdateController={handleUpdateController}
                   onUpdateHeader={handleUpdateHeader}
+                  onAddGeometry={handleAddGeometry}
+                  onRemoveGeometry={handleRemoveGeometry}
                 />
               )}
             </TabsContent>

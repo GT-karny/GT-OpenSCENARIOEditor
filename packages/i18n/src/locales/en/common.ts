@@ -554,6 +554,7 @@ export const common = {
       roadId: 'Road ID',
       sRange: 's {{start}}–{{end}}',
       crossingDisabledTooltip: 'Requires road sections; cannot convert a junction with connections',
+      deleteConnection: 'Delete connection',
     },
     laneSection: {
       noSectionSelected: 'No section selected. Hover over a road to see lane info.',
@@ -569,8 +570,13 @@ export const common = {
       junctionField: 'Junction',
       linked: 'Linked',
       totalLength: 'Total Length',
+      planViewTitle: 'Plan View',
+      addSegment: 'Add segment',
+      segmentsCount: '{{count}} segments',
       typeTitle: 'Road Type',
       noTypeEntries: 'No type entries defined',
+      addTypeEntry: 'Add type entry',
+      removeTypeEntry: 'Remove type entry',
       speedMax: 'Speed Max',
       linkTitle: 'Road Link',
       predecessor: 'Predecessor',
@@ -618,6 +624,8 @@ export const common = {
       poly3Coeffs: 'Poly3 Coefficients',
       paramPoly3UCoeffs: 'ParamPoly3 U Coefficients',
       paramPoly3VCoeffs: 'ParamPoly3 V Coefficients',
+      deleteSegment: 'Delete segment',
+      deleteSegmentDisabled: 'A road must keep at least one geometry segment',
     },
     lane: {
       title: 'Lane Properties',
@@ -674,11 +682,28 @@ export const common = {
       documentObjectsHint:
         'Objects authored in this file. Simulator-generated runtime objects appear separately during playback — see the "Show simulator-generated objects" toggle in the simulation timeline.',
     },
+    controller: {
+      title: 'Controller Properties',
+      sequence: 'Sequence',
+      controlsTitle: 'Controls',
+      noControls: 'No controls defined',
+      signalId: 'Signal ID',
+      addControl: 'Add control',
+      removeControl: 'Remove control',
+    },
   },
   odrSidebar: {
     objectList: {
       tunnelBadge: 'Tunnel',
       bridgeBadge: 'Bridge',
+    },
+    controllerList: {
+      add: 'Add controller',
+      controls: '{{count}} controls',
+      deleteAria: 'Delete controller',
+      rename: 'Rename',
+      empty: 'No controllers. Use Add to create one.',
+      emptyFilter: 'No controllers match filter.',
     },
   },
 } as const;

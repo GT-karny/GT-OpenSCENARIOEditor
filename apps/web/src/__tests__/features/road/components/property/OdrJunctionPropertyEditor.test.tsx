@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import { cleanup, fireEvent, screen } from '@testing-library/react';
 import { createOpenDriveStore } from '@osce/opendrive-engine';
-import type { OdrJunction } from '@osce/shared';
+import type { OdrJunction, OdrJunctionConnection } from '@osce/shared';
 import { initTestI18n, renderWithProviders } from '../../../../helpers/render-with-providers';
 import { OdrJunctionPropertyEditor } from '../../../../../features/road/components/property/OdrJunctionPropertyEditor';
 
@@ -113,5 +113,53 @@ describe('OdrJunctionPropertyEditor', () => {
     api.getState().undo();
     expect(current().type).toBe('virtual');
     expect(current().mainRoad).toBe('1');
+  });
+
+  it('invokes onRemoveConnection with the junction + connection ids', () => {
+    const connection: OdrJunctionConnection = {
+      id: '5',
+      incomingRoad: '1',
+      connectingRoad: '2',
+      contactPoint: 'start',
+      laneLinks: [],
+    };
+    const onRemoveConnection = vi.fn();
+    renderWithProviders(
+      <OdrJunctionPropertyEditor
+        junction={junction({ connections: [connection] })}
+        onUpdate={() => {}}
+        onRemoveConnection={onRemoveConnection}
+      />,
+    );
+
+    fireEvent.click(screen.getByLabelText('Delete connection'));
+    expect(onRemoveConnection).toHaveBeenCalledWith('900', '5');
+  });
+
+  it('removes a connection through the real store command (undoable)', () => {
+    const api = createOpenDriveStore();
+    api.getState().addJunction({ id: '900', name: 'j', type: 'default' });
+    const conn = api.getState().addJunctionConnection('900', {
+      incomingRoad: '1',
+      connectingRoad: '2',
+      contactPoint: 'start',
+    });
+    const current = () => api.getState().getDocument().junctions[0];
+
+    renderWithProviders(
+      <OdrJunctionPropertyEditor
+        junction={current()}
+        onUpdate={(id, u) => api.getState().updateJunction(id, u)}
+        onRemoveConnection={(jid, cid) => api.getState().removeJunctionConnection(jid, cid)}
+      />,
+    );
+
+    expect(current().connections).toHaveLength(1);
+    fireEvent.click(screen.getByLabelText('Delete connection'));
+    expect(current().connections).toHaveLength(0);
+
+    api.getState().undo();
+    expect(current().connections).toHaveLength(1);
+    expect(current().connections[0].id).toBe(conn.id);
   });
 });

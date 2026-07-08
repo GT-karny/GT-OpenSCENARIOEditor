@@ -18,6 +18,7 @@ import type {
   OdrJunction,
   OdrSignal,
   OdrRoadObject,
+  OdrController,
 } from '@osce/shared';
 import type { EndpointLaneRouting, TurnType } from '@osce/opendrive-engine';
 import { useEditorStore } from '../stores/editor-store';
@@ -59,7 +60,7 @@ export function useOpenDriveStore<T>(selector: (state: OpenDriveStore) => T): T 
 // ---- Sidebar UI State ----
 
 interface OdrSidebarSelection {
-  type: 'road' | 'junction' | 'signal' | 'object' | null;
+  type: 'road' | 'junction' | 'signal' | 'object' | 'controller' | null;
   id: string | null;
   roadId?: string;
 }
@@ -477,6 +478,7 @@ export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
 
 const EMPTY_ROADS: OdrRoad[] = [];
 const EMPTY_JUNCTIONS: OdrJunction[] = [];
+const EMPTY_CONTROLLERS: OdrController[] = [];
 
 export function useOdrRoads(): OdrRoad[] {
   return useEditorStore(useShallow((s) => s.roadNetwork?.roads ?? EMPTY_ROADS));
@@ -484,6 +486,10 @@ export function useOdrRoads(): OdrRoad[] {
 
 export function useOdrJunctions(): OdrJunction[] {
   return useEditorStore(useShallow((s) => s.roadNetwork?.junctions ?? EMPTY_JUNCTIONS));
+}
+
+export function useOdrControllers(): OdrController[] {
+  return useEditorStore(useShallow((s) => s.roadNetwork?.controllers ?? EMPTY_CONTROLLERS));
 }
 
 export function useOdrSignals(): Array<OdrSignal & { roadId: string; roadName: string }> {

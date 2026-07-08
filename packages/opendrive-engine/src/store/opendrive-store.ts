@@ -15,6 +15,7 @@ import type {
   OdrController,
   OdrJunction,
   OdrJunctionConnection,
+  OdrGeometryUpdate,
   ICommand,
 } from '@osce/shared';
 import type { OpenDriveState } from './store-types.js';
@@ -33,7 +34,9 @@ import {
   RemoveJunctionCommand,
   UpdateJunctionCommand,
   AddJunctionConnectionCommand,
+  RemoveJunctionConnectionCommand,
 } from '../commands/junction-commands.js';
+import { AddGeometryCommand, RemoveGeometryCommand } from '../commands/geometry-commands.js';
 import { AddObjectCommand, RemoveObjectCommand } from '../commands/object-commands.js';
 import {
   AddSignalCommand,
@@ -65,6 +68,10 @@ export interface OpenDriveStore extends OpenDriveState {
     link: OdrRoadLinkElement | undefined,
   ): void;
 
+  // Geometry (planView) operations
+  addGeometry(roadId: string, geometry: OdrGeometryUpdate): void;
+  removeGeometry(roadId: string, index: number): void;
+
   // Lane operations
   addLane(
     roadId: string,
@@ -89,6 +96,7 @@ export interface OpenDriveStore extends OpenDriveState {
     junctionId: string,
     partial: Partial<OdrJunctionConnection>,
   ): OdrJunctionConnection;
+  removeJunctionConnection(junctionId: string, connectionId: string): void;
 
   // Object operations
   addObject(roadId: string, partial: Partial<OdrRoadObject>): OdrRoadObject;
@@ -120,6 +128,7 @@ export interface OpenDriveStore extends OpenDriveState {
   // Dirty tracking
   consumeDirtyRoadIds(): Set<string>;
   consumeDirtyJunctionIds(): Set<string>;
+  consumeDirtyControllerIds(): Set<string>;
 }
 
 export function createOpenDriveStore() {
@@ -159,6 +168,13 @@ export function createOpenDriveStore() {
         return { dirtyJunctionIds: next };
       });
     };
+    const markDirtyController = (controllerId: string): void => {
+      set((state) => {
+        const next = new Set(state.dirtyControllerIds);
+        next.add(controllerId);
+        return { dirtyControllerIds: next };
+      });
+    };
 
     return {
       // --- State ---
@@ -167,6 +183,7 @@ export function createOpenDriveStore() {
       redoAvailable: false,
       dirtyRoadIds: new Set<string>(),
       dirtyJunctionIds: new Set<string>(),
+      dirtyControllerIds: new Set<string>(),
 
       // --- Command History ---
       getCommandHistory: () => commandHistory,
@@ -180,6 +197,7 @@ export function createOpenDriveStore() {
           redoAvailable: false,
           dirtyRoadIds: new Set<string>(),
           dirtyJunctionIds: new Set<string>(),
+          dirtyControllerIds: new Set<string>(),
         });
       },
 
@@ -192,6 +210,7 @@ export function createOpenDriveStore() {
           redoAvailable: false,
           dirtyRoadIds: new Set<string>(),
           dirtyJunctionIds: new Set<string>(),
+          dirtyControllerIds: new Set<string>(),
         });
         return doc;
       },
@@ -231,6 +250,19 @@ export function createOpenDriveStore() {
           return;
         }
         const cmd = new SetRoadLinkCommand(roadId, linkType, link, getDoc, setDoc, markDirtyRoad);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
+      // --- Geometry (planView) operations ---
+      addGeometry: (roadId: string, geometry: OdrGeometryUpdate): void => {
+        const cmd = new AddGeometryCommand(roadId, geometry, getDoc, setDoc, markDirtyRoad);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
+      removeGeometry: (roadId: string, index: number): void => {
+        const cmd = new RemoveGeometryCommand(roadId, index, getDoc, setDoc, markDirtyRoad);
         commandHistory.execute(cmd);
         syncUndoRedo();
       },
@@ -337,6 +369,18 @@ export function createOpenDriveStore() {
         return cmd.getCreatedConnection();
       },
 
+      removeJunctionConnection: (junctionId: string, connectionId: string): void => {
+        const cmd = new RemoveJunctionConnectionCommand(
+          junctionId,
+          connectionId,
+          getDoc,
+          setDoc,
+          markDirtyJunction,
+        );
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+      },
+
       // --- Object operations ---
       addObject: (roadId: string, partial: Partial<OdrRoadObject>): OdrRoadObject => {
         const cmd = new AddObjectCommand(roadId, partial, getDoc, setDoc, markDirtyRoad);
@@ -380,20 +424,26 @@ export function createOpenDriveStore() {
 
       // --- Controller operations ---
       addController: (partial: Partial<OdrController>): OdrController => {
-        const cmd = new AddControllerCommand(partial, getDoc, setDoc);
+        const cmd = new AddControllerCommand(partial, getDoc, setDoc, markDirtyController);
         commandHistory.execute(cmd);
         syncUndoRedo();
         return cmd.getCreatedController();
       },
 
       removeController: (controllerId: string): void => {
-        const cmd = new RemoveControllerCommand(controllerId, getDoc, setDoc);
+        const cmd = new RemoveControllerCommand(controllerId, getDoc, setDoc, markDirtyController);
         commandHistory.execute(cmd);
         syncUndoRedo();
       },
 
       updateController: (controllerId: string, updates: Partial<OdrController>): void => {
-        const cmd = new UpdateControllerCommand(controllerId, updates, getDoc, setDoc);
+        const cmd = new UpdateControllerCommand(
+          controllerId,
+          updates,
+          getDoc,
+          setDoc,
+          markDirtyController,
+        );
         commandHistory.execute(cmd);
         syncUndoRedo();
       },
@@ -461,6 +511,12 @@ export function createOpenDriveStore() {
       consumeDirtyJunctionIds: (): Set<string> => {
         const dirty = get().dirtyJunctionIds;
         set({ dirtyJunctionIds: new Set<string>() });
+        return dirty;
+      },
+
+      consumeDirtyControllerIds: (): Set<string> => {
+        const dirty = get().dirtyControllerIds;
+        set({ dirtyControllerIds: new Set<string>() });
         return dirty;
       },
     };

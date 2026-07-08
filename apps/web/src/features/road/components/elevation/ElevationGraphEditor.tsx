@@ -9,8 +9,10 @@ interface ElevationGraphEditorProps {
   roadLength: number;
   /** Current s-position (shown as vertical indicator line) */
   sPosition: number;
-  /** Callback when a control point is dragged to a new elevation */
+  /** Live callback while a control point is dragged (for preview; fires per mouse-move) */
   onControlPointChange?: (index: number, newA: number) => void;
+  /** Commit callback fired once on mouse-up with the final dragged elevation (one undo step) */
+  onControlPointCommit?: (index: number, newA: number) => void;
   /** Callback when the s-position indicator is clicked/dragged */
   onSPositionChange?: (s: number) => void;
   /** Additional CSS classes */
@@ -55,6 +57,7 @@ export function ElevationGraphEditor({
   roadLength,
   sPosition,
   onControlPointChange,
+  onControlPointCommit,
   onSPositionChange,
   className,
 }: ElevationGraphEditorProps) {
@@ -64,9 +67,22 @@ export function ElevationGraphEditor({
     startY: number;
     startA: number;
   } | null>(null);
+  // Live elevation of the point being dragged. Kept internally so dragging is
+  // smooth even if the parent does not echo onControlPointChange back into
+  // `elevations`; on mouse-up the final value is committed via onControlPointCommit.
+  const [preview, setPreview] = useState<{ index: number; a: number } | null>(null);
   const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
   const [viewOffset, setViewOffset] = useState(0);
   const [viewScale, setViewScale] = useState(1);
+
+  // A control point is draggable when either callback is wired.
+  const editable = !!onControlPointChange || !!onControlPointCommit;
+
+  // Elevations with the in-progress drag applied, used for all rendering/derivation.
+  const effectiveElevations = useMemo(() => {
+    if (!preview) return elevations;
+    return elevations.map((e, i) => (i === preview.index ? { ...e, a: preview.a } : e));
+  }, [elevations, preview]);
 
   const svgWidth = 800;
   const svgHeight = 200;
@@ -77,14 +93,14 @@ export function ElevationGraphEditor({
   const visibleSEnd = viewOffset + roadLength / viewScale;
 
   const { zMin, zMax } = useMemo(() => {
-    if (elevations.length === 0) return { zMin: -1, zMax: 1 };
+    if (effectiveElevations.length === 0) return { zMin: -1, zMax: 1 };
 
     let min = Infinity;
     let max = -Infinity;
     const steps = Math.max(CURVE_SAMPLES, Math.ceil(roadLength));
     for (let i = 0; i <= steps; i++) {
       const s = (i / steps) * roadLength;
-      const z = evaluateElevationAt(elevations, s);
+      const z = evaluateElevationAt(effectiveElevations, s);
       if (z < min) min = z;
       if (z > max) max = z;
     }
@@ -92,7 +108,7 @@ export function ElevationGraphEditor({
     const range = max - min;
     const pad = range > 0 ? range * 0.15 : 1;
     return { zMin: min - pad, zMax: max + pad };
-  }, [elevations, roadLength]);
+  }, [effectiveElevations, roadLength]);
 
   const sToX = useCallback(
     (s: number) =>
@@ -124,16 +140,16 @@ export function ElevationGraphEditor({
   );
 
   const curvePath = useMemo(() => {
-    if (elevations.length === 0 || roadLength <= 0) return '';
+    if (effectiveElevations.length === 0 || roadLength <= 0) return '';
     const points: string[] = [];
     for (let i = 0; i <= CURVE_SAMPLES; i++) {
       const s = visibleSStart + (i / CURVE_SAMPLES) * (visibleSEnd - visibleSStart);
       if (s < 0 || s > roadLength) continue;
-      const z = evaluateElevationAt(elevations, s);
+      const z = evaluateElevationAt(effectiveElevations, s);
       points.push(`${i === 0 ? 'M' : 'L'}${sToX(s).toFixed(2)},${zToY(z).toFixed(2)}`);
     }
     return points.join(' ');
-  }, [elevations, roadLength, visibleSStart, visibleSEnd, sToX, zToY]);
+  }, [effectiveElevations, roadLength, visibleSStart, visibleSEnd, sToX, zToY]);
 
   const areaPath = useMemo(() => {
     if (!curvePath) return '';
@@ -163,23 +179,31 @@ export function ElevationGraphEditor({
     (index: number, e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      if (!onControlPointChange) return;
+      if (!editable) return;
       setDragState({ index, startY: e.clientY, startA: elevations[index].a });
     },
-    [elevations, onControlPointChange],
+    [elevations, editable],
   );
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
-      if (!dragState || !svgRef.current || !onControlPointChange) return;
+      if (!dragState || !svgRef.current) return;
       const svgRect = svgRef.current.getBoundingClientRect();
       const svgY = ((e.clientY - svgRect.top) / svgRect.height) * svgHeight;
-      onControlPointChange(dragState.index, yToZ(svgY));
+      const newA = yToZ(svgY);
+      setPreview({ index: dragState.index, a: newA });
+      onControlPointChange?.(dragState.index, newA);
     },
     [dragState, onControlPointChange, yToZ, svgHeight],
   );
 
-  const handleMouseUp = useCallback(() => setDragState(null), []);
+  const handleMouseUp = useCallback(() => {
+    if (dragState && preview) {
+      onControlPointCommit?.(dragState.index, preview.a);
+    }
+    setDragState(null);
+    setPreview(null);
+  }, [dragState, preview, onControlPointCommit]);
 
   const handleChartClick = useCallback(
     (e: React.MouseEvent) => {
@@ -218,7 +242,7 @@ export function ElevationGraphEditor({
   );
 
   const sIndicatorX = sToX(sPosition);
-  const currentZ = evaluateElevationAt(elevations, sPosition);
+  const currentZ = evaluateElevationAt(effectiveElevations, sPosition);
 
   if (elevations.length === 0) {
     return (
@@ -309,7 +333,7 @@ export function ElevationGraphEditor({
           )}
 
           {/* Control points */}
-          {elevations.map((elev, i) => {
+          {effectiveElevations.map((elev, i) => {
             const x = sToX(elev.s);
             const y = zToY(elev.a);
             const isHovered = hoveredPoint === i;
@@ -328,7 +352,7 @@ export function ElevationGraphEditor({
                   fill={isDragging ? 'var(--color-accent-vivid)' : isHovered ? 'var(--color-accent-bright)' : 'var(--color-glass-3)'}
                   stroke={isActive ? 'var(--color-accent-vivid)' : 'var(--color-glass-edge-bright)'}
                   strokeWidth={isActive ? 2 : 1.5}
-                  className={onControlPointChange ? 'cursor-grab' : 'cursor-default'}
+                  className={editable ? 'cursor-grab' : 'cursor-default'}
                   style={isDragging ? { cursor: 'grabbing' } : undefined}
                   onMouseDown={(e) => handleControlPointMouseDown(i, e)}
                   onMouseEnter={() => setHoveredPoint(i)}

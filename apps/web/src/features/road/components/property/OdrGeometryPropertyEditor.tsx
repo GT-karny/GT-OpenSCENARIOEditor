@@ -8,15 +8,21 @@ import type {
 } from '@osce/shared';
 import { convertGeometryType } from '@osce/opendrive';
 import { useTranslation } from '@osce/i18n';
+import { Trash2 } from 'lucide-react';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { Badge } from '../../../../components/ui/badge';
+import { Button } from '../../../../components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../components/ui/select';
 
 interface OdrGeometryPropertyEditorProps {
   geometry: OdrGeometry;
   index: number;
   onUpdate: (updates: OdrGeometryUpdate) => void;
+  /** Remove this segment from the road's planView. */
+  onRemove?: () => void;
+  /** False when this is the road's only segment (a road needs ≥1). */
+  canRemove?: boolean;
 }
 
 const CONVERTIBLE_TYPES = ['line', 'arc', 'spiral'] as const;
@@ -30,6 +36,8 @@ export function OdrGeometryPropertyEditor({
   geometry,
   index,
   onUpdate,
+  onRemove,
+  canRemove = true,
 }: OdrGeometryPropertyEditorProps) {
   const { t } = useTranslation('common');
   const isReadOnly = geometry.type === 'poly3' || geometry.type === 'paramPoly3';
@@ -70,6 +78,23 @@ export function OdrGeometryPropertyEditor({
             <Badge variant="outline" className="text-[10px] py-0 text-[var(--color-text-secondary)]">
               {t('odrProperty.geometry.readOnly')}
             </Badge>
+          )}
+          {onRemove && (
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={!canRemove}
+              aria-label={t('odrProperty.geometry.deleteSegment')}
+              title={
+                canRemove
+                  ? t('odrProperty.geometry.deleteSegment')
+                  : t('odrProperty.geometry.deleteSegmentDisabled')
+              }
+              className="h-6 w-6 ml-auto shrink-0 text-red-400 disabled:opacity-40"
+              onClick={onRemove}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
           )}
         </div>
 

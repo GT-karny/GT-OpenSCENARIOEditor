@@ -10,4 +10,5 @@ export interface OpenDriveState {
   redoAvailable: boolean;
   dirtyRoadIds: Set<string>;
   dirtyJunctionIds: Set<string>;
+  dirtyControllerIds: Set<string>;
 }

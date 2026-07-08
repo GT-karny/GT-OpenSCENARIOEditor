@@ -1,9 +1,11 @@
 import type { OdrJunction, OdrJunctionType } from '@osce/shared';
 import { ODR_JUNCTION_TYPES } from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
+import { Trash2 } from 'lucide-react';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
 import { Badge } from '../../../../components/ui/badge';
+import { Button } from '../../../../components/ui/button';
 import { EnumSelect } from '../../../../components/form/EnumSelect';
 
 const ORIENTATIONS: readonly string[] = ['+', '-', 'none'];
@@ -11,9 +13,15 @@ const ORIENTATIONS: readonly string[] = ['+', '-', 'none'];
 interface OdrJunctionPropertyEditorProps {
   junction: OdrJunction;
   onUpdate: (junctionId: string, updates: Partial<OdrJunction>) => void;
+  /** Remove a connection by id (wires the store's removeJunctionConnection). */
+  onRemoveConnection?: (junctionId: string, connectionId: string) => void;
 }
 
-export function OdrJunctionPropertyEditor({ junction, onUpdate }: OdrJunctionPropertyEditorProps) {
+export function OdrJunctionPropertyEditor({
+  junction,
+  onUpdate,
+  onRemoveConnection,
+}: OdrJunctionPropertyEditorProps) {
   const { t } = useTranslation('common');
   const type = junction.type ?? 'default';
   const numOrZero = (v: string) => Math.max(0, Number(v) || 0);
@@ -208,6 +216,18 @@ export function OdrJunctionPropertyEditor({ junction, onUpdate }: OdrJunctionPro
                   <Badge variant="outline" className="text-[10px] py-0">
                     {conn.contactPoint}
                   </Badge>
+                  {onRemoveConnection && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={t('odrProperty.junction.deleteConnection')}
+                      title={t('odrProperty.junction.deleteConnection')}
+                      className="h-6 w-6 ml-auto shrink-0 text-red-400"
+                      onClick={() => onRemoveConnection(junction.id, conn.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
 
                 {/* Connection details table */}
