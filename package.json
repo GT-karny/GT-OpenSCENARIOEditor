@@ -1,6 +1,6 @@
 {
   "name": "gt-openscenario-editor",
-  "version": "0.2.0",
+  "version": "0.5.0",
   "private": true,
   "description": "ASAM OpenSCENARIO graphical web editor",
   "license": "Apache-2.0",
@@ -31,7 +31,11 @@
     "pnpm": ">=10.0.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["electron", "esbuild", "protobufjs"]
+    "onlyBuiltDependencies": [
+      "electron",
+      "esbuild",
+      "protobufjs"
+    ]
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
