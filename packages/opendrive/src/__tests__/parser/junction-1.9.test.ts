@@ -158,13 +158,15 @@ describe('connection emit tightening', () => {
     const xml = odrWithJunction(
       `<junction id="9" name="j" type="direct"><connection id="0" incomingRoad="1" linkedRoad="2" contactPoint="start"><laneLink from="-1" to="-1"/></connection></junction>`,
     );
+    // @linkedRoad is typed (t_junction_connection_direct/@linkedRoad).
+    expect(firstJunction(xml).connections[0].linkedRoad).toBe('2');
     const out = roundTrip(xml);
     expect(out).not.toContain('connectingRoad=""');
     expect(out).toContain('linkedRoad="2"');
-    // @linkedRoad rides through extra and round-trips.
-    expect(parser.parse(out).junctions[0].connections[0].extra?.attrs).toMatchObject({
-      linkedRoad: '2',
-    });
+    // Typed round-trip: no longer riding through extra.
+    const conn = parser.parse(out).junctions[0].connections[0];
+    expect(conn.linkedRoad).toBe('2');
+    expect(conn.extra?.attrs?.linkedRoad).toBeUndefined();
   });
 });
 

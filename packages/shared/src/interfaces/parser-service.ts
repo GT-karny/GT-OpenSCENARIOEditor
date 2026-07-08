@@ -30,9 +30,19 @@ export interface IXodrParser {
   parse(xml: string): OpenDriveDocument;
 }
 
+/** Options controlling `.xodr` serialization output. */
+export interface OdrSerializeOptions {
+  /**
+   * When true, and the document uses OpenDRIVE 1.9 constructs while its header
+   * declares an earlier 1.x minor, emit `revMinor="9"` in the output (the store
+   * document is not mutated). Default false keeps the declared version verbatim.
+   */
+  resolveVersion?: boolean;
+}
+
 export interface IXodrSerializer {
   serialize(doc: OpenDriveDocument): string;
-  serializeFormatted(doc: OpenDriveDocument): string;
+  serializeFormatted(doc: OpenDriveDocument, options?: OdrSerializeOptions): string;
 }
 
 export interface IValidator {

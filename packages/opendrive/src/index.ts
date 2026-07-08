@@ -8,6 +8,9 @@ export { XodrParser } from './parser/xodr-parser.js';
 // Serializer
 export { XodrSerializer } from './serializer/xodr-serializer.js';
 
+// Version detection (OpenDRIVE 1.9 constructs)
+export { detectOdr19Constructs, willResolveToOdr19 } from './version/detect-odr19.js';
+
 // Geometry evaluation
 export { evaluateReferenceLineAtS, evaluateGeometry } from './geometry/reference-line.js';
 export { evaluateElevation, evaluateElevationGradient } from './geometry/elevation.js';

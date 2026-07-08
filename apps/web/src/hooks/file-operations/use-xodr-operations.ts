@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { XodrParser, XodrSerializer } from '@osce/opendrive';
+import { XodrParser, XodrSerializer, willResolveToOdr19 } from '@osce/opendrive';
 import { createDefaultDocument, buildAssembliesFromDocument } from '@osce/opendrive-engine';
 import { useTranslation } from '@osce/i18n';
 import { toast } from 'sonner';
@@ -35,6 +35,21 @@ function warnIfXodrHasInclude(roadNetwork: unknown): void {
       'Saved OpenDRIVE uses <include> references — it will NOT load in the simulator. ' +
         'Resolve/inline the includes to simulate this map.',
     );
+  }
+}
+
+/**
+ * Notify (info) when a save auto-bumped the document to OpenDRIVE 1.9. The bump
+ * happens at serialization time (`resolveVersion`), leaving the store document
+ * untouched; this tells the user the on-disk header now reads 1.9. `message` is
+ * passed in already localized so this stays a plain (non-hook) helper.
+ */
+function notifyIfVersionBumped(
+  roadNetwork: Parameters<typeof willResolveToOdr19>[0],
+  message: string,
+): void {
+  if (willResolveToOdr19(roadNetwork)) {
+    toast.info(message);
   }
 }
 
@@ -148,7 +163,7 @@ export function useXodrOperations({ saveFnsRef }: { saveFnsRef: { current: SaveF
     if (currentProject && currentXodrPath) {
       try {
         const serializer = new XodrSerializer();
-        const xml = serializer.serializeFormatted(roadNetwork);
+        const xml = serializer.serializeFormatted(roadNetwork, { resolveVersion: true });
         await api.writeProjectFile(currentProject.meta.id, currentXodrPath, xml);
         // The just-written text is now the authoritative verbatim source: stamp
         // it at the current revision so simulation returns to the lossless path.
@@ -158,6 +173,7 @@ export function useXodrOperations({ saveFnsRef }: { saveFnsRef: { current: SaveF
         });
         useDocumentRegistry.getState().markSaved('roadNetwork');
         toast.success(t('labels.fileSaved'));
+        notifyIfVersionBumped(roadNetwork, t('labels.savedAsOdr19'));
       } catch (err) {
         console.error('Save .xodr failed:', err);
         toast.error(t('labels.serializeFailed'));
@@ -175,7 +191,7 @@ export function useXodrOperations({ saveFnsRef }: { saveFnsRef: { current: SaveF
     // Standalone mode: save to disk (overwrite if handle/path exists)
     try {
       const serializer = new XodrSerializer();
-      const xml = serializer.serializeFormatted(roadNetwork);
+      const xml = serializer.serializeFormatted(roadNetwork, { resolveVersion: true });
       const state = useEditorStore.getState();
       const result = await writeFileToDisk(xml, '.xodr', {
         suggestedName: state.roadNetworkFileName,
@@ -193,6 +209,7 @@ export function useXodrOperations({ saveFnsRef }: { saveFnsRef: { current: SaveF
       });
       useDocumentRegistry.getState().markSaved('roadNetwork');
       toast.success(t('labels.fileSaved'));
+      notifyIfVersionBumped(roadNetwork, t('labels.savedAsOdr19'));
     } catch (err) {
       if (err instanceof Error && err.name !== 'AbortError') {
         console.error('Save .xodr failed:', err);
@@ -221,7 +238,7 @@ export function useXodrOperations({ saveFnsRef }: { saveFnsRef: { current: SaveF
     // Standalone mode: always show file picker (no handle reuse)
     try {
       const serializer = new XodrSerializer();
-      const xml = serializer.serializeFormatted(roadNetwork);
+      const xml = serializer.serializeFormatted(roadNetwork, { resolveVersion: true });
       const state = useEditorStore.getState();
       const result = await writeFileToDisk(xml, '.xodr', {
         suggestedName: state.roadNetworkFileName,
@@ -237,6 +254,7 @@ export function useXodrOperations({ saveFnsRef }: { saveFnsRef: { current: SaveF
       });
       useDocumentRegistry.getState().markSaved('roadNetwork');
       toast.success(t('labels.fileSaved'));
+      notifyIfVersionBumped(roadNetwork, t('labels.savedAsOdr19'));
     } catch (err) {
       if (err instanceof Error && err.name !== 'AbortError') {
         console.error('Save As .xodr failed:', err);
@@ -259,9 +277,10 @@ export function useXodrOperations({ saveFnsRef }: { saveFnsRef: { current: SaveF
 
       const roadNetwork = useEditorStore.getState().roadNetwork;
       if (!roadNetwork) return;
+      warnIfXodrHasInclude(roadNetwork);
 
       const serializer = new XodrSerializer();
-      const xml = serializer.serializeFormatted(roadNetwork);
+      const xml = serializer.serializeFormatted(roadNetwork, { resolveVersion: true });
 
       await api.writeProjectFile(currentProject.meta.id, relativePath, xml);
 
@@ -286,6 +305,7 @@ export function useXodrOperations({ saveFnsRef }: { saveFnsRef: { current: SaveF
       await useProjectStore.getState().refreshProject();
 
       toast.success(t('labels.fileSaved'));
+      notifyIfVersionBumped(roadNetwork, t('labels.savedAsOdr19'));
     },
     [storeApi, t],
   );

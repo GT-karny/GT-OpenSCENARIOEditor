@@ -2,30 +2,43 @@
  * OpenDRIVE (.xodr) XML serializer.
  * Converts an OpenDriveDocument back to valid OpenDRIVE XML.
  */
-import type { IXodrSerializer, OpenDriveDocument } from '@osce/shared';
+import type { IXodrSerializer, OdrSerializeOptions, OpenDriveDocument } from '@osce/shared';
 import { createXodrXmlBuilder } from './fxp-builder-config.js';
 import { buildHeader } from './build-header.js';
 import { buildRoad } from './build-road.js';
 import { buildJunction, buildJunctionGroup } from './build-junction.js';
 import { buildController } from './build-controller.js';
 import { buildStation } from './build-railroad.js';
+import { willResolveToOdr19 } from '../version/detect-odr19.js';
 
 export class XodrSerializer implements IXodrSerializer {
   serialize(doc: OpenDriveDocument): string {
     return this.buildXml(doc, false);
   }
 
-  serializeFormatted(doc: OpenDriveDocument): string {
-    return this.buildXml(doc, true);
+  serializeFormatted(doc: OpenDriveDocument, options?: OdrSerializeOptions): string {
+    return this.buildXml(doc, true, options);
   }
 
-  private buildXml(doc: OpenDriveDocument, formatted: boolean): string {
+  private buildXml(
+    doc: OpenDriveDocument,
+    formatted: boolean,
+    options?: OdrSerializeOptions,
+  ): string {
     const builder = createXodrXmlBuilder(formatted);
+
+    // Version resolution: bump the emitted @revMinor to 9 when the document uses
+    // 1.9 constructs under an earlier declared minor. Build a header copy so the
+    // store document (and thus idempotence of the default path) is never mutated.
+    const header =
+      options?.resolveVersion && willResolveToOdr19(doc)
+        ? { ...doc.header, revMinor: 9 }
+        : doc.header;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const xmlObj: any = {
       OpenDRIVE: {
-        header: buildHeader(doc.header),
+        header: buildHeader(header),
       },
     };
 

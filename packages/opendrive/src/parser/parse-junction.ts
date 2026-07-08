@@ -160,6 +160,12 @@ function parseJunctionConnection(raw: Raw): OdrJunctionConnection {
     t.takeAttr('type');
   }
 
+  // @linkedRoad (t_junction_connection_direct): typed on direct-junction
+  // connections. Only present on direct junctions; consumed so it no longer
+  // rides through extra.
+  const linkedRoad = t.optStr('linkedRoad');
+  if (linkedRoad !== undefined) conn.linkedRoad = linkedRoad;
+
   // predecessor
   const p = t.takeChild('predecessor') as Raw | undefined;
   if (p) {
@@ -182,7 +188,7 @@ function parseJunctionConnection(raw: Raw): OdrJunctionConnection {
     };
   }
 
-  // Preserve unmodeled connection attrs (linkedRoad, overlapZone, layer, …).
+  // Preserve any remaining unmodeled connection attrs/children for round-trip.
   const extra = t.rest();
   if (extra) conn.extra = extra;
 

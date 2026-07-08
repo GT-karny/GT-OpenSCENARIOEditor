@@ -47,9 +47,15 @@ export interface OdrJunctionConnection {
   laneLinks: OdrJunctionLaneLink[];
   /** Connection type (`e_connection_type`): 'default' or 'virtual'. */
   type?: 'default' | 'virtual';
+  /**
+   * Direct-junction link target (`t_junction_connection_direct/@linkedRoad`).
+   * Only valid on `<junction type="direct">` connections (which carry no
+   * `@connectingRoad`); undefined for all other junction types.
+   */
+  linkedRoad?: string;
   predecessor?: OdrJunctionPredSucc;
   successor?: OdrJunctionPredSucc;
-  /** Unmodeled connection attrs (e.g. direct-junction @linkedRoad) preserved for round-trip. */
+  /** Unmodeled connection attrs/children preserved for round-trip. */
   extra?: OdrExtra;
 }
 

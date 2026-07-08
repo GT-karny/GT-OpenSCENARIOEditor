@@ -90,12 +90,13 @@ export function buildJunction(junction: OdrJunction): XmlNode {
 
 function buildConnection(conn: OdrJunctionConnection): XmlNode {
   // Emit road refs only when set: a direct-junction connection has no
-  // @connectingRoad (it uses @linkedRoad, preserved via extra), and a virtual
-  // connection may omit @incomingRoad/@contactPoint. Skipping empties avoids
-  // schema-invalid connectingRoad="" and spurious contactPoint attributes.
+  // @connectingRoad (it uses @linkedRoad instead), and a virtual connection may
+  // omit @incomingRoad/@contactPoint. Skipping empties avoids schema-invalid
+  // connectingRoad="" and spurious contactPoint attributes.
   const node: XmlNode = { '@_id': conn.id };
   optAttr(node, '@_incomingRoad', conn.incomingRoad || undefined);
   optAttr(node, '@_connectingRoad', conn.connectingRoad || undefined);
+  optAttr(node, '@_linkedRoad', conn.linkedRoad || undefined);
   optAttr(node, '@_contactPoint', conn.contactPoint);
   optAttr(node, '@_type', conn.type);
 
