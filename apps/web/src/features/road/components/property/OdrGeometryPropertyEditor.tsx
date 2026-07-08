@@ -40,7 +40,6 @@ export function OdrGeometryPropertyEditor({
   canRemove = true,
 }: OdrGeometryPropertyEditorProps) {
   const { t } = useTranslation('common');
-  const isReadOnly = geometry.type === 'poly3' || geometry.type === 'paramPoly3';
 
   const handleTypeChange = (newType: string) => {
     if (!isConvertible(newType) || newType === geometry.type) return;
@@ -72,11 +71,6 @@ export function OdrGeometryPropertyEditor({
           ) : (
             <Badge variant="secondary" className="text-[10px] py-0">
               {geometry.type}
-            </Badge>
-          )}
-          {isReadOnly && (
-            <Badge variant="outline" className="text-[10px] py-0 text-[var(--color-text-secondary)]">
-              {t('odrProperty.geometry.readOnly')}
             </Badge>
           )}
           {onRemove && (
@@ -115,9 +109,8 @@ export function OdrGeometryPropertyEditor({
               <Input
                 type="number"
                 value={geometry.x}
-                readOnly={isReadOnly}
-                onChange={(e) => !isReadOnly && onUpdate({ x: Number(e.target.value) })}
-                className={`h-7 text-xs ${isReadOnly ? 'bg-[var(--color-glass-1)] opacity-60' : ''}`}
+                onChange={(e) => onUpdate({ x: Number(e.target.value) })}
+                className="h-7 text-xs"
               />
             </div>
             <div className="grid gap-1">
@@ -125,9 +118,8 @@ export function OdrGeometryPropertyEditor({
               <Input
                 type="number"
                 value={geometry.y}
-                readOnly={isReadOnly}
-                onChange={(e) => !isReadOnly && onUpdate({ y: Number(e.target.value) })}
-                className={`h-7 text-xs ${isReadOnly ? 'bg-[var(--color-glass-1)] opacity-60' : ''}`}
+                onChange={(e) => onUpdate({ y: Number(e.target.value) })}
+                className="h-7 text-xs"
               />
             </div>
           </div>
@@ -140,9 +132,8 @@ export function OdrGeometryPropertyEditor({
                 type="number"
                 step="0.01"
                 value={geometry.hdg}
-                readOnly={isReadOnly}
-                onChange={(e) => !isReadOnly && onUpdate({ hdg: Number(e.target.value) })}
-                className={`h-7 text-xs ${isReadOnly ? 'bg-[var(--color-glass-1)] opacity-60' : ''}`}
+                onChange={(e) => onUpdate({ hdg: Number(e.target.value) })}
+                className="h-7 text-xs"
               />
             </div>
             <div className="grid gap-1">
@@ -153,9 +144,8 @@ export function OdrGeometryPropertyEditor({
                 type="number"
                 step="0.01"
                 value={geometry.length}
-                readOnly={isReadOnly}
-                onChange={(e) => !isReadOnly && onUpdate({ length: Number(e.target.value) })}
-                className={`h-7 text-xs ${isReadOnly ? 'bg-[var(--color-glass-1)] opacity-60' : ''}`}
+                onChange={(e) => onUpdate({ length: Number(e.target.value) })}
+                className="h-7 text-xs"
               />
             </div>
           </div>
@@ -170,10 +160,10 @@ export function OdrGeometryPropertyEditor({
         <SpiralFields geometry={geometry} onUpdate={onUpdate} />
       )}
       {geometry.type === 'poly3' && (
-        <Poly3Fields geometry={geometry} />
+        <Poly3Fields geometry={geometry} onUpdate={onUpdate} />
       )}
       {geometry.type === 'paramPoly3' && (
-        <ParamPoly3Fields geometry={geometry} />
+        <ParamPoly3Fields geometry={geometry} onUpdate={onUpdate} />
       )}
     </div>
   );
@@ -251,7 +241,13 @@ function SpiralFields({
   );
 }
 
-function Poly3Fields({ geometry }: { geometry: OdrGeometryPoly3 }) {
+function Poly3Fields({
+  geometry,
+  onUpdate,
+}: {
+  geometry: OdrGeometryPoly3;
+  onUpdate: (updates: OdrGeometryUpdate) => void;
+}) {
   const { t } = useTranslation('common');
   return (
     <div className="pb-3 border-b border-[var(--color-glass-edge)]">
@@ -265,8 +261,8 @@ function Poly3Fields({ geometry }: { geometry: OdrGeometryPoly3 }) {
             <Input
               type="number"
               value={geometry[coeff]}
-              readOnly
-              className="h-7 text-xs bg-[var(--color-glass-1)] opacity-60"
+              onChange={(e) => onUpdate({ [coeff]: Number(e.target.value) })}
+              className="h-7 text-xs"
             />
           </div>
         ))}
@@ -275,7 +271,13 @@ function Poly3Fields({ geometry }: { geometry: OdrGeometryPoly3 }) {
   );
 }
 
-function ParamPoly3Fields({ geometry }: { geometry: OdrGeometryParamPoly3 }) {
+function ParamPoly3Fields({
+  geometry,
+  onUpdate,
+}: {
+  geometry: OdrGeometryParamPoly3;
+  onUpdate: (updates: OdrGeometryUpdate) => void;
+}) {
   const { t } = useTranslation('common');
   return (
     <div className="space-y-4">
@@ -290,8 +292,8 @@ function ParamPoly3Fields({ geometry }: { geometry: OdrGeometryParamPoly3 }) {
               <Input
                 type="number"
                 value={geometry[coeff]}
-                readOnly
-                className="h-7 text-xs bg-[var(--color-glass-1)] opacity-60"
+                onChange={(e) => onUpdate({ [coeff]: Number(e.target.value) })}
+                className="h-7 text-xs"
               />
             </div>
           ))}
@@ -309,8 +311,8 @@ function ParamPoly3Fields({ geometry }: { geometry: OdrGeometryParamPoly3 }) {
               <Input
                 type="number"
                 value={geometry[coeff]}
-                readOnly
-                className="h-7 text-xs bg-[var(--color-glass-1)] opacity-60"
+                onChange={(e) => onUpdate({ [coeff]: Number(e.target.value) })}
+                className="h-7 text-xs"
               />
             </div>
           ))}
@@ -320,11 +322,21 @@ function ParamPoly3Fields({ geometry }: { geometry: OdrGeometryParamPoly3 }) {
       <div className="pb-3 border-b border-[var(--color-glass-edge)]">
         <div className="grid gap-1">
           <Label className="text-[var(--color-text-secondary)] text-xs">pRange</Label>
-          <Input
+          <Select
             value={geometry.pRange}
-            readOnly
-            className="h-7 text-xs bg-[var(--color-glass-1)] opacity-60"
-          />
+            onValueChange={(v) => onUpdate({ pRange: v as OdrGeometryParamPoly3['pRange'] })}
+          >
+            <SelectTrigger className="h-7 text-xs rounded-none bg-[var(--color-glass-1)] border-[var(--color-glass-edge)] hover:bg-[var(--color-glass-hover)]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-none">
+              {(['arcLength', 'normalized'] as const).map((opt) => (
+                <SelectItem key={opt} value={opt} className="text-xs rounded-none">
+                  {opt}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
     </div>

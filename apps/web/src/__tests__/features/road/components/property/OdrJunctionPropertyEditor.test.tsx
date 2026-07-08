@@ -45,7 +45,7 @@ describe('OdrJunctionPropertyEditor', () => {
     expect(screen.queryByText('Virtual Junction')).not.toBeInTheDocument();
   });
 
-  it('shows a read-only roadSections summary for a crossing junction', () => {
+  it('shows editable roadSection fields for a crossing junction', () => {
     renderWithProviders(
       <OdrJunctionPropertyEditor
         junction={junction({ type: 'crossing', roadSections: [{ roadId: '2', sStart: 5, sEnd: 9 }] })}
@@ -53,10 +53,23 @@ describe('OdrJunctionPropertyEditor', () => {
       />,
     );
     expect(screen.getByText('Road Sections')).toBeInTheDocument();
-    expect(screen.getByText('s 5–9')).toBeInTheDocument();
+    expect(labeledInput('Road ID').value).toBe('2');
+    expect(labeledInput('Start S').value).toBe('5');
   });
 
-  it('shows a read-only crossPaths summary', () => {
+  it('warns when a crossing junction has no road sections', () => {
+    renderWithProviders(
+      <OdrJunctionPropertyEditor
+        junction={junction({ type: 'crossing', roadSections: [] })}
+        onUpdate={() => {}}
+      />,
+    );
+    expect(
+      screen.getByText('Crossing junctions require at least one road section.'),
+    ).toBeInTheDocument();
+  });
+
+  it('shows editable crossPath fields for a common junction', () => {
     renderWithProviders(
       <OdrJunctionPropertyEditor
         junction={junction({
@@ -66,7 +79,7 @@ describe('OdrJunctionPropertyEditor', () => {
       />,
     );
     expect(screen.getByText('Cross Paths')).toBeInTheDocument();
-    expect(screen.getByText('Crossing Road')).toBeInTheDocument();
+    expect(labeledInput('Crossing Road').value).toBe('3');
   });
 
   it('edits mainRoad through the real store command and undoes it', () => {
@@ -161,5 +174,86 @@ describe('OdrJunctionPropertyEditor', () => {
     api.getState().undo();
     expect(current().connections).toHaveLength(1);
     expect(current().connections[0].id).toBe(conn.id);
+  });
+
+  it('edits a roadSection field through the real store and undoes it', () => {
+    const api = createOpenDriveStore();
+    api.getState().addJunction({ id: '900', name: 'j', type: 'crossing' });
+    api.getState().updateJunction('900', { roadSections: [{ roadId: '2', sStart: 5, sEnd: 9 }] });
+    const current = () => api.getState().getDocument().junctions[0];
+
+    renderWithProviders(
+      <OdrJunctionPropertyEditor
+        junction={current()}
+        onUpdate={(id, u) => api.getState().updateJunction(id, u)}
+      />,
+    );
+
+    fireEvent.change(labeledInput('Road ID'), { target: { value: '7' } });
+    expect(current().roadSections![0].roadId).toBe('7');
+
+    api.getState().undo();
+    expect(current().roadSections![0].roadId).toBe('2');
+  });
+
+  it('adds and undoes a cross path through the real store', () => {
+    const api = createOpenDriveStore();
+    api.getState().addJunction({ id: '900', name: 'j', type: 'default' });
+    const current = () => api.getState().getDocument().junctions[0];
+
+    renderWithProviders(
+      <OdrJunctionPropertyEditor
+        junction={current()}
+        onUpdate={(id, u) => api.getState().updateJunction(id, u)}
+      />,
+    );
+
+    fireEvent.click(screen.getByText('Add cross path'));
+    expect(current().crossPaths).toHaveLength(1);
+
+    api.getState().undo();
+    expect(current().crossPaths ?? []).toHaveLength(0);
+  });
+
+  it('removes a cross path through the real store', () => {
+    const api = createOpenDriveStore();
+    api.getState().addJunction({ id: '900', name: 'j', type: 'default' });
+    api.getState().updateJunction('900', {
+      crossPaths: [{ crossingRoad: '3', startLaneLink: {}, endLaneLink: {} }],
+    });
+    const current = () => api.getState().getDocument().junctions[0];
+
+    renderWithProviders(
+      <OdrJunctionPropertyEditor
+        junction={current()}
+        onUpdate={(id, u) => api.getState().updateJunction(id, u)}
+      />,
+    );
+
+    fireEvent.click(screen.getByLabelText('Delete cross path'));
+    expect(current().crossPaths ?? []).toHaveLength(0);
+  });
+
+  it('edits a direct connection linkedRoad through the real store', () => {
+    const api = createOpenDriveStore();
+    api.getState().addJunction({ id: '900', name: 'j', type: 'direct' });
+    api.getState().addJunctionConnection('900', {
+      incomingRoad: '1',
+      contactPoint: 'start',
+    });
+    const current = () => api.getState().getDocument().junctions[0];
+
+    renderWithProviders(
+      <OdrJunctionPropertyEditor
+        junction={current()}
+        onUpdate={(id, u) => api.getState().updateJunction(id, u)}
+      />,
+    );
+
+    fireEvent.change(labeledInput('Linked Road'), { target: { value: '5' } });
+    expect(current().connections[0].linkedRoad).toBe('5');
+
+    api.getState().undo();
+    expect(current().connections[0].linkedRoad).toBeUndefined();
   });
 });
