@@ -33,6 +33,18 @@ export {
 export { ODR_SPEED_MAX_SPECIALS } from './types/odr-common.js';
 export { ODR_STRIP_MODES } from './types/odr-road.js';
 export { ODR_JUNCTION_TYPES } from './types/odr-junction.js';
+export {
+  ODR_SEMANTICS_SPEED_TYPES,
+  ODR_SEMANTICS_LANE_TYPES,
+  ODR_SEMANTICS_PRIORITY_TYPES,
+  ODR_SEMANTICS_SUPPLEMENTARY_TIME_TYPES,
+  ODR_SEMANTICS_SUPPLEMENTARY_DISTANCE_TYPES,
+  ODR_SEMANTICS_SUPPLEMENTARY_ENVIRONMENT_TYPES,
+  ODR_PERSON_CATEGORIES,
+  ODR_VEHICLE_CATEGORIES,
+  ODR_SEMANTICS_KINDS,
+  ODR_SEMANTICS_PARTICIPANT_KINDS,
+} from './types/odr-semantics.js';
 
 // Enums (value export: includes runtime const value arrays such as
 // COORDINATE_SYSTEMS / DYNAMICS_SHAPES / RULES used to derive UI option lists)

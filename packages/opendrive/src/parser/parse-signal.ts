@@ -5,6 +5,7 @@ import type { OdrSignal, OdrSignalRef } from '@osce/shared';
 import { ensureArray, attrNum, attrStr, attrOptNum, attrOptStr } from './xml-helpers.js';
 import { trackNode } from './node-tracker.js';
 import { parseLaneValidity } from './parse-common.js';
+import { parseSemantics } from './parse-semantics.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Raw = Record<string, any>;
@@ -85,8 +86,12 @@ export function parseSignals(raw: Raw | undefined): OdrSignal[] {
       };
     }
 
-    // Preserve unmodeled signal attrs (@length/@invalidated/@temporary) and
-    // whole 1.9 subtrees (<semantics>, board system) for round-trip.
+    // semantics (t_signals_semantics): typed 1.9 subtree.
+    const semantics = parseSemantics(t.takeChild('semantics') as Raw | undefined);
+    if (semantics) sig.semantics = semantics;
+
+    // Preserve unmodeled signal attrs (@length/@invalidated/@temporary) and the
+    // remaining 1.9 board subtree for round-trip.
     const extra = t.rest();
     if (extra) sig.extra = extra;
 

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Hand-written minimal 1.9 fixture (GT) covering the signal <semantics> subtree
+  (t_signals_semantics, P4-4). One signal carries a rich, schema-valid semantics
+  block exercising: a typed speed entry with @value/@unit, lane + priority
+  regulations, a <prohibited> with animal + vehicle(category) participants, a
+  <supplementaryTime>, <supplementaryDistance> (@unit), <supplementaryEnvironment>,
+  and a <supplementaryAllows> with a person(pedestrian) participant. Child order
+  follows the XSD sequence. A second signal has an empty <semantics/> to prove the
+  empty block is preserved.
+-->
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="min_signal_semantics" date="2026-07-07"/>
+  <road rule="RHT" name="R1" length="200" id="1" junction="-1">
+    <link/>
+    <planView>
+      <geometry s="0" x="0" y="0" hdg="0" length="200"><line/></geometry>
+    </planView>
+    <elevationProfile/>
+    <lateralProfile/>
+    <lanes>
+      <laneSection s="0">
+        <center><lane id="0" type="none" level="false"/></center>
+        <right>
+          <lane id="-1" type="driving" level="false">
+            <width sOffset="0" a="3.5" b="0" c="0" d="0"/>
+          </lane>
+        </right>
+      </laneSection>
+    </lanes>
+    <objects/>
+    <signals>
+      <signal id="100" name="SpeedLimit50" s="50" t="-5" zOffset="2" orientation="+"
+              dynamic="no" country="DE" type="274" subtype="50" value="50" unit="km/h">
+        <semantics>
+          <speed type="maximum" value="50" unit="km/h"/>
+          <lane type="noOvertakeTrucks"/>
+          <priority type="priorityRoad"/>
+          <prohibited>
+            <animal/>
+            <vehicle><type>heavyTruck</type></vehicle>
+          </prohibited>
+          <supplementaryTime type="time" value="8"/>
+          <supplementaryAllows>
+            <person><type>pedestrian</type></person>
+          </supplementaryAllows>
+          <supplementaryDistance type="for" value="300" unit="m"/>
+          <supplementaryEnvironment type="rain"/>
+        </semantics>
+      </signal>
+      <signal id="101" name="EmptySemantics" s="120" t="-5" zOffset="2" orientation="+"
+              dynamic="no" country="DE" type="205" subtype="-1">
+        <semantics/>
+      </signal>
+    </signals>
+  </road>
+</OpenDRIVE>

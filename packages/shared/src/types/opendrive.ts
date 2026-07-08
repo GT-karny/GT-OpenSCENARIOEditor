@@ -9,6 +9,7 @@ export type * from './odr-geometry.js';
 export type * from './odr-lane.js';
 export type * from './odr-object.js';
 export type * from './odr-signal.js';
+export type * from './odr-semantics.js';
 export type * from './odr-junction.js';
 export type * from './odr-controller.js';
 export type * from './odr-railroad.js';

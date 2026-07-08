@@ -4,6 +4,7 @@
 import type { OdrSignal, OdrSignalRef, OdrLaneValidity } from '@osce/shared';
 import { fmtNum, optAttr } from './format-utils.js';
 import { applyExtra } from './apply-extra.js';
+import { buildSemantics } from './build-semantics.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type XmlNode = Record<string, any>;
@@ -86,7 +87,13 @@ export function buildSignal(sig: OdrSignal): XmlNode {
     node.positionRoad = prNode;
   }
 
-  return applyExtra(node, sig.extra);
+  applyExtra(node, sig.extra);
+
+  // semantics comes last in the t_road_signals_signal sequence (after
+  // g_additionalData / the board subtree carried by extra).
+  if (sig.semantics) node.semantics = buildSemantics(sig.semantics);
+
+  return node;
 }
 
 export function buildSignalRef(ref: OdrSignalRef): XmlNode {

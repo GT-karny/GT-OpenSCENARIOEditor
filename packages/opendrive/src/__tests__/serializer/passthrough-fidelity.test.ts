@@ -69,6 +69,11 @@ describe('passthrough fidelity (input → output)', () => {
       { file: 'GT_21_common_junction_crosspath_19.xodr', needle: '<crossPath', label: 'junction crossPath (E9)' },
       { file: 'GT_g2_lanes_layer_19.xodr', needle: '<style', label: 'lane userData vendor payload' },
       { file: 'Ex_Bidirectional_Junction.xodr', needle: 'country', label: 'road type @country (F5)' },
+      // D2 signal <semantics>: was extra-passthrough (deferred in P2), now a typed
+      // model (P4-4). Verified here as source→output survival like the others; the
+      // typed parse/round-trip is asserted directly in parser/signal-semantics.test.ts.
+      { file: 'GT_min_signal_semantics.xodr', needle: '<semantics', label: 'signal semantics block (D2)' },
+      { file: 'GT_min_signal_semantics.xodr', needle: 'heavyTruck', label: 'semantics prohibited vehicle category (D2)' },
     ];
     for (const { file, needle, label } of cases) {
       it(label, () => {

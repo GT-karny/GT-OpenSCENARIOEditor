@@ -6,6 +6,7 @@ import { Label } from '../../../../components/ui/label';
 import { Button } from '../../../../components/ui/button';
 import { EnumSelect } from '../../../../components/form/EnumSelect';
 import { SignalAssemblyPreview } from './SignalAssemblyPreview';
+import { SignalSemanticsEditor } from './SignalSemanticsEditor';
 
 const SIGNAL_ORIENTATIONS: readonly string[] = ['+', '-', 'none'];
 
@@ -325,6 +326,12 @@ export function OdrSignalPropertyEditor({
           </div>
         </div>
       </div>
+
+      {/* Section: Semantics (t_signals_semantics, 1.9) */}
+      <SignalSemanticsEditor
+        semantics={signal.semantics}
+        onChange={(semantics) => handleUpdate({ semantics })}
+      />
     </div>
   );
 }
