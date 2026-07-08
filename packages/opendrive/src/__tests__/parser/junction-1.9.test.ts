@@ -170,6 +170,40 @@ describe('connection emit tightening', () => {
   });
 });
 
+describe('junction child-type schema gating (serializer)', () => {
+  // A stale model left behind by a UI type switch must never strand
+  // variant-specific children into a slot the new @type's content model forbids.
+  const CROSSPATH_SRC = read('GT_21_common_junction_crosspath_19.xodr');
+
+  it('drops stale crossPaths when the type is switched to crossing', () => {
+    const doc = parser.parse(CROSSPATH_SRC);
+    expect(doc.junctions[0].crossPaths!.length).toBeGreaterThan(0);
+    doc.junctions[0].type = 'crossing';
+    const out = serializer.serializeFormatted(doc);
+    expect(out).not.toContain('<crossPath');
+  });
+
+  it('drops connections on a crossing junction (roadSection-only content model)', () => {
+    const doc = parser.parse(CROSSPATH_SRC);
+    expect(doc.junctions[0].connections.length).toBeGreaterThan(0);
+    doc.junctions[0].type = 'crossing';
+    const out = serializer.serializeFormatted(doc);
+    expect(out).not.toContain('<connection');
+  });
+
+  it('drops stale roadSections when the type is switched away from crossing', () => {
+    const doc = parser.parse(
+      odrWithJunction(
+        `<junction id="9" name="j" type="crossing"><roadSection id="rs0" roadId="1" sStart="10" sEnd="20"/></junction>`,
+      ),
+    );
+    expect(doc.junctions[0].roadSections!.length).toBeGreaterThan(0);
+    doc.junctions[0].type = 'default';
+    const out = serializer.serializeFormatted(doc);
+    expect(out).not.toContain('<roadSection');
+  });
+});
+
 describe('crossSectionSurface (Ex_CrossSectionSurface fixture)', () => {
   const src = read('Ex_CrossSectionSurface_CrossFall_LeftTurn_1.xodr');
 

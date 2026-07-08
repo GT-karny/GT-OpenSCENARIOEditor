@@ -1,7 +1,6 @@
 import { useRef } from 'react';
 import type { OdrRoad, OdrRoadRule, OdrRoadTypeEntry, OdrGeometryUpdate, OdrSpeedMaxSpecial } from '@osce/shared';
 import { ODR_SPEED_MAX_SPECIALS } from '@osce/shared';
-import { evaluateGeometry } from '@osce/opendrive';
 import { useTranslation } from '@osce/i18n';
 import { Plus, Trash2 } from 'lucide-react';
 import { Input } from '../../../../components/ui/input';
@@ -67,21 +66,11 @@ export function OdrRoadPropertyEditor({ road, onUpdate, onAddGeometry }: OdrRoad
 
   const handleAddSegment = () => {
     if (!onAddGeometry) return;
-    const pv = road.planView;
-    if (pv.length === 0) {
-      onAddGeometry(road.id, { type: 'line', s: 0, x: 0, y: 0, hdg: 0, length: 50 });
-      return;
-    }
-    const last = pv[pv.length - 1];
-    const end = evaluateGeometry(last.length, last);
-    onAddGeometry(road.id, {
-      type: 'line',
-      s: last.s + last.length,
-      x: end.x,
-      y: end.y,
-      hdg: end.hdg,
-      length: 50,
-    });
+    // The add-geometry command re-chains placement (s / x / y / hdg onto the end
+    // of the previous segment) and refreshes road.length, so the caller only
+    // supplies the segment shape. Keeping the pose math here too would be a second
+    // source of truth that could drift from the command.
+    onAddGeometry(road.id, { type: 'line', length: 50 });
   };
 
   return (

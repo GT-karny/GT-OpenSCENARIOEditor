@@ -4,10 +4,12 @@
 
 import type {
   OpenDriveDocument,
+  OdrRoad,
   OdrGeometry,
   OdrGeometryBase,
   OdrGeometryUpdate,
 } from '@osce/shared';
+import { evaluateGeometry } from '@osce/opendrive';
 import { PatchCommand } from './patch-command.js';
 
 export type GetDoc = () => OpenDriveDocument;
@@ -19,6 +21,45 @@ export type MarkDirtyRoad = (roadId: string) => void;
  */
 function findRoadIndex(doc: OpenDriveDocument, roadId: string): number {
   return doc.roads.findIndex((r) => r.id === roadId);
+}
+
+/**
+ * Re-establish the planView invariants after a segment insert/remove/resize and
+ * refresh `road.length`.
+ *
+ * Every command that mutates the number of segments (or a segment's length)
+ * would otherwise leave a stale `road.s`-chain, discontinuous start poses, and a
+ * `road.length` that no longer equals the reference line — all of which serialize
+ * to a schema-invalid / geometrically broken xodr. Normalizing here means every
+ * caller inherits the invariant without duplicating the math.
+ *
+ * The first segment keeps its authored placement (`s`, `x`, `y`, `hdg` — normally
+ * the road origin at s=0). Each following segment is re-chained: its `s` is the
+ * running arc length and its start pose is the end pose of the previous segment.
+ * Segment shapes (curvature / poly coefficients / length) are preserved; only
+ * placement is recomputed.
+ */
+function normalizePlanView(road: OdrRoad): void {
+  const planView = road.planView;
+  if (planView.length === 0) {
+    road.length = 0;
+    return;
+  }
+
+  let s = planView[0].s;
+  for (let i = 1; i < planView.length; i++) {
+    const prev = planView[i - 1];
+    s += prev.length;
+    const end = evaluateGeometry(prev.length, prev);
+    const geom = planView[i];
+    geom.s = s;
+    geom.x = end.x;
+    geom.y = end.y;
+    geom.hdg = end.hdg;
+  }
+
+  // road.length spans from the first segment's s to the end of the last.
+  road.length = s + planView[planView.length - 1].length;
 }
 
 /**
@@ -108,11 +149,13 @@ export class AddGeometryCommand extends PatchCommand {
     this.mutate(this.getDoc, this.setDoc, (draft) => {
       const roadIdx = findRoadIndex(draft, this.roadId);
       if (roadIdx === -1) return;
-      if (this.index !== undefined && this.index <= draft.roads[roadIdx].planView.length) {
-        draft.roads[roadIdx].planView.splice(this.index, 0, this.geometry);
+      const road = draft.roads[roadIdx];
+      if (this.index !== undefined && this.index <= road.planView.length) {
+        road.planView.splice(this.index, 0, this.geometry);
       } else {
-        draft.roads[roadIdx].planView.push(this.geometry);
+        road.planView.push(this.geometry);
       }
+      normalizePlanView(road);
     });
   }
 
@@ -154,9 +197,10 @@ export class RemoveGeometryCommand extends PatchCommand {
     this.mutate(this.getDoc, this.setDoc, (draft) => {
       const roadIdx = findRoadIndex(draft, this.roadId);
       if (roadIdx === -1) return;
-      const planView = draft.roads[roadIdx].planView;
-      if (this.geometryIndex < 0 || this.geometryIndex >= planView.length) return;
-      planView.splice(this.geometryIndex, 1);
+      const road = draft.roads[roadIdx];
+      if (this.geometryIndex < 0 || this.geometryIndex >= road.planView.length) return;
+      road.planView.splice(this.geometryIndex, 1);
+      normalizePlanView(road);
     });
   }
 
@@ -197,9 +241,12 @@ export class UpdateGeometryCommand extends PatchCommand {
     this.mutate(this.getDoc, this.setDoc, (draft) => {
       const roadIdx = findRoadIndex(draft, this.roadId);
       if (roadIdx === -1) return;
-      const planView = draft.roads[roadIdx].planView;
-      if (this.geometryIndex < 0 || this.geometryIndex >= planView.length) return;
-      Object.assign(planView[this.geometryIndex], this.updates);
+      const road = draft.roads[roadIdx];
+      if (this.geometryIndex < 0 || this.geometryIndex >= road.planView.length) return;
+      Object.assign(road.planView[this.geometryIndex], this.updates);
+      // An update can change a segment's length (or its first-segment placement),
+      // so re-chain the following segments and refresh road.length as well.
+      normalizePlanView(road);
     });
   }
 

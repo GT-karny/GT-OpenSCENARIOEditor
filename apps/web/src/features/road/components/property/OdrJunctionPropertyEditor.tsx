@@ -119,13 +119,22 @@ export function OdrJunctionPropertyEditor({
               onValueChange={(v) => {
                 const next = v as OdrJunctionType;
                 const updates: Partial<OdrJunction> = { type: next };
-                // Switching away from virtual clears its virtual-only attrs
-                // (undoable; keeps the model + serialized output schema-valid).
+                // Clear children the new @type's XSD content model forbids, in the
+                // same undoable update, so the model + serialized output stay
+                // schema-valid after the switch (matches build-junction.ts gating).
+                // Switching away from virtual clears its virtual-only attrs.
                 if (next !== 'virtual') {
                   updates.mainRoad = undefined;
                   updates.sStart = undefined;
                   updates.sEnd = undefined;
                   updates.orientation = undefined;
+                }
+                // crossPath is valid only on default/virtual; roadSection only on crossing.
+                if (next !== 'default' && next !== 'virtual') {
+                  updates.crossPaths = undefined;
+                }
+                if (next !== 'crossing') {
+                  updates.roadSections = undefined;
                 }
                 onUpdate(junction.id, updates);
               }}

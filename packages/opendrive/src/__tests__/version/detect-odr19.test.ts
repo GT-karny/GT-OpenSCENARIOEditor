@@ -150,6 +150,68 @@ describe('detectOdr19Constructs', () => {
     expect(constructs(doc({ road }))).toContain('validity layer');
   });
 
+  it('does not count children the junction @type hides (aligns with serializer gating)', () => {
+    // Crossing junction: the serializer emits only <roadSection>, so a stale
+    // crossPath / connection left on the model must not bump the version.
+    const parsed = parser.parse(
+      doc({
+        tail: `<junction id="9" name="j" type="crossing"><roadSection id="0" roadId="1" sStart="10" sEnd="20"/></junction>`,
+      }),
+    );
+    const j = parsed.junctions[0];
+    j.crossPaths = [
+      {
+        id: '0',
+        crossingRoad: '2',
+        roadAtStart: '1',
+        roadAtEnd: '1',
+        startLaneLink: { s: 0, from: 1, to: -1 },
+        endLaneLink: { s: 0, from: -1, to: -1 },
+      },
+    ];
+    j.connections = [
+      {
+        id: '0',
+        incomingRoad: '1',
+        connectingRoad: '1',
+        contactPoint: 'start',
+        type: 'virtual',
+        laneLinks: [{ from: -1, to: -1, overlapZone: 5, fromLayer: 'temporary' }],
+      },
+    ];
+    const found = detectOdr19Constructs(parsed);
+    // The legitimately-present roadSection still counts.
+    expect(found).toContain('junction roadSection');
+    // The hidden children do not.
+    expect(found).not.toContain('junction crossPath');
+    expect(found).not.toContain('virtual connection');
+    expect(found).not.toContain('connection laneLink overlapZone');
+    expect(found).not.toContain('connection laneLink layer');
+  });
+
+  it('does not count a stale roadSection on a non-crossing junction', () => {
+    const parsed = parser.parse(
+      doc({
+        tail: `<junction id="9" name="j" type="default"><connection id="0" incomingRoad="1" connectingRoad="1" contactPoint="start"><laneLink from="-1" to="-1"/></connection></junction>`,
+      }),
+    );
+    parsed.junctions[0].roadSections = [{ id: '0', roadId: '1', sStart: 10, sEnd: 20 }];
+    expect(detectOdr19Constructs(parsed)).not.toContain('junction roadSection');
+  });
+
+  it('does not count stale virtual attrs on a non-virtual junction', () => {
+    const parsed = parser.parse(
+      doc({
+        tail: `<junction id="9" name="j" type="default"><connection id="0" incomingRoad="1" connectingRoad="1" contactPoint="start"><laneLink from="-1" to="-1"/></connection></junction>`,
+      }),
+    );
+    // Virtual-only attrs left behind by a switch away from virtual.
+    parsed.junctions[0].mainRoad = '1';
+    parsed.junctions[0].sStart = 0;
+    parsed.junctions[0].sEnd = 5;
+    expect(detectOdr19Constructs(parsed)).not.toContain('virtual junction');
+  });
+
   it('detects signal <semantics> (added to the detector after X4 typed it)', () => {
     const road = `<road name="R" length="100" id="1" junction="-1">
       <link/>

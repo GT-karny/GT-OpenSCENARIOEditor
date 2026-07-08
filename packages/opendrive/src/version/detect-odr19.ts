@@ -52,29 +52,36 @@ export function detectOdr19Constructs(doc: OpenDriveDocument): string[] {
   }
 
   for (const junction of doc.junctions) {
-    if (junction.type === 'crossing') found.add('crossing junction');
-    if (junction.type === 'direct') found.add('direct junction');
-    if (
-      junction.type === 'virtual' ||
-      junction.mainRoad !== undefined ||
-      junction.sStart !== undefined ||
-      junction.sEnd !== undefined ||
-      junction.orientation !== undefined
-    ) {
-      found.add('virtual junction');
+    // Count only the constructs the serializer will actually emit for this
+    // @type (see build-junction.ts gating): virtual attrs live on virtual;
+    // crossPath on default/virtual; roadSection on crossing; connection on
+    // everything but crossing. Stale children hidden by a type switch must not
+    // bump the resolved version.
+    const type = junction.type;
+    const crossPathAllowed = type === undefined || type === 'default' || type === 'virtual';
+
+    if (type === 'crossing') found.add('crossing junction');
+    if (type === 'direct') found.add('direct junction');
+    if (type === 'virtual') found.add('virtual junction');
+
+    if (crossPathAllowed && junction.crossPaths && junction.crossPaths.length > 0) {
+      found.add('junction crossPath');
     }
-    if (junction.crossPaths && junction.crossPaths.length > 0) found.add('junction crossPath');
-    if (junction.roadSections && junction.roadSections.length > 0) {
+    if (type === 'crossing' && junction.roadSections && junction.roadSections.length > 0) {
       found.add('junction roadSection');
     }
 
-    for (const conn of junction.connections) {
-      if (conn.type === 'virtual') found.add('virtual connection');
-      if (conn.linkedRoad !== undefined) found.add('direct junction');
-      for (const ll of conn.laneLinks) {
-        if (ll.overlapZone !== undefined) found.add('connection laneLink overlapZone');
-        if (ll.fromLayer !== undefined || ll.toLayer !== undefined) {
-          found.add('connection laneLink layer');
+    // Connections (and their 1.9 lane-link features) are not emitted on a
+    // crossing junction, so they cannot force a 1.9 bump there.
+    if (type !== 'crossing') {
+      for (const conn of junction.connections) {
+        if (conn.type === 'virtual') found.add('virtual connection');
+        if (conn.linkedRoad !== undefined) found.add('direct junction');
+        for (const ll of conn.laneLinks) {
+          if (ll.overlapZone !== undefined) found.add('connection laneLink overlapZone');
+          if (ll.fromLayer !== undefined || ll.toLayer !== undefined) {
+            found.add('connection laneLink layer');
+          }
         }
       }
     }

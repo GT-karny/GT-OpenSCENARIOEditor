@@ -58,7 +58,7 @@ describe('OdrRoadPropertyEditor plan view', () => {
     expect(screen.getByText('1 segments')).toBeInTheDocument();
   });
 
-  it('appends a line segment continuing from the road end', () => {
+  it('requests a new line segment by shape only (command re-chains placement)', () => {
     const onAddGeometry = vi.fn();
     renderWithProviders(
       <OdrRoadPropertyEditor road={road()} onUpdate={() => {}} onAddGeometry={onAddGeometry} />,
@@ -69,11 +69,9 @@ describe('OdrRoadPropertyEditor plan view', () => {
     expect(onAddGeometry).toHaveBeenCalledTimes(1);
     const [roadId, geometry] = onAddGeometry.mock.calls[0];
     expect(roadId).toBe('1');
-    // The base segment is a length-100 line from the origin heading +x, so its
-    // end pose is (100, 0, 0) and the new segment starts there.
-    expect(geometry).toMatchObject({ type: 'line', s: 100, hdg: 0, length: 50 });
-    expect(geometry.x).toBeCloseTo(100);
-    expect(geometry.y).toBeCloseTo(0);
+    // The editor supplies only the segment shape; the add-geometry command owns
+    // the s / x / y / hdg re-chaining onto the prior segment, so no pose is sent.
+    expect(geometry).toEqual({ type: 'line', length: 50 });
   });
 
   it('hides Add segment when no handler is provided', () => {

@@ -33,15 +33,24 @@ export function buildJunction(junction: OdrJunction): XmlNode {
     optAttr(node, '@_orientation', junction.orientation);
   }
 
-  if (junction.connections.length > 0) {
+  // XSD content models per junction @type (OpenDRIVE_Junction.xsd):
+  //   default/common + virtual → connection + crossPath
+  //   crossing                 → roadSection ONLY (no connection/crossPath)
+  //   direct                   → connection ONLY (no crossPath/roadSection)
+  // Gate each child on its allowed types so a stale model left behind by a type
+  // switch never strands variant-specific children into a schema-invalid slot.
+  const type = junction.type;
+  const crossPathAllowed = type === undefined || type === 'default' || type === 'virtual';
+
+  if (type !== 'crossing' && junction.connections.length > 0) {
     node.connection = junction.connections.map(buildConnection);
   }
 
-  // crossPath (common/virtual) then roadSection (crossing) — XSD child order.
-  if (junction.crossPaths && junction.crossPaths.length > 0) {
+  // crossPath (default/virtual) then roadSection (crossing) — XSD child order.
+  if (crossPathAllowed && junction.crossPaths && junction.crossPaths.length > 0) {
     node.crossPath = junction.crossPaths.map(buildCrossPath);
   }
-  if (junction.roadSections && junction.roadSections.length > 0) {
+  if (type === 'crossing' && junction.roadSections && junction.roadSections.length > 0) {
     node.roadSection = junction.roadSections.map(buildRoadSection);
   }
 

@@ -128,6 +128,31 @@ describe('OdrJunctionPropertyEditor', () => {
     expect(current().mainRoad).toBe('1');
   });
 
+  it('clears roadSections (undoably) when the type is switched away from crossing', () => {
+    const api = createOpenDriveStore();
+    api.getState().addJunction({ id: '900', name: 'j', type: 'crossing' });
+    api.getState().updateJunction('900', { roadSections: [{ roadId: '2', sStart: 5, sEnd: 9 }] });
+    const current = () => api.getState().getDocument().junctions[0];
+
+    renderWithProviders(
+      <OdrJunctionPropertyEditor
+        junction={current()}
+        onUpdate={(id, u) => api.getState().updateJunction(id, u)}
+      />,
+    );
+
+    // Open the type dropdown (the first combobox) and pick 'default'.
+    fireEvent.click(screen.getAllByRole('combobox')[0]);
+    fireEvent.click(screen.getByRole('option', { name: 'default' }));
+
+    expect(current().type).toBe('default');
+    expect(current().roadSections).toBeUndefined();
+
+    api.getState().undo();
+    expect(current().type).toBe('crossing');
+    expect(current().roadSections).toHaveLength(1);
+  });
+
   it('invokes onRemoveConnection with the junction + connection ids', () => {
     const connection: OdrJunctionConnection = {
       id: '5',
