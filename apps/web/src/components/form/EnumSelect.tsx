@@ -13,6 +13,11 @@ interface EnumSelectProps {
   className?: string;
   /** Options to disable, each mapped to a tooltip (title) explaining why. */
   disabledOptions?: Readonly<Record<string, string>>;
+  /**
+   * Options to decorate with a label suffix (e.g. a "(deprecated)" marker) and a
+   * tooltip, without disabling them — the option stays selectable.
+   */
+  optionSuffixes?: Readonly<Record<string, string>>;
 }
 
 const EMPTY_SENTINEL = '__empty__';
@@ -23,6 +28,7 @@ export function EnumSelect({
   onValueChange,
   className,
   disabledOptions,
+  optionSuffixes,
 }: EnumSelectProps) {
   const hasEmpty = options.includes('');
 
@@ -39,14 +45,15 @@ export function EnumSelect({
         {options.map((option) => {
           const itemValue = option === '' ? EMPTY_SENTINEL : option;
           const disabledTitle = disabledOptions?.[option];
+          const suffix = optionSuffixes?.[option];
           return (
             <SelectItem
               key={itemValue}
               value={itemValue}
               disabled={disabledTitle !== undefined}
-              title={disabledTitle}
+              title={disabledTitle ?? suffix}
             >
-              {option || '(none)'}
+              {(option || '(none)') + (suffix ? ` ${suffix}` : '')}
             </SelectItem>
           );
         })}
