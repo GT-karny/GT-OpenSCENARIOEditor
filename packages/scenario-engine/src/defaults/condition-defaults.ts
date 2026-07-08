@@ -65,6 +65,10 @@ export function defaultEntityConditionByType(type: EntityCondition['type']): Ent
       return { type: 'offroad', duration: 0 };
     case 'relativeClearance':
       return { type: 'relativeClearance', freeSpace: false, oppositeLanes: false, entityRefs: [] };
+    case 'angle':
+      return { type: 'angle', angleType: 'heading', angle: 0, angleTolerance: 0 };
+    case 'relativeAngle':
+      return { type: 'relativeAngle', entityRef: '', angleType: 'heading', angle: 0, angleTolerance: 0 };
   }
 }
 

@@ -1,0 +1,93 @@
+import type { ScenarioEvent, EventPriority } from '@osce/shared';
+import { Label } from '../../../../../components/ui/label';
+import { EnumSelect } from '../../../../../components/form/EnumSelect';
+import { ParameterAwareInput } from '../ParameterAwareInput';
+import { useScenarioStore, useScenarioStoreApi } from '../../../../../stores/use-scenario-store';
+import { useEditorStore } from '../../../../../stores/editor-store';
+import { EVENT_PRIORITIES } from '../../../constants/osc-enum-values';
+import { getActionSummary, getActionTypeLabel } from '@osce/node-editor';
+
+interface EventsTabProps {
+  events: ScenarioEvent[];
+}
+
+export function EventsTab({ events }: EventsTabProps) {
+  const bindings = useScenarioStore((s) => s.document._editor.parameterBindings);
+  const storeApi = useScenarioStoreApi();
+
+  const handleSelectEvent = (eventId: string) => {
+    useEditorStore.getState().setSelection({ selectedElementIds: [eventId] });
+  };
+
+  if (events.length === 0) {
+    return (
+      <p className="text-xs text-muted-foreground italic p-2">
+        No events in this behavior group
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3 p-2">
+      {events.map((event) => {
+        const firstAction = event.actions[0];
+        return (
+          <div
+            key={event.id}
+            className="space-y-2 pb-3 border-b border-[var(--color-glass-edge)]"
+          >
+            {/* Event name (clickable to navigate) */}
+            <button
+              onClick={() => handleSelectEvent(event.id)}
+              className="w-full text-left text-xs font-medium hover:text-[var(--color-accent-vivid)] transition-colors truncate"
+              title="Click to edit event details"
+            >
+              {event.name}
+            </button>
+
+            {/* Action summary (read-only) */}
+            {firstAction && (
+              <p className="text-[10px] text-muted-foreground truncate px-1">
+                {getActionTypeLabel(firstAction.action.type)}:{' '}
+                {getActionSummary(firstAction.action, bindings?.[firstAction.id])}
+              </p>
+            )}
+
+            {/* Priority */}
+            <div className="grid gap-1">
+              <Label className="text-[10px]">Priority</Label>
+              <EnumSelect
+                value={event.priority}
+                options={EVENT_PRIORITIES as unknown as readonly string[]}
+                onValueChange={(v) =>
+                  storeApi.getState().updateEvent(event.id, {
+                    priority: v as EventPriority,
+                  })
+                }
+                className="h-7 text-xs"
+              />
+            </div>
+
+            {/* Max Execution Count */}
+            <div className="grid gap-1">
+              <Label className="text-[10px]">Max Execution Count</Label>
+              <ParameterAwareInput
+                elementId={event.id}
+                fieldName="maximumExecutionCount"
+                value={event.maximumExecutionCount ?? ''}
+                onValueChange={(v) =>
+                  storeApi.getState().updateEvent(event.id, {
+                    maximumExecutionCount: v ? parseInt(v) : undefined,
+                  })
+                }
+                acceptedTypes={['unsignedInt', 'int']}
+                placeholder="unlimited"
+                className="h-7 text-xs"
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}

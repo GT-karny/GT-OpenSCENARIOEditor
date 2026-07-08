@@ -5,8 +5,19 @@ import type {
   EditorPreferences,
   EditorPanel,
   ValidationResult,
+  ValidationIssue,
   OpenDriveDocument,
 } from '@osce/shared';
+
+/**
+ * Pending save-time validation confirmation. When auto-validation finds blocking
+ * errors during a save, the save flow parks the decision here; the confirmation
+ * dialog resolves `resolve(true|false)` and the save either proceeds or aborts.
+ */
+export interface ValidationConfirmRequest {
+  errors: ValidationIssue[];
+  resolve: (proceed: boolean) => void;
+}
 
 /** Request to pick a position from the 3D viewer */
 export interface PositionPickRequest {
@@ -44,21 +55,52 @@ export interface SignalPickMode {
   allTrackSignalMap: ReadonlyMap<string, ReadonlySet<string>>;
 }
 
-export type EditorMode = 'scenario' | 'roadNetwork';
+/** Verbatim .xodr text and the OpenDRIVE history revision at which it is byte-accurate. */
+export interface RoadNetworkRawXml {
+  text: string;
+  validForRevision: number;
+}
+
+/**
+ * App-wide editor preferences plus viewer-only display flags.
+ *
+ * `showDrivingDirection` toggles the 3D driving-direction arrow overlay. It is
+ * kept here (rather than in the shared EditorPreferences contract) because it
+ * is a viewer display preference, not part of the OpenSCENARIO/editor data
+ * model, but it is persisted alongside the other display toggles.
+ */
+export type EditorPreferencesExt = EditorPreferences & {
+  showDrivingDirection: boolean;
+  /**
+   * Show simulator-generated synthetic objects (crosswalks, bridges,
+   * objectReference clones) in the runtime object list. These are emitted by the
+   * simulator with very large ids (>= 900000000) and are not part of the authored
+   * scenario, so they are hidden by default. Persisted alongside display toggles.
+   */
+  showSimGeneratedObjects: boolean;
+  /**
+   * Show the temporary lane layer (`<lanes layer="temporary">`), overlaid on
+   * the permanent road surface with a distinct tint. 1.9-P3 (D3) display
+   * toggle, persisted alongside the other display toggles.
+   */
+  showTemporaryLanes: boolean;
+  /**
+   * Show document-authored `<object>` entries in the 3D viewer (boxes/cylinders
+   * resolved from s/t/zOffset + repeat). 1.9-P3 (D4) display toggle, persisted
+   * alongside the other display toggles.
+   */
+  showObjects: boolean;
+};
 
 export interface EditorState {
-  // Editor mode (Scenario / Road Network tab)
-  editorMode: EditorMode;
-  setEditorMode: (mode: EditorMode) => void;
-
   // Selection
   selection: EditorSelection;
   setSelection: (sel: Partial<EditorSelection>) => void;
   clearSelection: () => void;
 
   // Preferences (persisted to localStorage)
-  preferences: EditorPreferences;
-  updatePreferences: (prefs: Partial<EditorPreferences>) => void;
+  preferences: EditorPreferencesExt;
+  updatePreferences: (prefs: Partial<EditorPreferencesExt>) => void;
 
   // Validation
   validationResult: ValidationResult | null;
@@ -68,26 +110,39 @@ export interface EditorState {
   focusNodeId: string | null;
   setFocusNodeId: (id: string | null) => void;
 
+  // Center tab switch request (consumed by EditorLayout to show Composer/Graph).
+  // Used by click-to-navigate so a validation issue can force the Graph view.
+  centerTabRequest: 'composer' | 'graph' | null;
+  requestCenterTab: (tab: 'composer' | 'graph') => void;
+  clearCenterTabRequest: () => void;
+
+  // Pending save-time validation confirmation (rendered by ValidationConfirmHost).
+  validationConfirm: ValidationConfirmRequest | null;
+  setValidationConfirm: (req: ValidationConfirmRequest | null) => void;
+
   // Road Network (loaded .xodr)
   roadNetwork: OpenDriveDocument | null;
-  roadNetworkXml: string | null;
-  setRoadNetwork: (doc: OpenDriveDocument | null, rawXml?: string | null) => void;
+  /**
+   * Verbatim .xodr text tagged with the OpenDRIVE revision at which it is
+   * byte-accurate. Validity is derived at read time (see simulation-xodr.ts) by
+   * comparing the tag against the live command-history revision, so no code path
+   * nulls this on edit — an undo back to the tagged revision re-validates it.
+   */
+  roadNetworkRawXml: RoadNetworkRawXml | null;
+  setRoadNetwork: (doc: OpenDriveDocument | null) => void;
+  setRoadNetworkRawXml: (cache: RoadNetworkRawXml | null) => void;
 
   // Panel visibility
   panelVisibility: Record<EditorPanel, boolean>;
   togglePanel: (panel: EditorPanel) => void;
 
-  // File state (.xosc)
+  // File state (.xosc). Dirty is derived in document-registry.ts, not stored here.
   currentFileName: string | null;
   setCurrentFileName: (name: string | null) => void;
-  isDirty: boolean;
-  setDirty: (dirty: boolean) => void;
 
   // File state (.xodr)
   roadNetworkFileName: string | null;
   setRoadNetworkFileName: (name: string | null) => void;
-  isRoadNetworkDirty: boolean;
-  setRoadNetworkDirty: (dirty: boolean) => void;
 
   // File handles for overwrite-save (File System Access API)
   xoscFileHandle: FileSystemFileHandle | null;
@@ -101,17 +156,11 @@ export interface EditorState {
   xodrFilePath: string | null;
   setXodrFilePath: (path: string | null) => void;
 
-  // File handles for .osce.json (editor format)
-  osceFileHandle: FileSystemFileHandle | null;
-  setOsceFileHandle: (handle: FileSystemFileHandle | null) => void;
-  osceFilePath: string | null;
-  setOsceFilePath: (path: string | null) => void;
-
   // SaveAs dialog
   showSaveAs: boolean;
   setShowSaveAs: (show: boolean) => void;
-  saveAsFileType: 'xosc' | 'xodr' | 'osce';
-  setSaveAsFileType: (type: 'xosc' | 'xodr' | 'osce') => void;
+  saveAsFileType: 'xosc' | 'xodr';
+  setSaveAsFileType: (type: 'xosc' | 'xodr') => void;
 
   // Entity property tab persistence
   entityPropertyTab: 'definition' | 'initialState';
@@ -168,14 +217,19 @@ export interface EditorState {
   resetFileState: () => void;
 }
 
-const defaultPreferences: EditorPreferences = {
+const defaultPreferences: EditorPreferencesExt = {
   language: 'en',
   theme: 'system',
-  autoSave: false,
+  // Autosave with crash recovery is on by default; consumed by use-autosave.
+  autoSave: true,
   autoValidate: true,
   showGrid3D: true,
   showLaneIds: false,
   showRoadIds: false,
+  showDrivingDirection: false,
+  showSimGeneratedObjects: false,
+  showTemporaryLanes: true,
+  showObjects: true,
   speedUnit: 'mps',
   compatibilityProfile: {
     oscVersion: '1.3',
@@ -194,13 +248,35 @@ const defaultPanelVisibility: Record<EditorPanel, boolean> = {
   simulation: false,
 };
 
+/**
+ * Shape persisted to localStorage under `osce-editor-preferences`. Kept in sync
+ * with `partialize` below.
+ */
+export interface EditorPersistedState {
+  preferences: EditorPreferencesExt;
+  panelVisibility: Record<EditorPanel, boolean>;
+  entityPropertyTab: 'definition' | 'initialState';
+  showIntersectionTimeline: boolean;
+}
+
+/**
+ * Structural migration for the persisted editor-preferences envelope.
+ *
+ * v0 (records written before persist versioning) is shape-compatible with v1,
+ * so it passes through unchanged; the custom `merge` below still backfills any
+ * preference keys absent from the payload. Future structural changes (renamed or
+ * relocated keys) branch on `version` here.
+ */
+export function migrateEditorPreferences(
+  persistedState: unknown,
+  _version: number,
+): EditorPersistedState {
+  return persistedState as EditorPersistedState;
+}
+
 export const useEditorStore = create<EditorState>()(
   persist(
     (set) => ({
-      // Editor mode
-      editorMode: 'scenario' as EditorMode,
-      setEditorMode: (mode) => set({ editorMode: mode }),
-
       // Selection
       selection: { selectedElementIds: [], hoveredElementId: null, focusedPanelId: null },
       setSelection: (sel) =>
@@ -233,10 +309,20 @@ export const useEditorStore = create<EditorState>()(
       focusNodeId: null,
       setFocusNodeId: (id) => set({ focusNodeId: id }),
 
+      // Center tab switch request
+      centerTabRequest: null,
+      requestCenterTab: (tab) => set({ centerTabRequest: tab }),
+      clearCenterTabRequest: () => set({ centerTabRequest: null }),
+
+      // Save-time validation confirmation
+      validationConfirm: null,
+      setValidationConfirm: (req) => set({ validationConfirm: req }),
+
       // Road Network
       roadNetwork: null,
-      roadNetworkXml: null,
-      setRoadNetwork: (doc, rawXml) => set({ roadNetwork: doc, roadNetworkXml: rawXml ?? null }),
+      roadNetworkRawXml: null,
+      setRoadNetwork: (doc) => set({ roadNetwork: doc }),
+      setRoadNetworkRawXml: (cache) => set({ roadNetworkRawXml: cache }),
 
       // Panel visibility
       panelVisibility: defaultPanelVisibility,
@@ -251,14 +337,10 @@ export const useEditorStore = create<EditorState>()(
       // File state (.xosc)
       currentFileName: null,
       setCurrentFileName: (name) => set({ currentFileName: name }),
-      isDirty: false,
-      setDirty: (dirty) => set({ isDirty: dirty }),
 
       // File state (.xodr)
       roadNetworkFileName: null,
       setRoadNetworkFileName: (name) => set({ roadNetworkFileName: name }),
-      isRoadNetworkDirty: false,
-      setRoadNetworkDirty: (dirty) => set({ isRoadNetworkDirty: dirty }),
 
       // File handles (not persisted)
       xoscFileHandle: null,
@@ -271,12 +353,6 @@ export const useEditorStore = create<EditorState>()(
       setXoscFilePath: (path) => set({ xoscFilePath: path }),
       xodrFilePath: null,
       setXodrFilePath: (path) => set({ xodrFilePath: path }),
-
-      // .osce.json file handles/paths
-      osceFileHandle: null,
-      setOsceFileHandle: (handle) => set({ osceFileHandle: handle }),
-      osceFilePath: null,
-      setOsceFilePath: (path) => set({ osceFilePath: path }),
 
       // SaveAs dialog
       showSaveAs: false,
@@ -352,6 +428,8 @@ export const useEditorStore = create<EditorState>()(
           selection: { selectedElementIds: [], hoveredElementId: null, focusedPanelId: null },
           validationResult: null,
           focusNodeId: null,
+          centerTabRequest: null,
+          validationConfirm: null,
           focusEntityId: null,
           selectedSignalKey: null,
           activeActId: null,
@@ -371,26 +449,24 @@ export const useEditorStore = create<EditorState>()(
         set({
           xoscFileHandle: null,
           xodrFileHandle: null,
-          osceFileHandle: null,
           xoscFilePath: null,
           xodrFilePath: null,
-          osceFilePath: null,
           currentFileName: null,
           roadNetworkFileName: null,
-          isDirty: false,
-          isRoadNetworkDirty: false,
           roadNetwork: null,
-          roadNetworkXml: null,
+          roadNetworkRawXml: null,
         }),
     }),
     {
       name: 'osce-editor-preferences',
-      partialize: (state) => ({
+      version: 1,
+      partialize: (state): EditorPersistedState => ({
         preferences: state.preferences,
         panelVisibility: state.panelVisibility,
         entityPropertyTab: state.entityPropertyTab,
         showIntersectionTimeline: state.showIntersectionTimeline,
       }),
+      migrate: migrateEditorPreferences,
       merge: (persisted, current) => {
         const p = persisted as Partial<EditorState>;
         return {

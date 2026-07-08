@@ -1,15 +1,25 @@
 import { describe, it, expect } from 'vitest';
-import type { OdrRoad, OdrJunctionConnection } from '@osce/shared';
+import type { OdrRoad, OdrGeometry, OdrJunctionConnection } from '@osce/shared';
+import { evaluateReferenceLineAtS } from '@osce/opendrive';
 import { createOpenDriveStore } from '../../store/opendrive-store.js';
 import { createEditorMetadataStore } from '../../store/editor-metadata-store.js';
 import {
   executeJunctionCreationPlan,
   executeJunctionRemoval,
+  regenerateJunctionConnections,
   syncLaneLinksForDirectConnections,
 } from '../../operations/junction-execution.js';
 import type { JunctionCreationPlan, RoadSplitInfo } from '../../operations/junction-operations.js';
 import type { JunctionMetadata, VirtualRoad } from '../../store/editor-metadata-types.js';
 import { createTestRoad } from '../helpers.js';
+
+/** Evaluate a plan view at s using the canonical reference-line evaluator. */
+function evaluateAtS(
+  planView: readonly OdrGeometry[],
+  s: number,
+): { x: number; y: number; hdg: number } {
+  return evaluateReferenceLineAtS(planView, s);
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -335,14 +345,14 @@ describe('syncLaneLinksForDirectConnections', () => {
     // Road 43's lanes should have successorId set
     const r43 = doc.roads.find((r) => r.id === '43')!;
     const r43LastSection = r43.lanes[r43.lanes.length - 1];
-    expect(r43LastSection.rightLanes[0].link?.successorId).toBe(-1);
-    expect(r43LastSection.leftLanes[0].link?.successorId).toBe(1);
+    expect(r43LastSection.rightLanes[0].link?.successors[0]?.id).toBe(-1);
+    expect(r43LastSection.leftLanes[0].link?.successors[0]?.id).toBe(1);
 
     // Road 75's lanes should have predecessorId set
     const r75 = doc.roads.find((r) => r.id === '75')!;
     const r75FirstSection = r75.lanes[0];
-    expect(r75FirstSection.rightLanes[0].link?.predecessorId).toBe(-1);
-    expect(r75FirstSection.leftLanes[0].link?.predecessorId).toBe(1);
+    expect(r75FirstSection.rightLanes[0].link?.predecessors[0]?.id).toBe(-1);
+    expect(r75FirstSection.leftLanes[0].link?.predecessors[0]?.id).toBe(1);
   });
 
   it('sets lane links on segment roads with inherited road-to-road connections', () => {
@@ -385,11 +395,11 @@ describe('syncLaneLinksForDirectConnections', () => {
 
     // Lane links should be set on segment 11 and Road C
     const seg11LastSection = seg11!.lanes[seg11!.lanes.length - 1];
-    expect(seg11LastSection.rightLanes[0].link?.successorId).toBe(-1);
+    expect(seg11LastSection.rightLanes[0].link?.successors[0]?.id).toBe(-1);
 
     const rC = doc.roads.find((r) => r.id === '3')!;
     const rCFirstSection = rC.lanes[0];
-    expect(rCFirstSection.rightLanes[0].link?.predecessorId).toBe(-1);
+    expect(rCFirstSection.rightLanes[0].link?.predecessors[0]?.id).toBe(-1);
   });
 });
 
@@ -437,5 +447,153 @@ describe('executeJunctionRemoval', () => {
     const freshMeta = metaStoreApi.getState();
     expect(freshMeta.getJunctionMetadata(junctionId)).toBeUndefined();
     expect(freshMeta.metadata.virtualRoads.length).toBe(0);
+  });
+});
+
+describe('regenerateJunctionConnections', () => {
+  /** Bidirectional road arm (one left + one right driving lane). */
+  function makeCrossArm(id: string, length: number, hdg: number, x: number, y: number): OdrRoad {
+    const drivingLane = (laneId: number) => ({
+      id: laneId,
+      type: 'driving' as const,
+      width: [{ sOffset: 0, a: 3.5, b: 0, c: 0, d: 0 }],
+      roadMarks: [],
+    });
+    return createTestRoad({
+      id,
+      length,
+      planView: [{ s: 0, x, y, hdg, length, type: 'line' }],
+      lanes: [
+        {
+          s: 0,
+          leftLanes: [drivingLane(1)],
+          centerLane: { id: 0, type: 'none', width: [], roadMarks: [] },
+          rightLanes: [drivingLane(-1)],
+        },
+      ],
+    });
+  }
+
+  /**
+   * Build a store with a "+" junction: four incoming road arms whose endpoints
+   * meet 7m out from the origin (leaving a central gap), plus a junction whose
+   * connections reference those incoming roads and placeholder connecting roads
+   * that regeneration should replace.
+   */
+  function setupCrossJunction() {
+    const odrStoreApi = createOpenDriveStore();
+    const odrStore = odrStoreApi.getState();
+
+    // Four incoming roads pointing at the origin from N/E/S/W.
+    // Each faces the junction at contactPoint 'end', ending 7m out from center.
+    const west = makeCrossArm('10', 43, 0, -50, 0); // end at (-7,0) hdg 0
+    const south = makeCrossArm('20', 43, Math.PI / 2, 0, -50); // end at (0,-7) hdg 90
+    const east = makeCrossArm('30', 43, Math.PI, 50, 0); // end at (7,0) hdg 180
+    const north = makeCrossArm('40', 43, -Math.PI / 2, 0, 50); // end at (0,7) hdg -90
+
+    odrStore.addRoad(west);
+    odrStore.addRoad(south);
+    odrStore.addRoad(east);
+    odrStore.addRoad(north);
+
+    // Placeholder connecting roads that regeneration should delete.
+    const placeholder1 = makeConnectingRoad('old-1', '10', 'end', '30', 'start', '100');
+    const placeholder2 = makeConnectingRoad('old-2', '20', 'end', '40', 'start', '100');
+    odrStore.addRoad(placeholder1);
+    odrStore.addRoad(placeholder2);
+
+    const connections: OdrJunctionConnection[] = [
+      { id: 'jc1', incomingRoad: '10', connectingRoad: 'old-1', contactPoint: 'end', laneLinks: [{ from: -1, to: -1 }] },
+      { id: 'jc2', incomingRoad: '20', connectingRoad: 'old-2', contactPoint: 'end', laneLinks: [{ from: -1, to: -1 }] },
+      { id: 'jc3', incomingRoad: '30', connectingRoad: 'old-1', contactPoint: 'end', laneLinks: [{ from: -1, to: -1 }] },
+      { id: 'jc4', incomingRoad: '40', connectingRoad: 'old-2', contactPoint: 'end', laneLinks: [{ from: -1, to: -1 }] },
+    ];
+
+    odrStore.addJunction({ id: '100', name: 'Junction 100', connections });
+
+    return { odrStoreApi, odrStore };
+  }
+
+  it('removes old connecting roads and generates new ones as a single batch', () => {
+    const { odrStore } = setupCrossJunction();
+
+    const roadCountBefore = odrStore.getDocument().roads.length;
+
+    const newConnIds = regenerateJunctionConnections(odrStore, '100', evaluateAtS);
+
+    const doc = odrStore.getDocument();
+
+    // Old placeholder connecting roads are gone
+    expect(doc.roads.some((r) => r.id === 'old-1')).toBe(false);
+    expect(doc.roads.some((r) => r.id === 'old-2')).toBe(false);
+
+    // New connecting roads were generated
+    expect(newConnIds.length).toBeGreaterThan(0);
+    for (const id of newConnIds) {
+      const road = doc.roads.find((r) => r.id === id);
+      expect(road).toBeDefined();
+      expect(road?.junction).toBe('100');
+    }
+
+    // Junction connections were replaced (reference the new roads)
+    const junction = doc.junctions.find((j) => j.id === '100')!;
+    expect(junction.connections.length).toBeGreaterThan(0);
+    for (const conn of junction.connections) {
+      expect(doc.roads.some((r) => r.id === conn.connectingRoad)).toBe(true);
+    }
+
+    // The four incoming roads are untouched
+    for (const id of ['10', '20', '30', '40']) {
+      expect(doc.roads.some((r) => r.id === id)).toBe(true);
+    }
+
+    // Single undo restores the pre-regeneration state (batch granularity)
+    odrStore.undo();
+    const restored = odrStore.getDocument();
+    expect(restored.roads.length).toBe(roadCountBefore);
+    expect(restored.roads.some((r) => r.id === 'old-1')).toBe(true);
+    expect(restored.roads.some((r) => r.id === 'old-2')).toBe(true);
+    const restoredJunction = restored.junctions.find((j) => j.id === '100')!;
+    expect(restoredJunction.connections.map((c) => c.id)).toEqual([
+      'jc1',
+      'jc2',
+      'jc3',
+      'jc4',
+    ]);
+  });
+
+  it('returns [] and does nothing when the junction is missing', () => {
+    const { odrStore } = setupCrossJunction();
+    const before = odrStore.getDocument();
+    const result = regenerateJunctionConnections(odrStore, 'nonexistent', evaluateAtS);
+    expect(result).toEqual([]);
+    // Document is unchanged (same reference — no batch was opened)
+    expect(odrStore.getDocument()).toBe(before);
+  });
+
+  it('clears connections when fewer than two incoming endpoints resolve', () => {
+    const odrStoreApi = createOpenDriveStore();
+    const odrStore = odrStoreApi.getState();
+
+    // Only one incoming road exists; the other referenced road is absent.
+    const only = makeSegmentRoad('10', 50, 0, -50, 0);
+    odrStore.addRoad(only);
+    const placeholder = makeConnectingRoad('old-1', '10', 'end', '99', 'start', '200');
+    odrStore.addRoad(placeholder);
+
+    const connections: OdrJunctionConnection[] = [
+      { id: 'jc1', incomingRoad: '10', connectingRoad: 'old-1', contactPoint: 'end', laneLinks: [{ from: -1, to: -1 }] },
+      { id: 'jc2', incomingRoad: '99', connectingRoad: 'old-1', contactPoint: 'end', laneLinks: [{ from: -1, to: -1 }] },
+    ];
+    odrStore.addJunction({ id: '200', name: 'Junction 200', connections });
+
+    const result = regenerateJunctionConnections(odrStore, '200', evaluateAtS);
+
+    expect(result).toEqual([]);
+    const doc = odrStore.getDocument();
+    // Old connecting road removed, connections cleared
+    expect(doc.roads.some((r) => r.id === 'old-1')).toBe(false);
+    const junction = doc.junctions.find((j) => j.id === '200')!;
+    expect(junction.connections).toEqual([]);
   });
 });

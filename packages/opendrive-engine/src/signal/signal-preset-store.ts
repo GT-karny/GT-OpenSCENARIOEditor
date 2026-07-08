@@ -58,7 +58,7 @@ export function computeHeadWidth(bulbCount: number, orientation: 'vertical' | 'h
 }
 
 /** Compute default Y positions for heads stacked vertically from origin. */
-function stackHeadsVertically(presetIds: string[]): AssemblyHeadPlacement[] {
+export function stackHeadsVertically(presetIds: string[]): AssemblyHeadPlacement[] {
   let y = 0;
   return presetIds.map((presetId) => {
     const preset = getPresetById(presetId);

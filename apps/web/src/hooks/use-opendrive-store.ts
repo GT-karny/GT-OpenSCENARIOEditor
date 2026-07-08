@@ -2,7 +2,8 @@
  * React-compatible Zustand hooks for the OpenDRIVE editor.
  * - useOpenDriveStore / useOpenDriveStoreApi: vanilla store wrapper (opendrive-engine)
  * - useOdrSidebarStore: sidebar UI state (selection, search)
- * - useOdrRoads / useOdrJunctions / useOdrSignals: derived data selectors
+ * - useOdrRoads / useOdrJunctions / useOdrSignals / useOdrRoadObjects /
+ *   useOdrRoadStructures: derived data selectors
  */
 
 import { useMemo } from 'react';
@@ -11,7 +12,14 @@ import { useStore } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 import { createOpenDriveStore } from '@osce/opendrive-engine';
 import type { OpenDriveStore } from '@osce/opendrive-engine';
-import type { OpenDriveDocument, OdrRoad, OdrJunction, OdrSignal } from '@osce/shared';
+import type {
+  OdrRoad,
+  OdrRoadRule,
+  OdrJunction,
+  OdrSignal,
+  OdrRoadObject,
+  OdrController,
+} from '@osce/shared';
 import type { EndpointLaneRouting, TurnType } from '@osce/opendrive-engine';
 import { useEditorStore } from '../stores/editor-store';
 
@@ -24,6 +32,18 @@ export function getOpenDriveStoreApi() {
     storeInstance = createOpenDriveStore();
   }
   return storeInstance;
+}
+
+/**
+ * Reset the module-singleton OpenDRIVE engine store to an empty document.
+ *
+ * `createDocument()` clears the CommandHistory (undo/redo), replaces the
+ * document with an empty default, and clears transient dirty tracking.
+ * Shared by both new-road-network and new-file lifecycle resets so a
+ * previously-edited road never leaks into the next scenario.
+ */
+export function resetOpenDriveStore(): void {
+  getOpenDriveStoreApi().getState().createDocument();
 }
 
 /** Get the raw vanilla store API (for non-React usage or subscriptions) */
@@ -40,7 +60,7 @@ export function useOpenDriveStore<T>(selector: (state: OpenDriveStore) => T): T 
 // ---- Sidebar UI State ----
 
 interface OdrSidebarSelection {
-  type: 'road' | 'junction' | 'signal' | null;
+  type: 'road' | 'junction' | 'signal' | 'object' | 'controller' | null;
   id: string | null;
   roadId?: string;
 }
@@ -68,6 +88,8 @@ export interface RoadCreationState {
   /** Live cursor position during creation (updated on mouse move) */
   cursorX: number;
   cursorY: number;
+  /** Driving rule applied to newly created roads. 'RHT' leaves rule undefined (XSD default). */
+  defaultTrafficRule: OdrRoadRule;
 }
 
 export interface LaneEditHoverInfo {
@@ -185,6 +207,7 @@ const DEFAULT_ROAD_CREATION: RoadCreationState = {
   selectedPreset: '2-lane',
   cursorX: 0,
   cursorY: 0,
+  defaultTrafficRule: 'RHT',
 };
 
 interface OpenDriveSidebarState {
@@ -209,6 +232,7 @@ interface OpenDriveSidebarState {
   resetRoadCreation: () => void;
   setSelectedPreset: (name: string) => void;
   setRoadCreationCursor: (x: number, y: number) => void;
+  setDefaultTrafficRule: (rule: OdrRoadRule) => void;
 
   // Lane edit state
   laneEdit: LaneEditState;
@@ -266,8 +290,12 @@ export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
   setActiveTool: (tool) =>
     set((state) => ({
       activeTool: tool,
-      // Reset creation state when switching tools
-      roadCreation: tool !== 'road-create' ? DEFAULT_ROAD_CREATION : state.roadCreation,
+      // Reset creation state when switching tools, but keep the editor-level
+      // default traffic rule (it is a standing preference, not per-session state).
+      roadCreation:
+        tool !== 'road-create'
+          ? { ...DEFAULT_ROAD_CREATION, defaultTrafficRule: state.roadCreation.defaultTrafficRule }
+          : state.roadCreation,
       // Reset lane edit state when switching away from lane-edit
       laneEdit: tool !== 'lane-edit' ? DEFAULT_LANE_EDIT : state.laneEdit,
       // Reset junction create state when switching away
@@ -291,7 +319,11 @@ export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
     })),
   resetRoadCreation: () =>
     set((state) => ({
-      roadCreation: { ...DEFAULT_ROAD_CREATION, selectedPreset: state.roadCreation.selectedPreset },
+      roadCreation: {
+        ...DEFAULT_ROAD_CREATION,
+        selectedPreset: state.roadCreation.selectedPreset,
+        defaultTrafficRule: state.roadCreation.defaultTrafficRule,
+      },
     })),
   setSelectedPreset: (name) =>
     set((state) => ({
@@ -300,6 +332,10 @@ export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
   setRoadCreationCursor: (x, y) =>
     set((state) => ({
       roadCreation: { ...state.roadCreation, cursorX: x, cursorY: y },
+    })),
+  setDefaultTrafficRule: (rule) =>
+    set((state) => ({
+      roadCreation: { ...state.roadCreation, defaultTrafficRule: rule },
     })),
 
   // Lane edit state
@@ -442,6 +478,7 @@ export const useOdrSidebarStore = create<OpenDriveSidebarState>()((set) => ({
 
 const EMPTY_ROADS: OdrRoad[] = [];
 const EMPTY_JUNCTIONS: OdrJunction[] = [];
+const EMPTY_CONTROLLERS: OdrController[] = [];
 
 export function useOdrRoads(): OdrRoad[] {
   return useEditorStore(useShallow((s) => s.roadNetwork?.roads ?? EMPTY_ROADS));
@@ -449,6 +486,10 @@ export function useOdrRoads(): OdrRoad[] {
 
 export function useOdrJunctions(): OdrJunction[] {
   return useEditorStore(useShallow((s) => s.roadNetwork?.junctions ?? EMPTY_JUNCTIONS));
+}
+
+export function useOdrControllers(): OdrController[] {
+  return useEditorStore(useShallow((s) => s.roadNetwork?.controllers ?? EMPTY_CONTROLLERS));
 }
 
 export function useOdrSignals(): Array<OdrSignal & { roadId: string; roadName: string }> {
@@ -468,8 +509,82 @@ export function useOdrSignals(): Array<OdrSignal & { roadId: string; roadName: s
   }, [roads]);
 }
 
-export function useOdrDocument(): OpenDriveDocument | null {
-  return useEditorStore((s) => s.roadNetwork);
+/** Document-authored `<object>` entries (string ids), decorated with their owning road. */
+export type OdrRoadObjectWithRoad = OdrRoadObject & { roadId: string; roadName: string };
+
+/**
+ * All authored road objects across the document, decorated with roadId/roadName.
+ * These are document-authored objects (string ids) — unrelated to the
+ * simulator-generated runtime objects (id >= 9.0e8) shown/hidden via
+ * `showSimGeneratedObjects` in the simulation timeline.
+ */
+export function useOdrRoadObjects(): OdrRoadObjectWithRoad[] {
+  const roads = useOdrRoads();
+  return useMemo(() => {
+    const result: OdrRoadObjectWithRoad[] = [];
+    for (const road of roads) {
+      for (const obj of road.objects) {
+        result.push({
+          ...obj,
+          roadId: road.id,
+          roadName: road.name || `Road ${road.id}`,
+        });
+      }
+    }
+    return result;
+  }, [roads]);
+}
+
+/** A `<tunnel>` or `<bridge>` entry, normalized to a common shape for listing. */
+export interface OdrRoadStructureEntry {
+  kind: 'tunnel' | 'bridge';
+  id: string;
+  name?: string;
+  type: string;
+  s: number;
+  length: number;
+  roadId: string;
+  roadName: string;
+}
+
+/**
+ * All tunnels/bridges across the document, decorated with roadId/roadName.
+ * Display-only in the Objects panel (P3 scope has no 3D representation for
+ * these — see 1.9-P3 design notes D4).
+ */
+export function useOdrRoadStructures(): OdrRoadStructureEntry[] {
+  const roads = useOdrRoads();
+  return useMemo(() => {
+    const result: OdrRoadStructureEntry[] = [];
+    for (const road of roads) {
+      const roadName = road.name || `Road ${road.id}`;
+      for (const tunnel of road.tunnels ?? []) {
+        result.push({
+          kind: 'tunnel',
+          id: tunnel.id,
+          name: tunnel.name,
+          type: tunnel.type,
+          s: tunnel.s,
+          length: tunnel.length,
+          roadId: road.id,
+          roadName,
+        });
+      }
+      for (const bridge of road.bridges ?? []) {
+        result.push({
+          kind: 'bridge',
+          id: bridge.id,
+          name: bridge.name,
+          type: bridge.type,
+          s: bridge.s,
+          length: bridge.length,
+          roadId: road.id,
+          roadName,
+        });
+      }
+    }
+    return result;
+  }, [roads]);
 }
 
 export function countRoadLanes(road: OdrRoad): number {

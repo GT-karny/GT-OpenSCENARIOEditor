@@ -8,10 +8,18 @@ export { XodrParser } from './parser/xodr-parser.js';
 // Serializer
 export { XodrSerializer } from './serializer/xodr-serializer.js';
 
+// Version detection (OpenDRIVE 1.9 constructs)
+export { detectOdr19Constructs, willResolveToOdr19 } from './version/detect-odr19.js';
+
 // Geometry evaluation
 export { evaluateReferenceLineAtS, evaluateGeometry } from './geometry/reference-line.js';
 export { evaluateElevation, evaluateElevationGradient } from './geometry/elevation.js';
 export { evaluateSuperelevation } from './geometry/superelevation.js';
+export {
+  buildCrossSectionEvaluator,
+  getCrossSectionEvaluator,
+  crossSectionCriticalS,
+} from './geometry/cross-section-profile.js';
 export { evaluateLaneOffset } from './geometry/lane-offset.js';
 export {
   computeLaneBoundaries,
@@ -39,8 +47,9 @@ export {
   traceLaneLinkAcrossBoundary,
   junctionConnectionsFrom,
   exitOfConnectingRoad,
+  laneSpansAcrossSections,
 } from './route/road-linking.js';
-export type { RoadSide } from './route/road-linking.js';
+export type { RoadSide, LaneSectionSpan } from './route/road-linking.js';
 export { resolveRoute } from './route/route-resolver.js';
 export type { RouteSegment } from './route/route-resolver.js';
 
@@ -59,19 +68,28 @@ export { evaluateSpiral } from './geometry/spiral.js';
 export { evaluatePoly3 } from './geometry/poly3.js';
 export { evaluateParamPoly3 } from './geometry/param-poly3.js';
 
+// Road creation arc/line math
+export { computeAutoArc, computeGeometryEndpoint } from './geometry/arc-math.js';
+export type { AutoArcResult } from './geometry/arc-math.js';
+
 // Mesh generation
 export { generateRoadMesh } from './mesh/road-mesh-generator.js';
+export type { RoadMeshOptions } from './mesh/road-mesh-generator.js';
 export { buildLaneMesh } from './mesh/lane-mesh-builder.js';
 export { buildRoadMarkMesh } from './mesh/road-mark-mesh-builder.js';
-export {
-  generateSamplePoints,
-  generateUniformSamples,
-  generateCurvatureAdaptiveSamples,
-} from './mesh/sampling.js';
+export { generateSamplePoints, generateCurvatureAdaptiveSamples } from './mesh/sampling.js';
 export { buildJunctionSurfaceMesh } from './mesh/junction-surface-builder.js';
 
 // Utilities
 export { convertGeometryType } from './utils/convert-geometry-type.js';
+export {
+  normalizeAngle,
+  evalCubic,
+  ensureArray,
+  findRecordAtS,
+  findLaneSectionAtS,
+  findLaneSectionIndexAtS,
+} from './utils/math.js';
 
 // Types
 export type { Vec3, Pose2D } from './geometry/types.js';

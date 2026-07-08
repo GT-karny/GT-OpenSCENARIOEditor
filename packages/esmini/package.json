@@ -9,12 +9,12 @@
     ".": { "import": "./dist/index.js", "types": "./dist/index.d.ts" }
   },
   "scripts": {
-    "build": "tsc --project tsconfig.json && node -e \"const fs=require('fs');fs.cpSync('src/generated','dist/generated',{recursive:true})\"",
+    "build": "tsc --project tsconfig.json && node -e \"const fs=require('fs');const src='src/generated',dst='dist/generated';fs.mkdirSync(dst,{recursive:true});for(const f of fs.readdirSync(src)){if(f!=='osi.js')fs.copyFileSync(src+'/'+f,dst+'/'+f)}\"",
     "dev": "tsc --project tsconfig.json --watch",
     "test": "vitest run",
     "test:watch": "vitest",
     "proto:version": "node scripts/generate-version-proto.mjs",
-    "proto:gen": "pnpm proto:version && pbjs -t static-module -w es6 --es6 -o src/generated/osi.js -p ../../Thirdparty/open-simulation-interface -p proto proto/gt_sim_service.proto && pbts -o src/generated/osi.d.ts src/generated/osi.js"
+    "proto:gen": "pnpm proto:version && pbjs -t static-module -w es6 --es6 -o src/generated/osi.js -p ../../Thirdparty/open-simulation-interface -p proto proto/service_groundtruth.proto && pbts -o src/generated/osi.d.ts src/generated/osi.js"
   },
   "dependencies": {
     "@osce/shared": "workspace:*",

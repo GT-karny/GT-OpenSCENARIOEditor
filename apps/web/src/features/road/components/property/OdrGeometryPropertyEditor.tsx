@@ -1,0 +1,344 @@
+import type {
+  OdrGeometry,
+  OdrGeometryUpdate,
+  OdrGeometryArc,
+  OdrGeometrySpiral,
+  OdrGeometryPoly3,
+  OdrGeometryParamPoly3,
+} from '@osce/shared';
+import { convertGeometryType } from '@osce/opendrive';
+import { useTranslation } from '@osce/i18n';
+import { Trash2 } from 'lucide-react';
+import { Input } from '../../../../components/ui/input';
+import { Label } from '../../../../components/ui/label';
+import { Badge } from '../../../../components/ui/badge';
+import { Button } from '../../../../components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../components/ui/select';
+
+interface OdrGeometryPropertyEditorProps {
+  geometry: OdrGeometry;
+  index: number;
+  onUpdate: (updates: OdrGeometryUpdate) => void;
+  /** Remove this segment from the road's planView. */
+  onRemove?: () => void;
+  /** False when this is the road's only segment (a road needs ≥1). */
+  canRemove?: boolean;
+}
+
+const CONVERTIBLE_TYPES = ['line', 'arc', 'spiral'] as const;
+type ConvertibleType = (typeof CONVERTIBLE_TYPES)[number];
+
+function isConvertible(type: string): type is ConvertibleType {
+  return (CONVERTIBLE_TYPES as readonly string[]).includes(type);
+}
+
+export function OdrGeometryPropertyEditor({
+  geometry,
+  index,
+  onUpdate,
+  onRemove,
+  canRemove = true,
+}: OdrGeometryPropertyEditorProps) {
+  const { t } = useTranslation('common');
+
+  const handleTypeChange = (newType: string) => {
+    if (!isConvertible(newType) || newType === geometry.type) return;
+    const converted = convertGeometryType(geometry, newType);
+    onUpdate(converted);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Section: Geometry Segment Header */}
+      <div className="pb-3 border-b border-[var(--color-glass-edge)]">
+        <div className="flex items-center gap-2 mb-3">
+          <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider">
+            {t('odrProperty.geometry.title', { index })}
+          </h3>
+          {isConvertible(geometry.type) ? (
+            <Select value={geometry.type} onValueChange={handleTypeChange}>
+              <SelectTrigger className="h-6 w-24 text-[10px] rounded-none bg-[var(--color-glass-1)] border-[var(--color-glass-edge)] hover:bg-[var(--color-glass-hover)]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-none">
+                {CONVERTIBLE_TYPES.map((t) => (
+                  <SelectItem key={t} value={t} className="text-xs rounded-none">
+                    {t}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Badge variant="secondary" className="text-[10px] py-0">
+              {geometry.type}
+            </Badge>
+          )}
+          {onRemove && (
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={!canRemove}
+              aria-label={t('odrProperty.geometry.deleteSegment')}
+              title={
+                canRemove
+                  ? t('odrProperty.geometry.deleteSegment')
+                  : t('odrProperty.geometry.deleteSegmentDisabled')
+              }
+              className="h-6 w-6 ml-auto shrink-0 text-red-400 disabled:opacity-40"
+              onClick={onRemove}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+
+        {/* Common Fields */}
+        <div className="space-y-2">
+          <div className="grid gap-1">
+            <Label className="text-[var(--color-text-secondary)] text-xs">s (station)</Label>
+            <Input
+              type="number"
+              value={geometry.s}
+              readOnly
+              className="h-7 text-xs bg-[var(--color-glass-1)] opacity-60"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="grid gap-1">
+              <Label className="text-[var(--color-text-secondary)] text-xs">X</Label>
+              <Input
+                type="number"
+                value={geometry.x}
+                onChange={(e) => onUpdate({ x: Number(e.target.value) })}
+                className="h-7 text-xs"
+              />
+            </div>
+            <div className="grid gap-1">
+              <Label className="text-[var(--color-text-secondary)] text-xs">Y</Label>
+              <Input
+                type="number"
+                value={geometry.y}
+                onChange={(e) => onUpdate({ y: Number(e.target.value) })}
+                className="h-7 text-xs"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="grid gap-1">
+              <Label className="text-[var(--color-text-secondary)] text-xs">
+                {t('odrProperty.geometry.heading')}
+              </Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={geometry.hdg}
+                onChange={(e) => onUpdate({ hdg: Number(e.target.value) })}
+                className="h-7 text-xs"
+              />
+            </div>
+            <div className="grid gap-1">
+              <Label className="text-[var(--color-text-secondary)] text-xs">
+                {t('odrProperty.geometry.length')}
+              </Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={geometry.length}
+                onChange={(e) => onUpdate({ length: Number(e.target.value) })}
+                className="h-7 text-xs"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Type-specific fields */}
+      {geometry.type === 'arc' && (
+        <ArcFields geometry={geometry} onUpdate={onUpdate} />
+      )}
+      {geometry.type === 'spiral' && (
+        <SpiralFields geometry={geometry} onUpdate={onUpdate} />
+      )}
+      {geometry.type === 'poly3' && (
+        <Poly3Fields geometry={geometry} onUpdate={onUpdate} />
+      )}
+      {geometry.type === 'paramPoly3' && (
+        <ParamPoly3Fields geometry={geometry} onUpdate={onUpdate} />
+      )}
+    </div>
+  );
+}
+
+function ArcFields({
+  geometry,
+  onUpdate,
+}: {
+  geometry: OdrGeometryArc;
+  onUpdate: (updates: OdrGeometryUpdate) => void;
+}) {
+  const { t } = useTranslation('common');
+  return (
+    <div className="pb-3 border-b border-[var(--color-glass-edge)]">
+      <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
+        {t('odrProperty.geometry.arcParams')}
+      </h3>
+      <div className="grid gap-1">
+        <Label className="text-[var(--color-text-secondary)] text-xs">
+          {t('odrProperty.geometry.curvature')}
+        </Label>
+        <Input
+          type="number"
+          step="0.001"
+          value={geometry.curvature}
+          onChange={(e) => onUpdate({ curvature: Number(e.target.value) })}
+          className="h-7 text-xs"
+        />
+      </div>
+    </div>
+  );
+}
+
+function SpiralFields({
+  geometry,
+  onUpdate,
+}: {
+  geometry: OdrGeometrySpiral;
+  onUpdate: (updates: OdrGeometryUpdate) => void;
+}) {
+  const { t } = useTranslation('common');
+  return (
+    <div className="pb-3 border-b border-[var(--color-glass-edge)]">
+      <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
+        {t('odrProperty.geometry.spiralParams')}
+      </h3>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="grid gap-1">
+          <Label className="text-[var(--color-text-secondary)] text-xs">
+            {t('odrProperty.geometry.curvStart')}
+          </Label>
+          <Input
+            type="number"
+            step="0.001"
+            value={geometry.curvStart}
+            onChange={(e) => onUpdate({ curvStart: Number(e.target.value) })}
+            className="h-7 text-xs"
+          />
+        </div>
+        <div className="grid gap-1">
+          <Label className="text-[var(--color-text-secondary)] text-xs">
+            {t('odrProperty.geometry.curvEnd')}
+          </Label>
+          <Input
+            type="number"
+            step="0.001"
+            value={geometry.curvEnd}
+            onChange={(e) => onUpdate({ curvEnd: Number(e.target.value) })}
+            className="h-7 text-xs"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Poly3Fields({
+  geometry,
+  onUpdate,
+}: {
+  geometry: OdrGeometryPoly3;
+  onUpdate: (updates: OdrGeometryUpdate) => void;
+}) {
+  const { t } = useTranslation('common');
+  return (
+    <div className="pb-3 border-b border-[var(--color-glass-edge)]">
+      <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
+        {t('odrProperty.geometry.poly3Coeffs')}
+      </h3>
+      <div className="grid grid-cols-2 gap-2">
+        {(['a', 'b', 'c', 'd'] as const).map((coeff) => (
+          <div key={coeff} className="grid gap-1">
+            <Label className="text-[var(--color-text-secondary)] text-xs">{coeff}</Label>
+            <Input
+              type="number"
+              value={geometry[coeff]}
+              onChange={(e) => onUpdate({ [coeff]: Number(e.target.value) })}
+              className="h-7 text-xs"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ParamPoly3Fields({
+  geometry,
+  onUpdate,
+}: {
+  geometry: OdrGeometryParamPoly3;
+  onUpdate: (updates: OdrGeometryUpdate) => void;
+}) {
+  const { t } = useTranslation('common');
+  return (
+    <div className="space-y-4">
+      <div className="pb-3 border-b border-[var(--color-glass-edge)]">
+        <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
+          {t('odrProperty.geometry.paramPoly3UCoeffs')}
+        </h3>
+        <div className="grid grid-cols-2 gap-2">
+          {(['aU', 'bU', 'cU', 'dU'] as const).map((coeff) => (
+            <div key={coeff} className="grid gap-1">
+              <Label className="text-[var(--color-text-secondary)] text-xs">{coeff}</Label>
+              <Input
+                type="number"
+                value={geometry[coeff]}
+                onChange={(e) => onUpdate({ [coeff]: Number(e.target.value) })}
+                className="h-7 text-xs"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="pb-3 border-b border-[var(--color-glass-edge)]">
+        <h3 className="text-[var(--color-text-secondary)] text-xs font-display uppercase tracking-wider mb-3">
+          {t('odrProperty.geometry.paramPoly3VCoeffs')}
+        </h3>
+        <div className="grid grid-cols-2 gap-2">
+          {(['aV', 'bV', 'cV', 'dV'] as const).map((coeff) => (
+            <div key={coeff} className="grid gap-1">
+              <Label className="text-[var(--color-text-secondary)] text-xs">{coeff}</Label>
+              <Input
+                type="number"
+                value={geometry[coeff]}
+                onChange={(e) => onUpdate({ [coeff]: Number(e.target.value) })}
+                className="h-7 text-xs"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="pb-3 border-b border-[var(--color-glass-edge)]">
+        <div className="grid gap-1">
+          <Label className="text-[var(--color-text-secondary)] text-xs">pRange</Label>
+          <Select
+            value={geometry.pRange}
+            onValueChange={(v) => onUpdate({ pRange: v as OdrGeometryParamPoly3['pRange'] })}
+          >
+            <SelectTrigger className="h-7 text-xs rounded-none bg-[var(--color-glass-1)] border-[var(--color-glass-edge)] hover:bg-[var(--color-glass-hover)]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-none">
+              {(['arcLength', 'normalized'] as const).map((opt) => (
+                <SelectItem key={opt} value={opt} className="text-xs rounded-none">
+                  {opt}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -10,16 +10,29 @@ import type { OpenDriveDocument } from '@osce/shared';
 import { WaypointMarker } from './WaypointMarker.js';
 import { WaypointGizmo } from './WaypointGizmo.js';
 import { RouteConnectionLine } from './RouteConnectionLine.js';
+import { LaneChangeMarker } from './LaneChangeMarker.js';
+import type { OrbitControlsLike } from '../store/viewer-types.js';
+
+/** A lane change required along a lane-change-aware route, in road (x/y/z) space. */
+export interface RouteLaneChangeMarker {
+  x: number;
+  y: number;
+  z: number;
+  fromLane: number;
+  toLane: number;
+}
 
 export interface RouteOverlayProps {
   waypoints: Array<{ x: number; y: number; z: number; h: number }>;
   pathSegments: Array<Array<{ x: number; y: number; z: number; h?: number }>>;
+  /** Lane-change markers (lane-change-aware mode). */
+  laneChangeMarkers?: RouteLaneChangeMarker[];
   selectedWaypointIndex: number | null;
   onWaypointClick?: (index: number) => void;
   onWaypointContextMenu?: (index: number, event: ThreeEvent<MouseEvent>) => void;
   onLineClick?: (segmentIndex: number, event: ThreeEvent<MouseEvent>) => void;
   openDriveDocument?: OpenDriveDocument | null;
-  orbitControlsRef?: React.RefObject<any>;
+  orbitControlsRef?: React.RefObject<OrbitControlsLike | null>;
   onWaypointDragEnd?: (
     index: number,
     worldX: number,
@@ -37,6 +50,7 @@ export const RouteOverlay: React.FC<RouteOverlayProps> = React.memo(
   ({
     waypoints,
     pathSegments,
+    laneChangeMarkers,
     selectedWaypointIndex,
     onWaypointClick,
     onWaypointContextMenu,
@@ -57,6 +71,16 @@ export const RouteOverlay: React.FC<RouteOverlayProps> = React.memo(
             points={segment}
             segmentIndex={idx}
             onClick={onLineClick ? (e) => onLineClick(idx, e) : undefined}
+          />
+        ))}
+
+        {/* Lane-change markers (lane-change-aware mode) */}
+        {laneChangeMarkers?.map((lc, idx) => (
+          <LaneChangeMarker
+            key={`route-lc-${idx}`}
+            position={[lc.x, lc.y, lc.z]}
+            fromLane={lc.fromLane}
+            toLane={lc.toLane}
           />
         ))}
 

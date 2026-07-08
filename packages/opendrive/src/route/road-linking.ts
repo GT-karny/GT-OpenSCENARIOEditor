@@ -15,6 +15,7 @@ import type {
   OdrJunction,
   OdrJunctionConnection,
   OdrLane,
+  OdrLaneSection,
 } from '@osce/shared';
 
 export type RoadSide = 'predecessor' | 'successor';
@@ -115,8 +116,9 @@ export function traceLaneLinkAcrossBoundary(
   if (!next) return null;
   const lane = findLaneOnSide(road, laneId, leavingSide);
   if (!lane?.link) return null;
+  // Follow the first linked lane (a road-to-road hop walks one continuous lane).
   const linkedId =
-    leavingSide === 'predecessor' ? lane.link.predecessorId : lane.link.successorId;
+    leavingSide === 'predecessor' ? lane.link.predecessors[0]?.id : lane.link.successors[0]?.id;
   if (linkedId === undefined) return null;
   return {
     roadId: next.road.id,
@@ -160,7 +162,7 @@ export function junctionConnectionsFrom(
     // contactPoint = which end of connectingRoad touches the incoming road.
     // Exit side of connectingRoad is the opposite end.
     const incomingOnCrSide: RoadSide =
-      conn.contactPoint === 'start' ? 'predecessor' : 'successor';
+      (conn.contactPoint ?? 'start') === 'start' ? 'predecessor' : 'successor';
     const exitSide: RoadSide =
       incomingOnCrSide === 'predecessor' ? 'successor' : 'predecessor';
     const exitLink = roadLinkOn(cr, exitSide);
@@ -196,4 +198,94 @@ export function exitOfConnectingRoad(
     arrivalSide,
     arrivalS: contactEndS(exitRoad, arrivalSide),
   };
+}
+
+/** Find a lane by ID within a single lane section. */
+function laneInSection(section: OdrLaneSection, laneId: number): OdrLane | null {
+  if (laneId === 0) return section.centerLane;
+  if (laneId > 0) return section.leftLanes.find((l) => l.id === laneId) ?? null;
+  return section.rightLanes.find((l) => l.id === laneId) ?? null;
+}
+
+/** A continuous-lane sub-span within a single lane section. */
+export interface LaneSectionSpan {
+  laneId: number;
+  sStart: number;
+  sEnd: number;
+}
+
+/**
+ * Split `[sMin, sMax]` into per-lane-section sub-spans, remapping the lane ID
+ * across each internal lane-section boundary via `<lane><link>` so the
+ * physically continuous lane is tracked even when lane IDs shift mid-road
+ * (e.g. a lane is added or dropped at an internal section boundary).
+ *
+ * This is link-based and spec-faithful: it trusts the xodr's
+ * `predecessor`/`successor` lane links. A file whose links disagree with its
+ * geometry will route accordingly (garbage-in/garbage-out) — the fix belongs in
+ * the authoring side, not here.
+ *
+ * `anchor` says which end the input `laneId` is valid at:
+ * - `'low'`  : `laneId` belongs to the section at `sMin`; remap downstream via
+ *   each lane's first `successors` entry.
+ * - `'high'` : `laneId` belongs to the section at `sMax`; remap upstream via
+ *   each lane's first `predecessors` entry.
+ *
+ * Falls back to the same ID when the link is missing. Center lane (id 0) always
+ * stays 0. Returns sub-spans in increasing-s order. A road with a single lane
+ * section (or no boundary crossed) yields one span with the unchanged ID.
+ */
+export function laneSpansAcrossSections(
+  road: OdrRoad,
+  laneId: number,
+  sMin: number,
+  sMax: number,
+  anchor: 'low' | 'high',
+): LaneSectionSpan[] {
+  const sections = road.lanes;
+  if (sections.length === 0) {
+    return [{ laneId, sStart: sMin, sEnd: sMax }];
+  }
+
+  // Section bounds in increasing s.
+  const bounds = sections.map((section, i) => ({
+    section,
+    start: section.s,
+    end: i + 1 < sections.length ? sections[i + 1].s : road.length,
+  }));
+
+  // Sections overlapping [sMin, sMax] (strict bounds avoid zero-width spans at
+  // an exact boundary).
+  const overlapping = bounds.filter((b) => b.end > sMin && b.start < sMax);
+  if (overlapping.length === 0) {
+    return [{ laneId, sStart: sMin, sEnd: sMax }];
+  }
+
+  const spans: LaneSectionSpan[] = overlapping.map((b) => ({
+    laneId,
+    sStart: Math.max(sMin, b.start),
+    sEnd: Math.min(sMax, b.end),
+  }));
+
+  if (anchor === 'low') {
+    let cur = laneId;
+    for (let i = 0; i < overlapping.length; i++) {
+      spans[i].laneId = cur;
+      if (i + 1 < overlapping.length && cur !== 0) {
+        const next = laneInSection(overlapping[i].section, cur)?.link?.successors[0]?.id;
+        if (next !== undefined) cur = next;
+      }
+    }
+  } else {
+    let cur = laneId;
+    for (let i = overlapping.length - 1; i >= 0; i--) {
+      spans[i].laneId = cur;
+      if (i - 1 >= 0 && cur !== 0) {
+        const prev = laneInSection(overlapping[i].section, cur)?.link?.predecessors[0]?.id;
+        if (prev !== undefined) cur = prev;
+      }
+    }
+  }
+
+  return spans;
 }

@@ -9,12 +9,16 @@ import type {
   OdrGeometry,
   OdrElevation,
   OdrSuperelevation,
+  OdrCrossSectionSurface,
+  OdrCrossSectionStrip,
 } from '@osce/shared';
-import { fmtNum, optAttr, numAttr } from './format-utils.js';
+import { fmtNum, fmtSpeedMax, optAttr, numAttr } from './format-utils.js';
 import { buildLanes } from './build-lane.js';
 import { buildObject, buildObjectReference, buildTunnel, buildBridge } from './build-object.js';
 import { buildSignal, buildSignalRef } from './build-signal.js';
 import { buildRailroad } from './build-railroad.js';
+import { appendAdditionalData } from './build-common.js';
+import { applyExtra } from './apply-extra.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type XmlNode = Record<string, any>;
@@ -56,7 +60,8 @@ export function buildRoad(road: OdrRoad): XmlNode {
   // lateralProfile (superelevation + shapes)
   const hasSuperelev = road.lateralProfile.length > 0;
   const hasShapes = road.shapes && road.shapes.length > 0;
-  if (hasSuperelev || hasShapes) {
+  const hasCss = road.crossSectionSurface !== undefined;
+  if (hasSuperelev || hasShapes || hasCss || road.lateralProfileExtra) {
     const lpNode: XmlNode = {};
     if (hasSuperelev) lpNode.superelevation = road.lateralProfile.map(buildSuperelevation);
     if (hasShapes) {
@@ -71,13 +76,30 @@ export function buildRoad(road: OdrRoad): XmlNode {
         return sn;
       });
     }
-    node.lateralProfile = lpNode;
+    // crossSectionSurface after superelevation/shape (XSD sequence order).
+    if (hasCss) lpNode.crossSectionSurface = buildCrossSectionSurface(road.crossSectionSurface!);
+    // Re-emit any remaining passthrough children after the known ones.
+    node.lateralProfile = applyExtra(lpNode, road.lateralProfileExtra);
   } else {
     node.lateralProfile = '';
   }
 
   // lanes
-  node.lanes = buildLanes(road.laneOffset, road.lanes);
+  // OpenDRIVE 1.9 allows up to two <lanes> elements (permanent + temporary).
+  // When a temporary layer is present, emit both — each tagged with its @layer;
+  // both are built through the same typed lane model. Single-layer roads keep
+  // the exact previous shape (no @layer attribute) so output stays byte-identical.
+  const permanentLanes = buildLanes(road.laneOffset, road.lanes);
+  if (road.temporaryLanes !== undefined) {
+    const temp = road.temporaryLanes;
+    const temporaryLanes = applyExtra(
+      { '@_layer': 'temporary', ...buildLanes(temp.laneOffset, temp.sections) },
+      temp.extra,
+    );
+    node.lanes = [{ '@_layer': 'permanent', ...permanentLanes }, temporaryLanes];
+  } else {
+    node.lanes = permanentLanes;
+  }
 
   // objects (includes objectReference, tunnel, bridge)
   const hasObjects = road.objects.length > 0;
@@ -146,7 +168,15 @@ export function buildRoad(road: OdrRoad): XmlNode {
     node.railroad = buildRailroad(road.railroad);
   }
 
-  return node;
+  // g_additionalData (lossless round-trip): dataQuality → include → userData
+  appendAdditionalData(node, {
+    dataQuality: road.dataQuality,
+    includes: road.includes,
+    userData: road.userData,
+  });
+
+  // Re-emit any unmodeled direct children/attrs (e.g. a bare <surface/>).
+  return applyExtra(node, road.extra);
 }
 
 function buildRoadLink(link: OdrRoadLink | undefined): XmlNode | string {
@@ -181,11 +211,11 @@ function buildRoadType(entry: OdrRoadTypeEntry): XmlNode {
   };
   if (entry.speed) {
     node.speed = {
-      '@_max': fmtNum(entry.speed.max),
+      '@_max': fmtSpeedMax(entry.speed.max),
       '@_unit': entry.speed.unit,
     };
   }
-  return node;
+  return applyExtra(node, entry.extra);
 }
 
 function buildGeometry(geom: OdrGeometry): XmlNode {
@@ -202,33 +232,33 @@ function buildGeometry(geom: OdrGeometry): XmlNode {
       node.line = '';
       break;
     case 'arc':
-      node.arc = { '@_curvature': fmtNum(geom.curvature ?? 0) };
+      node.arc = { '@_curvature': fmtNum(geom.curvature) };
       break;
     case 'spiral':
       node.spiral = {
-        '@_curvStart': fmtNum(geom.curvStart ?? 0),
-        '@_curvEnd': fmtNum(geom.curvEnd ?? 0),
+        '@_curvStart': fmtNum(geom.curvStart),
+        '@_curvEnd': fmtNum(geom.curvEnd),
       };
       break;
     case 'poly3':
       node.poly3 = {
-        '@_a': fmtNum(geom.a ?? 0),
-        '@_b': fmtNum(geom.b ?? 0),
-        '@_c': fmtNum(geom.c ?? 0),
-        '@_d': fmtNum(geom.d ?? 0),
+        '@_a': fmtNum(geom.a),
+        '@_b': fmtNum(geom.b),
+        '@_c': fmtNum(geom.c),
+        '@_d': fmtNum(geom.d),
       };
       break;
     case 'paramPoly3':
       node.paramPoly3 = {
-        '@_aU': fmtNum(geom.aU ?? 0),
-        '@_bU': fmtNum(geom.bU ?? 0),
-        '@_cU': fmtNum(geom.cU ?? 0),
-        '@_dU': fmtNum(geom.dU ?? 0),
-        '@_aV': fmtNum(geom.aV ?? 0),
-        '@_bV': fmtNum(geom.bV ?? 0),
-        '@_cV': fmtNum(geom.cV ?? 0),
-        '@_dV': fmtNum(geom.dV ?? 0),
-        '@_pRange': geom.pRange ?? 'arcLength',
+        '@_aU': fmtNum(geom.aU),
+        '@_bU': fmtNum(geom.bU),
+        '@_cU': fmtNum(geom.cU),
+        '@_dU': fmtNum(geom.dU),
+        '@_aV': fmtNum(geom.aV),
+        '@_bV': fmtNum(geom.bV),
+        '@_cV': fmtNum(geom.cV),
+        '@_dV': fmtNum(geom.dV),
+        '@_pRange': geom.pRange,
       };
       break;
   }
@@ -254,4 +284,19 @@ function buildSuperelevation(se: OdrSuperelevation): XmlNode {
   numAttr(node, '@_c', se.c);
   numAttr(node, '@_d', se.d);
   return node;
+}
+
+function buildCrossSectionSurface(css: OdrCrossSectionSurface): XmlNode {
+  const node: XmlNode = {};
+  // <tOffset> first (XSD order), then <surfaceStrips>.
+  if (css.tOffset) node.tOffset = applyExtra({}, css.tOffset);
+  node.surfaceStrips = { strip: css.strips.map(buildCrossSectionStrip) };
+  return applyExtra(node, css.extra);
+}
+
+function buildCrossSectionStrip(strip: OdrCrossSectionStrip): XmlNode {
+  const node: XmlNode = {};
+  optAttr(node, '@_id', strip.id);
+  optAttr(node, '@_mode', strip.mode);
+  return applyExtra(node, strip.extra);
 }

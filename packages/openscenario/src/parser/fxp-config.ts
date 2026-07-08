@@ -20,12 +20,13 @@ const ARRAY_ELEMENTS = new Set([
   'SpeedProfileEntry',
   'Knot',
   'ControlPoint',
+  'ClothoidSplineSegment',
   'TrafficSignalController',
   'TrafficSignalPhase',
   'TrafficSignalState',
   'AdditionalAxle',
   'Waypoint',
-  'LaneRange',
+  'RelativeLaneRange',
 ]);
 
 export function createXoscXmlParser(): XMLParser {

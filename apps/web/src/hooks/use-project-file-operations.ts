@@ -6,29 +6,21 @@ import { useTranslation } from '@osce/i18n';
 import { toast } from 'sonner';
 import { useScenarioStoreApi } from '../stores/use-scenario-store';
 import { useEditorStore } from '../stores/editor-store';
+import { useDocumentRegistry } from '../stores/document-registry';
 import { useProjectStore } from '../stores/project-store';
 import { useCatalogStore } from '../stores/catalog-store';
-import { buildCatalogLocationsFromProject } from '../lib/catalog-location-utils';
+import {
+  buildCatalogLocationsFromProject,
+  normalizeRelativePath,
+} from '../lib/catalog-location-utils';
 import { editorMetadataStoreApi } from '../stores/editor-metadata-store-instance';
 import { useAppLifecycle } from './use-app-lifecycle';
+import { useFileOperations } from './use-file-operations';
+import { useCatalogOperations } from './use-catalog-operations';
+import { runUnsavedGuard } from './use-discard-guard';
+import { getOpenDriveStoreApi } from './use-opendrive-store';
 import * as api from '../lib/project-api';
 import { resolveCatalogEntityTypes } from '../lib/resolve-catalog-entity-types';
-
-/**
- * Normalize a relative path by resolving `..` segments and converting backslashes.
- */
-function normalizePath(path: string): string {
-  const parts = path.replace(/\\/g, '/').split('/');
-  const resolved: string[] = [];
-  for (const part of parts) {
-    if (part === '..') {
-      resolved.pop();
-    } else if (part !== '.' && part !== '') {
-      resolved.push(part);
-    }
-  }
-  return resolved.join('/');
-}
 
 /** Check if a file path is inside a catalogs directory */
 function isCatalogPath(path: string): boolean {
@@ -68,17 +60,41 @@ export function useProjectFileOperations() {
   const { t } = useTranslation('common');
   const scenarioStoreApi = useScenarioStoreApi();
   const { resetForNewFile, resetForNewRoadNetwork } = useAppLifecycle();
+  const { saveXosc, saveXodr, saveDistribution } = useFileOperations();
+  const { saveAllDirtyCatalogs } = useCatalogOperations();
+
+  // Gate a user-initiated project open behind the shared unsaved-changes guard,
+  // saving via the current save flows on "Save". Chained loads (e.g. a scenario's
+  // auto-loaded xodr) are part of the same user action and must not re-prompt.
+  const guardOpen = useCallback(
+    () =>
+      runUnsavedGuard({
+        saveXosc,
+        saveXodr,
+        saveCatalogs: saveAllDirtyCatalogs,
+        saveDistribution,
+      }),
+    [saveXosc, saveXodr, saveAllDirtyCatalogs, saveDistribution],
+  );
 
   const openXodrFromProject = useCallback(
-    async (relativePath: string) => {
+    async (relativePath: string, options?: { skipGuard?: boolean }) => {
       const project = useProjectStore.getState().currentProject;
       if (!project) return;
+      if (!options?.skipGuard && !(await guardOpen())) return;
       try {
         const content = await api.readProjectFile(project.meta.id, relativePath);
         const parser = new XodrParser();
         const doc = parser.parse(content);
         resetForNewRoadNetwork();
-        useEditorStore.getState().setRoadNetwork(doc, content);
+        useEditorStore.getState().setRoadNetwork(doc);
+        // Provisional stamp: the odr history has not moved yet, so tagging the
+        // verbatim text with the current revision keeps it on the lossless
+        // simulation path until road-mode entry re-stamps after auto-correction.
+        useEditorStore.getState().setRoadNetworkRawXml({
+          text: content,
+          validForRevision: getOpenDriveStoreApi().getState().getCommandHistory().getRevision(),
+        });
         useProjectStore.setState({ currentXodrPath: relativePath });
         // Reconstruct signal assemblies from signal→object references
         const assemblies = buildAssembliesFromDocument(doc);
@@ -93,7 +109,7 @@ export function useProjectFileOperations() {
         toast.warning(t('warnings.xodrLoadFailed', { path: relativePath }));
       }
     },
-    [resetForNewRoadNetwork, t],
+    [guardOpen, resetForNewRoadNetwork, t],
   );
 
   const autoLoadXodr = useCallback(
@@ -103,7 +119,8 @@ export function useProjectFileOperations() {
 
       // Skip empty references
       if (!xodrRef.trim()) {
-        useEditorStore.getState().setRoadNetwork(null, null);
+        useEditorStore.getState().setRoadNetwork(null);
+        useEditorStore.getState().setRoadNetworkRawXml(null);
         useProjectStore.setState({ currentXodrPath: null });
         return;
       }
@@ -116,11 +133,11 @@ export function useProjectFileOperations() {
       const basename = xodrRef.split('/').pop() ?? xodrRef;
       const candidates = [
         // 1. Relative to xosc file directory
-        normalizePath(xoscDir ? `${xoscDir}/${xodrRef}` : xodrRef),
+        normalizeRelativePath(xoscDir ? `${xoscDir}/${xodrRef}` : xodrRef),
         // 2. Relative to project root
-        normalizePath(xodrRef),
+        normalizeRelativePath(xodrRef),
         // 3. Strip leading ../ and try
-        normalizePath(xodrRef.replace(/^(\.\.\/)+/, '')),
+        normalizeRelativePath(xodrRef.replace(/^(\.\.\/)+/, '')),
         // 4. Look in xodr/ folder by filename
         `xodr/${basename}`,
       ];
@@ -142,7 +159,13 @@ export function useProjectFileOperations() {
             const content = await api.readProjectFile(project.meta.id, candidate);
             const parser = new XodrParser();
             const doc = parser.parse(content);
-            useEditorStore.getState().setRoadNetwork(doc, content);
+            useEditorStore.getState().setRoadNetwork(doc);
+            // Provisional stamp (see openXodrFromProject): keeps the verbatim text
+            // on the lossless simulation path until road-mode entry re-stamps.
+            useEditorStore.getState().setRoadNetworkRawXml({
+              text: content,
+              validForRevision: getOpenDriveStoreApi().getState().getCommandHistory().getRevision(),
+            });
             useProjectStore.setState({ currentXodrPath: candidate });
             // Reconstruct signal assemblies from signal→object references
             const assemblies = buildAssembliesFromDocument(doc);
@@ -163,16 +186,18 @@ export function useProjectFileOperations() {
 
       // Not found
       toast.warning(t('warnings.xodrNotFound', { path: xodrRef }));
-      useEditorStore.getState().setRoadNetwork(null, null);
+      useEditorStore.getState().setRoadNetwork(null);
+      useEditorStore.getState().setRoadNetworkRawXml(null);
       useProjectStore.setState({ currentXodrPath: null });
     },
     [t],
   );
 
   const openXoscFromProject = useCallback(
-    async (relativePath: string) => {
+    async (relativePath: string, options?: { skipGuard?: boolean }) => {
       const project = useProjectStore.getState().currentProject;
       if (!project) return;
+      if (!options?.skipGuard && !(await guardOpen())) return;
       try {
         resetForNewFile();
         const content = await api.readProjectFile(project.meta.id, relativePath);
@@ -201,7 +226,8 @@ export function useProjectFileOperations() {
         // Update editor state
         const filename = relativePath.split('/').pop() ?? relativePath;
         useEditorStore.getState().setCurrentFileName(filename);
-        useEditorStore.getState().setDirty(false);
+        // Loaded document = clean baseline (createScenario cleared history).
+        useDocumentRegistry.getState().markLoaded('scenario');
         useEditorStore.getState().setValidationResult(null);
 
         // Update project store
@@ -212,14 +238,17 @@ export function useProjectFileOperations() {
         if (xodrPath) {
           await autoLoadXodr(xodrPath, relativePath);
         } else {
-          useEditorStore.getState().setRoadNetwork(null, null);
+          useEditorStore.getState().setRoadNetwork(null);
+          useEditorStore.getState().setRoadNetworkRawXml(null);
           useProjectStore.setState({ currentXodrPath: null });
         }
       } catch (err) {
-        toast.error(`Failed to open scenario: ${relativePath}`);
+        const message = err instanceof Error ? err.message : String(err);
+        console.error('Open scenario failed:', err);
+        toast.error(t('fileErrors.openXoscFailed', { message }));
       }
     },
-    [resetForNewFile, scenarioStoreApi, autoLoadXodr],
+    [guardOpen, resetForNewFile, scenarioStoreApi, autoLoadXodr, t],
   );
 
   const openCatalogFromProject = useCallback(

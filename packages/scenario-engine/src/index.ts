@@ -27,41 +27,41 @@ export {
   createInitPrivateAction,
 } from './store/defaults.js';
 
-// Command History
-export { CommandHistory } from './commands/command-history.js';
+// Canonical default entity definitions (single source of truth)
+export {
+  VEHICLE_DEFAULTS,
+  DEFAULT_AXLES,
+  DEFAULT_PEDESTRIAN_MODEL,
+  createDefaultVehicleDefinition,
+  createDefaultPedestrianDefinition,
+  createDefaultMiscObjectDefinition,
+} from './store/entity-defaults.js';
+
+// Command infrastructure (single source for undo/redo; opendrive-engine re-exports)
 export { BaseCommand } from './commands/base-command.js';
-
-// Update Commands
-export {
-  UpdateStoryCommand,
-  UpdateActCommand,
-  UpdateManeuverGroupCommand,
-  UpdateManeuverCommand,
-  UpdateEventCommand,
-  UpdateActionCommand,
-  UpdateConditionCommand,
-} from './commands/update-commands.js';
-
-// Scenario-level Commands
-export {
-  UpdateFileHeaderCommand,
-  UpdateRoadNetworkCommand,
-  UpdateCatalogLocationsCommand,
-} from './commands/scenario-commands.js';
+export { PatchCommand } from './commands/patch-command.js';
+export type { PatchRecipe } from './commands/patch-command.js';
+export { CommandHistory } from './commands/command-history.js';
+export { CompoundCommand } from './commands/compound-command.js';
+export { DuplicateEntityCommand } from './commands/entity-commands.js';
 
 // Operations
 export { getElementById, getParentOf } from './operations/tree-traversal.js';
-export { deepReplaceParamRef, deepReplaceDirectRef, replaceInBindings, escapeRegex } from './operations/parameter-rename-utils.js';
-export { deepReplaceEntityRef, deepRemoveEntityRef } from './operations/entity-rename-utils.js';
 export { findEntityRefUsages } from './operations/entity-ref-utils.js';
 export type { EntityRefUsage } from './operations/entity-ref-utils.js';
 export { deepCloneWithNewIds } from './operations/deep-clone.js';
 export type { CloneableElementType } from './operations/deep-clone.js';
 export type { EntityCleanupOption } from './commands/entity-commands.js';
 export { findManeuverGroupForAction } from './operations/storyboard-operations.js';
+export { generateParameterVariants, mulberry32 } from './operations/distribution-variants.js';
+export type {
+  ParameterVariant,
+  GenerateVariantsOptions,
+  GenerateVariantsResult,
+} from './operations/distribution-variants.js';
 
 // Component Engine
-export { applyUseCaseComponent, reconcileComponent } from './components/component-engine.js';
+export { applyUseCaseComponent } from './components/component-engine.js';
 
 // Compatibility / Feature Gating
 export {

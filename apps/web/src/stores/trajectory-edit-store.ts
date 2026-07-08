@@ -7,6 +7,12 @@ import type {
   Position,
 } from '@osce/shared';
 import { generateClampedUniformKnots } from '../lib/nurbs-knot-utils';
+import {
+  cloneDraft,
+  createDraftEditActions,
+  type DraftEditConfig,
+  type DraftHistory,
+} from './draft-edit-store-factory';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -51,10 +57,7 @@ export interface TrajectoryEditState {
   warnings: string[];
 
   // --- Internal undo/redo history ---
-  history: {
-    past: Trajectory[];
-    future: Trajectory[];
-  };
+  history: DraftHistory<Trajectory>;
 }
 
 export interface TrajectoryEditActions {
@@ -105,18 +108,8 @@ export interface TrajectoryEditActions {
 }
 
 // ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const MAX_HISTORY = 50;
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function cloneTrajectory(t: Trajectory): Trajectory {
-  return JSON.parse(JSON.stringify(t));
-}
 
 function validateTrajectory(t: Trajectory): string[] {
   const warnings: string[] = [];
@@ -131,6 +124,9 @@ function validateTrajectory(t: Trajectory): string[] {
       if (shape.length <= 0) {
         warnings.push('Clothoid length must be > 0');
       }
+      break;
+    case 'clothoidSpline':
+      // ClothoidSpline validation not yet implemented
       break;
     case 'nurbs': {
       if (shape.controlPoints.length < 2) {
@@ -148,14 +144,6 @@ function validateTrajectory(t: Trajectory): string[] {
   return warnings;
 }
 
-function pushHistory(past: Trajectory[], trajectory: Trajectory): Trajectory[] {
-  const newPast = [...past, cloneTrajectory(trajectory)];
-  if (newPast.length > MAX_HISTORY) {
-    newPast.shift();
-  }
-  return newPast;
-}
-
 // Helper to get the count of editable points for the current shape
 function getPointCount(t: Trajectory): number {
   switch (t.shape.type) {
@@ -165,12 +153,17 @@ function getPointCount(t: Trajectory): number {
       return t.shape.position ? 1 : 0;
     case 'nurbs':
       return t.shape.controlPoints.length;
+    case 'clothoidSpline':
+      // ClothoidSpline editing not yet implemented
+      return 0;
   }
 }
 
 // ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
+
+type TrajectoryStore = TrajectoryEditState & TrajectoryEditActions;
 
 const initialState: TrajectoryEditState = {
   active: false,
@@ -184,8 +177,26 @@ const initialState: TrajectoryEditState = {
   history: { past: [], future: [] },
 };
 
-export const useTrajectoryEditStore = create<TrajectoryEditState & TrajectoryEditActions>(
-  (set, get) => ({
+const config: DraftEditConfig<Trajectory, TrajectoryStore> = {
+  getDraft: (s) => s.editingTrajectory,
+  setDraft: (draft) => ({ editingTrajectory: draft }),
+  getSelectedIndex: (s) => s.selectedPointIndex,
+  setSelectedIndex: (index) => ({ selectedPointIndex: index }),
+  getHistory: (s) => s.history,
+  validate: validateTrajectory,
+  pointCount: getPointCount,
+};
+
+export const useTrajectoryEditStore = create<TrajectoryStore>((set, get) => {
+  const core = createDraftEditActions<Trajectory, TrajectoryStore>(set, get, config);
+
+  /** Recompute the clamped-uniform knot vector when control-point count/order changes. */
+  function knotsFor(controlPointCount: number, order: number, fallback: number[]): number[] {
+    if (controlPointCount >= 2) return generateClampedUniformKnots(controlPointCount, order);
+    return fallback;
+  }
+
+  return {
     ...initialState,
 
     // -----------------------------------------------------------------------
@@ -193,16 +204,16 @@ export const useTrajectoryEditStore = create<TrajectoryEditState & TrajectoryEdi
     // -----------------------------------------------------------------------
 
     enterTrajectoryEditMode: (source, trajectory) => {
-      const copy = cloneTrajectory(trajectory);
+      const copy = cloneDraft(trajectory);
       set({
         active: true,
         source,
         editingTrajectory: copy,
-        originalTrajectory: cloneTrajectory(trajectory),
+        originalTrajectory: cloneDraft(trajectory),
         selectedPointIndex: null,
         pointWorldPositions: [],
         curvePoints: [],
-              warnings: validateTrajectory(copy),
+        warnings: validateTrajectory(copy),
         history: { past: [], future: [] },
       });
     },
@@ -216,112 +227,64 @@ export const useTrajectoryEditStore = create<TrajectoryEditState & TrajectoryEdi
     // -----------------------------------------------------------------------
 
     addVertex: (position) => {
-      set((state) => {
-        if (!state.editingTrajectory || state.editingTrajectory.shape.type !== 'polyline')
-          return state;
-        const past = pushHistory(state.history.past, state.editingTrajectory);
-        const shape = state.editingTrajectory.shape;
+      core.commitDraftChange((t) => {
+        if (t.shape.type !== 'polyline') return null;
         const vertex: TrajectoryVertex = { position };
-        const updated: Trajectory = {
-          ...state.editingTrajectory,
-          shape: { type: 'polyline', vertices: [...shape.vertices, vertex] },
-        };
         return {
-          editingTrajectory: updated,
-          warnings: validateTrajectory(updated),
-          selectedPointIndex: shape.vertices.length,
-          history: { past, future: [] },
+          draft: { ...t, shape: { type: 'polyline', vertices: [...t.shape.vertices, vertex] } },
+          selectedIndex: t.shape.vertices.length,
         };
       });
     },
 
     insertVertex: (afterIndex, position) => {
-      set((state) => {
-        if (!state.editingTrajectory || state.editingTrajectory.shape.type !== 'polyline')
-          return state;
-        const past = pushHistory(state.history.past, state.editingTrajectory);
-        const vertices = [...state.editingTrajectory.shape.vertices];
+      core.commitDraftChange((t) => {
+        if (t.shape.type !== 'polyline') return null;
+        const vertices = [...t.shape.vertices];
         vertices.splice(afterIndex + 1, 0, { position });
-        const updated: Trajectory = {
-          ...state.editingTrajectory,
-          shape: { type: 'polyline', vertices },
-        };
         return {
-          editingTrajectory: updated,
-          warnings: validateTrajectory(updated),
-          selectedPointIndex: afterIndex + 1,
-          history: { past, future: [] },
+          draft: { ...t, shape: { type: 'polyline', vertices } },
+          selectedIndex: afterIndex + 1,
         };
       });
     },
 
     removeVertex: (index) => {
-      set((state) => {
-        if (!state.editingTrajectory || state.editingTrajectory.shape.type !== 'polyline')
-          return state;
-        const shape = state.editingTrajectory.shape;
-        if (index < 0 || index >= shape.vertices.length) return state;
-        const past = pushHistory(state.history.past, state.editingTrajectory);
-        const vertices = shape.vertices.filter((_, i) => i !== index);
-        const updated: Trajectory = {
-          ...state.editingTrajectory,
-          shape: { type: 'polyline', vertices },
-        };
-        let selectedPointIndex = state.selectedPointIndex;
-        if (selectedPointIndex !== null) {
-          if (selectedPointIndex === index) {
-            selectedPointIndex =
-              vertices.length > 0 ? Math.min(index, vertices.length - 1) : null;
-          } else if (selectedPointIndex > index) {
-            selectedPointIndex--;
+      core.commitDraftChange((t) => {
+        if (t.shape.type !== 'polyline') return null;
+        if (index < 0 || index >= t.shape.vertices.length) return null;
+        const vertices = t.shape.vertices.filter((_, i) => i !== index);
+        let selectedIndex = get().selectedPointIndex;
+        if (selectedIndex !== null) {
+          if (selectedIndex === index) {
+            selectedIndex = vertices.length > 0 ? Math.min(index, vertices.length - 1) : null;
+          } else if (selectedIndex > index) {
+            selectedIndex--;
           }
         }
-        return {
-          editingTrajectory: updated,
-          warnings: validateTrajectory(updated),
-          selectedPointIndex,
-          history: { past, future: [] },
-        };
+        return { draft: { ...t, shape: { type: 'polyline', vertices } }, selectedIndex };
       });
     },
 
     updateVertexPosition: (index, position) => {
-      set((state) => {
-        if (!state.editingTrajectory || state.editingTrajectory.shape.type !== 'polyline')
-          return state;
-        const shape = state.editingTrajectory.shape;
-        if (index < 0 || index >= shape.vertices.length) return state;
-        const past = pushHistory(state.history.past, state.editingTrajectory);
-        const vertices = shape.vertices.map((v, i) => (i === index ? { ...v, position } : v));
-        const updated: Trajectory = {
-          ...state.editingTrajectory,
-          shape: { type: 'polyline', vertices },
-        };
-        return {
-          editingTrajectory: updated,
-          warnings: validateTrajectory(updated),
-          history: { past, future: [] },
-        };
+      core.commitDraftChange((t) => {
+        if (t.shape.type !== 'polyline') return null;
+        if (index < 0 || index >= t.shape.vertices.length) return null;
+        const vertices = t.shape.vertices.map((v, i) => (i === index ? { ...v, position } : v));
+        return { draft: { ...t, shape: { type: 'polyline', vertices } } };
       });
     },
 
     updateVertexTime: (index, time) => {
-      set((state) => {
-        if (!state.editingTrajectory || state.editingTrajectory.shape.type !== 'polyline')
-          return state;
-        const shape = state.editingTrajectory.shape;
-        if (index < 0 || index >= shape.vertices.length) return state;
-        const past = pushHistory(state.history.past, state.editingTrajectory);
-        const vertices = shape.vertices.map((v, i) => (i === index ? { ...v, time } : v));
-        const updated: Trajectory = {
-          ...state.editingTrajectory,
-          shape: { type: 'polyline', vertices },
-        };
-        return {
-          editingTrajectory: updated,
-          history: { past, future: [] },
-        };
-      });
+      core.commitDraftChange(
+        (t) => {
+          if (t.shape.type !== 'polyline') return null;
+          if (index < 0 || index >= t.shape.vertices.length) return null;
+          const vertices = t.shape.vertices.map((v, i) => (i === index ? { ...v, time } : v));
+          return { draft: { ...t, shape: { type: 'polyline', vertices } } };
+        },
+        { revalidate: false },
+      );
     },
 
     // -----------------------------------------------------------------------
@@ -329,36 +292,16 @@ export const useTrajectoryEditStore = create<TrajectoryEditState & TrajectoryEdi
     // -----------------------------------------------------------------------
 
     updateClothoidParams: (params) => {
-      set((state) => {
-        if (!state.editingTrajectory || state.editingTrajectory.shape.type !== 'clothoid')
-          return state;
-        const past = pushHistory(state.history.past, state.editingTrajectory);
-        const updated: Trajectory = {
-          ...state.editingTrajectory,
-          shape: { ...state.editingTrajectory.shape, ...params, type: 'clothoid' },
-        };
-        return {
-          editingTrajectory: updated,
-          warnings: validateTrajectory(updated),
-          history: { past, future: [] },
-        };
+      core.commitDraftChange((t) => {
+        if (t.shape.type !== 'clothoid') return null;
+        return { draft: { ...t, shape: { ...t.shape, ...params, type: 'clothoid' } } };
       });
     },
 
     updateClothoidPosition: (position) => {
-      set((state) => {
-        if (!state.editingTrajectory || state.editingTrajectory.shape.type !== 'clothoid')
-          return state;
-        const past = pushHistory(state.history.past, state.editingTrajectory);
-        const updated: Trajectory = {
-          ...state.editingTrajectory,
-          shape: { ...state.editingTrajectory.shape, position },
-        };
-        return {
-          editingTrajectory: updated,
-          warnings: validateTrajectory(updated),
-          history: { past, future: [] },
-        };
+      core.commitDraftChange((t) => {
+        if (t.shape.type !== 'clothoid') return null;
+        return { draft: { ...t, shape: { ...t.shape, position } } };
       });
     },
 
@@ -367,181 +310,106 @@ export const useTrajectoryEditStore = create<TrajectoryEditState & TrajectoryEdi
     // -----------------------------------------------------------------------
 
     addControlPoint: (position) => {
-      set((state) => {
-        if (!state.editingTrajectory || state.editingTrajectory.shape.type !== 'nurbs')
-          return state;
-        const past = pushHistory(state.history.past, state.editingTrajectory);
-        const shape = state.editingTrajectory.shape;
+      core.commitDraftChange((t) => {
+        if (t.shape.type !== 'nurbs') return null;
+        const shape = t.shape;
         const cp: NurbsControlPoint = { position, weight: 1.0 };
-        const newCps = [...shape.controlPoints, cp];
-        const knots = newCps.length >= 2
-          ? generateClampedUniformKnots(newCps.length, shape.order)
-          : shape.knots;
-        const updated: Trajectory = {
-          ...state.editingTrajectory,
-          shape: { ...shape, controlPoints: newCps, knots },
-        };
+        const controlPoints = [...shape.controlPoints, cp];
+        const knots = knotsFor(controlPoints.length, shape.order, shape.knots);
         return {
-          editingTrajectory: updated,
-          warnings: validateTrajectory(updated),
-          selectedPointIndex: shape.controlPoints.length,
-          history: { past, future: [] },
+          draft: { ...t, shape: { ...shape, controlPoints, knots } },
+          selectedIndex: shape.controlPoints.length,
         };
       });
     },
 
     insertControlPoint: (afterIndex, position) => {
-      set((state) => {
-        if (!state.editingTrajectory || state.editingTrajectory.shape.type !== 'nurbs')
-          return state;
-        const past = pushHistory(state.history.past, state.editingTrajectory);
-        const shape = state.editingTrajectory.shape;
+      core.commitDraftChange((t) => {
+        if (t.shape.type !== 'nurbs') return null;
+        const shape = t.shape;
         const controlPoints = [...shape.controlPoints];
         controlPoints.splice(afterIndex + 1, 0, { position, weight: 1.0 });
-        const knots = controlPoints.length >= 2
-          ? generateClampedUniformKnots(controlPoints.length, shape.order)
-          : shape.knots;
-        const updated: Trajectory = {
-          ...state.editingTrajectory,
-          shape: { ...shape, controlPoints, knots },
-        };
+        const knots = knotsFor(controlPoints.length, shape.order, shape.knots);
         return {
-          editingTrajectory: updated,
-          warnings: validateTrajectory(updated),
-          selectedPointIndex: afterIndex + 1,
-          history: { past, future: [] },
+          draft: { ...t, shape: { ...shape, controlPoints, knots } },
+          selectedIndex: afterIndex + 1,
         };
       });
     },
 
     removeControlPoint: (index) => {
-      set((state) => {
-        if (!state.editingTrajectory || state.editingTrajectory.shape.type !== 'nurbs')
-          return state;
-        const shape = state.editingTrajectory.shape;
-        if (index < 0 || index >= shape.controlPoints.length) return state;
-        const past = pushHistory(state.history.past, state.editingTrajectory);
+      core.commitDraftChange((t) => {
+        if (t.shape.type !== 'nurbs') return null;
+        const shape = t.shape;
+        if (index < 0 || index >= shape.controlPoints.length) return null;
         const controlPoints = shape.controlPoints.filter((_, i) => i !== index);
-        const knots = controlPoints.length >= 2
-          ? generateClampedUniformKnots(controlPoints.length, shape.order)
-          : [];
-        const updated: Trajectory = {
-          ...state.editingTrajectory,
-          shape: { ...shape, controlPoints, knots },
-        };
-        let selectedPointIndex = state.selectedPointIndex;
-        if (selectedPointIndex !== null) {
-          if (selectedPointIndex === index) {
-            selectedPointIndex =
+        const knots = knotsFor(controlPoints.length, shape.order, []);
+        let selectedIndex = get().selectedPointIndex;
+        if (selectedIndex !== null) {
+          if (selectedIndex === index) {
+            selectedIndex =
               controlPoints.length > 0 ? Math.min(index, controlPoints.length - 1) : null;
-          } else if (selectedPointIndex > index) {
-            selectedPointIndex--;
+          } else if (selectedIndex > index) {
+            selectedIndex--;
           }
         }
-        return {
-          editingTrajectory: updated,
-          warnings: validateTrajectory(updated),
-          selectedPointIndex,
-          history: { past, future: [] },
-        };
+        return { draft: { ...t, shape: { ...shape, controlPoints, knots } }, selectedIndex };
       });
     },
 
     updateControlPointPosition: (index, position) => {
-      set((state) => {
-        if (!state.editingTrajectory || state.editingTrajectory.shape.type !== 'nurbs')
-          return state;
-        const shape = state.editingTrajectory.shape;
-        if (index < 0 || index >= shape.controlPoints.length) return state;
-        const past = pushHistory(state.history.past, state.editingTrajectory);
+      core.commitDraftChange((t) => {
+        if (t.shape.type !== 'nurbs') return null;
+        const shape = t.shape;
+        if (index < 0 || index >= shape.controlPoints.length) return null;
         const controlPoints = shape.controlPoints.map((cp, i) =>
           i === index ? { ...cp, position } : cp,
         );
-        const updated: Trajectory = {
-          ...state.editingTrajectory,
-          shape: { ...shape, controlPoints },
-        };
-        return {
-          editingTrajectory: updated,
-          warnings: validateTrajectory(updated),
-          history: { past, future: [] },
-        };
+        return { draft: { ...t, shape: { ...shape, controlPoints } } };
       });
     },
 
     updateControlPointWeight: (index, weight) => {
-      set((state) => {
-        if (!state.editingTrajectory || state.editingTrajectory.shape.type !== 'nurbs')
-          return state;
-        const shape = state.editingTrajectory.shape;
-        if (index < 0 || index >= shape.controlPoints.length) return state;
-        const past = pushHistory(state.history.past, state.editingTrajectory);
-        const controlPoints = shape.controlPoints.map((cp, i) =>
-          i === index ? { ...cp, weight } : cp,
-        );
-        const updated: Trajectory = {
-          ...state.editingTrajectory,
-          shape: { ...shape, controlPoints },
-        };
-        return {
-          editingTrajectory: updated,
-          history: { past, future: [] },
-        };
-      });
+      core.commitDraftChange(
+        (t) => {
+          if (t.shape.type !== 'nurbs') return null;
+          const shape = t.shape;
+          if (index < 0 || index >= shape.controlPoints.length) return null;
+          const controlPoints = shape.controlPoints.map((cp, i) =>
+            i === index ? { ...cp, weight } : cp,
+          );
+          return { draft: { ...t, shape: { ...shape, controlPoints } } };
+        },
+        { revalidate: false },
+      );
     },
 
     updateControlPointTime: (index, time) => {
-      set((state) => {
-        if (!state.editingTrajectory || state.editingTrajectory.shape.type !== 'nurbs')
-          return state;
-        const shape = state.editingTrajectory.shape;
-        if (index < 0 || index >= shape.controlPoints.length) return state;
-        const past = pushHistory(state.history.past, state.editingTrajectory);
-        const controlPoints = shape.controlPoints.map((cp, i) =>
-          i === index ? { ...cp, time } : cp,
-        );
-        const updated: Trajectory = {
-          ...state.editingTrajectory,
-          shape: { ...shape, controlPoints },
-        };
-        return {
-          editingTrajectory: updated,
-          history: { past, future: [] },
-        };
-      });
+      core.commitDraftChange(
+        (t) => {
+          if (t.shape.type !== 'nurbs') return null;
+          const shape = t.shape;
+          if (index < 0 || index >= shape.controlPoints.length) return null;
+          const controlPoints = shape.controlPoints.map((cp, i) =>
+            i === index ? { ...cp, time } : cp,
+          );
+          return { draft: { ...t, shape: { ...shape, controlPoints } } };
+        },
+        { revalidate: false },
+      );
     },
 
     updateKnots: (knots) => {
-      set((state) => {
-        if (!state.editingTrajectory || state.editingTrajectory.shape.type !== 'nurbs')
-          return state;
-        const past = pushHistory(state.history.past, state.editingTrajectory);
-        const updated: Trajectory = {
-          ...state.editingTrajectory,
-          shape: { ...state.editingTrajectory.shape, knots },
-        };
-        return {
-          editingTrajectory: updated,
-          warnings: validateTrajectory(updated),
-          history: { past, future: [] },
-        };
+      core.commitDraftChange((t) => {
+        if (t.shape.type !== 'nurbs') return null;
+        return { draft: { ...t, shape: { ...t.shape, knots } } };
       });
     },
 
     updateOrder: (order) => {
-      set((state) => {
-        if (!state.editingTrajectory || state.editingTrajectory.shape.type !== 'nurbs')
-          return state;
-        const past = pushHistory(state.history.past, state.editingTrajectory);
-        const updated: Trajectory = {
-          ...state.editingTrajectory,
-          shape: { ...state.editingTrajectory.shape, order },
-        };
-        return {
-          editingTrajectory: updated,
-          warnings: validateTrajectory(updated),
-          history: { past, future: [] },
-        };
+      core.commitDraftChange((t) => {
+        if (t.shape.type !== 'nurbs') return null;
+        return { draft: { ...t, shape: { ...t.shape, order } } };
       });
     },
 
@@ -550,27 +418,11 @@ export const useTrajectoryEditStore = create<TrajectoryEditState & TrajectoryEdi
     // -----------------------------------------------------------------------
 
     updateTrajectoryName: (name) => {
-      set((state) => {
-        if (!state.editingTrajectory) return state;
-        const past = pushHistory(state.history.past, state.editingTrajectory);
-        const updated: Trajectory = { ...state.editingTrajectory, name };
-        return {
-          editingTrajectory: updated,
-          history: { past, future: [] },
-        };
-      });
+      core.commitDraftChange((t) => ({ draft: { ...t, name } }), { revalidate: false });
     },
 
     updateTrajectoryClosed: (closed) => {
-      set((state) => {
-        if (!state.editingTrajectory) return state;
-        const past = pushHistory(state.history.past, state.editingTrajectory);
-        const updated: Trajectory = { ...state.editingTrajectory, closed };
-        return {
-          editingTrajectory: updated,
-          history: { past, future: [] },
-        };
-      });
+      core.commitDraftChange((t) => ({ draft: { ...t, closed } }), { revalidate: false });
     },
 
     // -----------------------------------------------------------------------
@@ -578,7 +430,7 @@ export const useTrajectoryEditStore = create<TrajectoryEditState & TrajectoryEdi
     // -----------------------------------------------------------------------
 
     selectPoint: (index) => {
-      set({ selectedPointIndex: index });
+      core.selectIndex(index);
     },
 
     // -----------------------------------------------------------------------
@@ -594,58 +446,13 @@ export const useTrajectoryEditStore = create<TrajectoryEditState & TrajectoryEdi
     },
 
     // -----------------------------------------------------------------------
-    // Undo / Redo
+    // Undo / Redo / Commit (shared infrastructure)
     // -----------------------------------------------------------------------
 
-    undoTrajectoryEdit: () => {
-      set((state) => {
-        if (state.history.past.length === 0 || !state.editingTrajectory) return state;
-        const past = [...state.history.past];
-        const previous = past.pop()!;
-        const future = [cloneTrajectory(state.editingTrajectory), ...state.history.future];
-        const pointCount = getPointCount(previous);
-        return {
-          editingTrajectory: previous,
-          warnings: validateTrajectory(previous),
-          selectedPointIndex:
-            state.selectedPointIndex !== null && state.selectedPointIndex < pointCount
-              ? state.selectedPointIndex
-              : null,
-          history: { past, future },
-        };
-      });
-    },
-
-    redoTrajectoryEdit: () => {
-      set((state) => {
-        if (state.history.future.length === 0 || !state.editingTrajectory) return state;
-        const future = [...state.history.future];
-        const next = future.shift()!;
-        const past = [...state.history.past, cloneTrajectory(state.editingTrajectory)];
-        const pointCount = getPointCount(next);
-        return {
-          editingTrajectory: next,
-          warnings: validateTrajectory(next),
-          selectedPointIndex:
-            state.selectedPointIndex !== null && state.selectedPointIndex < pointCount
-              ? state.selectedPointIndex
-              : null,
-          history: { past, future },
-        };
-      });
-    },
-
-    canUndo: () => get().history.past.length > 0,
-    canRedo: () => get().history.future.length > 0,
-
-    // -----------------------------------------------------------------------
-    // Commit
-    // -----------------------------------------------------------------------
-
-    commitTrajectory: () => {
-      const { editingTrajectory } = get();
-      if (!editingTrajectory) return null;
-      return cloneTrajectory(editingTrajectory);
-    },
-  }),
-);
+    undoTrajectoryEdit: core.undo,
+    redoTrajectoryEdit: core.redo,
+    canUndo: core.canUndo,
+    canRedo: core.canRedo,
+    commitTrajectory: core.commit,
+  };
+});

@@ -10,6 +10,7 @@ import type { OpenDriveDocument } from '@osce/shared';
 import { TrajectoryPointMarker } from './TrajectoryPointMarker.js';
 import { TrajectoryPointGizmo } from './TrajectoryPointGizmo.js';
 import { TrajectoryConnectionLine } from './TrajectoryConnectionLine.js';
+import type { OrbitControlsLike } from '../store/viewer-types.js';
 
 export interface TrajectoryOverlayProps {
   /** World positions of editable points (vertices / origin / control points) */
@@ -20,14 +21,14 @@ export interface TrajectoryOverlayProps {
   pointTimes?: Array<number | undefined>;
   selectedPointIndex: number | null;
   /** Shape type determines rendering behavior */
-  shapeType: 'polyline' | 'clothoid' | 'nurbs';
+  shapeType: 'polyline' | 'clothoid' | 'nurbs' | 'clothoidSpline';
   /** Indices of points that use relative positions (rendered with dashed connections) */
   relativePointIndices?: number[];
   onPointClick?: (index: number) => void;
   onPointContextMenu?: (index: number, event: ThreeEvent<MouseEvent>) => void;
   onLineClick?: (event: ThreeEvent<MouseEvent>) => void;
   openDriveDocument?: OpenDriveDocument | null;
-  orbitControlsRef?: React.RefObject<any>;
+  orbitControlsRef?: React.RefObject<OrbitControlsLike | null>;
   snapToLane?: boolean;
   onPointDragEnd?: (
     index: number,

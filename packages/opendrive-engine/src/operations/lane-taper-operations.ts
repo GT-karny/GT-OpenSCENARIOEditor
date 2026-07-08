@@ -8,6 +8,43 @@
 import type { OdrLane, OdrLaneSection, OdrLaneWidth, OdrRoad } from '@osce/shared';
 import { createDefaultLane } from '../store/defaults.js';
 
+// ── Taper direction resolution ───────────────────────────────────────────────
+
+/**
+ * Driver-perspective taper direction.
+ *
+ * `narrow-to-wide` means the lane widens as the driver travels;
+ * `wide-to-narrow` means it narrows. These are expressed in the driver's
+ * frame, independent of the road's reference-line (`+s`) direction.
+ */
+export type TaperDirection = 'narrow-to-wide' | 'wide-to-narrow';
+
+/**
+ * Convert a driver-perspective taper direction into a road-s direction.
+ *
+ * A lane's traffic travels against the reference line (`+s`) when the picked
+ * side travels against `+s`, which holds iff
+ * `(side === 'left') === (trafficRule === 'RHT')`:
+ * - RHT (right-hand traffic): left lanes travel against `+s`, right lanes with it.
+ * - LHT (left-hand traffic): right lanes travel against `+s`, left lanes with it.
+ *
+ * When the picked lane travels against `+s`, the driver-perspective direction
+ * is flipped to express it in road coordinates (increasing `s`); otherwise it
+ * passes through unchanged.
+ *
+ * Under `trafficRule='RHT'` this reduces to "flip only when `side === 'left'`",
+ * matching the road editor's original behavior bit-for-bit.
+ */
+export function resolveTaperSDirection(
+  side: 'left' | 'right',
+  direction: TaperDirection,
+  trafficRule: 'RHT' | 'LHT' = 'RHT',
+): TaperDirection {
+  const travelsAgainstS = (side === 'left') === (trafficRule === 'RHT');
+  if (!travelsAgainstS) return direction;
+  return direction === 'narrow-to-wide' ? 'wide-to-narrow' : 'narrow-to-wide';
+}
+
 // ── Cubic taper coefficients ───────────────────────────────────────────────────
 
 /**

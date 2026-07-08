@@ -29,6 +29,15 @@ const LANE_COLORS: Record<string, string> = {
   roadWorks: '#CC8800',
   tram: '#604060',
   rail: '#604060',
+  // Shared by all traffic participants — a blend of biking (cyclist) and
+  // sidewalk (pedestrian) tones, the two modes it's most often shared between.
+  shared: '#A48858',
+  // 1.9 prefers `walking` over the deprecated `sidewalk` type; kept in the
+  // same tan family so old and new documents read as the same lane kind.
+  walking: '#C8A868',
+  // Driving-lane variant (lets a driver bypass the main intersection); a warm
+  // gray distinct from both plain driving and the entry/exit ramp family.
+  slipLane: '#8C8868',
 };
 
 const DEFAULT_LANE_COLOR = '#606060';

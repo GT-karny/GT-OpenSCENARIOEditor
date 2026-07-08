@@ -4,9 +4,8 @@
 
 import React from 'react';
 import type { ScenarioEntity } from '@osce/shared';
-import { getEntityGeometry, getEntityColor } from '../utils/entity-geometry.js';
+import { getEntityGeometry, resolveEntityColor } from '../utils/entity-geometry.js';
 import type { WorldCoords } from '../utils/position-resolver.js';
-// import { ApexGlassMaterial } from '../materials/ApexGlassMaterial.js';
 import { EntityLabel } from './EntityLabel.js';
 import { HOVER_MATERIAL } from '../constants/selection-theme.js';
 import { SelectionFeedback } from '../interaction/primitives/SelectionFeedback.js';
@@ -24,7 +23,7 @@ interface MiscObjectEntityProps {
 export const MiscObjectEntity: React.FC<MiscObjectEntityProps> = React.memo(
   ({ entity, position, isSelected, isHovered, showLabel, onClick, onDoubleClick }) => {
     const geom = getEntityGeometry(entity);
-    const color = getEntityColor('miscObject', false);
+    const color = resolveEntityColor(entity, false);
 
     return (
       <group

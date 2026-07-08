@@ -44,12 +44,7 @@ export function applyParameterAssignments<T extends EntityDefinition>(
   return substituteParams(definition, resolved) as T;
 }
 
-function substituteParams(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  obj: any,
-  params: Map<string, string>,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): any {
+function substituteParams(obj: unknown, params: Map<string, string>): unknown {
   if (obj === null || obj === undefined) return obj;
 
   if (typeof obj === 'string') {
@@ -66,8 +61,7 @@ function substituteParams(
   }
 
   if (typeof obj === 'object') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result: any = {};
+    const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj)) {
       result[key] = substituteParams(value, params);
     }

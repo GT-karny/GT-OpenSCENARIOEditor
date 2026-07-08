@@ -38,8 +38,12 @@ export {
 } from './store/defaults.js';
 
 // Commands
-export { BaseCommand } from './commands/base-command.js';
-export { CommandHistory } from './commands/command-history.js';
+// Undo/redo infrastructure (including the PatchCommand base) is single-sourced
+// in @osce/scenario-engine and re-exported here so opendrive-engine's public
+// surface stays unchanged. The local ./commands/patch-command.js keeps the same
+// module path for the in-package subclasses that import it relatively.
+export { BaseCommand, CommandHistory, CompoundCommand, PatchCommand } from '@osce/scenario-engine';
+export type { PatchRecipe } from '@osce/scenario-engine';
 export { AddRoadCommand, RemoveRoadCommand, UpdateRoadCommand } from './commands/road-commands.js';
 export type { GetDoc, SetDoc, MarkDirtyRoad } from './commands/road-commands.js';
 export { UpdateHeaderCommand } from './commands/header-commands.js';
@@ -77,13 +81,7 @@ export {
   RemoveControllerCommand,
   UpdateControllerCommand,
 } from './commands/controller-commands.js';
-export { CompoundCommand } from './commands/compound-command.js';
-
-// Serializers / Parsers (editor format)
-export { serializeOsceJson, isOsceJsonFormat } from './serializer/osce-json-serializer.js';
-export type { OsceEditorFile } from './serializer/osce-json-serializer.js';
-export { parseOsceJson } from './parser/osce-json-parser.js';
-export type { OsceParseResult } from './parser/osce-json-parser.js';
+export { AddObjectCommand, RemoveObjectCommand } from './commands/object-commands.js';
 
 // Operations
 export { generateRoadId, findRoadById, findRoadIndex } from './operations/road-operations.js';
@@ -99,7 +97,14 @@ export {
 } from './operations/virtual-road-operations.js';
 
 // Utils
-export { nextNumericId } from './utils/id-generator.js';
+export { nextNumericId, nextJunctionId } from './utils/id-generator.js';
+
+// Plan-view operations
+export {
+  recalculatePlanViewS,
+  computePlanViewLength,
+  patchPlanViewGeometry,
+} from './operations/plan-view-operations.js';
 
 // Builders
 export { createRoadFromPartial } from './builders/road-builder.js';
@@ -137,6 +142,7 @@ export {
   syncLaneLinksForDirectConnections,
   clearLaneLinks,
   syncIntraRoadLaneLinks,
+  relinkIntraRoadLanes,
 } from './operations/lane-link-operations.js';
 
 // Lane taper operations
@@ -145,7 +151,9 @@ export {
   buildTaperSection,
   buildTaperSectionForAdd,
   buildTaperSectionForRemove,
+  resolveTaperSDirection,
 } from './operations/lane-taper-operations.js';
+export type { TaperDirection } from './operations/lane-taper-operations.js';
 
 // Lane edit operations (compound operations)
 export {
@@ -164,8 +172,9 @@ export type { LaneEditOptions } from './operations/lane-edit-operations.js';
 export {
   executeJunctionCreationPlan,
   executeJunctionRemoval,
+  regenerateJunctionConnections,
 } from './operations/junction-execution.js';
-export type { ExecuteJunctionResult } from './operations/junction-execution.js';
+export type { ExecuteJunctionResult, EvaluateAtS } from './operations/junction-execution.js';
 
 // Junction topology
 export { classifyTopology } from './operations/junction-topology.js';
@@ -201,10 +210,20 @@ export * from './signal/signal-shape-paths.js';
 export * from './signal/signal-head-renderer.js';
 export * from './signal/signal-preset-persistence.js';
 
+// Descriptor-based Canvas2D icon renderer (used by apps/web SignalIcon2D)
+export {
+  renderSignalToCanvas,
+  getBulbMode,
+} from './signal/signal-icon-renderer.js';
+export type { BulbMode } from './signal/signal-icon-renderer.js';
+
 // Signal assembly
-export * from './signal/signal-assembly.js';
 export * from './signal/signal-assembly-operations.js';
 export * from './signal/signal-preset-store.js';
+
+// Signal geometry and orientation
+export * from './signal/signal-arm-geometry.js';
+export * from './signal/signal-orientation.js';
 
 // Signal assembly commands
 export {
@@ -216,13 +235,3 @@ export {
 } from './commands/signal-assembly-commands.js';
 export type { GetMeta, SetMeta } from './commands/signal-assembly-commands.js';
 
-// Virtual junction operations
-export {
-  createVirtualJunction,
-  validateVirtualJunctionRefs,
-} from './operations/virtual-junction-operations.js';
-export type {
-  VirtualJunctionRoadRef,
-  CreateVirtualJunctionParams,
-  VirtualJunctionResult,
-} from './operations/virtual-junction-operations.js';

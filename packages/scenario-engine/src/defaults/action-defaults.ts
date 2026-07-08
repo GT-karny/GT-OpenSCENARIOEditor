@@ -4,10 +4,32 @@
  * Only required fields are set; optional fields are omitted.
  */
 
-import type { PrivateAction, GlobalAction, UserDefinedAction } from '@osce/shared';
+import type {
+  PrivateAction,
+  GlobalAction,
+  UserDefinedAction,
+  ScenarioActionType,
+} from '@osce/shared';
+import { SCENARIO_ACTION_TYPES } from '@osce/shared';
 
+/**
+ * Minimal valid inner action for a given discriminator, e.g. when switching an
+ * action's type in the editor. Accepts a raw `string` because call sites read
+ * the value from `<Select>` handlers (widened to string); an unknown value is
+ * rejected instead of silently defaulting. Delegates to {@link buildActionDefault},
+ * whose switch is compile-time exhaustive over {@link ScenarioActionType}.
+ */
 export function defaultActionByType(
   type: string,
+): PrivateAction | GlobalAction | UserDefinedAction {
+  if (!(SCENARIO_ACTION_TYPES as readonly string[]).includes(type)) {
+    throw new Error(`defaultActionByType: unknown action type "${type}"`);
+  }
+  return buildActionDefault(type as ScenarioActionType);
+}
+
+function buildActionDefault(
+  type: ScenarioActionType,
 ): PrivateAction | GlobalAction | UserDefinedAction {
   switch (type) {
     // --- Private: Longitudinal ---
@@ -97,7 +119,18 @@ export function defaultActionByType(
     case 'visibilityAction':
       return { type: 'visibilityAction', graphics: true, traffic: true, sensors: true };
     case 'appearanceAction':
-      return { type: 'appearanceAction' };
+      // XSD AppearanceAction is a choice (LightStateAction | AnimationAction), so
+      // an empty <AppearanceAction/> is schema-invalid. AnimationAction with a
+      // minimal UserDefinedAnimation (userDefinedAnimationType required) is the
+      // smallest valid member. AppearanceAction is a passthrough placeholder in the
+      // model (keys are XSD element names / @_ attributes); a proper typed model is
+      // future work.
+      return {
+        type: 'appearanceAction',
+        AnimationAction: {
+          AnimationType: { UserDefinedAnimation: { '@_userDefinedAnimationType': '' } },
+        },
+      };
     case 'animationAction':
       return { type: 'animationAction', animationType: '' };
     case 'lightStateAction':
@@ -121,21 +154,50 @@ export function defaultActionByType(
         },
       };
     case 'entityAction':
-      return { type: 'entityAction', entityRef: '', actionType: 'addEntity' };
+      // XSD AddEntityAction requires a Position child; without it the serialized
+      // <AddEntityAction/> is schema-invalid (and unparseable on round-trip).
+      return {
+        type: 'entityAction',
+        entityRef: '',
+        actionType: 'addEntity',
+        position: { type: 'worldPosition', x: 0, y: 0 },
+      };
     case 'parameterAction':
-      return { type: 'parameterAction', parameterRef: '', actionType: 'set' };
+      // XSD ParameterSetAction requires @value; omitting it yields a schema-invalid
+      // empty <SetAction/>.
+      return { type: 'parameterAction', parameterRef: '', actionType: 'set', value: '' };
     case 'variableAction':
-      return { type: 'variableAction', variableRef: '', actionType: 'set' };
+      // XSD VariableSetAction requires @value (see parameterAction).
+      return { type: 'variableAction', variableRef: '', actionType: 'set', value: '' };
     case 'infrastructureAction':
-      return { type: 'infrastructureAction', trafficSignalAction: {} };
+      // XSD TrafficSignalAction is a choice (TrafficSignalControllerAction |
+      // TrafficSignalStateAction), so an empty <TrafficSignalAction/> is
+      // schema-invalid. TrafficSignalStateAction (name + state required) is the
+      // minimal valid member.
+      return {
+        type: 'infrastructureAction',
+        trafficSignalAction: { stateAction: { name: '', state: '' } },
+      };
     case 'trafficAction':
-      return { type: 'trafficAction' };
+      // XSD TrafficAction is a choice of Traffic{Source,Sink,Swarm,Area,Stop}Action,
+      // so an empty <TrafficAction/> is schema-invalid. TrafficStopAction is the only
+      // empty-content member, so it is the minimal valid default. TrafficAction is a
+      // passthrough in the model (keys are XSD element names), so it is carried as a
+      // raw key.
+      return { type: 'trafficAction', TrafficStopAction: '' };
+    case 'setMonitorAction':
+      return { type: 'setMonitorAction', monitorRef: '', value: false };
 
     // --- UserDefined ---
     case 'userDefinedAction':
       return { type: 'userDefinedAction', customCommandAction: '' };
 
-    default:
-      return { type: 'speedAction', dynamics: { dynamicsShape: 'step', dynamicsDimension: 'time', value: 0 }, target: { kind: 'absolute', value: 0 } };
+    default: {
+      // Exhaustiveness weld: adding a ScenarioActionType member without a case
+      // above makes this `never` assignment a compile error. Unreachable at
+      // runtime because defaultActionByType rejects non-canonical strings first.
+      const _exhaustive: never = type;
+      throw new Error(`buildActionDefault: unhandled action type "${_exhaustive}"`);
+    }
   }
 }

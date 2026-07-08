@@ -10,8 +10,9 @@ import {
 import { parseEnvironment, parseTrajectory } from './parse-actions.js';
 import { parseManeuver } from './parse-storyboard.js';
 import { parseRoute } from './parse-positions.js';
-import { generateId } from '../utils/uuid.js';
-import { strAttr, startBindingCollection, setBindingElementId, finishBindingCollection } from '../utils/xml-helpers.js';
+import type { RawXml } from '../utils/xml-helpers.js';
+import { generateId } from '@osce/shared';
+import { strAttr, startBindingCollection, setBindingElementId, finishBindingCollection, child, children } from '../utils/xml-helpers.js';
 
 /**
  * Elements that can appear multiple times inside a <Catalog>.
@@ -40,7 +41,7 @@ const CATALOG_ARRAY_ELEMENTS = new Set([
   'ConditionGroup',
   'Condition',
   'EntityRef',
-  'LaneRange',
+  'RelativeLaneRange',
 ]);
 
 function createCatalogXmlParser(): XMLParser {
@@ -59,33 +60,27 @@ function createCatalogXmlParser(): XMLParser {
   });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function ensureArray(val: any): any[] {
-  if (!val) return [];
-  return Array.isArray(val) ? val : [val];
-}
-
 export function parseCatalogXml(xml: string): CatalogDocument {
   const parser = createCatalogXmlParser();
-  const raw = parser.parse(xml);
-  const root = raw?.OpenSCENARIO;
+  const raw = parser.parse(xml) as RawXml;
+  const root = child(raw, 'OpenSCENARIO');
+  const catalog = child(root, 'Catalog');
 
-  if (!root?.Catalog) {
+  if (!catalog) {
     throw new Error('Invalid catalog XML: missing <Catalog> element under <OpenSCENARIO>');
   }
 
-  const catalog = root.Catalog;
   const catalogName = strAttr(catalog, 'name');
 
   startBindingCollection();
   const entries = parseCatalogEntries(catalog);
   const parameterBindings = finishBindingCollection();
 
-  const catalogType = inferCatalogType(entries, catalog);
+  const catalogType = inferCatalogType(entries);
 
   return {
     id: generateId(),
-    fileHeader: parseFileHeader(root.FileHeader),
+    fileHeader: parseFileHeader(child(root, 'FileHeader')),
     catalogName,
     catalogType,
     entries,
@@ -93,39 +88,38 @@ export function parseCatalogXml(xml: string): CatalogDocument {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseCatalogEntries(catalog: any): CatalogEntry[] {
+function parseCatalogEntries(catalog: RawXml): CatalogEntry[] {
   const entries: CatalogEntry[] = [];
 
-  for (const raw of ensureArray(catalog.Vehicle)) {
+  for (const raw of children(catalog, 'Vehicle')) {
     setBindingElementId(strAttr(raw, 'name'));
     entries.push({ catalogType: 'vehicle', definition: parseVehicleDefinition(raw) });
   }
-  for (const raw of ensureArray(catalog.Pedestrian)) {
+  for (const raw of children(catalog, 'Pedestrian')) {
     setBindingElementId(strAttr(raw, 'name'));
     entries.push({ catalogType: 'pedestrian', definition: parsePedestrianDefinition(raw) });
   }
-  for (const raw of ensureArray(catalog.MiscObject)) {
+  for (const raw of children(catalog, 'MiscObject')) {
     setBindingElementId(strAttr(raw, 'name'));
     entries.push({ catalogType: 'miscObject', definition: parseMiscObjectDefinition(raw) });
   }
-  for (const raw of ensureArray(catalog.Controller)) {
+  for (const raw of children(catalog, 'Controller')) {
     setBindingElementId(strAttr(raw, 'name'));
     entries.push({ catalogType: 'controller', definition: parseControllerDefinition(raw) });
   }
-  for (const raw of ensureArray(catalog.Environment)) {
+  for (const raw of children(catalog, 'Environment')) {
     setBindingElementId(strAttr(raw, 'name'));
     entries.push({ catalogType: 'environment', definition: parseEnvironment(raw) });
   }
-  for (const raw of ensureArray(catalog.Maneuver)) {
+  for (const raw of children(catalog, 'Maneuver')) {
     setBindingElementId(strAttr(raw, 'name'));
     entries.push({ catalogType: 'maneuver', definition: parseManeuver(raw) });
   }
-  for (const raw of ensureArray(catalog.Trajectory)) {
+  for (const raw of children(catalog, 'Trajectory')) {
     setBindingElementId(strAttr(raw, 'name'));
     entries.push({ catalogType: 'trajectory', definition: parseTrajectory(raw) });
   }
-  for (const raw of ensureArray(catalog.Route)) {
+  for (const raw of children(catalog, 'Route')) {
     setBindingElementId(strAttr(raw, 'name'));
     entries.push({ catalogType: 'route', definition: parseRoute(raw) });
   }
@@ -133,8 +127,7 @@ function parseCatalogEntries(catalog: any): CatalogEntry[] {
   return entries;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function inferCatalogType(entries: CatalogEntry[], _catalog: any): CatalogType {
+function inferCatalogType(entries: CatalogEntry[]): CatalogType {
   if (entries.length === 0) return 'vehicle';
   // All entries should be the same type in a well-formed catalog
   return entries[0].catalogType;

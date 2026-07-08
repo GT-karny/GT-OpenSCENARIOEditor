@@ -5,7 +5,18 @@ import {
   UpdateGeometryCommand,
 } from '../../commands/geometry-commands.js';
 import { createTestDocument, createTestRoad, createMockGetSet } from '../helpers.js';
-import type { OpenDriveDocument } from '@osce/shared';
+import { evaluateGeometry } from '@osce/opendrive';
+import type { OpenDriveDocument, OdrGeometry } from '@osce/shared';
+
+/** Narrow a geometry to a specific variant, failing the test if it does not match. */
+function asVariant<T extends OdrGeometry['type']>(
+  geo: OdrGeometry,
+  type: T,
+): Extract<OdrGeometry, { type: T }> {
+  expect(geo.type).toBe(type);
+  if (geo.type !== type) throw new Error(`expected ${type}`);
+  return geo as Extract<OdrGeometry, { type: T }>;
+}
 
 describe('Geometry Commands', () => {
   let doc: OpenDriveDocument;
@@ -48,8 +59,7 @@ describe('Geometry Commands', () => {
 
       const result = mock.getLatest();
       expect(result.roads[0].planView).toHaveLength(3);
-      expect(result.roads[0].planView[1].type).toBe('arc');
-      expect(result.roads[0].planView[1].curvature).toBe(0.01);
+      expect(asVariant(result.roads[0].planView[1], 'arc').curvature).toBe(0.01);
     });
 
     it('uses default values for unspecified fields', () => {
@@ -64,8 +74,11 @@ describe('Geometry Commands', () => {
 
       const result = mock.getLatest();
       const added = result.roads[0].planView[2];
-      expect(added.s).toBe(0);
-      expect(added.x).toBe(0);
+      // Placement (s, x, y, hdg) is re-chained onto the end of the prior segment;
+      // the two seed line segments span s=0..100 along +x, so the appended
+      // segment starts at s=100 / (100, 0) with unchanged heading.
+      expect(added.s).toBe(100);
+      expect(added.x).toBe(100);
       expect(added.y).toBe(0);
       expect(added.hdg).toBe(0);
       expect(added.length).toBe(10);
@@ -122,8 +135,7 @@ describe('Geometry Commands', () => {
         mock.markDirtyRoad,
       );
       const geo = cmd.getCreatedGeometry();
-      expect(geo.type).toBe('arc');
-      expect(geo.curvature).toBe(0.05);
+      expect(asVariant(geo, 'arc').curvature).toBe(0.05);
     });
   });
 
@@ -262,8 +274,7 @@ describe('Geometry Commands', () => {
       cmd.execute();
 
       const result = mock.getLatest();
-      expect(result.roads[0].planView[0].type).toBe('arc');
-      expect(result.roads[0].planView[0].curvature).toBe(0.02);
+      expect(asVariant(result.roads[0].planView[0], 'arc').curvature).toBe(0.02);
     });
 
     it('can update spiral parameters', () => {
@@ -279,9 +290,9 @@ describe('Geometry Commands', () => {
       cmd1.execute();
 
       const result = mock.getLatest();
-      expect(result.roads[0].planView[0].type).toBe('spiral');
-      expect(result.roads[0].planView[0].curvStart).toBe(0);
-      expect(result.roads[0].planView[0].curvEnd).toBe(0.05);
+      const spiral = asVariant(result.roads[0].planView[0], 'spiral');
+      expect(spiral.curvStart).toBe(0);
+      expect(spiral.curvEnd).toBe(0.05);
     });
 
     it('can update paramPoly3 parameters', () => {
@@ -307,10 +318,10 @@ describe('Geometry Commands', () => {
       cmd.execute();
 
       const result = mock.getLatest();
-      expect(result.roads[0].planView[0].type).toBe('paramPoly3');
-      expect(result.roads[0].planView[0].bU).toBe(1);
-      expect(result.roads[0].planView[0].cV).toBe(1);
-      expect(result.roads[0].planView[0].pRange).toBe('normalized');
+      const pp = asVariant(result.roads[0].planView[0], 'paramPoly3');
+      expect(pp.bU).toBe(1);
+      expect(pp.cV).toBe(1);
+      expect(pp.pRange).toBe('normalized');
     });
 
     it('does nothing for invalid geometry index', () => {
@@ -373,10 +384,12 @@ describe('Geometry Commands', () => {
 
       cmd.undo();
       const result = mock.getLatest();
-      expect(result.roads[0].planView[0].x).toBe(originalX);
-      expect(result.roads[0].planView[0].y).toBe(originalY);
-      expect(result.roads[0].planView[0].type).toBe('line');
-      expect(result.roads[0].planView[0].curvature).toBeUndefined();
+      const restored = result.roads[0].planView[0];
+      expect(restored.x).toBe(originalX);
+      expect(restored.y).toBe(originalY);
+      expect(restored.type).toBe('line');
+      // The restored line must not carry a leftover curvature field.
+      expect((restored as { curvature?: number }).curvature).toBeUndefined();
     });
 
     it('undo does nothing if execute did not find the road', () => {
@@ -476,15 +489,112 @@ describe('Geometry Commands', () => {
         mock.markDirtyRoad,
       );
       updateCmd.execute();
-      expect(mock.getLatest().roads[0].planView[2].curvature).toBe(0.05);
+      expect(asVariant(mock.getLatest().roads[0].planView[2], 'arc').curvature).toBe(0.05);
 
       // Undo update
       updateCmd.undo();
-      expect(mock.getLatest().roads[0].planView[2].curvature).toBe(0.02);
+      expect(asVariant(mock.getLatest().roads[0].planView[2], 'arc').curvature).toBe(0.02);
 
       // Undo add
       addCmd.undo();
       expect(mock.getLatest().roads[0].planView).toHaveLength(2);
+    });
+  });
+
+  describe('planView normalization (s-chain, poses, road.length)', () => {
+    it('add appends and refreshes road.length to the segment-length sum', () => {
+      // Seed road: two 50m lines, length 100.
+      const cmd = new AddGeometryCommand(
+        'road-1',
+        { type: 'line', length: 30 },
+        mock.getDoc,
+        mock.setDoc,
+        mock.markDirtyRoad,
+      );
+      cmd.execute();
+
+      const road = mock.getLatest().roads[0];
+      expect(road.planView).toHaveLength(3);
+      expect(road.planView[2].s).toBe(100);
+      expect(road.length).toBe(130);
+    });
+
+    it('remove middle re-chains the following segments and refreshes road.length', () => {
+      // arc → line → line; removing the middle line must re-chain the trailing
+      // line onto the arc's curved end pose.
+      const doc = createTestDocument();
+      doc.roads.push(
+        createTestRoad({
+          length: 120,
+          planView: [
+            { type: 'arc', s: 0, x: 0, y: 0, hdg: 0, length: 40, curvature: 0.02 },
+            { type: 'line', s: 40, x: 0, y: 0, hdg: 0, length: 50 },
+            { type: 'line', s: 90, x: 0, y: 0, hdg: 0, length: 30 },
+          ],
+        }),
+      );
+      const m = createMockGetSet(doc);
+
+      new RemoveGeometryCommand('road-1', 1, m.getDoc, m.setDoc, m.markDirtyRoad).execute();
+
+      const pv = m.getLatest().roads[0].planView;
+      expect(pv).toHaveLength(2);
+      // s is contiguous from the (kept) first segment's s.
+      expect(pv[1].s).toBe(pv[0].s + pv[0].length);
+      // Start pose of the trailing segment equals the end pose of the arc.
+      const arcEnd = evaluateGeometry(pv[0].length, pv[0]);
+      expect(pv[1].x).toBeCloseTo(arcEnd.x, 9);
+      expect(pv[1].y).toBeCloseTo(arcEnd.y, 9);
+      expect(pv[1].hdg).toBeCloseTo(arcEnd.hdg, 9);
+      // road.length = firstS + Σ length = 0 + 40 + 30.
+      expect(m.getLatest().roads[0].length).toBe(70);
+    });
+
+    it('remove terminal shrinks road.length', () => {
+      // Seed road: two 50m lines, length 100.
+      new RemoveGeometryCommand('road-1', 1, mock.getDoc, mock.setDoc, mock.markDirtyRoad).execute();
+
+      const road = mock.getLatest().roads[0];
+      expect(road.planView).toHaveLength(1);
+      expect(road.length).toBe(50);
+    });
+
+    it('undo restores the exact prior planView and road.length', () => {
+      const before = structuredClone(mock.getLatest().roads[0]);
+
+      const cmd = new RemoveGeometryCommand(
+        'road-1',
+        1,
+        mock.getDoc,
+        mock.setDoc,
+        mock.markDirtyRoad,
+      );
+      cmd.execute();
+      expect(mock.getLatest().roads[0].length).toBe(50);
+
+      cmd.undo();
+      const restored = mock.getLatest().roads[0];
+      expect(restored.planView).toEqual(before.planView);
+      expect(restored.length).toBe(before.length);
+    });
+
+    it('update that changes a segment length re-chains and refreshes road.length', () => {
+      // Grow the first of two 50m lines to 80m: the second must slide to s=80 and
+      // road.length must become 80 + 50.
+      const cmd = new UpdateGeometryCommand(
+        'road-1',
+        0,
+        { length: 80 },
+        mock.getDoc,
+        mock.setDoc,
+        mock.markDirtyRoad,
+      );
+      cmd.execute();
+
+      const road = mock.getLatest().roads[0];
+      expect(road.planView[1].s).toBe(80);
+      expect(road.planView[1].x).toBeCloseTo(80, 9);
+      expect(road.length).toBe(130);
     });
   });
 });

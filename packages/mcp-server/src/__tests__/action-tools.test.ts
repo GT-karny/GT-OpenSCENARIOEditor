@@ -61,11 +61,53 @@ describe('action-tools', () => {
   });
 
   describe('add_lane_change_action', () => {
-    it('should add a lane change action', () => {
-      const result = callTool('add_lane_change_action', { eventId, targetLane: -1 }, store);
+    it('should add an absolute lane change action (default)', () => {
+      const result = callTool('add_lane_change_action', { eventId, targetLane: -2 }, store);
       expect(result.success).toBe(true);
       const data = result.data as Record<string, unknown>;
       expect(data['actionId']).toBeDefined();
+      const action = data['action'] as Record<string, unknown>;
+      const target = action['target'] as Record<string, unknown>;
+      expect(target['kind']).toBe('absolute');
+      expect(target['value']).toBe(-2);
+    });
+
+    it('should add an absolute lane change action when targetType is explicit', () => {
+      const result = callTool('add_lane_change_action', {
+        eventId,
+        targetLane: 3,
+        targetType: 'absolute',
+      }, store);
+      expect(result.success).toBe(true);
+      const action = (result.data as Record<string, unknown>)['action'] as Record<string, unknown>;
+      const target = action['target'] as Record<string, unknown>;
+      expect(target['kind']).toBe('absolute');
+      expect(target['value']).toBe(3);
+    });
+
+    it('should add a relative lane change action with entityRef', () => {
+      const result = callTool('add_lane_change_action', {
+        eventId,
+        targetLane: -1,
+        targetType: 'relative',
+        entityRef: 'Ego',
+      }, store);
+      expect(result.success).toBe(true);
+      const action = (result.data as Record<string, unknown>)['action'] as Record<string, unknown>;
+      const target = action['target'] as Record<string, unknown>;
+      expect(target['kind']).toBe('relative');
+      expect(target['value']).toBe(-1);
+      expect(target['entityRef']).toBe('Ego');
+    });
+
+    it('should fail when targetType is relative but entityRef is missing', () => {
+      const result = callTool('add_lane_change_action', {
+        eventId,
+        targetLane: -1,
+        targetType: 'relative',
+      }, store);
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('entityRef');
     });
 
     it('should fail without targetLane', () => {

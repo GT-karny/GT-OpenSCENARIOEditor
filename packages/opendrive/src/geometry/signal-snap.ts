@@ -111,11 +111,8 @@ export function computePolePlacementT(
     return outerT + sign * (width / 2);
   }
 
-  // Fallback: road edge + 0.8m outward offset
-  const outerLane =
-    side === 'right'
-      ? sorted[sorted.length - 1] // most negative id
-      : sorted[sorted.length - 1]; // most positive id
+  // Fallback: road edge + 0.8m outward offset — sorted is always inner→outer, last is outermost
+  const outerLane = sorted[sorted.length - 1];
   if (!outerLane) return laneOff;
 
   const outerT = computeLaneOuterT(section, outerLane, ds) + laneOff;

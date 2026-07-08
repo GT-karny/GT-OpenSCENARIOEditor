@@ -10,6 +10,7 @@ import type {
   ProjectUpdateRequest,
   ProjectFileType,
 } from '@osce/shared';
+import { PROJECT_META_SCHEMA_VERSION } from '@osce/shared';
 import { NotFoundError, ValidationError } from '../utils/errors.js';
 
 /** GT_Sim compatible catalog subdirectory names */
@@ -76,6 +77,30 @@ const SAMPLE_CATALOGS: ReadonlyArray<{ dir: string; file: string }> = [
 
 const SAMPLE_PROJECT_ID = 'esmini-samples';
 
+/**
+ * Migrate a raw project.json record to the current `ProjectMeta` schema.
+ *
+ * Records written before 2026-07 have no `schemaVersion` and are read as v1; the
+ * v1 -> v2 step has no structural change, so migration only stamps the current
+ * version. A record from a newer, unknown schema version is returned as-is (never
+ * downgraded) with a warning, so an older build does not silently strip fields a
+ * newer build wrote. Typed leniently because the on-disk value is untrusted.
+ */
+export function migrateProjectMeta(raw: unknown): ProjectMeta {
+  const meta = (raw ?? {}) as ProjectMeta;
+  const version = typeof meta.schemaVersion === 'number' ? meta.schemaVersion : 1;
+
+  if (version > PROJECT_META_SCHEMA_VERSION) {
+    console.warn(
+      `project.json schemaVersion ${version} is newer than supported ${PROJECT_META_SCHEMA_VERSION}; reading as-is without migration`,
+    );
+    return meta;
+  }
+
+  // v1 -> v2: no structural change; stamp the current version.
+  return { ...meta, schemaVersion: PROJECT_META_SCHEMA_VERSION };
+}
+
 export class ProjectService {
   private basePath: string;
   private readonly defaultBasePath: string;
@@ -106,12 +131,20 @@ export class ProjectService {
       runtimeResourcesPath ? path.join(runtimeResourcesPath, 'gtsim-resources') : null,
       // Existing dev flow: from apps/server cwd -> repo/Thirdparty/GT_Sim/resources
       path.resolve(process.cwd(), '../../Thirdparty/GT_Sim/resources'),
+      // Committed fixture copies of the same esmini resources — covers checkouts
+      // without the GT_Sim submodule (notably the CI E2E job).
+      path.resolve(process.cwd(), '../../test-fixtures/esmini'),
     ].filter((p): p is string => Boolean(p));
 
     for (const base of candidates) {
       try {
         await fs.stat(path.join(base, 'xosc'));
         await fs.stat(path.join(base, 'xodr'));
+        // Representative-file probe: a partial checkout (e.g. a sparse or
+        // differently-pinned submodule) can have the directories but not the
+        // content; picking it over the complete committed fixtures would yield
+        // a silently partial seed (tryCopyFile skips missing sources).
+        await fs.stat(path.join(base, 'xosc', SAMPLE_SCENARIOS[0]));
         return base;
       } catch {
         // Continue trying other candidates
@@ -183,6 +216,7 @@ export class ProjectService {
       createdAt: now,
       updatedAt: now,
       defaultScenario: 'xosc/cut-in.xosc',
+      schemaVersion: PROJECT_META_SCHEMA_VERSION,
     };
 
     await fs.writeFile(path.join(projectDir, 'project.json'), JSON.stringify(meta, null, 2), 'utf-8');
@@ -303,6 +337,7 @@ export class ProjectService {
       description: req.description?.trim() ?? '',
       createdAt: now,
       updatedAt: now,
+      schemaVersion: PROJECT_META_SCHEMA_VERSION,
     };
 
     await fs.writeFile(path.join(projectDir, 'project.json'), JSON.stringify(meta, null, 2), 'utf-8');
@@ -484,7 +519,7 @@ export class ProjectService {
     const metaPath = path.join(projectDir, 'project.json');
     try {
       const raw = await fs.readFile(metaPath, 'utf-8');
-      return JSON.parse(raw) as ProjectMeta;
+      return migrateProjectMeta(JSON.parse(raw));
     } catch (err: unknown) {
       if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
         throw new NotFoundError(`Project not found`);
@@ -496,6 +531,8 @@ export class ProjectService {
   private async touchUpdatedAt(projectId: string): Promise<void> {
     try {
       const projectDir = this.validateProjectPath(projectId);
+      // readMeta already migrated and stamped schemaVersion, so writing this
+      // record back persists the upgrade for any project touched by an edit.
       const meta = await this.readMeta(projectDir);
       meta.updatedAt = new Date().toISOString();
       await fs.writeFile(

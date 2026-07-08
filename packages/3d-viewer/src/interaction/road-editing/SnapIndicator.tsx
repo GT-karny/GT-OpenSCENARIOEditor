@@ -18,7 +18,7 @@ interface SnapIndicatorProps {
 function computeEndPosition(planView: readonly OdrGeometry[]): { x: number; y: number } | null {
   if (planView.length === 0) return null;
   const last = planView[planView.length - 1];
-  if (last.type === 'arc' && last.curvature !== undefined && Math.abs(last.curvature) > 1e-10) {
+  if (last.type === 'arc' && Math.abs(last.curvature) > 1e-10) {
     const c = last.curvature;
     const endHdg = last.hdg + c * last.length;
     const r = 1 / c;

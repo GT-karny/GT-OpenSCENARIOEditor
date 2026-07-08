@@ -1,12 +1,12 @@
 /**
  * Renders line segments connecting trajectory points.
- * Uses drei's Line component (Line2) for consistent line width.
- * Points are elevated by +0.15 in Z to avoid z-fighting with road surface.
+ * Thin wrapper around the shared {@link EditConnectionLine} with the trajectory colour.
  */
 
-import React, { useMemo } from 'react';
-import { Line } from '@react-three/drei';
+import React from 'react';
 import type { ThreeEvent } from '@react-three/fiber';
+import { EditConnectionLine } from '../edit-shared/EditConnectionLine.js';
+import { TRAJECTORY_EDIT_THEME } from '../edit-shared/edit-theme.js';
 
 interface TrajectoryConnectionLineProps {
   points: Array<{ x: number; y: number; z: number }>;
@@ -18,34 +18,10 @@ interface TrajectoryConnectionLineProps {
   onClick?: (e: ThreeEvent<MouseEvent>) => void;
 }
 
-const DEFAULT_COLOR = '#FF8800';
-const Z_OFFSET = 0.15;
-
 export const TrajectoryConnectionLine: React.FC<TrajectoryConnectionLineProps> = React.memo(
-  ({ points, color = DEFAULT_COLOR, lineWidth = 3, dashed = false, dashSize = 0.5, gapSize = 0.3, onClick }) => {
-    const linePoints = useMemo(() => {
-      return points.map(
-        (p) => [p.x, p.y, p.z + Z_OFFSET] as [number, number, number],
-      );
-    }, [points]);
-
-    if (linePoints.length < 2) return null;
-
-    return (
-      <Line
-        points={linePoints}
-        color={color}
-        lineWidth={lineWidth}
-        dashed={dashed}
-        dashSize={dashSize}
-        gapSize={gapSize}
-        onClick={(e: ThreeEvent<MouseEvent>) => {
-          e.stopPropagation();
-          onClick?.(e);
-        }}
-      />
-    );
-  },
+  ({ points, color = TRAJECTORY_EDIT_THEME.lineColor, ...rest }) => (
+    <EditConnectionLine points={points} color={color} {...rest} />
+  ),
 );
 
 TrajectoryConnectionLine.displayName = 'TrajectoryConnectionLine';

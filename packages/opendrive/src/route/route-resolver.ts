@@ -20,6 +20,7 @@ import {
   contactEndS,
   directNextRoad,
   junctionConnectionsFrom,
+  laneSpansAcrossSections,
   type RoadSide,
 } from './road-linking.js';
 
@@ -71,16 +72,22 @@ function expand(
   }
 
   for (const exitSide of exitSides) {
+    // The input laneId is valid at entryS; the road-boundary link lives on the
+    // exit-side section, whose lane ID may differ if lanes are added/dropped
+    // across internal lane sections. Resolve the exit-side lane ID first.
+    const exitS = contactEndS(road, exitSide);
+    const exitLaneId = laneIdAtS(road, laneId, entryS, exitS);
+
     // Direct road→road transition
     const direct = directNextRoad(road, exitSide, doc);
     if (direct) {
       // Follow lane link; if lane has no link, assume same ID (rare)
-      const fromSectionSide = exitSide;
-      const lane = findLaneAnywhere(road, laneId, fromSectionSide);
-      let nextLaneId = laneId;
+      const lane = findLaneAnywhere(road, exitLaneId, exitSide);
+      let nextLaneId = exitLaneId;
       if (lane?.link) {
+        // Follow the first linked lane (routing walks a single continuous lane).
         const lid =
-          exitSide === 'predecessor' ? lane.link.predecessorId : lane.link.successorId;
+          exitSide === 'predecessor' ? lane.link.predecessors[0]?.id : lane.link.successors[0]?.id;
         if (lid !== undefined) nextLaneId = lid;
       }
       results.push({
@@ -94,12 +101,12 @@ function expand(
     // Junction transition: iterate connections whose incomingRoad === road.id
     const conns = junctionConnectionsFrom(road, exitSide, doc);
     for (const c of conns) {
-      // Match laneLinks where from === laneId
+      // Match laneLinks where from === the exit-side lane ID
       for (const ll of c.laneLinks) {
-        if (ll.from !== laneId) continue;
+        if (ll.from !== exitLaneId) continue;
         // Enter connecting road at the incoming-side end
         const crEntrySide: RoadSide =
-          c.connection.contactPoint === 'start' ? 'predecessor' : 'successor';
+          (c.connection.contactPoint ?? 'start') === 'start' ? 'predecessor' : 'successor';
         const crEntryS = contactEndS(c.connectingRoad, crEntrySide);
         results.push({
           nextRoadId: c.connectingRoad.id,
@@ -124,6 +131,23 @@ function findLaneAnywhere(road: OdrRoad, laneId: number, side: RoadSide) {
   if (laneId === 0) return section.centerLane;
   if (laneId > 0) return section.leftLanes.find((l) => l.id === laneId) ?? null;
   return section.rightLanes.find((l) => l.id === laneId) ?? null;
+}
+
+/**
+ * Lane ID at `atS` for the continuous lane that has `laneId` at `fromS`,
+ * following `<lane><link>` across internal lane-section boundaries. Returns
+ * `laneId` unchanged for a single-section road or when links are missing.
+ */
+function laneIdAtS(road: OdrRoad, laneId: number, fromS: number, atS: number): number {
+  const sMin = Math.min(fromS, atS);
+  const sMax = Math.max(fromS, atS);
+  if (sMax - sMin < 1e-6) return laneId;
+  const anchor = fromS <= atS ? 'low' : 'high';
+  const spans = laneSpansAcrossSections(road, laneId, sMin, sMax, anchor);
+  for (const sp of spans) {
+    if (atS >= sp.sStart - 1e-6 && atS <= sp.sEnd + 1e-6) return sp.laneId;
+  }
+  return spans.length > 0 ? spans[spans.length - 1].laneId : laneId;
 }
 
 /**
@@ -183,8 +207,10 @@ export function resolveRoute(
     const road = findRoad(doc, node.roadId);
     if (!road) continue;
 
-    // Goal check
-    if (node.roadId === to.roadId && node.laneId === toLaneId) {
+    // Goal check. node.laneId is valid at node.entryS; the goal lane ID is
+    // specified at toS, which may live in a different lane section where the
+    // continuous lane has a different ID. Walk <lane><link> from entry to toS.
+    if (node.roadId === to.roadId && laneIdAtS(road, node.laneId, node.entryS, toS) === toLaneId) {
       // Verify reachability in s: node.entryS is either 0, length, or the start s.
       // Goal is reachable if toS is in [min(entryS, otherEnd), max(...)] for the
       // traversal direction. For start-road itself we already handled above.

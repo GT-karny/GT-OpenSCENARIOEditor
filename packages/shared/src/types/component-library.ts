@@ -22,7 +22,7 @@ export interface UseCaseComponent {
   icon: string;
   parameters: ComponentParameter[];
   decompose: (params: Record<string, unknown>, context: DecompositionContext) => DecompositionResult;
-  reconcile: (params: Record<string, unknown>, context: ReconciliationContext) => Record<string, unknown>;
+  reconcile?: (params: Record<string, unknown>, context: ReconciliationContext) => Record<string, unknown>;
 }
 
 // --- Action Component ---

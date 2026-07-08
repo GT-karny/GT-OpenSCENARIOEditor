@@ -3,6 +3,8 @@
  */
 import type { OdrSignal, OdrSignalRef, OdrLaneValidity } from '@osce/shared';
 import { fmtNum, optAttr } from './format-utils.js';
+import { applyExtra } from './apply-extra.js';
+import { buildSemantics } from './build-semantics.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type XmlNode = Record<string, any>;
@@ -56,7 +58,21 @@ export function buildSignal(sig: OdrSignal): XmlNode {
     });
   }
 
-  // positionRoad
+  // position choice — XSD 1.9 orders positionInertial before positionRoad
+  // (t_road_signals_signal sequence); emit in that order.
+  if (sig.positionInertial) {
+    const pi = sig.positionInertial;
+    const piNode: XmlNode = {
+      '@_x': fmtNum(pi.x),
+      '@_y': fmtNum(pi.y),
+      '@_z': fmtNum(pi.z),
+      '@_hdg': fmtNum(pi.hdg),
+    };
+    optAttr(piNode, '@_pitch', pi.pitch, fmtNum);
+    optAttr(piNode, '@_roll', pi.roll, fmtNum);
+    node.positionInertial = piNode;
+  }
+
   if (sig.positionRoad) {
     const pr = sig.positionRoad;
     const prNode: XmlNode = {
@@ -71,19 +87,11 @@ export function buildSignal(sig: OdrSignal): XmlNode {
     node.positionRoad = prNode;
   }
 
-  // positionInertial
-  if (sig.positionInertial) {
-    const pi = sig.positionInertial;
-    const piNode: XmlNode = {
-      '@_x': fmtNum(pi.x),
-      '@_y': fmtNum(pi.y),
-      '@_z': fmtNum(pi.z),
-      '@_hdg': fmtNum(pi.hdg),
-    };
-    optAttr(piNode, '@_pitch', pi.pitch, fmtNum);
-    optAttr(piNode, '@_roll', pi.roll, fmtNum);
-    node.positionInertial = piNode;
-  }
+  applyExtra(node, sig.extra);
+
+  // semantics comes last in the t_road_signals_signal sequence (after
+  // g_additionalData / the board subtree carried by extra).
+  if (sig.semantics) node.semantics = buildSemantics(sig.semantics);
 
   return node;
 }
@@ -102,8 +110,9 @@ export function buildSignalRef(ref: OdrSignalRef): XmlNode {
 }
 
 function buildLaneValidityArray(validity: OdrLaneValidity[]): XmlNode[] {
-  return validity.map((v) => ({
-    '@_fromLane': v.fromLane,
-    '@_toLane': v.toLane,
-  }));
+  return validity.map((v) => {
+    const node: XmlNode = { '@_fromLane': v.fromLane, '@_toLane': v.toLane };
+    optAttr(node, '@_layer', v.layer);
+    return applyExtra(node, v.extra);
+  });
 }

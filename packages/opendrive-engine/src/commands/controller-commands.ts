@@ -3,23 +3,30 @@
  * Controllers are top-level elements in the OpenDRIVE document.
  */
 
-import { produce } from 'immer';
 import type { OpenDriveDocument, OdrController } from '@osce/shared';
-import { BaseCommand } from './base-command.js';
+import { PatchCommand } from './patch-command.js';
 import type { GetDoc, SetDoc } from './road-commands.js';
 import { nextNumericId } from '../utils/id-generator.js';
 import { createControllerFromDefaults } from '../store/defaults.js';
+
+export type MarkDirtyController = (controllerId: string) => void;
 
 function findControllerIndex(doc: OpenDriveDocument, controllerId: string): number {
   return doc.controllers.findIndex((c) => c.id === controllerId);
 }
 
-export class AddControllerCommand extends BaseCommand {
+export class AddControllerCommand extends PatchCommand {
   private readonly controller: OdrController;
   private readonly getDoc: GetDoc;
   private readonly setDoc: SetDoc;
+  private readonly markDirty: MarkDirtyController;
 
-  constructor(partial: Partial<OdrController>, getDoc: GetDoc, setDoc: SetDoc) {
+  constructor(
+    partial: Partial<OdrController>,
+    getDoc: GetDoc,
+    setDoc: SetDoc,
+    markDirty: MarkDirtyController,
+  ) {
     const id = partial.id ?? nextNumericId(getDoc().controllers.map((c) => c.id));
     super(`Add controller: ${partial.name ?? id}`);
     const controller = createControllerFromDefaults(id, partial.name ?? '');
@@ -28,23 +35,17 @@ export class AddControllerCommand extends BaseCommand {
     this.controller = controller;
     this.getDoc = getDoc;
     this.setDoc = setDoc;
+    this.markDirty = markDirty;
   }
 
-  execute(): void {
-    this.setDoc(
-      produce(this.getDoc(), (draft) => {
-        draft.controllers.push(this.controller);
-      }),
-    );
+  apply(): void {
+    this.mutate(this.getDoc, this.setDoc, (draft) => {
+      draft.controllers.push(this.controller);
+    });
   }
 
-  undo(): void {
-    this.setDoc(
-      produce(this.getDoc(), (draft) => {
-        const idx = findControllerIndex(draft, this.controller.id);
-        if (idx !== -1) draft.controllers.splice(idx, 1);
-      }),
-    );
+  protected markSideEffects(): void {
+    this.markDirty(this.controller.id);
   }
 
   getCreatedController(): OdrController {
@@ -52,85 +53,63 @@ export class AddControllerCommand extends BaseCommand {
   }
 }
 
-export class RemoveControllerCommand extends BaseCommand {
-  private removedController: OdrController | null = null;
-  private removedIndex = -1;
+export class RemoveControllerCommand extends PatchCommand {
   private readonly controllerId: string;
   private readonly getDoc: GetDoc;
   private readonly setDoc: SetDoc;
+  private readonly markDirty: MarkDirtyController;
 
-  constructor(controllerId: string, getDoc: GetDoc, setDoc: SetDoc) {
+  constructor(controllerId: string, getDoc: GetDoc, setDoc: SetDoc, markDirty: MarkDirtyController) {
     super(`Remove controller: ${controllerId}`);
     this.controllerId = controllerId;
     this.getDoc = getDoc;
     this.setDoc = setDoc;
+    this.markDirty = markDirty;
   }
 
-  execute(): void {
-    const doc = this.getDoc();
-    this.removedIndex = findControllerIndex(doc, this.controllerId);
-    if (this.removedIndex !== -1) {
-      this.removedController = structuredClone(doc.controllers[this.removedIndex]);
-    }
-    this.setDoc(
-      produce(doc, (draft) => {
-        if (this.removedIndex !== -1) draft.controllers.splice(this.removedIndex, 1);
-      }),
-    );
+  apply(): void {
+    this.mutate(this.getDoc, this.setDoc, (draft) => {
+      const idx = findControllerIndex(draft, this.controllerId);
+      if (idx !== -1) draft.controllers.splice(idx, 1);
+    });
   }
 
-  undo(): void {
-    if (!this.removedController || this.removedIndex === -1) return;
-    const controller = this.removedController;
-    const idx = this.removedIndex;
-    this.setDoc(
-      produce(this.getDoc(), (draft) => {
-        draft.controllers.splice(idx, 0, controller);
-      }),
-    );
+  protected markSideEffects(): void {
+    this.markDirty(this.controllerId);
   }
 }
 
-export class UpdateControllerCommand extends BaseCommand {
-  private previousController: OdrController | null = null;
+export class UpdateControllerCommand extends PatchCommand {
   private readonly controllerId: string;
   private readonly updates: Partial<OdrController>;
   private readonly getDoc: GetDoc;
   private readonly setDoc: SetDoc;
+  private readonly markDirty: MarkDirtyController;
 
   constructor(
     controllerId: string,
     updates: Partial<OdrController>,
     getDoc: GetDoc,
     setDoc: SetDoc,
+    markDirty: MarkDirtyController,
   ) {
     super(`Update controller: ${controllerId}`);
     this.controllerId = controllerId;
     this.updates = updates;
     this.getDoc = getDoc;
     this.setDoc = setDoc;
+    this.markDirty = markDirty;
   }
 
-  execute(): void {
-    const doc = this.getDoc();
-    const idx = findControllerIndex(doc, this.controllerId);
-    if (idx === -1) return;
-    this.previousController = structuredClone(doc.controllers[idx]);
-    this.setDoc(
-      produce(doc, (draft) => {
-        Object.assign(draft.controllers[idx], this.updates);
-      }),
-    );
+  apply(): void {
+    this.mutate(this.getDoc, this.setDoc, (draft) => {
+      const idx = findControllerIndex(draft, this.controllerId);
+      if (idx === -1) return;
+      Object.assign(draft.controllers[idx], this.updates);
+    });
   }
 
-  undo(): void {
-    if (!this.previousController) return;
-    const prev = this.previousController;
-    this.setDoc(
-      produce(this.getDoc(), (draft) => {
-        const idx = findControllerIndex(draft, this.controllerId);
-        if (idx !== -1) draft.controllers[idx] = prev;
-      }),
-    );
+  protected markSideEffects(): void {
+    this.markDirty(this.controllerId);
   }
 }

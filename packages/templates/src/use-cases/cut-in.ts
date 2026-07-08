@@ -148,7 +148,4 @@ export const cutInUseCase: UseCaseComponent = {
       },
     };
   },
-  reconcile(params) {
-    return { ...params };
-  },
 };

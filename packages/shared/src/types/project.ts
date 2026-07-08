@@ -1,7 +1,7 @@
-/** GT_Sim互換のファイル分類 */
+/** File classification compatible with GT_Sim */
 export type ProjectFileType = 'xosc' | 'xodr' | 'model' | 'config' | 'doc' | 'other';
 
-/** プロジェクト内のファイルエントリ */
+/** A file entry within a project */
 export interface ProjectFileEntry {
   name: string;
   relativePath: string;
@@ -10,7 +10,14 @@ export interface ProjectFileEntry {
   modifiedAt: string;
 }
 
-/** プロジェクトメタデータ（project.json に保存） */
+/**
+ * Current project.json schema version. Bump when the persisted `ProjectMeta`
+ * shape changes and add the corresponding step to the server's
+ * `migrateProjectMeta`.
+ */
+export const PROJECT_META_SCHEMA_VERSION = 2;
+
+/** Project metadata (persisted to project.json) */
 export interface ProjectMeta {
   id: string;
   name: string;
@@ -18,9 +25,14 @@ export interface ProjectMeta {
   createdAt: string;
   updatedAt: string;
   defaultScenario?: string;
+  /**
+   * project.json schema version. Absent in records written before 2026-07 (read
+   * as v1); the server migrates on read and stamps the current version on write.
+   */
+  schemaVersion?: number;
 }
 
-/** プロジェクト一覧用の軽量サマリー */
+/** Lightweight summary for the project list view */
 export interface ProjectSummary {
   id: string;
   name: string;
@@ -30,25 +42,25 @@ export interface ProjectSummary {
   scenarioCount: number;
 }
 
-/** プロジェクト詳細（メタ + ファイル一覧） */
+/** Full project detail (metadata + file list) */
 export interface ProjectDetail {
   meta: ProjectMeta;
   files: ProjectFileEntry[];
 }
 
-/** プロジェクト作成リクエスト */
+/** Project creation request */
 export interface ProjectCreateRequest {
   name: string;
   description?: string;
   template?: 'empty' | 'basic';
 }
 
-/** プロジェクト更新リクエスト */
+/** Project update request */
 export interface ProjectUpdateRequest {
   name?: string;
   description?: string;
   defaultScenario?: string;
 }
 
-/** アプリケーション画面状態 */
+/** Top-level application view */
 export type AppView = 'home' | 'editor';

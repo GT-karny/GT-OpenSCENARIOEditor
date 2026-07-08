@@ -1,0 +1,157 @@
+import type { ScenarioAction, LightStateAction } from '@osce/shared';
+import { LIGHT_MODES } from '@osce/shared';
+import { Label } from '../../../../../components/ui/label';
+import { ParameterAwareInput } from '../ParameterAwareInput';
+import { EnumSelect } from '../../../../../components/form/EnumSelect';
+import { SegmentedControl } from '../SegmentedControl';
+import { OptionalFieldWrapper } from '../OptionalFieldWrapper';
+import { actionBody, actionUpdate } from '../lib/typed-updates';
+
+interface LightStateActionEditorProps {
+  action: ScenarioAction;
+  onUpdate: (partial: Partial<ScenarioAction>) => void;
+}
+
+const VEHICLE_LIGHT_TYPES = [
+  'daytimeRunningLights',
+  'lowBeam',
+  'highBeam',
+  'fogLights',
+  'fogLightsFront',
+  'fogLightsRear',
+  'brakeLights',
+  'warningLights',
+  'indicatorLeft',
+  'indicatorRight',
+  'reversingLights',
+  'licensePlateIllumination',
+  'specialPurposeLights',
+] as const;
+
+export function LightStateActionEditor({ action, onUpdate }: LightStateActionEditorProps) {
+  const inner = action.action as LightStateAction;
+
+  const updateInner = (updates: Partial<LightStateAction>) => {
+    onUpdate(actionUpdate(inner, updates));
+  };
+
+  const lightCategory = inner.lightType.startsWith('vehicleLight:') ? 'vehicleLight' : 'userDefinedLight';
+  const vehicleLightType = inner.lightType.startsWith('vehicleLight:')
+    ? inner.lightType.slice('vehicleLight:'.length)
+    : VEHICLE_LIGHT_TYPES[0];
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-muted-foreground">Light Type</p>
+        <div className="grid gap-1">
+          <Label className="text-xs">Category</Label>
+          <SegmentedControl
+            value={lightCategory}
+            options={['vehicleLight', 'userDefinedLight'] as const}
+            onValueChange={(v) => {
+              if (v === 'vehicleLight') {
+                updateInner({ lightType: `vehicleLight:${VEHICLE_LIGHT_TYPES[0]}` });
+              } else {
+                updateInner({ lightType: '' });
+              }
+            }}
+            labels={{ vehicleLight: 'Vehicle', userDefinedLight: 'User Defined' }}
+          />
+        </div>
+
+        {lightCategory === 'vehicleLight' && (
+          <div className="grid gap-1">
+            <Label className="text-xs">Vehicle Light Type</Label>
+            <EnumSelect
+              value={vehicleLightType}
+              options={[...VEHICLE_LIGHT_TYPES]}
+              onValueChange={(v) => updateInner({ lightType: `vehicleLight:${v}` })}
+              className="h-8 text-sm"
+            />
+          </div>
+        )}
+
+        {lightCategory === 'userDefinedLight' && (
+          <div className="grid gap-1">
+            <Label className="text-xs">Light Type Name</Label>
+            <ParameterAwareInput
+              value={inner.lightType}
+              placeholder="custom light type"
+              onValueChange={(v) => updateInner({ lightType: v })}
+              acceptedTypes={['string']}
+              className="h-8 text-sm"
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-muted-foreground">Light State</p>
+        <div className="grid gap-1">
+          <Label className="text-xs">Mode</Label>
+          <SegmentedControl
+            value={inner.mode}
+            options={LIGHT_MODES}
+            onValueChange={(v) => updateInner({ mode: v as LightStateAction['mode'] })}
+            labels={{ on: 'On', off: 'Off', flashing: 'Flashing' }}
+          />
+        </div>
+
+        <OptionalFieldWrapper
+          label="Luminous Intensity (cd)"
+          hasValue={inner.intensity !== undefined}
+          onClear={() => {
+            const { intensity: _, ...rest } = inner;
+            onUpdate(actionBody(rest));
+          }}
+        >
+          <ParameterAwareInput
+            elementId={action.id}
+            fieldName="intensity"
+            value={inner.intensity ?? ''}
+            placeholder="--"
+            onValueChange={(v) => {
+              const n = parseFloat(v);
+              if (isNaN(n) || v === '') {
+                const { intensity: _, ...rest } = inner;
+                onUpdate(actionBody(rest));
+              } else {
+                updateInner({ intensity: n });
+              }
+            }}
+            acceptedTypes={['double']}
+            className="h-8 text-sm"
+          />
+        </OptionalFieldWrapper>
+
+        <OptionalFieldWrapper
+          label="Transition Time (s)"
+          hasValue={inner.transitionTime !== undefined}
+          onClear={() => {
+            const { transitionTime: _, ...rest } = inner;
+            onUpdate(actionBody(rest));
+          }}
+        >
+          <ParameterAwareInput
+            elementId={action.id}
+            fieldName="transitionTime"
+            value={inner.transitionTime ?? ''}
+            placeholder="--"
+            onValueChange={(v) => {
+              const n = parseFloat(v);
+              if (isNaN(n) || v === '') {
+                const { transitionTime: _, ...rest } = inner;
+                onUpdate(actionBody(rest));
+              } else {
+                updateInner({ transitionTime: n });
+              }
+            }}
+            acceptedTypes={['double']}
+            className="h-8 text-sm"
+          />
+        </OptionalFieldWrapper>
+      </div>
+    </div>
+  );
+}

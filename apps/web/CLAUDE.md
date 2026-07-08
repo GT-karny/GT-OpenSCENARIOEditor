@@ -14,10 +14,22 @@
 
 ## Component Organization
 
-- Components: `src/components/`
-- Hooks: `src/hooks/`
-- Stores: `src/stores/`
-- WASM simulation: `src/lib/wasm/`
+Feature-first layout (S6, 2026-07): mode-owned code lives under `src/features/`;
+only genuinely shared shell/infrastructure stays at the top level.
+
+- Features: `src/features/{scenario,road,simulation}/` — each with its own
+  `components/`, `hooks/`, and (simulation) `stores/` + `lib/`. A future editor
+  mode = a new folder here.
+  - Scenario editing (property editors, scene composer, catalogs, parameters,
+    validation, intersection timeline): `src/features/scenario/`
+  - Road-network editing (OpenDRIVE editor, road tools): `src/features/road/`
+  - Simulation (run/playback UI, WASM service layer, simulation store):
+    `src/features/simulation/`
+- Shared shell components: `src/components/` (layout, editor dialogs, home,
+  common toolbar, `form/`, `ui/`)
+- Shared infra hooks: `src/hooks/` (file operations, guards, autosave,
+  app lifecycle, keyboard/menu routing, engine-store wiring)
+- Stores: `src/stores/` (document registry, editor/project/catalog/distribution)
 - shadcn/ui wrappers in `src/components/ui/` — these may use shadcn tokens internally
 
 ## UX Principle

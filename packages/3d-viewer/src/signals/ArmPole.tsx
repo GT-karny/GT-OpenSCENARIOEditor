@@ -7,7 +7,7 @@
  * direction of armAngle.
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 import type { ResolvedSignal } from './TrafficSignalGroup.js';
 import {
@@ -41,11 +41,22 @@ export const ArmPole: React.FC<ArmPoleProps> = React.memo(
       [poleHeight],
     );
 
+    // Dispose the previous vertical pole geometry when a new one is created, and on unmount.
+    // The material comes from the shared cache and must NOT be disposed here.
+    useEffect(() => {
+      return () => verticalGeo.dispose();
+    }, [verticalGeo]);
+
     // Horizontal arm geometry
     const armGeo = useMemo(
       () => new THREE.CylinderGeometry(POLE_RADIUS, POLE_RADIUS, armLength, ARM_SEGMENTS),
       [armLength],
     );
+
+    // Dispose the previous arm geometry when a new one is created, and on unmount.
+    useEffect(() => {
+      return () => armGeo.dispose();
+    }, [armGeo]);
 
     // Signal position is at the HEAD (lane center). Pole base is offset by -armLength.
     const { position } = signal;

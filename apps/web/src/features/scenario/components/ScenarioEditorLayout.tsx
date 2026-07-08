@@ -1,0 +1,828 @@
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { useStore } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
+import { SceneComposerView } from './scene-composer/SceneComposerView';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import type { ImperativePanelHandle, ImperativePanelGroupHandle } from 'react-resizable-panels';
+import { FolderTree } from 'lucide-react';
+import type { Node } from '@xyflow/react';
+import { NodeEditorProvider, NodeEditor, detectElementType } from '@osce/node-editor';
+import type { OsceNodeData, OsceNodeType } from '@osce/node-editor';
+import type {
+  ViewerMode,
+  PickedPositionData,
+  SignalSelectionConfig,
+  PositionPickConfig,
+} from '@osce/3d-viewer';
+import { worldToLane } from '@osce/opendrive';
+import { StatusBar } from '../../../components/layout/StatusBar';
+import { EntityListPanel } from './panels/EntityListPanel';
+import { VariablesPanel } from './panels/VariablesPanel';
+import { PropertyPanel } from './panels/PropertyPanel';
+import { ValidationPanel } from './panels/ValidationPanel';
+import { SimulationTimeline } from '../../simulation/components/panels/SimulationTimeline';
+import { IntersectionTimelinePanel } from './panels/intersection-timeline';
+import { ErrorBoundary } from '../../../components/ErrorBoundary';
+import { NodeEditorContextMenu } from './node-editor/NodeEditorContextMenu';
+import { WaypointContextMenu } from './route/WaypointContextMenu';
+import { TrajectoryContextMenu } from './trajectory/TrajectoryContextMenu';
+import type { ContextMenuPosition } from './node-editor/NodeEditorContextMenu';
+import { DeleteConfirmationDialog } from './node-editor/DeleteConfirmationDialog';
+import { ParameterDialog } from './template/ParameterDialog';
+import { CatalogEditorModal } from './catalog/CatalogEditorModal';
+import { FileTreeSidebar } from '../../../components/editor/FileTreeSidebar';
+import { SaveAsDialog } from '../../../components/editor/SaveAsDialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
+import { useTranslation } from '@osce/i18n';
+import { useScenarioStoreApi } from '../../../stores/use-scenario-store';
+import { useEditorStore } from '../../../stores/editor-store';
+import { useDocumentRegistry } from '../../../stores/document-registry';
+import { useProjectStore } from '../../../stores/project-store';
+import { useSimulationStore } from '../../simulation/stores/simulation-store';
+import { useRouteEdit } from '../hooks/use-route-edit';
+import { useTrajectoryEdit } from '../hooks/use-trajectory-edit';
+import { useRoutePreview } from '../hooks/use-route-preview';
+import { useTrajectoryPreview } from '../hooks/use-trajectory-preview';
+import { useLaneChangePreview } from '../hooks/use-lane-change-preview';
+import { useRoadManagerClient } from '../../simulation/hooks/use-road-manager-client';
+import { useCatalogStore } from '../../../stores/catalog-store';
+import { useTemplateDrop } from '../hooks/use-template-drop';
+import { useElementDelete } from '../../../hooks/use-element-delete';
+import { useElementAdd } from '../hooks/use-element-add';
+import { useCopyPaste } from '../../../hooks/use-clipboard';
+import { useClipboardStore } from '../../../stores/clipboard-store';
+import { getDirectChildCount } from '../../../lib/count-descendants';
+import { useFileOperations } from '../../../hooks/use-file-operations';
+import { buildFullPathToIdMap } from '../../../lib/fullpath-mapping';
+import { editorMetadataStoreApi } from '../../../stores/editor-metadata-store-instance';
+import { evaluateReferenceLineAtS, evaluateElevation, stToXyz } from '@osce/opendrive';
+import type { PoleAssemblyInfo } from '@osce/3d-viewer';
+import { extractEntityPositions } from '@osce/3d-viewer';
+import { SimulationViewerBridge } from '../../simulation/components/layout/SimulationViewerBridge';
+import { SignalPickOverlay } from '../../../components/layout/SignalPickOverlay';
+import { useRouteEditHandlers } from '../hooks/use-route-edit-handlers';
+import { useTrajectoryEditHandlers } from '../hooks/use-trajectory-edit-handlers';
+
+function ResizeHandle() {
+  return (
+    <PanelResizeHandle className="w-[1px] divider-glow-v hover:w-[3px] transition-all data-[resize-handle-active]:w-[3px]" />
+  );
+}
+
+function ResizeHandleH() {
+  return (
+    <PanelResizeHandle className="h-[1px] divider-glow hover:h-[3px] transition-all data-[resize-handle-active]:h-[3px]" />
+  );
+}
+
+interface DeleteRequest {
+  id: string;
+  elementName: string;
+  elementType: string;
+  childCount: number;
+}
+
+export function ScenarioEditorLayout() {
+  const { t } = useTranslation('common');
+  const scenarioStoreApi = useScenarioStoreApi();
+  const currentProject = useProjectStore((s) => s.currentProject);
+  const focusedBase = useDocumentRegistry((s) => s.focusedBase);
+  const [centerTab, setCenterTab] = useState<'composer' | 'graph'>('composer');
+
+  // Click-to-navigate from the validation panel requests the Graph tab so node
+  // focus is actually visible; consume and clear the transient store request.
+  const centerTabRequest = useEditorStore((s) => s.centerTabRequest);
+  useEffect(() => {
+    if (centerTabRequest) {
+      setCenterTab(centerTabRequest);
+      useEditorStore.getState().clearCenterTabRequest();
+    }
+  }, [centerTabRequest]);
+
+  const fileTreePanelRef = useRef<ImperativePanelHandle>(null);
+  const editingPanelGroupRef = useRef<ImperativePanelGroupHandle>(null);
+  const [fileTreeCollapsed, setFileTreeCollapsed] = useState(true);
+
+  // --- Collapse file tree on mount ---
+  useEffect(() => {
+    fileTreePanelRef.current?.collapse();
+  }, []);
+
+  // --- SaveAs dialog ---
+  const showSaveAs = useEditorStore((s) => s.showSaveAs);
+  const setShowSaveAs = useEditorStore((s) => s.setShowSaveAs);
+  const saveAsFileType = useEditorStore((s) => s.saveAsFileType);
+  const { handleSaveAs, handleSaveAsXodr } = useFileOperations();
+
+  // --- Selection sync ---
+  const selectedElementIds = useEditorStore(useShallow((s) => s.selection.selectedElementIds));
+  const hoveredElementId = useEditorStore((s) => s.selection.hoveredElementId);
+  const roadNetwork = useEditorStore((s) => s.roadNetwork);
+  const signalAssemblies = useStore(editorMetadataStoreApi, (s) => s.metadata.signalAssemblies);
+  const signalAssemblyMap = useMemo(() => {
+    if (!signalAssemblies || signalAssemblies.length === 0 || !roadNetwork) return undefined;
+    const map = new Map<string, PoleAssemblyInfo>();
+    for (const asm of signalAssemblies) {
+      let armAngle = asm.armAngle;
+      if (armAngle == null && asm.poleType === 'arm' && asm.poleObjectId) {
+        const road = roadNetwork.roads.find((r) => r.id === asm.roadId);
+        if (road) {
+          const poleObj = road.objects.find((o) => o.id === asm.poleObjectId);
+          const signal = road.signals.find((s) => asm.signalIds.includes(s.id));
+          if (poleObj && signal) {
+            const pose = evaluateReferenceLineAtS(road.planView, signal.s);
+            const z = evaluateElevation(road.elevationProfile, signal.s);
+            const poleWorld = stToXyz(pose, poleObj.t, z);
+            const headWorld = stToXyz(pose, signal.t, z);
+            armAngle = Math.atan2(headWorld.y - poleWorld.y, headWorld.x - poleWorld.x);
+          }
+        }
+      }
+      const info: PoleAssemblyInfo = {
+        assemblyId: asm.assemblyId,
+        poleType: asm.poleType,
+        armLength: asm.armLength,
+        armAngle,
+        signalIds: asm.signalIds,
+      };
+      for (const sid of asm.signalIds) {
+        map.set(sid, info);
+      }
+    }
+    return map;
+  }, [signalAssemblies, roadNetwork]);
+  const preferences = useEditorStore((s) => s.preferences);
+  const focusNodeId = useEditorStore((s) => s.focusNodeId);
+  const focusEntityId = useEditorStore((s) => s.focusEntityId);
+  const showIntersectionTimeline = useEditorStore((s) => s.showIntersectionTimeline);
+  const selectedEntityId = selectedElementIds.length === 1 ? selectedElementIds[0] : null;
+
+  // Resolve ManeuverGroup selection → first actor entity ID for 3D highlighting
+  const scenarioEntities = useStore(scenarioStoreApi, (s) => s.document.entities);
+  const storyboardStories = useStore(scenarioStoreApi, (s) => s.document.storyboard.stories);
+  const viewerSelectedEntityId = useMemo(() => {
+    if (!selectedEntityId) return null;
+    // Direct entity match — use as-is
+    if (scenarioEntities.some((e) => e.id === selectedEntityId)) return selectedEntityId;
+    // Try ManeuverGroup → resolve to first actor's entity ID
+    for (const story of storyboardStories) {
+      for (const act of story.acts) {
+        for (const group of act.maneuverGroups) {
+          if (group.id === selectedEntityId) {
+            const firstActorName = group.actors.entityRefs[0];
+            if (firstActorName) {
+              return scenarioEntities.find((e) => e.name === firstActorName)?.id ?? null;
+            }
+          }
+        }
+      }
+    }
+    return selectedEntityId;
+  }, [selectedEntityId, scenarioEntities, storyboardStories]);
+
+  const handleSelectionChange = useCallback((ids: string[]) => {
+    useEditorStore.getState().setSelection({ selectedElementIds: ids });
+  }, []);
+
+  const handleFocusComplete = useCallback(() => {
+    useEditorStore.getState().setFocusNodeId(null);
+  }, []);
+
+  const handleEntitySelect = useCallback((entityId: string) => {
+    useEditorStore.getState().setSelection({ selectedElementIds: [entityId] });
+    // Entity selection clears signal selection (handled inside setSelection)
+  }, []);
+
+  const selectedSignalKey = useEditorStore((s) => s.selectedSignalKey);
+  const positionPickRequest = useEditorStore((s) => s.positionPickRequest);
+
+  // Signal IDs to highlight in 3D viewer (set by timeline track selection, or all controller signals)
+  const storeHighlightedSignalIds = useEditorStore((s) => s.highlightedSignalIds);
+  const highlightedSignalIds = useMemo(() => {
+    if (!showIntersectionTimeline) return undefined;
+    // Only highlight when a specific track is selected
+    if (storeHighlightedSignalIds && storeHighlightedSignalIds.size > 0) {
+      return storeHighlightedSignalIds;
+    }
+    return undefined;
+  }, [showIntersectionTimeline, storeHighlightedSignalIds]);
+
+  const signalPickMode = useEditorStore((s) => s.signalPickMode);
+
+  const handleSignalSelect = useCallback((key: string) => {
+    const state = useEditorStore.getState();
+    if (state.signalPickMode) {
+      // Pick mode: delegate to IntersectionTimelinePanel via pendingSignalPick
+      state.submitSignalPick(key);
+      return;
+    }
+    state.setSelectedSignalKey(key);
+  }, []);
+
+  const handleSignalHover = useCallback((signalId: string | null) => {
+    useEditorStore.getState().setPickModeHoveredSignalId(signalId);
+  }, []);
+
+  const handlePositionPicked = useCallback((data: PickedPositionData) => {
+    useEditorStore.getState().resolvePositionPick(data);
+  }, []);
+
+  const handlePositionPickCancel = useCallback(() => {
+    useEditorStore.getState().cancelPositionPick();
+  }, []);
+
+  const handleEntityPositionChange = useCallback(
+    (entityName: string, x: number, y: number, z: number, h: number, forceWorldPosition?: boolean) => {
+      // When forceWorldPosition is true (snap OFF in Place mode), skip lane snapping
+      if (!forceWorldPosition && roadNetwork) {
+        const laneResult = worldToLane(roadNetwork, x, y, 10); // 10m threshold
+        if (laneResult && laneResult.distance < 5) {
+          scenarioStoreApi.getState().setInitPosition(entityName, {
+            type: 'lanePosition',
+            roadId: laneResult.roadId,
+            laneId: String(laneResult.laneId),
+            s: Math.round(laneResult.s * 100) / 100,
+            offset: Math.abs(laneResult.offset) > 0.01
+              ? Math.round(laneResult.offset * 100) / 100
+              : undefined,
+            orientation:
+              Math.abs(h - laneResult.heading) > 0.01
+                ? { h: h - laneResult.heading }
+                : undefined,
+          });
+          return;
+        }
+      }
+
+      scenarioStoreApi.getState().setInitPosition(entityName, {
+        type: 'worldPosition',
+        x,
+        y,
+        h,
+        z: z !== 0 ? z : undefined,
+      });
+    },
+    [scenarioStoreApi, roadNetwork],
+  );
+
+  // --- Simulation state ---
+  const [viewerMode, setViewerMode] = useState<ViewerMode>('edit');
+  const handleViewerModeChange = useCallback(
+    (mode: ViewerMode) => {
+      if (mode === 'edit') {
+        useSimulationStore.getState().pause();
+      }
+      setViewerMode(mode);
+    },
+    [],
+  );
+
+  // Reset viewerMode to 'edit' when switching editor modes (scenario ↔ roadNetwork)
+  useEffect(() => {
+    setViewerMode('edit');
+  }, [focusedBase]);
+
+  const simStatus = useSimulationStore((s) => s.status);
+  // NOTE: Do NOT subscribe to s.frames here — it changes 30x/sec and would
+  // re-render the entire EditorLayout. Frames are subscribed in
+  // SimulationViewerBridge below, which only re-renders the 3D viewer.
+  const activeElements = useSimulationStore(useShallow((s) => s.activeElements));
+
+  const activeNodeIds = useMemo(() => {
+    if (activeElements.length === 0) return [];
+    const doc = scenarioStoreApi.getState().document;
+    const map = buildFullPathToIdMap(doc);
+    return activeElements
+      .map((path) => map.get(path))
+      .filter((id): id is string => id !== undefined);
+  }, [activeElements, scenarioStoreApi]);
+
+  // --- Route editing ---
+  const roadManagerClient = useRoadManagerClient();
+  const routeEdit = useRouteEdit(roadNetwork, roadManagerClient);
+  const updateCatalogEntry = useCatalogStore((s) => s.updateEntry);
+  const catalogResolveReference = useCatalogStore((s) => s.resolveReference);
+
+  // --- Route preview (read-only visualization for selected entity/action) ---
+  const routePreviewData = useRoutePreview(scenarioStoreApi, roadNetwork, roadManagerClient);
+
+  // --- Entity positions (shared by trajectory edit + preview) ---
+  const initEntityActions = useStore(scenarioStoreApi, (s) => s.document.storyboard.init.entityActions);
+  const entityPositions = useMemo(() => {
+    const doc = scenarioStoreApi.getState().document;
+    return extractEntityPositions(doc, roadNetwork);
+  }, [initEntityActions, roadNetwork, scenarioStoreApi]);
+
+  // --- Trajectory preview (read-only visualization for selected entity/action) ---
+  const trajectoryPreviewData = useTrajectoryPreview(scenarioStoreApi, roadNetwork, entityPositions);
+
+  // --- Lane-change preview (read-only visualization for selected entity/action) ---
+  const laneChangePreviewData = useLaneChangePreview(scenarioStoreApi, roadNetwork, entityPositions);
+
+  const resolveCatalogRoute = useCallback(
+    (ref: { catalogName: string; entryName: string }) => {
+      const resolved = catalogResolveReference({
+        kind: 'catalogReference',
+        catalogName: ref.catalogName,
+        entryName: ref.entryName,
+        parameterAssignments: [],
+      });
+      if (resolved && resolved.catalogType === 'route') {
+        return resolved.definition as import('@osce/shared').Route;
+      }
+      return null;
+    },
+    [catalogResolveReference],
+  );
+
+  const {
+    config: routeEditConfig,
+    waypointContextMenu,
+    setWaypointContextMenu,
+  } = useRouteEditHandlers({
+    routeEdit,
+    roadNetwork,
+    roadManagerClient,
+    scenarioStoreApi,
+    updateCatalogEntry,
+    resolveCatalogRoute,
+    routePreviewData,
+  });
+
+  // --- Trajectory editing ---
+  const trajectoryEdit = useTrajectoryEdit(roadNetwork, entityPositions);
+
+  const {
+    config: trajectoryEditConfig,
+    trajectoryContextMenu,
+    setTrajectoryContextMenu,
+  } = useTrajectoryEditHandlers({
+    trajectoryEdit,
+    entityPositions,
+    scenarioStoreApi,
+    updateCatalogEntry,
+    trajectoryPreviewData,
+    laneChangePreviewData,
+  });
+
+  const signalSelectionConfig = useMemo<SignalSelectionConfig>(
+    () => ({
+      selectedSignalKey,
+      onSignalSelect: handleSignalSelect,
+      highlightedSignalIds: signalPickMode ? undefined : highlightedSignalIds,
+      signalPickMode: signalPickMode
+        ? {
+            bulbCount: signalPickMode.bulbCount,
+            trackSignalIds: signalPickMode.trackSignalIds,
+            allTrackSignalMap: signalPickMode.allTrackSignalMap,
+          }
+        : undefined,
+      onSignalHover: handleSignalHover,
+      signalAssemblyMap,
+    }),
+    [
+      selectedSignalKey,
+      handleSignalSelect,
+      highlightedSignalIds,
+      signalPickMode,
+      handleSignalHover,
+      signalAssemblyMap,
+    ],
+  );
+
+  const positionPickConfig = useMemo<PositionPickConfig>(
+    () => ({
+      active: positionPickRequest != null,
+      onPositionPicked: handlePositionPicked,
+      onPositionPickCancel: handlePositionPickCancel,
+      highlightedElementIds: selectedElementIds,
+    }),
+    [positionPickRequest, handlePositionPicked, handlePositionPickCancel, selectedElementIds],
+  );
+
+  // --- Drag & Drop ---
+  const {
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    isDragOver,
+    droppedUseCase,
+    dialogOpen: dropDialogOpen,
+    handleDialogClose: handleDropDialogClose,
+    handleApply: handleDropApply,
+  } = useTemplateDrop();
+
+  // --- Context Menu ---
+  const [contextMenu, setContextMenu] = useState<ContextMenuPosition | null>(null);
+
+  const handlePaneContextMenu = useCallback((event: MouseEvent | React.MouseEvent) => {
+    event.preventDefault();
+    setContextMenu({ x: event.clientX, y: event.clientY, nodeId: null, nodeType: null });
+  }, []);
+
+  const handleNodeContextMenu = useCallback(
+    (event: React.MouseEvent, node: Node<OsceNodeData>) => {
+      event.preventDefault();
+      setContextMenu({
+        x: event.clientX,
+        y: event.clientY,
+        nodeId: node.id,
+        nodeType: node.data.osceType,
+      });
+    },
+    [],
+  );
+
+  // --- Add Child ---
+  const { addChildToNode } = useElementAdd();
+
+  const handleAddChild = useCallback(
+    (childType: OsceNodeType) => {
+      addChildToNode(contextMenu?.nodeId ?? null, childType);
+    },
+    [contextMenu, addChildToNode],
+  );
+
+  // --- Delete with confirmation ---
+  const { deleteElementById } = useElementDelete();
+  const [deleteRequest, setDeleteRequest] = useState<DeleteRequest | null>(null);
+
+  const handleDeleteNode = useCallback(
+    (nodeId: string) => {
+      const store = scenarioStoreApi.getState();
+      const element = store.getElementById(nodeId);
+      if (!element) return;
+
+      const type = detectElementType(element);
+      if (!type) return;
+
+      const childCount = getDirectChildCount(element, type);
+      const name = (element as { name?: string }).name ?? type;
+
+      if (childCount > 0) {
+        setDeleteRequest({ id: nodeId, elementName: name, elementType: type, childCount });
+      } else {
+        deleteElementById(nodeId);
+        useEditorStore.getState().clearSelection();
+      }
+    },
+    [scenarioStoreApi, deleteElementById],
+  );
+
+  const handleConfirmDelete = useCallback(() => {
+    if (deleteRequest) {
+      deleteElementById(deleteRequest.id);
+      useEditorStore.getState().clearSelection();
+    }
+    setDeleteRequest(null);
+  }, [deleteRequest, deleteElementById]);
+
+  // --- Copy / Paste / Duplicate ---
+  const { copyElement, duplicateElement, pasteInto, canPasteInto } = useCopyPaste();
+  const hasClipboardItem = useClipboardStore((s) => s.copiedItem !== null);
+
+  const handleCopyNode = useCallback(
+    (nodeId: string) => copyElement(nodeId),
+    [copyElement],
+  );
+
+  const handleDuplicateNode = useCallback(
+    (nodeId: string) => duplicateElement(nodeId),
+    [duplicateElement],
+  );
+
+  const handlePasteNode = useCallback(
+    (nodeId: string) => pasteInto(nodeId),
+    [pasteInto],
+  );
+
+  return (
+      <>
+      <PanelGroup direction="vertical" className="flex-1">
+        <Panel defaultSize={showIntersectionTimeline ? 70 : 100} minSize={30}>
+      <PanelGroup direction="horizontal" className="h-full">
+        {/* Left section: 3D Viewer (top) + Editing area (bottom) */}
+        <Panel defaultSize={75} minSize={40}>
+          <PanelGroup direction="vertical">
+            {/* 3D Viewer (top) */}
+            <Panel defaultSize={30} minSize={10}>
+              <div
+                data-testid="viewer-3d-panel"
+                className="h-full bg-[var(--color-bg-deep)] enter d5 relative"
+                style={signalPickMode ? { cursor: 'crosshair' } : undefined}
+              >
+                {signalPickMode && <SignalPickOverlay />}
+                <ErrorBoundary fallbackTitle="3D Viewer Error">
+                  <SimulationViewerBridge
+                    scenarioStore={scenarioStoreApi}
+                    openDriveDocument={roadNetwork}
+                    selectedEntityId={viewerSelectedEntityId}
+                    hoveredEntityName={hoveredElementId}
+                    onEntitySelect={handleEntitySelect}
+                    onEntityFocus={(entityId) => {
+                      handleEntitySelect(entityId);
+                      useEditorStore.getState().setFocusEntityId(null);
+                    }}
+                    onEntityPositionChange={handleEntityPositionChange}
+                    onViewerModeChange={handleViewerModeChange}
+                    preferences={{
+                      showGrid3D: preferences.showGrid3D,
+                      showLaneIds: preferences.showLaneIds,
+                      showRoadIds: preferences.showRoadIds,
+                      showDrivingDirection: preferences.showDrivingDirection,
+                      showTemporaryLanes: preferences.showTemporaryLanes,
+                      showObjects: preferences.showObjects,
+                    }}
+                    focusEntityId={focusEntityId}
+                    routeEdit={routeEditConfig}
+                    trajectoryEdit={trajectoryEditConfig}
+                    signalSelection={signalSelectionConfig}
+                    positionPick={positionPickConfig}
+                  />
+                </ErrorBoundary>
+                {/* Hidden DOM mirror of preview counts (E2E observability only) */}
+                <span
+                  data-testid="preview-mirror"
+                  data-route-count={routePreviewData.length}
+                  data-trajectory-count={trajectoryPreviewData.length}
+                  data-lane-change-count={laneChangePreviewData.length}
+                  className="sr-only"
+                />
+                {waypointContextMenu && (
+                  <WaypointContextMenu
+                    position={waypointContextMenu}
+                    onSelect={() => {
+                      routeEdit.selectWaypoint(waypointContextMenu.waypointIndex);
+                      setWaypointContextMenu(null);
+                    }}
+                    onDelete={() => {
+                      routeEdit.removeWaypoint(waypointContextMenu.waypointIndex);
+                      setWaypointContextMenu(null);
+                    }}
+                    onClose={() => setWaypointContextMenu(null)}
+                  />
+                )}
+                {trajectoryContextMenu && (
+                  <TrajectoryContextMenu
+                    x={trajectoryContextMenu.x}
+                    y={trajectoryContextMenu.y}
+                    pointIndex={trajectoryContextMenu.pointIndex}
+                    onSelect={() => {
+                      trajectoryEdit.selectPoint(trajectoryContextMenu.pointIndex);
+                      setTrajectoryContextMenu(null);
+                    }}
+                    onInsertAfter={() => {
+                      const shape = trajectoryEdit.editingTrajectory?.shape;
+                      const pos = trajectoryEdit.pointWorldPositions[trajectoryContextMenu.pointIndex];
+                      if (pos && shape?.type === 'polyline') {
+                        trajectoryEdit.insertVertex(trajectoryContextMenu.pointIndex, {
+                          type: 'worldPosition',
+                          x: pos.x + 5,
+                          y: pos.y,
+                        });
+                      } else if (pos && shape?.type === 'nurbs') {
+                        trajectoryEdit.insertControlPoint(trajectoryContextMenu.pointIndex, {
+                          type: 'worldPosition',
+                          x: pos.x + 5,
+                          y: pos.y,
+                        });
+                      }
+                      setTrajectoryContextMenu(null);
+                    }}
+                    onDelete={() => {
+                      const shape = trajectoryEdit.editingTrajectory?.shape;
+                      if (shape?.type === 'polyline') {
+                        trajectoryEdit.removeVertex(trajectoryContextMenu.pointIndex);
+                      } else if (shape?.type === 'nurbs') {
+                        trajectoryEdit.removeControlPoint(trajectoryContextMenu.pointIndex);
+                      }
+                      setTrajectoryContextMenu(null);
+                    }}
+                    onClose={() => setTrajectoryContextMenu(null)}
+                  />
+                )}
+              </div>
+            </Panel>
+
+            <ResizeHandleH />
+
+            {/* Editing area */}
+            <Panel defaultSize={70} minSize={30}>
+              <PanelGroup
+                direction="horizontal"
+                ref={editingPanelGroupRef}
+              >
+                {/* File Tree sidebar (project mode only) */}
+                {currentProject && (
+                  <>
+                    <Panel
+                      ref={fileTreePanelRef}
+                      defaultSize={15}
+                      minSize={3}
+                      maxSize={25}
+                      collapsible
+                      collapsedSize={3}
+                      onCollapse={() => {
+                        setFileTreeCollapsed(true);
+                        // Redistribute freed space to Composer (3rd panel), not Entity
+                        // Layout: [FileTree, Entity, Composer] → [3%, 25%, 72%]
+                        editingPanelGroupRef.current?.setLayout([3, 25, 72]);
+                      }}
+                      onExpand={() => {
+                        setFileTreeCollapsed(false);
+                        // Restore: take space from Composer
+                        editingPanelGroupRef.current?.setLayout([15, 25, 60]);
+                      }}
+                    >
+                      {fileTreeCollapsed ? (
+                        <div className="flex flex-col items-center h-full bg-[var(--color-bg-deep)] border-r border-[var(--color-glass-edge-mid)] py-2">
+                          <button
+                            type="button"
+                            onClick={() => fileTreePanelRef.current?.expand()}
+                            className="p-2 rounded hover:bg-[var(--color-glass-2)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+                            title={t('fileTree.expand')}
+                          >
+                            <FolderTree size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        <FileTreeSidebar
+                          onCollapse={() => fileTreePanelRef.current?.collapse()}
+                        />
+                      )}
+                    </Panel>
+                    <ResizeHandle />
+                  </>
+                )}
+
+                {/* Left sidebar — Entity/Parameter */}
+                <Panel defaultSize={25} minSize={8} maxSize={35}>
+                  <div className="h-full bg-[var(--color-bg-deep)] enter-l">
+                    <Tabs defaultValue="entities" className="flex flex-col h-full">
+                      <TabsList className="bg-[var(--color-glass-1)] backdrop-blur-[28px] rounded-none p-0">
+                        <TabsTrigger value="entities" className="apex-tab flex-1">
+                          {t('panels.entityList')}
+                        </TabsTrigger>
+                        <TabsTrigger value="variables" className="apex-tab flex-1">
+                          {t('panels.variables')}
+                        </TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="entities" className="flex-1 overflow-hidden mt-0">
+                        <EntityListPanel />
+                      </TabsContent>
+                      <TabsContent value="variables" className="flex-1 overflow-hidden mt-0">
+                        <VariablesPanel />
+                      </TabsContent>
+                    </Tabs>
+                  </div>
+                </Panel>
+
+                <ResizeHandle />
+
+                {/* Center area: Composer / Graph */}
+                <Panel defaultSize={60} minSize={30}>
+                  <NodeEditorProvider
+                    scenarioStore={scenarioStoreApi}
+                    selectedElementIds={selectedElementIds}
+                    onSelectionChange={handleSelectionChange}
+                    focusNodeId={focusNodeId}
+                    onFocusComplete={handleFocusComplete}
+                    activeNodeIds={activeNodeIds}
+                  >
+                    <div className="flex flex-col h-full enter d2">
+                      {/* Tab bar */}
+                      <Tabs value={centerTab} onValueChange={(v) => setCenterTab(v as 'composer' | 'graph')} className="flex flex-col h-full">
+                        <TabsList className="bg-[var(--color-glass-1)] backdrop-blur-[28px] rounded-none p-0">
+                          <TabsTrigger value="composer" className="apex-tab flex-1">
+                            Composer
+                          </TabsTrigger>
+                          <TabsTrigger value="graph" className="apex-tab flex-1">
+                            Graph
+                          </TabsTrigger>
+                        </TabsList>
+                      {/* Content — both views stay mounted to preserve React Flow state */}
+                      <div className="flex-1 overflow-hidden relative">
+                        <div className={`absolute inset-0 ${centerTab !== 'composer' ? 'hidden' : ''}`}>
+                          <SceneComposerView />
+                        </div>
+                        <div className={`absolute inset-0 ${centerTab !== 'graph' ? 'hidden' : ''}`}>
+                          <ErrorBoundary fallbackTitle="Node Editor Error">
+                            <div
+                              data-testid="node-editor-panel"
+                              className={`h-full node-editor-grid ${isDragOver ? 'ring-2 ring-[var(--color-accent-1)] ring-inset' : ''}`}
+                              onDragLeave={handleDragLeave}
+                            >
+                              <NodeEditor
+                                className="h-full"
+                                onDrop={handleDrop}
+                                onDragOver={handleDragOver}
+                                onPaneContextMenu={handlePaneContextMenu}
+                                onNodeContextMenu={handleNodeContextMenu}
+                                deleteKeyCode={null}
+                              />
+                            </div>
+                          </ErrorBoundary>
+                        </div>
+                      </div>
+                      </Tabs>
+                    </div>
+                  </NodeEditorProvider>
+                </Panel>
+              </PanelGroup>
+            </Panel>
+          </PanelGroup>
+        </Panel>
+
+        <ResizeHandle />
+
+        {/* Right sidebar — full height */}
+        <Panel defaultSize={25} minSize={12} maxSize={35}>
+          <div className="h-full bg-[var(--color-bg-deep)] enter-r">
+            <Tabs defaultValue="properties" className="flex flex-col h-full">
+              <TabsList className="bg-[var(--color-glass-1)] backdrop-blur-[28px] rounded-none p-0">
+                <TabsTrigger value="properties" className="apex-tab flex-1">
+                  {t('panels.properties')}
+                </TabsTrigger>
+                <TabsTrigger value="validation" className="apex-tab flex-1">
+                  {t('panels.validation')}
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="properties" className="flex-1 overflow-hidden mt-0">
+                <PropertyPanel />
+              </TabsContent>
+              <TabsContent value="validation" className="flex-1 overflow-hidden mt-0">
+                <ValidationPanel />
+              </TabsContent>
+            </Tabs>
+          </div>
+        </Panel>
+      </PanelGroup>
+        </Panel>
+
+        {/* Intersection timeline (signal controller phase visualization) */}
+        {showIntersectionTimeline && (
+          <>
+            <ResizeHandleH />
+            <Panel defaultSize={30} minSize={10} maxSize={60}>
+              <div className="h-full border-t border-[var(--color-glass-edge-mid)]">
+                <IntersectionTimelinePanel />
+              </div>
+            </Panel>
+          </>
+        )}
+      </PanelGroup>
+
+      {/* Simulation timeline (visible during/after simulation in play mode) */}
+      {simStatus !== 'idle' && viewerMode === 'play' && (
+        <div className="h-10 shrink-0 border-t border-[var(--color-glass-edge-mid)] bg-[var(--color-bg-deep)]">
+          <SimulationTimeline />
+        </div>
+      )}
+
+      <StatusBar />
+
+      {/* Catalog Editor Modal */}
+      <CatalogEditorModal />
+
+      {/* D&D Parameter Dialog */}
+      <ParameterDialog
+        open={dropDialogOpen}
+        onOpenChange={handleDropDialogClose}
+        useCase={droppedUseCase}
+        onApply={handleDropApply}
+      />
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <NodeEditorContextMenu
+          position={contextMenu}
+          onAddChild={handleAddChild}
+          onDeleteNode={handleDeleteNode}
+          onCopyNode={handleCopyNode}
+          onPasteNode={handlePasteNode}
+          onDuplicateNode={handleDuplicateNode}
+          canPaste={hasClipboardItem && contextMenu.nodeId ? canPasteInto(contextMenu.nodeId) : false}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
+
+      {/* SaveAs Dialog */}
+      <SaveAsDialog
+        open={showSaveAs}
+        onOpenChange={setShowSaveAs}
+        onSave={saveAsFileType === 'xodr' ? handleSaveAsXodr : handleSaveAs}
+        fileType={saveAsFileType}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        open={deleteRequest !== null}
+        onOpenChange={(open) => { if (!open) setDeleteRequest(null); }}
+        elementName={deleteRequest?.elementName ?? ''}
+        elementType={deleteRequest?.elementType ?? ''}
+        childCount={deleteRequest?.childCount ?? 0}
+        onConfirm={handleConfirmDelete}
+      />
+      </>
+  );
+}

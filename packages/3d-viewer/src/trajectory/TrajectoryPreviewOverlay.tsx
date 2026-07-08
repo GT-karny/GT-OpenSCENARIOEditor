@@ -6,13 +6,13 @@
  * For NURBS shapes, also renders the dashed control polygon.
  */
 
-import React, { useMemo } from 'react';
-import { Line } from '@react-three/drei';
+import React from 'react';
+import { EditPreviewLine, EditPreviewMarker } from '../edit-shared/EditPreviewPrimitives.js';
 
 type Point3 = { x: number; y: number; z: number };
 
 export interface TrajectoryPreviewData {
-  shapeType: 'polyline' | 'clothoid' | 'nurbs';
+  shapeType: 'polyline' | 'clothoid' | 'nurbs' | 'clothoidSpline';
   points: Array<{ x: number; y: number; z: number; h: number }>;
   curvePoints: Point3[];
 }
@@ -24,73 +24,6 @@ export interface TrajectoryPreviewOverlayProps {
 const PREVIEW_CURVE_COLOR = '#CC6600';
 const PREVIEW_CONTROL_POLYGON_COLOR = '#CC660066';
 const PREVIEW_MARKER_COLOR = '#CC6600';
-const Z_OFFSET = 0.15;
-
-const PreviewCurveLine: React.FC<{ points: Point3[] }> = React.memo(({ points }) => {
-  const linePoints = useMemo(
-    () => points.map((p) => [p.x, p.y, p.z + Z_OFFSET] as [number, number, number]),
-    [points],
-  );
-
-  if (linePoints.length < 2) return null;
-
-  return (
-    <Line
-      points={linePoints}
-      color={PREVIEW_CURVE_COLOR}
-      lineWidth={2}
-      transparent
-      opacity={0.5}
-    />
-  );
-});
-
-PreviewCurveLine.displayName = 'PreviewCurveLine';
-
-const PreviewControlPolygon: React.FC<{ points: Point3[] }> = React.memo(({ points }) => {
-  const linePoints = useMemo(
-    () => points.map((p) => [p.x, p.y, p.z + Z_OFFSET] as [number, number, number]),
-    [points],
-  );
-
-  if (linePoints.length < 2) return null;
-
-  return (
-    <Line
-      points={linePoints}
-      color={PREVIEW_CONTROL_POLYGON_COLOR}
-      lineWidth={1}
-      transparent
-      opacity={0.3}
-      dashed
-      dashSize={0.5}
-      gapSize={0.3}
-    />
-  );
-});
-
-PreviewControlPolygon.displayName = 'PreviewControlPolygon';
-
-const PreviewMarker: React.FC<{
-  position: [number, number, number];
-  heading: number;
-}> = React.memo(({ position, heading }) => {
-  return (
-    <group position={position} rotation={[0, 0, heading]}>
-      <mesh scale={[0.6, 0.9, 0.6]}>
-        <octahedronGeometry args={[0.6, 0]} />
-        <meshBasicMaterial
-          color={PREVIEW_MARKER_COLOR}
-          depthTest={false}
-          transparent
-          opacity={0.4}
-        />
-      </mesh>
-    </group>
-  );
-});
-
-PreviewMarker.displayName = 'PreviewMarker';
 
 export const TrajectoryPreviewOverlay: React.FC<TrajectoryPreviewOverlayProps> = React.memo(
   ({ previews }) => {
@@ -102,20 +35,27 @@ export const TrajectoryPreviewOverlay: React.FC<TrajectoryPreviewOverlayProps> =
           <group key={`traj-preview-${pIdx}`}>
             {/* Evaluated curve line */}
             {preview.curvePoints.length >= 2 && (
-              <PreviewCurveLine points={preview.curvePoints} />
+              <EditPreviewLine points={preview.curvePoints} color={PREVIEW_CURVE_COLOR} />
             )}
 
             {/* NURBS control polygon (dashed) */}
             {preview.shapeType === 'nurbs' && preview.points.length >= 2 && (
-              <PreviewControlPolygon points={preview.points} />
+              <EditPreviewLine
+                points={preview.points}
+                color={PREVIEW_CONTROL_POLYGON_COLOR}
+                lineWidth={1}
+                opacity={0.3}
+                dashed
+              />
             )}
 
             {/* Control point / vertex markers */}
             {preview.points.map((pt, mIdx) => (
-              <PreviewMarker
+              <EditPreviewMarker
                 key={`traj-preview-marker-${pIdx}-${mIdx}`}
                 position={[pt.x, pt.y, pt.z]}
                 heading={pt.h}
+                color={PREVIEW_MARKER_COLOR}
               />
             ))}
           </group>

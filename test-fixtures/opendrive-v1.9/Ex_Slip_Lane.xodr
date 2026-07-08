@@ -1,0 +1,1919 @@
+<?xml version="1.0" standalone="yes"?>
+<OpenDRIVE>
+    <header revMajor="1" revMinor="8" name="" version="1.00" date="Thu Feb 23 17:17:09 2023" north="0.0000000000000000e+00" south="0.0000000000000000e+00" east="0.0000000000000000e+00" west="0.0000000000000000e+00">
+    </header>
+    <road name="" length="2.5000000000000000e+01" id="2" junction="-1" rule="RHT">
+        <link>
+            <predecessor elementType="junction" elementId="1" />
+            <successor elementType="junction" elementId="6" />
+        </link>
+        <type s="0.0000000000000000e+00" country="DE" type="town"/>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="-2.5000000000000000e+01" y="5.0000000000000000e-01" hdg="3.1415926535897931e+00" length="2.5000000000000000e+01">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+        </elevationProfile>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes>
+            <laneSection s="0.0000000000000000e+00">
+                <left>
+                    <lane id="4" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="3" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="2" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="none" height="1.9999999552965164e-02">
+                            <type name="solid" width="1.3000000000000000e-01">
+                                <line length="2.0000000000000000e+01" space="0.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="no passing" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="1" type="median" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <height sOffset="0.0000000000000000e+00" inner="1.0000000000000001e-01" outer="1.0000000000000001e-01"/>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-3" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <objects>
+            <object type="roadMark" subtype="arrowLeft" name="SgRMArrowLeft" id="0" s="2.6968749999999946e+00" t="2.8722018960336473e+00" zOffset="8.0000000000000002e-03" validLength="0.0000000000000000e+00" orientation="none" length="3.9969999999999999e+00" width="7.4500000000000000e-01" height="0.0000000000000000e+00" hdg="3.1415926535897931e+00" pitch="0.0000000000000000e+00" roll="0.0000000000000000e+00">
+            </object>
+            <object type="roadMark" subtype="arrowStraight" name="SgRMArrowStraight" id="1" s="2.8593749999999938e+00" t="6.3235991650805694e+00" zOffset="8.0000000000000002e-03" validLength="0.0000000000000000e+00" orientation="none" length="4.1079999999999997e+00" width="5.7199999999999995e-01" height="0.0000000000000000e+00" hdg="3.1415926535897931e+00" pitch="0.0000000000000000e+00" roll="0.0000000000000000e+00">
+            </object>
+            <object type="roadMark" subtype="arrowStraight" name="SgRMArrowStraight" id="2" s="2.8718749999999940e+00" t="9.6476107051462066e+00" zOffset="8.0000000000000002e-03" validLength="0.0000000000000000e+00" orientation="none" length="4.1079999999999997e+00" width="5.7199999999999995e-01" height="0.0000000000000000e+00" hdg="3.1415926535897931e+00" pitch="0.0000000000000000e+00" roll="0.0000000000000000e+00">
+            </object>
+            <object type="pole" subtype="trafficLight" name="RdTrafficLightPole01" id="3" s="0.0000000000000000e+00" t="1.2500000000000000e+01" zOffset="-5.0000000000000000e-01" validLength="0.0000000000000000e+00" orientation="none" length="1.4000000000000001e-01" width="1.4000000000000001e-01" height="3.8199999999999998e+00" hdg="0.0000000000000000e+00" pitch="0.0000000000000000e+00" roll="0.0000000000000000e+00" />
+        </objects>
+        <signals>
+            <signal s="0.0000000000000000e+00" t="5.9999999999999998e-01" id="1" name="SgRMHoldingline-3Lane-1175cm" dynamic="no" orientation="-" zOffset="0.0000000000000000e+00" type="294" country="OpenDRIVE" countryRevision="2013" subtype="-1" hOffset="0.0000000000000000e+00" pitch="0.0000000000000000e+00" roll="0.0000000000000000e+00" length="0.5000000000000000e+00" height="0.005" width="11.75">
+                <dependency id="4" type="trafficLight"/>
+            </signal>
+            <signal s="0.0000000000000000e+00" t="1.2500000000000000e+01" id="4" name="_Sg4" dynamic="yes" orientation="-" zOffset="2.4200000166893005e+00" type="1000001" country="OpenDRIVE" countryRevision="2013" subtype="-1" value="0.0000000000000000e+00" hOffset="0.0000000000000000e+00" pitch="0.0000000000000000e+00" roll="0.0000000000000000e+00" height="1.15" width="0.41">
+                <reference elementId="1" elementType="signal" type="stopline"/>
+            </signal>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+    <road name="" length="3.5000000000000000e+01" id="3" junction="-1" rule="RHT">
+        <link>
+            <predecessor elementType="junction" elementId="1" />
+            <successor elementType="junction" elementId="5"/>
+        </link>
+        <type s="0.0000000000000000e+00" country="DE" type="town"/>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="5.0000000000000311e-01" y="2.5000000000000000e+01" hdg="1.5707963267948968e+00" length="3.5000000000000000e+01">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="0.0000000000000000e+00" a="0.0000000000000000e+00" b="-0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+        </elevationProfile>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes>
+            <laneSection s="0.0000000000000000e+00">
+                <left>
+                    <lane id="4" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="1.2244897959183671e-03" d="-2.3323615160349851e-05"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="none" weight="standard" color="standard" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                        <roadMark sOffset="7.0000000000000000e+00" type="broken" weight="standard" color="standard" width="2.5000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="2.5000000000000000e-01">
+                                <line length="1.5000000000000000e+00" space="1.5000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="2.5000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                        <roadMark sOffset="2.5000000000000000e+01" type="none" weight="standard" color="standard" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="3" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="-0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="2" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="-0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="none" height="1.9999999552965164e-02">
+                            <type name="solid" width="1.3000000000000000e-01">
+                                <line length="2.0000000000000000e+01" space="0.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="no passing" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                        <roadMark sOffset="2.0000000000000000e+01" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="1" type="median" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <height sOffset="0.0000000000000000e+00" inner="1.0000000000000001e-01" outer="1.0000000000000001e-01"/>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="-0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="-0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-3" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="1.2244897959183671e-03" d="-2.3323615160349851e-05"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="none" weight="standard" color="standard" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                        <roadMark sOffset="1.1000000000000000e+01" type="broken" weight="standard" color="standard" width="2.5000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="2.5000000000000000e-01">
+                                <line length="1.5000000000000000e+00" space="1.5000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="2.5000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                        <roadMark sOffset="3.0000000000000000e+01" type="none" weight="standard" color="standard" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <objects>
+            <object type="roadMark" subtype="arrowLeft" name="SgRMArrowLeft" id="4" s="2.8568750000000018e+00" t="2.6385988187093607e+00" zOffset="8.0000000000000002e-03" validLength="0.0000000000000000e+00" orientation="none" length="3.9969999999999999e+00" width="7.4500000000000000e-01" height="0.0000000000000000e+00" hdg="3.1415926535897931e+00" pitch="0.0000000000000000e+00" roll="0.0000000000000000e+00">
+            </object>
+            <object type="roadMark" subtype="arrowStraight" name="SgRMArrowStraight" id="5" s="2.8481250000000018e+00" t="6.1742041942318808e+00" zOffset="8.0000000000000002e-03" validLength="0.0000000000000000e+00" orientation="none" length="4.1079999999999997e+00" width="5.7199999999999995e-01" height="0.0000000000000000e+00" hdg="3.1415926535897931e+00" pitch="0.0000000000000000e+00" roll="0.0000000000000000e+00">
+            </object>
+            <object type="roadMark" subtype="arrowStraight" name="SgRMArrowStraight" id="6" s="2.9181250000000021e+00" t="9.7805975129740652e+00" zOffset="8.0000000000000002e-03" validLength="0.0000000000000000e+00" orientation="none" length="4.1079999999999997e+00" width="5.7199999999999995e-01" height="0.0000000000000000e+00" hdg="3.1415926535897931e+00" pitch="0.0000000000000000e+00" roll="0.0000000000000000e+00">
+            </object>
+            <object type="pole" subtype="trafficLight" name="RdTrafficLightPole01" id="7" s="0.0000000000000000e+00" t="1.2500000000000000e+01" zOffset="-5.0000000000000000e-01" validLength="0.0000000000000000e+00" orientation="none" length="1.4000000000000001e-01" width="1.4000000000000001e-01" height="3.8199999999999998e+00" hdg="0.0000000000000000e+00" pitch="0.0000000000000000e+00" roll="0.0000000000000000e+00" />
+        </objects>
+        <signals>
+            <signal s="0.0000000000000000e+00" t="5.9999999999999998e-01" id="5" name="SgRMHoldingline-3Lane-1175cm" dynamic="no" orientation="-" zOffset="0.0000000000000000e+00" type="294" country="OpenDRIVE" countryRevision="2013" subtype="-1" hOffset="0.0000000000000000e+00" pitch="0.0000000000000000e+00" roll="0.0000000000000000e+00" height="0.03" width="11.75" length="0.5000000000000000e+00">
+                <dependency id="6" type="trafficLight"/>
+            </signal>
+            <signal s="0.0000000000000000e+00" t="1.2500000000000000e+01" id="6" name="_Sg6" dynamic="yes" orientation="-" zOffset="2.4200000166893005e+00" type="1000001" country="OpenDRIVE" countryRevision="2013" subtype="-1" value="0.0000000000000000e+00" hOffset="0.0000000000000000e+00" pitch="0.0000000000000000e+00" roll="0.0000000000000000e+00" height="1.15" width="0.41">
+            <reference elementId="5" elementType="signal" type="stopline"/>
+            </signal>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+    <road name="" length="2.5000000000000000e+01" id="65" junction="-1" rule="RHT">
+        <link>
+            <successor elementType="junction" elementId="2" />
+        </link>
+        <type s="0.0000000000000000e+00" country="DE" type="town"/>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="4.9999999975171322e-01" y="-7.5000000000000000e+01" hdg="1.5707963267899308e+00" length="2.5000000000000000e+01">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="0.0000000000000000e+00" a="0.0000000000000000e+00" b="-0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+        </elevationProfile>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes>
+            <laneSection s="0.0000000000000000e+00">
+                <left>
+                    <lane id="1" type="median" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="5.0000000000000000e-01" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <height sOffset="0.0000000000000000e+00" inner="1.0000000000000001e-01" outer="1.0000000000000001e-01"/>
+                        <height sOffset="2.0000000000000000e+01" inner="1.0000000000000001e-01" outer="1.0000000000000001e-01"/>
+                        <height sOffset="2.2500000000000000e+01" inner="1.0000000000000001e-01" outer="1.0000000000000001e-01"/>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="-0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="-0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-3" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="-0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="none" weight="standard" color="standard" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                        <roadMark sOffset="2.0000000000000000e+00" type="broken" weight="standard" color="standard" width="2.5000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="2.5000000000000000e-01">
+                                <line length="1.5000000000000000e+00" space="1.5000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="2.5000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-4" type="exit" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="4.6666666666666669e-02" d="-2.0740740740740741e-03"/>
+                        <width sOffset="1.5000000000000000e+01" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="1.4999999999999999e-02" d="-1.0000000000000000e-03"/>
+                    </lane>
+                    <lane id="-5" type="border" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.4999999999999999e-01" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="-6" type="shoulder" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="-4.6666666666666669e-02" d="2.0740740740740741e-03"/>
+                        <width sOffset="1.5000000000000000e+01" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <objects>
+        </objects>
+        <signals>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+    <road name="" length="1.5000000000000000e+01" id="66" junction="-1" rule="RHT">
+        <link>
+            <successor elementType="junction" elementId="4" />
+        </link>
+        <type s="0.0000000000000000e+00" country="DE" type="town"/>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="7.5000000000000000e+01" y="4.9999999999999889e-01" hdg="3.1415926535848273e+00" length="1.5000000000000000e+01">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="5.0000000000000000e+00" a="0.0000000000000000e+00" b="-0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+            <elevation s="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+        </elevationProfile>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes>
+            <laneSection s="0.0000000000000000e+00">
+                <left>
+                    <lane id="1" type="median" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="5.0000000000000000e-01" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <height sOffset="0.0000000000000000e+00" inner="1.0000000000000001e-01" outer="1.0000000000000001e-01"/>
+                        <height sOffset="1.5000000000000000e+01" inner="1.0000000000000001e-01" outer="1.0000000000000001e-01"/>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="-0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="-0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-3" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="1.4999999999999999e-02" d="-1.0000000000000000e-03"/>
+                        <width sOffset="1.0000000000000000e+01" a="4.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="-4" type="border" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.4999999999999999e-01" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <objects>
+        </objects>
+        <signals>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+    <road name="" length="2.5000000000000000e+01" id="67" junction="-1" rule="RHT">
+        <link>
+            <predecessor elementType="junction" elementId="2"/>
+            <successor elementType="junction" elementId="1" />
+        </link>
+        <type s="0.0000000000000000e+00" country="DE" type="town"/>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="4.9999999987585647e-01" y="-5.0000000000000000e+01" hdg="1.5707963267899310e+00" length="2.5000000000000000e+01">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="0.0000000000000000e+00" a="0.0000000000000000e+00" b="-0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+        </elevationProfile>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes>
+            <laneSection s="0.0000000000000000e+00">
+                <left>
+                    <lane id="1" type="median" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="5.0000000000000000e-01" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <height sOffset="0.0000000000000000e+00" inner="1.0000000000000001e-01" outer="1.0000000000000001e-01"/>
+                        <height sOffset="1.5000000000000000e+01" inner="1.0000000000000001e-01" outer="1.0000000000000001e-01"/>
+                        <height sOffset="2.5000000000000000e+01" inner="1.0000000000000001e-01" outer="1.0000000000000001e-01"/>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="-0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="solid" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="none" height="1.9999999552965164e-02">
+                            <type name="solid" width="1.3000000000000000e-01">
+                                <line length="2.0000000000000000e+01" space="0.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="no passing" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="-0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-3" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <objects>
+            <object type="roadMark" subtype="arrowLeft" name="SgRMArrowStraight" id="8" s="2.2059374999999818e+01" t="-8.5858015723083092e+00" zOffset="8.0000000000000002e-03" validLength="0.0000000000000000e+00" orientation="none" length="4.1079999999999997e+00" width="5.7199999999999995e-01" height="0.0000000000000000e+00" hdg="0.0000000000000000e+00" pitch="0.0000000000000000e+00" roll="0.0000000000000000e+00">
+            </object>
+            <object type="roadMark" subtype="arrowStraight" name="SgRMArrowStraight" id="9" s="2.2096874999999816e+01" t="-5.0945004431862593e+00" zOffset="8.0000000000000002e-03" validLength="0.0000000000000000e+00" orientation="none" length="4.1079999999999997e+00" width="5.7199999999999995e-01" height="0.0000000000000000e+00" hdg="0.0000000000000000e+00" pitch="0.0000000000000000e+00" roll="0.0000000000000000e+00">
+            </object>
+            <object type="roadMark" subtype="arrowLeft" name="SgRMArrowLeft" id="10" s="2.2196874999999810e+01" t="-1.5309018867723228e+00" zOffset="8.0000000000000002e-03" validLength="0.0000000000000000e+00" orientation="none" length="3.9969999999999999e+00" width="7.4500000000000000e-01" height="0.0000000000000000e+00" hdg="0.0000000000000000e+00" pitch="0.0000000000000000e+00" roll="0.0000000000000000e+00">
+            </object>
+            <object type="pole" subtype="trafficLight" name="RdTrafficLightPole01" id="11" s="2.5000000000000000e+01" t="-1.2500000000000000e+01" zOffset="-5.0000000000000000e-01" validLength="0.0000000000000000e+00" orientation="none" length="1.4000000000000001e-01" width="1.4000000000000001e-01" height="3.8199999999999998e+00" hdg="0.0000000000000000e+00" pitch="0.0000000000000000e+00" roll="0.0000000000000000e+00" />
+        </objects>
+        <signals>
+            <signal s="2.5000000000000000e+01" t="5.9999999999999998e-01" id="9" name="SgRMHoldingline-3Lane-1175cm" dynamic="no" orientation="+" zOffset="0.0000000000000000e+00" type="294" country="OpenDRIVE" countryRevision="2013" subtype="-1" hOffset="6.2831853071795862e+00" pitch="0.0000000000000000e+00" roll="0.0000000000000000e+00" height="0.03" width="11.75" length="0.5000000000000000e+00">
+                <validity fromLane="-3" toLane="-1"/>
+                <dependency id="8" type="trafficLight"/>
+            </signal>
+            <signal s="2.5000000000000000e+01" t="-1.2500000000000000e+01" id="8" name="_Sg8" dynamic="yes" orientation="+" zOffset="2.4200000166893005e+00" type="1000001" country="OpenDRIVE" countryRevision="2013" subtype="-1" value="0.0000000000000000e+00" hOffset="6.2831853071795862e+00" pitch="0.0000000000000000e+00" roll="0.0000000000000000e+00" height="1.15" width="0.41">
+             <reference elementId="9" elementType="signal" type="stopline"/>
+            </signal>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+    <road name="" length="2.5000000000000000e+01" id="68" junction="-1" rule="RHT">
+        <link>
+            <predecessor elementType="junction" elementId="3" />
+        </link>
+        <type s="0.0000000000000000e+00" country="DE" type="town"/>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="5.0000000000000000e+01" y="-5.0000000000000078e-01" hdg="2.2204460492503132e-17" length="2.5000000000000000e+01">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+        </elevationProfile>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes>
+            <laneSection s="0.0000000000000000e+00">
+                <left>
+                    <lane id="1" type="median" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="5.0000000000000000e-01" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <height sOffset="0.0000000000000000e+00" inner="1.0000000000000001e-01" outer="1.0000000000000001e-01"/>
+                        <height sOffset="1.5000000000000000e+01" inner="1.0000000000000001e-01" outer="1.0000000000000001e-01"/>
+                        <height sOffset="2.5000000000000000e+01" inner="1.0000000000000001e-01" outer="1.0000000000000001e-01"/>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-3" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="2.5000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="2.5000000000000000e-01">
+                                <line length="1.5000000000000000e+00" space="1.5000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="2.5000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                        <roadMark sOffset="2.3000000000000000e+01" type="none" weight="standard" color="standard" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-4" type="entry" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="4.0000000000000000e+00" b="0.0000000000000000e+00" c="-6.6666666666666671e-03" d="2.9629629629629629e-04"/>
+                        <width sOffset="1.5000000000000000e+01" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="-1.0499999999999998e-01" d="6.9999999999999993e-03"/>
+                    </lane>
+                    <lane id="-5" type="border" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.4999999999999999e-01" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="-6" type="shoulder" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+                        <width sOffset="1.5000000000000000e+01" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="1.0499999999999998e-01" d="-6.9999999999999993e-03"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <objects>
+        </objects>
+        <signals>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+    <road name="" length="2.5000000000000000e+01" id="69" junction="-1" rule="RHT">
+        <link>
+            <predecessor elementType="junction" elementId="1" />
+            <successor elementType="junction" elementId="3" />
+        </link>
+        <type s="0.0000000000000000e+00" country="DE" type="town"/>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="2.5000000000000000e+01" y="-5.0000000000000067e-01" hdg="0.0000000000000000e+00" length="2.5000000000000000e+01">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+        </elevationProfile>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes>
+            <laneSection s="0.0000000000000000e+00">
+                <left>
+                    <lane id="1" type="median" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="5.0000000000000000e-01" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <height sOffset="0.0000000000000000e+00" inner="1.0000000000000001e-01" outer="1.0000000000000001e-01"/>
+                        <height sOffset="1.5000000000000000e+01" inner="1.0000000000000001e-01" outer="1.0000000000000001e-01"/>
+                        <height sOffset="2.5000000000000000e+01" inner="1.0000000000000001e-01" outer="1.0000000000000001e-01"/>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-3" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <objects>
+        </objects>
+        <signals>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+    <road name="" length="3.5000000000000000e+01" id="70" junction="-1" rule="RHT">
+        <link>
+            <predecessor elementType="junction" elementId="4" />
+            <successor elementType="junction" elementId="1" />
+        </link>
+        <type s="0.0000000000000000e+00" country="DE" type="town"/>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="6.0000000000000000e+01" y="5.0000000000000000e-01" hdg="3.1415926535848273e+00" length="3.5000000000000000e+01">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+            <elevation s="1.5000000000000000e+01" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+        </elevationProfile>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes>
+            <laneSection s="0.0000000000000000e+00">
+                <left>
+                    <lane id="1" type="median" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="5.0000000000000000e-01" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <height sOffset="0.0000000000000000e+00" inner="1.0000000000000001e-01" outer="1.0000000000000001e-01"/>
+                        <height sOffset="1.5000000000000000e+01" inner="1.0000000000000001e-01" outer="1.0000000000000001e-01"/>
+                        <height sOffset="2.5000000000000000e+01" inner="1.0000000000000001e-01" outer="1.0000000000000001e-01"/>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="-0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                        <roadMark sOffset="2.0000000000000000e+01" type="solid" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="none" height="1.9999999552965164e-02">
+                            <type name="solid" width="1.3000000000000000e-01">
+                                <line length="2.0000000000000000e+01" space="0.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="no passing" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="-0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-3" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="4.0000000000000000e+00" b="0.0000000000000000e+00" c="-3.7499999999999999e-03" d="1.2500000000000000e-04"/>
+                        <width sOffset="2.0000000000000000e+01" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="none" weight="standard" color="standard" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                        <roadMark sOffset="6.0000000000000000e+00" type="broken" weight="standard" color="standard" width="2.5000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="2.5000000000000000e-01">
+                                <line length="1.5000000000000000e+00" space="1.5000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="2.5000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                        <roadMark sOffset="2.4000000000000000e+01" type="none" weight="standard" color="standard" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <objects>
+            <object type="roadMark" subtype="arrowStraight" name="SgRMArrowStraight" id="12" s="3.2060000000000109e+01" t="-8.7499995062730793e+00" zOffset="8.0000000000000002e-03" validLength="0.0000000000000000e+00" orientation="none" length="4.1079999999999997e+00" width="5.7199999999999995e-01" height="0.0000000000000000e+00" hdg="0.0000000000000000e+00" pitch="0.0000000000000000e+00" roll="0.0000000000000000e+00">
+            </object>
+            <object type="roadMark" subtype="arrowStraight" name="SgRMArrowStraight" id="13" s="3.2151875000000103e+01" t="-5.3884990502944552e+00" zOffset="8.0000000000000002e-03" validLength="0.0000000000000000e+00" orientation="none" length="4.1079999999999997e+00" width="5.7199999999999995e-01" height="0.0000000000000000e+00" hdg="0.0000000000000000e+00" pitch="0.0000000000000000e+00" roll="0.0000000000000000e+00">
+            </object>
+            <object type="roadMark" subtype="arrowLeft" name="SgRMArrowLeft" id="14" s="3.2208750000000094e+01" t="-1.7853066803431366e+00" zOffset="8.0000000000000002e-03" validLength="0.0000000000000000e+00" orientation="none" length="3.9969999999999999e+00" width="7.4500000000000000e-01" height="0.0000000000000000e+00" hdg="0.0000000000000000e+00" pitch="0.0000000000000000e+00" roll="0.0000000000000000e+00">
+            </object>
+            <object type="pole" subtype="trafficLight" name="RdTrafficLightPole01" id="15" s="3.5000000000000000e+01" t="-1.2500000000000000e+01" zOffset="-5.0000000000000000e-01" validLength="0.0000000000000000e+00" orientation="none" length="1.4000000000000001e-01" width="1.4000000000000001e-01" height="3.8199999999999998e+00" hdg="0.0000000000000000e+00" pitch="0.0000000000000000e+00" roll="0.0000000000000000e+00" />
+        </objects>
+        <signals>
+            <signal s="3.5000000000000000e+01" t="5.9999999999999998e-01" id="11" name="SgRMHoldingline-3Lane-1175cm" dynamic="no" orientation="+" zOffset="0.0000000000000000e+00" type="294" country="OpenDRIVE" countryRevision="2013" subtype="-1" hOffset="6.2831853071795862e+00" pitch="0.0000000000000000e+00" roll="0.0000000000000000e+00" height="0.03" width="11.75" length="0.5000000000000000e+00">
+                <dependency id="2" type="trafficLight"/>
+            </signal>
+            <signal s="3.5000000000000000e+01" t="-1.2500000000000000e+01" id="2" name="_Sg2" dynamic="yes" orientation="+" zOffset="2.4200000166893005e+00" type="1000001" country="OpenDRIVE" countryRevision="2013" subtype="-1" value="0.0000000000000000e+00" hOffset="6.2831853071795862e+00" pitch="0.0000000000000000e+00" roll="0.0000000000000000e+00" height="1.15" width="0.41">
+                <reference elementId="11" elementType="signal" type="stopline"/>
+            </signal>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+    <road name="" length="6.3016114052084262e+01" id="77" junction="-1" rule="RHT">
+        <link>
+            <predecessor elementType="junction" elementId="2" />
+            <successor elementType="junction" elementId="3" />
+        </link>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="1.0999999999875858e+01" y="-5.0000000000052140e+01" hdg="1.5707963267948966e+00" length="8.3593553637292928e-02">
+                <line/>
+            </geometry>
+            <geometry s="8.3593553637292928e-02" x="1.0999999999875858e+01" y="-4.9916406446414847e+01" hdg="1.5707963267899308e+00" length="8.6564536704850532e+00">
+                <spiral curvStart="-0.0000000000000000e+00" curvEnd="-2.8985507246376812e-02"/>
+            </geometry>
+            <geometry s="8.7400472241223461e+00" x="1.1361594151256426e+01" y="-4.1273567391637037e+01" hdg="1.4453404764942874e+00" length="4.5536019603767571e+01">
+                <arc curvature="-2.8985507246376812e-02"/>
+            </geometry>
+            <geometry s="5.4276066827889920e+01" x="4.1273567391596096e+01" y="-1.1361594151326919e+01" hdg="1.2545585029812578e-01" length="8.6564536704850532e+00">
+                 <spiral curvStart="-2.8985507246376812e-02" curvEnd="-0.0000000000000000e+00"/>
+            </geometry>
+            <geometry s="6.2932520498374970e+01" x="4.9916406446290701e+01" y="-1.1000000000000000e+01" hdg="0.0000000000000000e+00" length="8.3593553709299329e-02">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+        </elevationProfile>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes>
+            <laneSection s="0.0000000000000000e+00">
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                            <predecessor id="-4"/>
+                            <successor id="-4"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="4.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="-2" type="border" level="false">
+                        <link>
+                            <predecessor id="-5"/>
+                            <successor id="-5"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.4999999999999999e-01" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <objects>
+        </objects>
+        <signals>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+    <road name="" length="3.5000000000000000e+01" id="78" junction="-1" rule="RHT">
+        <link>
+            <predecessor elementType="junction" elementId="1" />
+            <successor elementType="junction" elementId="7" />
+        </link>
+        <type s="0.0000000000000000e+00" country="DE" type="town"/>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="-4.9999999999999994e-01" y="-2.5000000000000000e+01" hdg="-1.5707963268048282e+00" length="3.5000000000000000e+01">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+        </elevationProfile>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes>
+            <laneSection s="0.0000000000000000e+00">
+                <left>
+                    <lane id="1" type="median" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="5.0000000000000000e-01" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <height sOffset="0.0000000000000000e+00" inner="1.0000000000000001e-01" outer="1.0000000000000001e-01"/>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-3" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="1.2244897959183671e-03" d="-2.3323615160349851e-05"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="none" weight="standard" color="standard" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                        <roadMark sOffset="7.0000000000000000e+00" type="broken" weight="standard" color="standard" width="2.5000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="2.5000000000000000e-01">
+                                <line length="1.5000000000000000e+00" space="1.5000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="2.5000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                        <roadMark sOffset="2.9000000000000000e+01" type="none" weight="standard" color="standard" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <objects>
+        </objects>
+        <signals>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+    <road name="" length="1.5000000000000000e+01" id="79" junction="-1" rule="RHT">
+        <link>
+            <predecessor elementType="junction" elementId="5" />
+        </link>
+        <type s="0.0000000000000000e+00" country="DE" type="town"/>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="-5.0000000017380164e-01" y="-6.0000000000000000e+01" hdg="-1.5707963268048282e+00" length="1.5000000000000000e+01">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+        </elevationProfile>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes>
+            <laneSection s="0.0000000000000000e+00">
+                <left>
+                    <lane id="1" type="median" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="5.0000000000000000e-01" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <height sOffset="0.0000000000000000e+00" inner="1.0000000000000001e-01" outer="1.0000000000000001e-01"/>
+                        <height sOffset="1.5000000000000000e+01" inner="1.0000000000000001e-01" outer="1.0000000000000001e-01"/>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-3" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="4.0000000000000000e+00" b="0.0000000000000000e+00" c="-6.6666666666666671e-03" d="2.9629629629629629e-04"/>
+                    </lane>
+                    <lane id="-4" type="border" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.4999999999999999e-01" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <objects>
+        </objects>
+        <signals>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+    <road name="" length="1.5000000000000000e+01" id="80" junction="-1" rule="RHT">
+        <link>
+            <predecessor elementType="junction" elementId="5" />
+        </link>
+        <type s="0.0000000000000000e+00" country="DE" type="town"/>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="5.0000000000000089e-01" y="6.0000000000000000e+01" hdg="1.5707963267948968e+00" length="1.5000000000000000e+01">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="0.0000000000000000e+00" a="0.0000000000000000e+00" b="-0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+        </elevationProfile>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes>
+            <laneSection s="0.0000000000000000e+00">
+                <left>
+                    <lane id="5" type="border" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.4999999999999999e-01" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="4" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="4.0000000000000000e+00" b="0.0000000000000000e+00" c="-6.6666666666666671e-03" d="2.9629629629629629e-04"/>
+                    </lane>
+                    <lane id="3" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="-0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="2" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="-0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="1" type="median" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <height sOffset="0.0000000000000000e+00" inner="1.0000000000000001e-01" outer="1.0000000000000001e-01"/>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="-0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="-0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-3" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="4.0000000000000000e+00" b="0.0000000000000000e+00" c="-6.6666666666666671e-03" d="2.9629629629629629e-04"/>
+                    </lane>
+                    <lane id="-4" type="border" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.4999999999999999e-01" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <objects>
+        </objects>
+        <signals>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+    <road name="" length="2.5000000000000000e+01" id="86" junction="-1" rule="RHT">
+        <link>
+            <predecessor elementType="junction" elementId="6" />
+        </link>
+        <type s="0.0000000000000000e+00" country="DE" type="town"/>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="-5.0000000000000000e+01" y="5.0000000000000311e-01" hdg="3.1415926535897931e+00" length="2.5000000000000000e+01">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+        </elevationProfile>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes>
+            <laneSection s="0.0000000000000000e+00">
+                <left>
+                    <lane id="7" type="border" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+                        <width sOffset="1.5000000000000000e+01" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="1.0499999999999998e-01" d="-6.9999999999999993e-03"/>
+                    </lane>
+                    <lane id="6" type="border" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.4999999999999999e-01" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="5" type="exit" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="4.0000000000000000e+00" b="0.0000000000000000e+00" c="-6.6666666666666671e-03" d="2.9629629629629629e-04"/>
+                        <width sOffset="1.5000000000000000e+01" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="-1.0499999999999998e-01" d="6.9999999999999993e-03"/>
+                    </lane>
+                    <lane id="4" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="2.5000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="2.5000000000000000e-01">
+                                <line length="1.5000000000000000e+00" space="1.5000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="2.5000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                        <roadMark sOffset="2.3000000000000000e+01" type="none" weight="standard" color="standard" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="3" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="2" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="1" type="median" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <height sOffset="0.0000000000000000e+00" inner="1.0000000000000001e-01" outer="1.0000000000000001e-01"/>
+                    </lane>
+                </left>
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="1.3000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="1.3000000000000000e-01">
+                                <line length="3.0000000000000000e+00" space="8.0000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="1.3000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                    </lane>
+                    <lane id="-3" type="driving" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                        <roadMark sOffset="0.0000000000000000e+00" type="broken" weight="standard" color="standard" width="2.5000000000000000e-01" laneChange="both" height="1.9999999552965164e-02">
+                            <type name="broken" width="2.5000000000000000e-01">
+                                <line length="1.5000000000000000e+00" space="1.5000000000000000e+00" tOffset="0.0000000000000000e+00" sOffset="0.0000000000000000e+00" rule="caution" width="2.5000000000000000e-01"/>
+                            </type>
+                        </roadMark>
+                        <roadMark sOffset="2.3000000000000000e+01" type="none" weight="standard" color="standard" laneChange="both" height="1.9999999552965164e-02">
+                        </roadMark>
+                    </lane>
+                    <lane id="-4" type="entry" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="4.0000000000000000e+00" b="0.0000000000000000e+00" c="-6.6666666666666671e-03" d="2.9629629629629629e-04"/>
+                        <width sOffset="1.5000000000000000e+01" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="-1.0499999999999998e-01" d="6.9999999999999993e-03"/>
+                    </lane>
+                    <lane id="-5" type="border" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.4999999999999999e-01" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="-6" type="shoulder" level="false">
+                        <link>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="-0.0000000000000000e+00"/>
+                        <width sOffset="1.5000000000000000e+01" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="1.0499999999999998e-01" d="-6.9999999999999993e-03"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <objects>
+        </objects>
+        <signals>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+    <road name="" length="8.4909003559993025e+01" id="89" junction="-1" rule="RHT">
+        <link>
+            <predecessor elementType="junction" elementId="4"/>
+            <successor elementType="junction" elementId="5" />
+        </link>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="6.0000000000000000e+01" y="7.4999999999999973e+00" hdg="3.1415926535848264e+00" length="2.7915108038529723e-01">
+                <line/>
+            </geometry>
+            <geometry s="2.7915108038529723e-01" x="5.9720848919614703e+01" y="7.5000000000013838e+00" hdg="3.1415926535798615e+00" length="1.1701371285678537e+01">
+                <spiral curvStart="-0.0000000000000000e+00" curvEnd="-2.1621621621621623e-02"/>
+            </geometry>
+            <geometry s="1.1980522366063834e+01" x="4.8038188981221111e+01" y="7.9928492325290463e+00" hdg="3.0150913423845784e+00" length="6.0947958828126119e+01">
+                <arc curvature="-2.1621621621621623e-02"/>
+            </geometry>
+            <geometry s="7.2928481194189956e+01" x="7.9928492323971438e+00" y="4.8038188981590906e+01" hdg="1.6972976379926621e+00" length="1.1701371285678537e+01">
+                 <spiral curvStart="-2.1621621621621623e-02" curvEnd="-0.0000000000000000e+00"/>
+            </geometry>
+            <geometry s="8.4629852479868489e+01" x="7.5000000000000009e+00" y="5.9720848919875451e+01" hdg="1.5707963267948966e+00" length="2.7915108012454937e-01">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+        </elevationProfile>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes>
+            <laneSection s="0.0000000000000000e+00">
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                            <predecessor id="-3"/>
+                            <successor id="-3"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="4.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="-2" type="border" level="false">
+                        <link>
+                            <predecessor id="-4"/>
+                            <successor id="-4"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.4999999999999999e-01" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <objects>
+        </objects>
+        <signals>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+    <road name="" length="7.5314668271844909e+01" id="95" junction="-1" rule="RHT">
+        <link>
+            <predecessor elementType="junction" elementId="5"/>
+            <successor elementType="junction" elementId="6" />
+        </link>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="-7.4999999999999991e+00" y="6.0000000000000000e+01" hdg="-1.5707963267998624e+00" length="6.8907645203854742e+00">
+                <line/>
+            </geometry>
+            <geometry s="6.8907645203854742e+00" x="-7.4999999999999991e+00" y="5.3109235479614526e+01" hdg="-1.5707963267998624e+00" length="9.5209760579640346e+00">
+                <spiral curvStart="-0.0000000000000000e+00" curvEnd="-2.6845637583892617e-02"/>
+            </geometry>
+            <geometry s="1.6411740578349509e+01" x="-7.9051153862839882e+00" y="4.3603797721125041e+01" hdg="-1.6985946631471318e+00" length="4.8991187115145891e+01">
+                <arc curvature="-2.6845637583892617e-02"/>
+            </geometry>
+            <geometry s="6.5402927693495400e+01" x="-4.0103797721125055e+01" y="1.1405115386283995e+01" hdg="-3.0137943172450079e+00" length="9.5209760579640346e+00">
+                 <spiral curvStart="-2.6845637583892617e-02" curvEnd="-0.0000000000000000e+00"/>
+            </geometry>
+            <geometry s="7.4923903751459434e+01" x="-4.9609235479614526e+01" y="1.1000000000000004e+01" hdg="3.1415926535897931e+00" length="3.9076452038547416e-01">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+        </elevationProfile>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes>
+            <laneSection s="0.0000000000000000e+00">
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                            <predecessor id="4"/>
+                            <successor id="-4"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="4.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="-2" type="border" level="false">
+                        <link>
+                            <predecessor id="5"/>
+                            <successor id="-5"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.4999999999999999e-01" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <objects>
+        </objects>
+        <signals>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+    <road name="" length="4.1536440836446772e+01" id="101" junction="1" rule="RHT">
+        <link>
+            <predecessor elementType="road" elementId="67" contactPoint="end" />
+            <successor elementType="road" elementId="2" contactPoint="start" />
+        </link>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="5.0000000000000000e-01" y="-2.5000000000000000e+01" hdg="1.5707963267948966e+00" length="7.5072326232204389e-01">
+                <line/>
+            </geometry>
+            <geometry s="7.5072326232204389e-01" x="5.0000000000000000e-01" y="-2.4249276737677956e+01" hdg="1.5707963267948968e+00" length="5.8701742040136855e+00">
+                <spiral curvStart="0.0000000000000000e+00" curvEnd="4.5977011494252873e-02"/>
+            </geometry>
+            <geometry s="6.6208974663357294e+00" x="2.3629004972346124e-01" y="-1.8389783444915984e+01" hdg="1.7057428602192573e+00" length="2.8294645903775297e+01">
+                <arc curvature="4.5977011494252873e-02"/>
+            </geometry>
+            <geometry s="3.4915543370111024e+01" x="-1.8389783444915977e+01" y="2.3629004972345413e-01" hdg="3.0066461201629493e+00" length="5.8701742040136855e+00">
+                 <spiral curvStart="4.5977011494252873e-02" curvEnd="0.0000000000000000e+00"/>
+            </geometry>
+            <geometry s="4.0785717574124710e+01" x="-2.4249276737677949e+01" y="4.9999999999999983e-01" hdg="3.1415926535897931e+00" length="7.5072326232205100e-01">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+        </elevationProfile>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes>
+            <laneSection s="0.0000000000000000e+00">
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                            <predecessor id="-1"/>
+                            <successor id="-1"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <objects>
+        </objects>
+        <signals>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+    <road name="" length="5.0000000000017380e+01" id="104" junction="1" rule="RHT">
+        <link>
+            <predecessor elementType="road" elementId="67" contactPoint="end" />
+            <successor elementType="road" elementId="3" contactPoint="start" />
+        </link>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="4.0000000000000000e+00" y="-2.5000000000017380e+01" hdg="1.5707963267948966e+00" length="5.0000000000017380e+01">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+        </elevationProfile>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes>
+            <laneSection s="0.0000000000000000e+00">
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                            <predecessor id="-2"/>
+                            <successor id="-2"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                            <predecessor id="-3"/>
+                            <successor id="-3"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <objects>
+        </objects>
+        <signals>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+    <road name="" length="7.5314668271722809e+01" id="107" junction="-1" rule="RHT">
+        <link>
+            <predecessor elementType="junction" elementId="6"/>
+            <successor elementType="junction" elementId="7" />
+        </link>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="-5.0000000000000000e+01" y="-1.0999999999999996e+01" hdg="-9.9298347322474001e-12" length="3.9076452047335408e-01">
+                <line/>
+            </geometry>
+            <geometry s="3.9076452047335408e-01" x="-4.9609235479526646e+01" y="-1.1000000000001936e+01" hdg="-9.9316110890868003e-12" length="9.5209760580397518e+00">
+                <spiral curvStart="-0.0000000000000000e+00" curvEnd="-2.6845637583892617e-02"/>
+            </geometry>
+            <geometry s="9.9117405785131059e+00" x="-4.0103797720963826e+01" y="-1.1405115386339553e+01" hdg="-1.2779833635821625e-01" length="4.8991187115255187e+01">
+                <arc curvature="-2.6845637583892617e-02"/>
+            </geometry>
+            <geometry s="5.8902927693768291e+01" x="-7.9051153863014463e+00" y="-4.3603797721481634e+01" hdg="-1.4429979904590269e+00" length="9.5209760580397518e+00">
+                 <spiral curvStart="-2.6845637583892617e-02" curvEnd="-0.0000000000000000e+00"/>
+            </geometry>
+            <geometry s="6.8423903751808041e+01" x="-7.5000000001053637e+00" y="-5.3109235480050472e+01" hdg="-1.5707963268097940e+00" length="6.8907645199147680e+00">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+        </elevationProfile>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes>
+            <laneSection s="0.0000000000000000e+00">
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                            <predecessor id="5"/>
+                            <successor id="-3"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="4.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="-2" type="border" level="false">
+                        <link>
+                            <predecessor id="6"/>
+                            <successor id="-4"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="1.4999999999999999e-01" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <objects>
+        </objects>
+        <signals>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+    <road name="" length="4.1536440836432106e+01" id="110" junction="1" rule="RHT">
+        <link>
+            <predecessor elementType="road" elementId="70" contactPoint="end" />
+            <successor elementType="road" elementId="78" contactPoint="start" />
+        </link>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="2.5000000000000000e+01" y="4.9999999999999978e-01" hdg="3.1415926535848273e+00" length="7.5072326221719621e-01">
+                <line/>
+            </geometry>
+            <geometry s="7.5072326221719621e-01" x="2.4249276737782804e+01" y="5.0000000000372780e-01" hdg="3.1415926535848273e+00" length="5.8701742039368314e+00">
+                <spiral curvStart="0.0000000000000000e+00" curvEnd="4.5977011494252873e-02"/>
+            </geometry>
+            <geometry s="6.6208974661540276e+00" x="1.8389783445095951e+01" y="2.3629004976318413e-01" hdg="-3.0066461201721655e+00" length="2.8294645903744158e+01">
+                <arc curvature="4.5977011494252873e-02"/>
+            </geometry>
+            <geometry s="3.4915543369898188e+01" x="-2.3629004967197320e-01" y="-1.8389783444773510e+01" hdg="-1.7057428602299041e+00" length="5.8701742039368314e+00">
+                 <spiral curvStart="4.5977011494252873e-02" curvEnd="0.0000000000000000e+00"/>
+            </geometry>
+            <geometry s="4.0785717573835022e+01" x="-4.9999999999254385e-01" y="-2.4249276737402912e+01" hdg="-1.5707963268097940e+00" length="7.5072326259708788e-01">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+        </elevationProfile>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes>
+            <laneSection s="0.0000000000000000e+00">
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                            <predecessor id="-1"/>
+                            <successor id="-1"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <objects>
+        </objects>
+        <signals>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+    <road name="" length="5.0000000000000000e+01" id="113" junction="1" rule="RHT">
+        <link>
+            <predecessor elementType="road" elementId="70" contactPoint="end" />
+            <successor elementType="road" elementId="2" contactPoint="start" />
+        </link>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="2.5000000000000000e+01" y="4.0000000000000000e+00" hdg="3.1415926535897931e+00" length="5.0000000000000000e+01">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+        </elevationProfile>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes>
+            <laneSection s="0.0000000000000000e+00">
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                            <predecessor id="-2"/>
+                            <successor id="-2"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                            <predecessor id="-3"/>
+                            <successor id="-3"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <objects>
+        </objects>
+        <signals>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+    <road name="" length="4.1536440836492297e+01" id="116" junction="1" rule="RHT">
+        <link>
+            <predecessor elementType="road" elementId="3" contactPoint="start" />
+            <successor elementType="road" elementId="69" contactPoint="start" />
+        </link>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="-4.9999999999999689e-01" y="2.5000000000000000e+01" hdg="-1.5707963267998624e+00" length="7.5072326240809417e-01">
+                <line/>
+            </geometry>
+            <geometry s="7.5072326240809417e-01" x="-4.9999999999999689e-01" y="2.4249276737591906e+01" hdg="-1.5707963267948966e+00" length="5.8701742039951288e+00">
+                <spiral curvStart="0.0000000000000000e+00" curvEnd="4.5977011494252873e-02"/>
+            </geometry>
+            <geometry s="6.6208974664032230e+00" x="-2.3629004972512035e-01" y="1.8389783444848380e+01" hdg="-1.4358497933709629e+00" length="2.8294645903685854e+01">
+                <arc curvature="4.5977011494252873e-02"/>
+            </geometry>
+            <geometry s="3.4915543370089075e+01" x="1.8389783444817716e+01" y="-2.3629004978697310e-01" hdg="-1.3494653343138374e-01" length="5.8701742039951288e+00">
+                 <spiral curvStart="4.5977011494252873e-02" curvEnd="0.0000000000000000e+00"/>
+            </geometry>
+            <geometry s="4.0785717574084202e+01" x="2.4249276737591906e+01" y="-5.0000000000000056e-01" hdg="-4.9658055445434002e-12" length="7.5072326240809417e-01">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+        </elevationProfile>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes>
+            <laneSection s="0.0000000000000000e+00">
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                            <predecessor id="2"/>
+                            <successor id="-1"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <objects>
+        </objects>
+        <signals>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+    <road name="" length="4.9999999999982620e+01" id="119" junction="1" rule="RHT">
+        <link>
+            <predecessor elementType="road" elementId="3" contactPoint="start" />
+            <successor elementType="road" elementId="78" contactPoint="start" />
+        </link>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="-3.9999999999999969e+00" y="2.5000000000000000e+01" hdg="-1.5707963267998624e+00" length="4.9999999999982620e+01">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+        </elevationProfile>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes>
+            <laneSection s="0.0000000000000000e+00">
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                            <predecessor id="3"/>
+                            <successor id="-2"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                            <predecessor id="4"/>
+                            <successor id="-3"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <objects>
+        </objects>
+        <signals>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+    <road name="" length="4.1536440836584454e+01" id="122" junction="1" rule="RHT">
+        <link>
+            <predecessor elementType="road" elementId="2" contactPoint="start" />
+            <successor elementType="road" elementId="3" contactPoint="start" />
+        </link>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="-2.5000000000000000e+01" y="-5.0000000000000000e-01" hdg="-9.9316110890868003e-12" length="7.5072326229343389e-01">
+                <line/>
+            </geometry>
+            <geometry s="7.5072326229343389e-01" x="-2.4249276737706566e+01" y="-5.0000000000372813e-01" hdg="-9.9316110890868003e-12" length="5.8701742039739395e+00">
+                <spiral curvStart="0.0000000000000000e+00" curvEnd="4.5977011494252873e-02"/>
+            </geometry>
+            <geometry s="6.6208974662673734e+00" x="-1.8389783444981489e+01" y="-2.3629004978895196e-01" hdg="1.3494653341351537e-01" length="2.8294645903923076e+01">
+                <arc curvature="4.5977011494252873e-02"/>
+            </geometry>
+            <geometry s="3.4915543370190449e+01" x="2.3629004987983038e-01" y="1.8389783444794897e+01" hdg="1.4358497933640013e+00" length="5.8701742039739395e+00">
+                 <spiral curvStart="4.5977011494252873e-02" curvEnd="0.0000000000000000e+00"/>
+            </geometry>
+            <geometry s="4.0785717574164387e+01" x="5.0000000000000300e-01" y="2.4249276737579933e+01" hdg="1.5707963267948966e+00" length="7.5072326242006682e-01">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+        </elevationProfile>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes>
+            <laneSection s="0.0000000000000000e+00">
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                            <predecessor id="2"/>
+                            <successor id="-1"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <objects>
+        </objects>
+        <signals>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+    <road name="" length="5.0000000000000000e+01" id="125" junction="1" rule="RHT">
+        <link>
+            <predecessor elementType="road" elementId="2" contactPoint="start" />
+            <successor elementType="road" elementId="69" contactPoint="start" />
+        </link>
+        <planView>
+            <geometry s="0.0000000000000000e+00" x="-2.5000000000000000e+01" y="-4.0000000000000000e+00" hdg="-4.9658055445434002e-12" length="5.0000000000000000e+01">
+                <line/>
+            </geometry>
+        </planView>
+        <elevationProfile>
+            <elevation s="0.0000000000000000e+00" a="0.0000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+        </elevationProfile>
+        <lateralProfile>
+        </lateralProfile>
+        <lanes>
+            <laneSection s="0.0000000000000000e+00">
+                <center>
+                    <lane id="0" >
+                        <link>
+                        </link>
+                    </lane>
+                </center>
+                <right>
+                    <lane id="-1" type="driving" level="false">
+                        <link>
+                            <predecessor id="3"/>
+                            <successor id="-2"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                    <lane id="-2" type="driving" level="false">
+                        <link>
+                            <predecessor id="4"/>
+                            <successor id="-3"/>
+                        </link>
+                        <width sOffset="0.0000000000000000e+00" a="3.5000000000000000e+00" b="0.0000000000000000e+00" c="0.0000000000000000e+00" d="0.0000000000000000e+00"/>
+                    </lane>
+                </right>
+            </laneSection>
+        </lanes>
+        <objects>
+        </objects>
+        <signals>
+        </signals>
+        <surface>
+        </surface>
+    </road>
+    <controller name="ctrl001" id="1">
+        <control signalId="8"/>
+    </controller>
+    <controller name="ctrl002" id="2">
+        <control signalId="2"/>
+    </controller>
+    <controller name="ctrl003" id="3">
+        <control signalId="6"/>
+    </controller>
+    <controller name="ctrl004" id="4">
+        <control signalId="4"/>
+    </controller>
+    <junction name="" id="2" type="direct">
+        <connection id="0" incomingRoad="65" linkedRoad="77" contactPoint="start">
+            <laneLink from="-4" to="-1"/>
+            <laneLink from="-5" to="-2"/>
+        </connection>
+        <connection id="1" incomingRoad="65" linkedRoad="67" contactPoint="start">
+            <laneLink from="-1" to="-1"/>
+            <laneLink from="-2" to="-2"/>
+            <laneLink from="-3" to="-3"/>
+        </connection>
+    </junction>
+    <junction name="" id="3" type="direct">
+        <connection id="0" incomingRoad="77" linkedRoad="68" contactPoint="start">
+            <laneLink from="-1" to="-4"/>
+        </connection>
+        <connection id="1" incomingRoad="69" linkedRoad="68" contactPoint="start">
+            <laneLink from="-1" to="-1"/>
+            <laneLink from="-2" to="-2"/>
+            <laneLink from="-3" to="-3"/>
+        </connection>
+    </junction>
+    <junction name="" id="4" type="direct">
+        <connection id="0" incomingRoad="66" linkedRoad="89" contactPoint="start">
+            <laneLink from="-3" to="-1" overlapZone="24.6"/>
+            <laneLink from="-4" to="-2"/>
+        </connection>
+        <connection id="1" incomingRoad="66" linkedRoad="70" contactPoint="start">
+            <laneLink from="-1" to="-1"/>
+            <laneLink from="-2" to="-2"/>
+            <laneLink from="-3" to="-3"/>
+        </connection>
+    </junction>
+    <junction name="" id="5" type="direct">
+        <connection id="0" incomingRoad="89" linkedRoad="80" contactPoint="start">
+            <laneLink from="-1" to="-3"/>
+            <laneLink from="-2" to="-4"/>
+        </connection>
+        <connection id="1" incomingRoad="3" linkedRoad="80" contactPoint="start">
+            <laneLink from="-1" to="-1"/>
+            <laneLink from="-2" to="-2"/>
+            <laneLink from="-3" to="-3" overlapZone="24.1"/>
+        </connection>
+        <connection id="2" incomingRoad="80" linkedRoad="3" contactPoint="end">
+            <laneLink from="1" to="1"/>
+            <laneLink from="2" to="2"/>
+            <laneLink from="3" to="3" overlapZone="27.9"/>
+        </connection>
+        <connection id="3" incomingRoad="80" linkedRoad="95" contactPoint="start">
+            <laneLink from="4" to="-1" overlapZone="28.3"/>
+            <laneLink from="5" to="-2"/>
+        </connection>
+    </junction>
+    <junction name="" id="6" type="direct">
+        <connection id="0" incomingRoad="95" linkedRoad="86" contactPoint="start">
+            <laneLink from="-1" to="4"/>
+            <laneLink from="-2" to="5"/>
+        </connection>
+        <connection id="1" incomingRoad="2" linkedRoad="86" contactPoint="start">
+            <laneLink from="-1" to="-1"/>
+            <laneLink from="-2" to="-2"/>
+            <laneLink from="-3" to="-3"/>
+        </connection>
+        <connection id="2" incomingRoad="86" linkedRoad="2" contactPoint="end">
+            <laneLink from="2" to="2"/>
+            <laneLink from="3" to="3"/>
+            <laneLink from="4" to="4"/>
+        </connection>
+        <connection id="3" incomingRoad="86" linkedRoad="107" contactPoint="start">
+            <laneLink from="5" to="-1"/>
+            <laneLink from="6" to="-2"/>
+        </connection>
+    </junction>
+    <junction name="" id="7" type="direct">
+        <connection id="0" incomingRoad="107" linkedRoad="79" contactPoint="start">
+            <laneLink from="-1" to="3"/>
+            <laneLink from="-2" to="4"/>
+        </connection>
+        <connection id="1" incomingRoad="78" linkedRoad="79" contactPoint="start">
+            <laneLink from="-1" to="-1"/>
+            <laneLink from="-2" to="-2"/>
+            <laneLink from="-3" to="-3"/>
+        </connection>
+    </junction>
+    <junction name="" id="1" type="default">
+        <connection id="0" incomingRoad="2" connectingRoad="122" contactPoint="start">
+            <laneLink from="2" to="-1"/>
+        </connection>
+        <connection id="1" incomingRoad="2" connectingRoad="125" contactPoint="start">
+            <laneLink from="3" to="-1"/>
+            <laneLink from="4" to="-2"/>
+        </connection>
+        <connection id="2" incomingRoad="3" connectingRoad="116" contactPoint="start">
+            <laneLink from="2" to="-1"/>
+        </connection>
+        <connection id="3" incomingRoad="3" connectingRoad="119" contactPoint="start">
+            <laneLink from="3" to="-1"/>
+            <laneLink from="4" to="-2"/>
+        </connection>
+        <connection id="4" incomingRoad="67" connectingRoad="101" contactPoint="start">
+            <laneLink from="-1" to="-1"/>
+        </connection>
+        <connection id="5" incomingRoad="67" connectingRoad="104" contactPoint="start">
+            <laneLink from="-2" to="-1"/>
+            <laneLink from="-3" to="-2"/>
+        </connection>
+        <connection id="6" incomingRoad="70" connectingRoad="110" contactPoint="start">
+            <laneLink from="-1" to="-1"/>
+        </connection>
+        <connection id="7" incomingRoad="70" connectingRoad="113" contactPoint="start">
+            <laneLink from="-2" to="-1"/>
+            <laneLink from="-3" to="-2"/>
+        </connection>
+        <controller id="4" type="0"/>
+        <controller id="3" type="0"/>
+        <controller id="1" type="0"/>
+        <controller id="2" type="0"/>
+    </junction>
+</OpenDRIVE>

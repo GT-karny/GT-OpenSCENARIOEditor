@@ -3,12 +3,12 @@
  * Linearly varying curvature from curvStart to curvEnd.
  * Uses Simpson's rule for numerical integration.
  */
-import type { OdrGeometry } from '@osce/shared';
+import type { OdrGeometrySpiral } from '@osce/shared';
 import type { Pose2D } from './types.js';
 
-export function evaluateSpiral(ds: number, geom: OdrGeometry): Pose2D {
-  const k0 = geom.curvStart ?? 0;
-  const k1 = geom.curvEnd ?? 0;
+export function evaluateSpiral(ds: number, geom: OdrGeometrySpiral): Pose2D {
+  const k0 = geom.curvStart;
+  const k1 = geom.curvEnd;
   const L = geom.length;
   const dk = L > 1e-12 ? (k1 - k0) / L : 0;
 

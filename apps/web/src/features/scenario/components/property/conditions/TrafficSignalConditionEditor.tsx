@@ -1,0 +1,78 @@
+import { useMemo } from 'react';
+import type {
+  Condition,
+  ByValueCondition,
+  TrafficSignalCondition,
+  TrafficSignalController,
+} from '@osce/shared';
+import { useTranslation } from '@osce/i18n';
+import { Label } from '../../../../../components/ui/label';
+import { ParameterAwareInput } from '../ParameterAwareInput';
+import { RefSelect } from '../RefSelect';
+import type { RefSelectItem } from '../RefSelect';
+import { valueConditionUpdate } from '../lib/typed-updates';
+import { useScenarioStore } from '../../../../../stores/use-scenario-store';
+
+const EMPTY_SIGNALS: TrafficSignalController[] = [];
+
+interface TrafficSignalConditionEditorProps {
+  condition: Condition;
+  onUpdate: (conditionId: string, partial: Partial<Condition>) => void;
+}
+
+export function TrafficSignalConditionEditor({
+  condition,
+  onUpdate,
+}: TrafficSignalConditionEditorProps) {
+  const { t } = useTranslation('common');
+  const inner = condition.condition as ByValueCondition;
+  const cond = inner.valueCondition as TrafficSignalCondition;
+  const controllers = useScenarioStore((s) => s.document.roadNetwork.trafficSignals ?? EMPTY_SIGNALS);
+
+  const signalItems: RefSelectItem[] = useMemo(() => {
+    const ids = new Set<string>();
+    for (const ctrl of controllers) {
+      for (const phase of ctrl.phases) {
+        for (const state of phase.trafficSignalStates) {
+          ids.add(state.trafficSignalId);
+        }
+      }
+    }
+    return [...ids].sort().map((id) => ({ name: id }));
+  }, [controllers]);
+
+  const update = (updates: Partial<TrafficSignalCondition>) => {
+    onUpdate(condition.id, valueConditionUpdate(inner, cond, updates));
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-muted-foreground">
+          {t('conditionEditors.trafficSignal.title')}
+        </p>
+        <div className="grid gap-1">
+          <Label className="text-[10px]">{t('conditionEditors.trafficSignal.signalName')}</Label>
+          <RefSelect
+            value={cond.name}
+            onValueChange={(v) => update({ name: v })}
+            items={signalItems}
+            placeholder={t('conditionEditors.trafficSignal.selectPlaceholder')}
+            emptyMessage={t('conditionEditors.trafficSignal.emptyMessage')}
+            className="h-7 text-xs"
+          />
+        </div>
+        <div className="grid gap-1">
+          <Label className="text-[10px]">{t('conditionEditors.trafficSignal.state')}</Label>
+          <ParameterAwareInput
+            value={cond.state}
+            placeholder={t('conditionEditors.trafficSignal.statePlaceholder')}
+            onValueChange={(v) => update({ state: v })}
+            acceptedTypes={['string']}
+            className="h-7 text-xs"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}

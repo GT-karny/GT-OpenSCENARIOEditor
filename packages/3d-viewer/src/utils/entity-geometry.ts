@@ -3,6 +3,7 @@
  */
 
 import type { ScenarioEntity, EntityType, BoundingBox } from '@osce/shared';
+import { readEntityColor } from '@osce/shared';
 
 /**
  * Geometry parameters for rendering an entity as a 3D primitive.
@@ -87,4 +88,14 @@ export function getEntityColor(entityType: EntityType, isEgo: boolean): string {
     return ENTITY_COLORS.vehicle_ego;
   }
   return ENTITY_COLORS[entityType] ?? '#999999';
+}
+
+/**
+ * Resolve the display color for an entity, honoring a `color` Property
+ * (esmini-compatible) when present. Falls back to the type-based default.
+ */
+export function resolveEntityColor(entity: ScenarioEntity, isEgo: boolean): string {
+  const explicit = readEntityColor(entity);
+  if (explicit) return explicit;
+  return getEntityColor(entity.type, isEgo);
 }

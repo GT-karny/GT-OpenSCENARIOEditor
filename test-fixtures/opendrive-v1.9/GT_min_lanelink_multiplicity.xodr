@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Hand-written minimal 1.9 fixture (GT) covering two P2 items:
+    - lane-link multiplicity + @layer: lane -1 of the second section links to
+      BOTH -1 and -2 of the first section (a merge), i.e. two <predecessor>
+      elements, each carrying an @layer attribute.
+    - special speed @max: the road-type speed uses the literal "no limit"
+      (t_maxSpeed). Lane speed @max is t_grEqZero (numeric only) per XSD, so no
+      special literal is placed on a lane here.
+-->
+<OpenDRIVE>
+  <header revMajor="1" revMinor="9" name="min_lanelink_multiplicity" date="2026-07-06"/>
+  <road rule="RHT" name="R1" length="200" id="1" junction="-1">
+    <link/>
+    <type s="0" type="motorway">
+      <speed max="no limit" unit="m/s"/>
+    </type>
+    <planView>
+      <geometry s="0" x="0" y="0" hdg="0" length="200"><line/></geometry>
+    </planView>
+    <elevationProfile/>
+    <lateralProfile/>
+    <lanes>
+      <laneSection s="0">
+        <center><lane id="0" type="none" level="false"/></center>
+        <right>
+          <lane id="-1" type="driving" level="false">
+            <width sOffset="0" a="3.5" b="0" c="0" d="0"/>
+          </lane>
+          <lane id="-2" type="driving" level="false">
+            <width sOffset="0" a="3.5" b="0" c="0" d="0"/>
+          </lane>
+        </right>
+      </laneSection>
+      <laneSection s="100">
+        <center><lane id="0" type="none" level="false"/></center>
+        <right>
+          <lane id="-1" type="driving" level="false">
+            <link>
+              <predecessor id="-1" layer="permanent"/>
+              <predecessor id="-2" layer="permanent"/>
+            </link>
+            <width sOffset="0" a="3.5" b="0" c="0" d="0"/>
+          </lane>
+        </right>
+      </laneSection>
+    </lanes>
+    <objects/>
+    <signals/>
+  </road>
+</OpenDRIVE>

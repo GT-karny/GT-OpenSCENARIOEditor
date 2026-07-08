@@ -1,15 +1,16 @@
 import { test, expect } from '@playwright/test';
+import { gotoEditor } from './helpers';
 
 test.describe('Internationalization (i18n)', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await gotoEditor(page);
   });
 
   test('should start in English by default', async ({ page }) => {
     const langToggle = page.getByTestId('language-toggle');
     await expect(langToggle).toContainText('EN');
 
-    // English labels should be visible
+    // English labels should be visible.
     await expect(page.getByRole('tab', { name: 'Entities' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Properties' })).toBeVisible();
   });
@@ -18,10 +19,10 @@ test.describe('Internationalization (i18n)', () => {
     const langToggle = page.getByTestId('language-toggle');
     await langToggle.click();
 
-    // Toggle should now show JA
+    // Toggle should now show JA.
     await expect(langToggle).toContainText('JA');
 
-    // Japanese labels should appear
+    // Japanese labels should appear.
     await expect(page.getByRole('tab', { name: 'エンティティ' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'プロパティ' })).toBeVisible();
   });
@@ -29,24 +30,24 @@ test.describe('Internationalization (i18n)', () => {
   test('should switch back to English when clicking toggle again', async ({ page }) => {
     const langToggle = page.getByTestId('language-toggle');
 
-    // Switch to Japanese
+    // Switch to Japanese.
     await langToggle.click();
     await expect(langToggle).toContainText('JA');
 
-    // Switch back to English
+    // Switch back to English.
     await langToggle.click();
     await expect(langToggle).toContainText('EN');
 
-    // English labels should be back
+    // English labels should be back.
     await expect(page.getByRole('tab', { name: 'Entities' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Properties' })).toBeVisible();
   });
 
-  test('should translate tab labels on right sidebar', async ({ page }) => {
+  test('should translate left and right sidebar tab labels', async ({ page }) => {
     const langToggle = page.getByTestId('language-toggle');
     await langToggle.click();
 
-    await expect(page.getByRole('tab', { name: 'テンプレート' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: '変数' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'バリデーション' })).toBeVisible();
   });
 
@@ -56,7 +57,7 @@ test.describe('Internationalization (i18n)', () => {
     // English
     await expect(statusBar).toContainText('Entities');
 
-    // Switch to Japanese
+    // Switch to Japanese.
     await page.getByTestId('language-toggle').click();
     await expect(statusBar).toContainText('エンティティ');
   });

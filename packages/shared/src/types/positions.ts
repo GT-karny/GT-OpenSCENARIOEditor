@@ -5,6 +5,8 @@
 
 import type { RouteStrategy } from '../enums/osc-enums.js';
 import type { ParameterDeclaration } from './parameters.js';
+import type { Trajectory } from './actions.js';
+import type { Assert, Equals } from './type-utils.js';
 
 export type Position =
   | WorldPosition
@@ -15,7 +17,27 @@ export type Position =
   | RelativeObjectPosition
   | RelativeWorldPosition
   | RoutePosition
-  | GeoPosition;
+  | GeoPosition
+  | TrajectoryPosition;
+
+/**
+ * Discriminators of {@link Position}, in union declaration order. Welded to the
+ * union by {@link _WeldPositionTypes}.
+ */
+export const POSITION_TYPES = [
+  'worldPosition',
+  'lanePosition',
+  'relativeLanePosition',
+  'roadPosition',
+  'relativeRoadPosition',
+  'relativeObjectPosition',
+  'relativeWorldPosition',
+  'routePosition',
+  'geoPosition',
+  'trajectoryPosition',
+] as const;
+export type PositionType = (typeof POSITION_TYPES)[number];
+type _WeldPositionTypes = Assert<Equals<PositionType, Position['type']>>;
 
 export interface WorldPosition {
   type: 'worldPosition';
@@ -93,6 +115,24 @@ export interface GeoPosition {
   longitude: number;
   altitude?: number;
   orientation?: Orientation;
+}
+
+/**
+ * Position relative to a trajectory (XSD TrajectoryPosition:
+ * all(Orientation?, TrajectoryRef) + s (required) + t (optional)).
+ */
+export interface TrajectoryPosition {
+  type: 'trajectoryPosition';
+  trajectoryRef: TrajectoryPositionRef;
+  s: number;
+  t?: number;
+  orientation?: Orientation;
+}
+
+/** XSD TrajectoryRef: choice(Trajectory | CatalogReference). */
+export interface TrajectoryPositionRef {
+  trajectory?: Trajectory;
+  catalogReference?: { catalogName: string; entryName: string };
 }
 
 // --- Supporting types ---

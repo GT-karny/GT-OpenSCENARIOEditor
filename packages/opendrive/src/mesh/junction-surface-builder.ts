@@ -14,9 +14,14 @@
 import type { OdrRoad, OdrJunction } from '@osce/shared';
 import { evaluateReferenceLineAtS } from '../geometry/reference-line.js';
 import { evaluateElevation } from '../geometry/elevation.js';
+import { evaluateSuperelevation } from '../geometry/superelevation.js';
 import { evaluateLaneOffset } from '../geometry/lane-offset.js';
 import { computeLaneOuterT } from '../geometry/lane-boundary.js';
 import { stToXyz } from '../geometry/lane-boundary.js';
+import { getCrossSectionEvaluator } from '../geometry/cross-section-profile.js';
+
+/** Height field applied to a road's surface (crossSectionSurface), or null. */
+type CrossSection = ((s: number, t: number) => number) | null;
 
 export interface JunctionSurfaceData {
   junctionId: string;
@@ -71,7 +76,7 @@ export function buildJunctionSurfaceMesh(
     if (!hasJunctionLink(road, junction.id)) continue;
 
     const s = getJunctionFacingS(road, junction.id);
-    const bp = getBoundaryPair(road, s);
+    const bp = getBoundaryPair(road, s, getCrossSectionEvaluator(road));
     if (bp) {
       candidates.push(bp.left);
       candidates.push(bp.right);
@@ -91,19 +96,26 @@ export function buildJunctionSurfaceMesh(
     const road = roadMap.get(conn.connectingRoad);
     if (!road || road.lanes.length === 0) continue;
 
+    const crossSection = getCrossSectionEvaluator(road);
     for (let i = 0; i <= CONNECTING_SAMPLES; i++) {
       const s = (road.length * i) / CONNECTING_SAMPLES;
       const pose = evaluateReferenceLineAtS(road.planView, s);
-      const z = evaluateElevation(road.elevationProfile, s);
+      // Centerline sits at t=0: superelevation leaves it at z; a cross-section
+      // surface offsets it by its base height (tOffset), matching the rim points.
+      const z = evaluateElevation(road.elevationProfile, s) + (crossSection ? crossSection(s, 0) : 0);
       centerlinePoints.push({ x: pose.x, y: pose.y, z });
 
-      const bp = getBoundaryPair(road, s);
+      const bp = getBoundaryPair(road, s, crossSection);
       if (!bp) continue;
       // Add BOTH sides — the bin filter will keep only the farthest
       candidates.push(bp.left);
       candidates.push(bp.right);
     }
   }
+
+  // A meaningful junction surface requires at least 2 distinct incoming roads.
+  // With only one incoming road there is no junction area to triangulate.
+  if (visitedIncoming.size < 2) return null;
 
   // Need enough boundary points to form a surface
   if (candidates.length < 4) return null;
@@ -211,10 +223,15 @@ function getJunctionFacingS(road: OdrRoad, junctionId: string): number {
 
 /**
  * Get left and right outermost surface-lane boundary points at a given s.
+ *
+ * Banking follows the road's lateral profile: a cross-section surface adds a
+ * per-edge height (no rotation); otherwise superelevation rolls the section
+ * about the reference line. The two are mutually exclusive (XSD assert).
  */
 function getBoundaryPair(
   road: OdrRoad,
   s: number,
+  crossSection: CrossSection,
 ): { left: Point3; right: Point3 } | null {
   let section = road.lanes[0];
   for (const ls of road.lanes) {
@@ -240,8 +257,16 @@ function getBoundaryPair(
     if (outerT < rightT) rightT = outerT;
   }
 
+  if (crossSection) {
+    return {
+      left: stToXyz(pose, leftT, z + crossSection(s, leftT)),
+      right: stToXyz(pose, rightT, z + crossSection(s, rightT)),
+    };
+  }
+
+  const roll = evaluateSuperelevation(road.lateralProfile, s);
   return {
-    left: stToXyz(pose, leftT, z),
-    right: stToXyz(pose, rightT, z),
+    left: stToXyz(pose, leftT, z, roll),
+    right: stToXyz(pose, rightT, z, roll),
   };
 }

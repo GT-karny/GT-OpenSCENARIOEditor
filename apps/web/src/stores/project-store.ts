@@ -45,6 +45,29 @@ function addToRecent(ids: string[], id: string): string[] {
   return [id, ...filtered].slice(0, 10);
 }
 
+/**
+ * Shape persisted to localStorage under `osce-project-state`. Kept in sync with
+ * `partialize` below.
+ */
+export interface ProjectPersistedState {
+  recentProjectIds: string[];
+  projectsRoot: string | null;
+}
+
+/**
+ * Structural migration for the persisted project-state envelope.
+ *
+ * v0 (records written before persist versioning) is shape-compatible with v1,
+ * so it passes through unchanged. Future structural changes (renamed or
+ * relocated keys) branch on `version` here.
+ */
+export function migrateProjectState(
+  persistedState: unknown,
+  _version: number,
+): ProjectPersistedState {
+  return persistedState as ProjectPersistedState;
+}
+
 export const useProjectStore = create<ProjectState>()(
   persist(
     (set, get) => ({
@@ -195,10 +218,12 @@ export const useProjectStore = create<ProjectState>()(
     }),
     {
       name: 'osce-project-state',
-      partialize: (state) => ({
+      version: 1,
+      partialize: (state): ProjectPersistedState => ({
         recentProjectIds: state.recentProjectIds,
         projectsRoot: state.projectsRoot,
       }),
+      migrate: migrateProjectState,
     },
   ),
 );

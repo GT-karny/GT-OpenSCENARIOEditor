@@ -178,4 +178,28 @@ export const openscenario = {
     skip: 'Skip',
     parallel: 'Parallel',
   },
+  synchronizeFields: {
+    masterEntity: 'Master Entity',
+    masterPosition: 'Master Position',
+    targetPosition: 'Target Position',
+    tolerance: 'Tolerance (m)',
+    toleranceMaster: 'Master Tolerance (m)',
+    finalSpeed: 'Final Speed',
+    finalSpeedMode: 'Final Speed Mode',
+    absoluteSpeed: 'Absolute',
+    relativeSpeedToMaster: 'Relative to Master',
+    speedValue: 'Speed',
+    relativeValue: 'Value',
+    valueType: 'Value Type',
+    delta: 'Delta',
+    factor: 'Factor',
+    steadyState: 'Maintain steady state',
+  },
+  environmentFields: {
+    catalogReferenceNotice: 'Environment defined in catalog',
+  },
+  trajectoryFields: {
+    catalogReferenceNotice: 'Trajectory defined in catalog',
+    clothoidSplineNotice: 'ClothoidSpline shape is not yet editable in this UI',
+  },
 } as const;

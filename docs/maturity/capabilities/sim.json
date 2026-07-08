@@ -194,7 +194,8 @@
       ],
       "evidence": {
         "impl": [
-          "apps/web/src/hooks/use-websocket.ts"
+          "apps/web/src/hooks/use-websocket.ts",
+          "apps/web/src/hooks/use-file-operations.ts"
         ],
         "tests": [
           "apps/web/src/__tests__/hooks/use-validation.test.tsx"
@@ -203,7 +204,7 @@
         "ops": []
       },
       "gaps_ja": [
-        "シミュレーションエラー可視化は運用上の不足が残っている"
+        "2026-06-13 証跡追記: ファイル open/parseエラーおよびカタログ自動ロード警告のtoast通知が実装済み (use-file-operations.ts)。E2Eスイート修復中のためL3昇格はオーナー確認待ち"
       ],
       "owner": "sim-team",
       "target_date": "2026-03-23",

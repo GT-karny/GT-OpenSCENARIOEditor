@@ -32,6 +32,7 @@ import {
   AddEntityCommand,
   RemoveEntityCommand,
   UpdateEntityCommand,
+  DuplicateEntityCommand,
 } from '../commands/entity-commands.js';
 import type { EntityCleanupOption } from '../commands/entity-commands.js';
 import {
@@ -82,8 +83,18 @@ import { getElementById as _getElementById, getParentOf as _getParentOf } from '
 export interface ScenarioStore extends ScenarioState, IScenarioService {
   getCommandHistory(): CommandHistory;
 
+  // Wholesale document replacement — mirrors the web app's file-open path.
+  // Clears command history, resets undo/redo availability, and replaces the
+  // document atomically. Any selection or dirty-state bookkeeping owned by
+  // the store is also reset here.
+  loadDocument(document: ScenarioDocument): void;
+
   // Override to accept optional cleanup option
   removeEntity(entityId: string, cleanupOption?: EntityCleanupOption): void;
+
+  // Duplicate an entity (with its init actions) as a single undoable step.
+  // Returns the cloned entity, or undefined if the source was not found.
+  duplicateEntity(sourceEntityId: string): ScenarioEntity | undefined;
 
   // Update operations (beyond IScenarioService)
   updateStory(storyId: string, updates: Partial<Story>): void;
@@ -143,6 +154,14 @@ export function createScenarioStore() {
         const doc = createDefaultDocument();
         set({ document: doc, undoAvailable: false, redoAvailable: false });
         return doc;
+      },
+
+      loadDocument: (document: ScenarioDocument): void => {
+        // Mirror the web app's file-open path: clear command history so that
+        // undo cannot reach across a file-load boundary, then replace the
+        // document wholesale without going through the command pattern.
+        commandHistory.clear();
+        set({ document, undoAvailable: false, redoAvailable: false });
       },
 
       getScenario: (): ScenarioDocument => get().document,
@@ -242,6 +261,13 @@ export function createScenarioStore() {
         const cmd = new UpdateEntityCommand(entityId, updates, getDoc, setDoc);
         commandHistory.execute(cmd);
         syncUndoRedo();
+      },
+
+      duplicateEntity: (sourceEntityId: string): ScenarioEntity | undefined => {
+        const cmd = new DuplicateEntityCommand(sourceEntityId, getDoc, setDoc);
+        commandHistory.execute(cmd);
+        syncUndoRedo();
+        return cmd.getClonedEntity() ?? undefined;
       },
 
       getEntity: (entityId: string): ScenarioEntity | undefined => {

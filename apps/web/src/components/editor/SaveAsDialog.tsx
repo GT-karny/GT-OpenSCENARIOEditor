@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { ProjectFileEntry } from '@osce/shared';
 import { useTranslation } from '@osce/i18n';
 import {
@@ -208,21 +208,30 @@ interface SaveAsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (relativePath: string) => Promise<void>;
-  fileType?: 'xosc' | 'xodr' | 'osce';
+  fileType?: 'xosc' | 'xodr';
 }
 
 export function SaveAsDialog({ open, onOpenChange, onSave, fileType = 'xosc' }: SaveAsDialogProps) {
   const { t } = useTranslation('common');
   const currentProject = useProjectStore((s) => s.currentProject);
 
-  const prefix = fileType === 'xodr' || fileType === 'osce' ? 'xodr' : 'xosc';
-  const extension = fileType === 'osce' ? '.osce.json' : `.${fileType}`;
+  const prefix = fileType === 'xodr' ? 'xodr' : 'xosc';
+  const extension = `.${fileType}`;
 
   const [selectedDir, setSelectedDir] = useState(prefix);
   const [fileName, setFileName] = useState('');
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set([prefix]));
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Re-sync the selected directory whenever the dialog opens, since `prefix`
+  // depends on `fileType` which may change after this component first mounts.
+  useEffect(() => {
+    if (open) {
+      setSelectedDir(prefix);
+      setExpandedPaths(new Set([prefix]));
+    }
+  }, [open, prefix]);
 
   const tree = useMemo(() => {
     if (!currentProject) return [];
@@ -317,7 +326,7 @@ export function SaveAsDialog({ open, onOpenChange, onSave, fileType = 'xosc' }: 
                 id="save-filename"
                 value={fileName}
                 onChange={(e) => setFileName(e.target.value)}
-                placeholder={fileType === 'xodr' || fileType === 'osce' ? 'my-road-network' : 'my-scenario'}
+                placeholder={fileType === 'xodr' ? 'my-road-network' : 'my-scenario'}
                 className="bg-[var(--color-glass-1)] border-[var(--color-glass-edge-mid)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] flex-1"
                 disabled={isSaving}
                 autoFocus

@@ -129,4 +129,142 @@ describe('CommandHistory', () => {
     expect(history.getUndoStack()).toHaveLength(2);
     expect(history.getRedoStack()).toHaveLength(1);
   });
+
+  describe('getRevision (position-identity)', () => {
+    it('starts at 0 on an empty history (base position)', () => {
+      const history = new CommandHistory();
+      expect(history.getRevision()).toBe(0);
+    });
+
+    it('undo returns to the earlier revision so derived dirty can clear', () => {
+      const log: string[] = [];
+      const history = new CommandHistory();
+
+      // Snapshot the saved point at load (base = 0), then edit.
+      const savedRevision = history.getRevision();
+      history.execute(createMockCommand(log));
+      expect(history.getRevision()).not.toBe(savedRevision); // dirty
+
+      history.undo();
+      expect(history.getRevision()).toBe(savedRevision); // clean again
+    });
+
+    it('returns to a mid-history saved revision after undo', () => {
+      const log: string[] = [];
+      const history = new CommandHistory();
+
+      history.execute(createMockCommand(log));
+      const savedRevision = history.getRevision(); // saved after one edit
+      history.execute(createMockCommand(log));
+      expect(history.getRevision()).not.toBe(savedRevision);
+
+      history.undo();
+      expect(history.getRevision()).toBe(savedRevision);
+    });
+
+    it('does not reuse ids on a branched history', () => {
+      const log: string[] = [];
+      const history = new CommandHistory();
+
+      history.execute(createMockCommand(log)); // A
+      const revA = history.getRevision();
+      history.execute(createMockCommand(log)); // B
+      const revB = history.getRevision();
+
+      history.undo(); // back to A
+      expect(history.getRevision()).toBe(revA);
+
+      history.execute(createMockCommand(log)); // C discards the B branch
+      const revC = history.getRevision();
+      expect(revC).not.toBe(revA);
+      expect(revC).not.toBe(revB);
+    });
+
+    it('redo re-enters the same revision it came from', () => {
+      const log: string[] = [];
+      const history = new CommandHistory();
+
+      history.execute(createMockCommand(log));
+      const rev = history.getRevision();
+      history.undo();
+      history.redo();
+      expect(history.getRevision()).toBe(rev);
+    });
+
+    it('clear resets the revision to 0', () => {
+      const log: string[] = [];
+      const history = new CommandHistory();
+      history.execute(createMockCommand(log));
+      history.execute(createMockCommand(log));
+
+      history.clear();
+      expect(history.getRevision()).toBe(0);
+    });
+  });
+
+  describe('collapseUndo', () => {
+    it('replaces the last N commands with a single replacement', () => {
+      const log: string[] = [];
+      const history = new CommandHistory();
+      history.execute(createMockCommand(log));
+      history.execute(createMockCommand(log));
+      history.execute(createMockCommand(log));
+      expect(history.getUndoStack()).toHaveLength(3);
+
+      const replacement = createMockCommand(log);
+      history.collapseUndo(2, replacement);
+
+      expect(history.getUndoStack()).toHaveLength(2);
+      expect(history.getUndoStack()[1]).toBe(replacement);
+    });
+
+    it('clears the redo stack', () => {
+      const log: string[] = [];
+      const history = new CommandHistory();
+      history.execute(createMockCommand(log));
+      history.undo();
+      expect(history.canRedo()).toBe(true);
+
+      history.execute(createMockCommand(log));
+      history.collapseUndo(1, createMockCommand(log));
+
+      expect(history.canRedo()).toBe(false);
+      expect(history.getRedoStack()).toHaveLength(0);
+    });
+
+    it('clamps count to the undo stack size', () => {
+      const log: string[] = [];
+      const history = new CommandHistory();
+      history.execute(createMockCommand(log));
+
+      const replacement = createMockCommand(log);
+      history.collapseUndo(5, replacement);
+
+      expect(history.getUndoStack()).toHaveLength(1);
+      expect(history.getUndoStack()[0]).toBe(replacement);
+    });
+
+    it('pushes the replacement onto an empty undo stack when count is 0', () => {
+      const log: string[] = [];
+      const history = new CommandHistory();
+
+      const replacement = createMockCommand(log);
+      history.collapseUndo(0, replacement);
+
+      expect(history.getUndoStack()).toHaveLength(1);
+      expect(history.getUndoStack()[0]).toBe(replacement);
+    });
+
+    it('leaves the revision unchanged (collapse does not change current state)', () => {
+      const log: string[] = [];
+      const history = new CommandHistory();
+      history.execute(createMockCommand(log));
+      history.execute(createMockCommand(log));
+      history.execute(createMockCommand(log));
+
+      const before = history.getRevision();
+      history.collapseUndo(2, createMockCommand(log));
+      expect(history.getRevision()).toBe(before);
+    });
+  });
 });

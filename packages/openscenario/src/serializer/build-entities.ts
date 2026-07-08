@@ -15,18 +15,15 @@ import type {
 import { buildParameterDeclarations } from './build-parameters.js';
 import { buildAttrs, getSubBindings } from '../utils/xml-helpers.js';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildEntities(entities: ScenarioEntity[]): any {
+export function buildEntities(entities: ScenarioEntity[]): Record<string, unknown> | string {
   if (entities.length === 0) return '';
   return {
     ScenarioObject: entities.map(buildScenarioObject),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildScenarioObject(entity: ScenarioEntity): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: any = buildAttrs({ name: entity.name });
+function buildScenarioObject(entity: ScenarioEntity): Record<string, unknown> {
+  const result: Record<string, unknown> = buildAttrs({ name: entity.name });
 
   const def = entity.definition;
   switch (def.kind) {
@@ -51,8 +48,7 @@ function buildScenarioObject(entity: ScenarioEntity): any {
   return result;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildVehicle(v: VehicleDefinition, bindings?: Record<string, string>): any {
+export function buildVehicle(v: VehicleDefinition, bindings?: Record<string, string>): Record<string, unknown> {
   return {
     ...buildAttrs({
       name: v.name,
@@ -69,8 +65,7 @@ export function buildVehicle(v: VehicleDefinition, bindings?: Record<string, str
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildPedestrian(p: PedestrianDefinition): any {
+export function buildPedestrian(p: PedestrianDefinition): Record<string, unknown> {
   return {
     ...buildAttrs({
       name: p.name,
@@ -85,8 +80,7 @@ export function buildPedestrian(p: PedestrianDefinition): any {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildMiscObject(m: MiscObjectDefinition): any {
+export function buildMiscObject(m: MiscObjectDefinition): Record<string, unknown> {
   return {
     ...buildAttrs({
       name: m.name,
@@ -100,10 +94,8 @@ export function buildMiscObject(m: MiscObjectDefinition): any {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildCatalogReference(cr: CatalogReference): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: any = buildAttrs({
+function buildCatalogReference(cr: CatalogReference): Record<string, unknown> {
+  const result: Record<string, unknown> = buildAttrs({
     catalogName: cr.catalogName,
     entryName: cr.entryName,
   });
@@ -117,8 +109,7 @@ function buildCatalogReference(cr: CatalogReference): any {
   return result;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildBoundingBox(bb: BoundingBox, bindings?: Record<string, string>): any {
+function buildBoundingBox(bb: BoundingBox, bindings?: Record<string, string>): Record<string, unknown> {
   return {
     Center: buildAttrs(
       { x: bb.center.x, y: bb.center.y, z: bb.center.z },
@@ -140,10 +131,8 @@ function buildPerformance(p: Performance, bindings?: Record<string, string>): Re
   }, bindings);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildAxles(a: Axles, bindings?: Record<string, string>): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: any = {
+function buildAxles(a: Axles, bindings?: Record<string, string>): Record<string, unknown> {
+  const result: Record<string, unknown> = {
     FrontAxle: buildAxle(a.frontAxle, bindings ? getSubBindings(bindings, 'frontAxle') : undefined),
     RearAxle: buildAxle(a.rearAxle, bindings ? getSubBindings(bindings, 'rearAxle') : undefined),
   };
@@ -163,16 +152,14 @@ function buildAxle(a: Axle, bindings?: Record<string, string>): Record<string, s
   }, bindings);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildProperties(props: Property[]): any {
+function buildProperties(props: Property[]): Record<string, unknown> | string {
   if (props.length === 0) return '';
   return {
     Property: props.map((p) => buildAttrs({ name: p.name, value: p.value })),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildObjectController(oc: ObjectController): any {
+function buildObjectController(oc: ObjectController): Record<string, unknown> {
   const ctrl = oc.controller;
   if (ctrl.kind === 'controller') {
     return {
@@ -185,10 +172,8 @@ function buildObjectController(oc: ObjectController): any {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildControllerDefinition(c: ControllerDefinition): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: any = {
+export function buildControllerDefinition(c: ControllerDefinition): Record<string, unknown> {
+  const result: Record<string, unknown> = {
     ...buildAttrs({ name: c.name, controllerType: c.controllerType }),
   };
   if (c.parameterDeclarations && c.parameterDeclarations.length > 0) {

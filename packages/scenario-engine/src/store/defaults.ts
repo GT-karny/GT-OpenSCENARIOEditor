@@ -4,6 +4,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
+import { createDefaultVehicleDefinition } from './entity-defaults.js';
 import type {
   ScenarioDocument,
   FileHeader,
@@ -183,27 +184,12 @@ export function createVariableFromPartial(partial: Partial<VariableDeclaration>)
 }
 
 export function createEntityFromPartial(partial: Partial<ScenarioEntity>): ScenarioEntity {
+  const name = partial.name ?? 'NewEntity';
   return {
     id: partial.id ?? uuidv4(),
-    name: partial.name ?? 'NewEntity',
+    name,
     type: partial.type ?? 'vehicle',
-    definition: partial.definition ?? {
-      kind: 'vehicle',
-      name: partial.name ?? 'NewEntity',
-      vehicleCategory: 'car',
-      parameterDeclarations: [],
-      performance: { maxSpeed: 69.444, maxAcceleration: 10, maxDeceleration: 10 },
-      boundingBox: {
-        center: { x: 1.4, y: 0, z: 0.9 },
-        dimensions: { width: 2.0, length: 4.5, height: 1.8 },
-      },
-      axles: {
-        frontAxle: { maxSteering: 0.5, wheelDiameter: 0.6, trackWidth: 1.8, positionX: 3.1, positionZ: 0.3 },
-        rearAxle: { maxSteering: 0, wheelDiameter: 0.6, trackWidth: 1.8, positionX: 0, positionZ: 0.3 },
-        additionalAxles: [],
-      },
-      properties: [],
-    },
+    definition: partial.definition ?? createDefaultVehicleDefinition(name),
     controller: partial.controller,
   };
 }

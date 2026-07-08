@@ -4,12 +4,19 @@ import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { useScenarioStore, useScenarioStoreApi } from '../../stores/use-scenario-store';
 import { useOpenDriveStore, useOpenDriveStoreApi } from '../../hooks/use-opendrive-store';
-import { useEditorStore } from '../../stores/editor-store';
+import { useCatalogStore } from '../../stores/catalog-store';
+import { useDistributionStore } from '../../stores/distribution-store';
+import { getFocusedDocumentKind, useDocumentRegistry } from '../../stores/document-registry';
 
 export function UndoRedoButtons() {
   const { t } = useTranslation('common');
-  const editorMode = useEditorStore((s) => s.editorMode);
-  const isRoadNetwork = editorMode === 'roadNetwork';
+
+  // Undo/redo target the focused document: the active editor surface
+  // (focusedBase), overridden by an open catalog/distribution modal
+  // (focusedOverride) — same routing as the keyboard/menu shortcuts.
+  const focusedBase = useDocumentRegistry((s) => s.focusedBase);
+  const focusedOverride = useDocumentRegistry((s) => s.focusedOverride);
+  const focused = focusedOverride ?? focusedBase;
 
   const scenarioUndoAvailable = useScenarioStore((s) => s.undoAvailable);
   const scenarioRedoAvailable = useScenarioStore((s) => s.redoAvailable);
@@ -19,22 +26,63 @@ export function UndoRedoButtons() {
   const odrRedoAvailable = useOpenDriveStore((s) => s.redoAvailable);
   const odrStoreApi = useOpenDriveStoreApi();
 
-  const undoAvailable = isRoadNetwork ? odrUndoAvailable : scenarioUndoAvailable;
-  const redoAvailable = isRoadNetwork ? odrRedoAvailable : scenarioRedoAvailable;
+  // Catalog/distribution keep no stored availability flags, so derive them from
+  // their command history. Every edit and undo/redo on those stores runs through
+  // set(), so these boolean selectors re-render exactly when availability flips.
+  const catalogUndoAvailable = useCatalogStore((s) => s.getCommandHistory().canUndo());
+  const catalogRedoAvailable = useCatalogStore((s) => s.getCommandHistory().canRedo());
+  const distributionUndoAvailable = useDistributionStore((s) => s.getCommandHistory().canUndo());
+  const distributionRedoAvailable = useDistributionStore((s) => s.getCommandHistory().canRedo());
+
+  let undoAvailable: boolean;
+  let redoAvailable: boolean;
+  switch (focused) {
+    case 'roadNetwork':
+      undoAvailable = odrUndoAvailable;
+      redoAvailable = odrRedoAvailable;
+      break;
+    case 'catalog':
+      undoAvailable = catalogUndoAvailable;
+      redoAvailable = catalogRedoAvailable;
+      break;
+    case 'distribution':
+      undoAvailable = distributionUndoAvailable;
+      redoAvailable = distributionRedoAvailable;
+      break;
+    default:
+      undoAvailable = scenarioUndoAvailable;
+      redoAvailable = scenarioRedoAvailable;
+  }
 
   const handleUndo = () => {
-    if (isRoadNetwork) {
-      odrStoreApi.getState().undo();
-    } else {
-      scenarioStoreApi.getState().undo();
+    switch (getFocusedDocumentKind()) {
+      case 'catalog':
+        useCatalogStore.getState().undoCatalog();
+        break;
+      case 'roadNetwork':
+        odrStoreApi.getState().undo();
+        break;
+      case 'distribution':
+        useDistributionStore.getState().undoDistribution();
+        break;
+      default:
+        scenarioStoreApi.getState().undo();
     }
   };
 
   const handleRedo = () => {
-    if (isRoadNetwork) {
-      odrStoreApi.getState().redo();
-    } else {
-      scenarioStoreApi.getState().redo();
+    switch (getFocusedDocumentKind()) {
+      case 'catalog':
+        useCatalogStore.getState().redoCatalog();
+        break;
+      case 'roadNetwork':
+        odrStoreApi.getState().redo();
+        break;
+      case 'distribution':
+        useDistributionStore.getState().redoDistribution();
+        break;
+      default:
+        scenarioStoreApi.getState().redo();
     }
   };
 

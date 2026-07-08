@@ -21,7 +21,6 @@ import { osceNodeTypes } from '../nodes/node-registry.js';
 import { osceEdgeTypes } from '../edges/edge-registry.js';
 import { useEditorStore } from '../hooks/use-editor-store.js';
 import { useNodeSelection } from '../hooks/use-node-selection.js';
-import { useKeyboardShortcuts } from '../hooks/use-keyboard-shortcuts.js';
 import { NodeFocusBridge } from './NodeFocusBridge.js';
 
 export interface NodeEditorProps {
@@ -31,7 +30,6 @@ export interface NodeEditorProps {
   onPaneContextMenu?: (event: MouseEvent | React.MouseEvent) => void;
   onNodeContextMenu?: (event: React.MouseEvent, node: Node<OsceNodeData>) => void;
   deleteKeyCode?: string | string[] | null;
-  disableBuiltinShortcuts?: boolean;
   className?: string;
 }
 
@@ -42,7 +40,6 @@ export function NodeEditor({
   onPaneContextMenu,
   onNodeContextMenu,
   deleteKeyCode = null,
-  disableBuiltinShortcuts = false,
   className,
 }: NodeEditorProps) {
   const nodes = useEditorStore(useShallow((s) => s.nodes));
@@ -52,7 +49,6 @@ export function NodeEditor({
   const setViewport = useEditorStore((s) => s.setViewport);
 
   const { handleSelectionChange } = useNodeSelection(onSelectionChange);
-  useKeyboardShortcuts(disableBuiltinShortcuts);
 
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => {

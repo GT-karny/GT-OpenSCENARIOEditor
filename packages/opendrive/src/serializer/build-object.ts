@@ -4,11 +4,13 @@
 import type {
   OdrRoadObject,
   OdrObjectReference,
+  OdrObjectOutline,
   OdrTunnel,
   OdrBridge,
   OdrLaneValidity,
 } from '@osce/shared';
 import { fmtNum, optAttr } from './format-utils.js';
+import { applyExtra } from './apply-extra.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type XmlNode = Record<string, any>;
@@ -77,7 +79,7 @@ export function buildObject(obj: OdrRoadObject): XmlNode {
       optAttr(mn, '@_surface', m.surface);
       optAttr(mn, '@_friction', m.friction, fmtNum);
       optAttr(mn, '@_roughness', m.roughness, fmtNum);
-      return mn;
+      return applyExtra(mn, m.extra);
     });
   }
 
@@ -136,18 +138,11 @@ export function buildObject(obj: OdrRoadObject): XmlNode {
     };
   }
 
-  return node;
+  // Re-emit unmodeled object attrs / subtrees (<skeleton>, <surface>, …).
+  return applyExtra(node, obj.extra);
 }
 
-function buildOutline(outline: {
-  id?: string;
-  fillType?: string;
-  outer?: boolean;
-  closed?: boolean;
-  laneType?: string;
-  cornerRoad?: { s: number; t: number; dz: number; height: number; id?: number }[];
-  cornerLocal?: { u: number; v: number; z: number; height: number; id?: number }[];
-}): XmlNode {
+function buildOutline(outline: OdrObjectOutline): XmlNode {
   const node: XmlNode = {};
   optAttr(node, '@_id', outline.id);
   optAttr(node, '@_fillType', outline.fillType);
@@ -181,7 +176,8 @@ function buildOutline(outline: {
     });
   }
 
-  return node;
+  // Re-emit unmodeled outline children (<curveLocal>, nested <markings>).
+  return applyExtra(node, outline.extra);
 }
 
 export function buildObjectReference(ref: OdrObjectReference): XmlNode {
@@ -230,8 +226,9 @@ export function buildBridge(bridge: OdrBridge): XmlNode {
 }
 
 function buildLaneValidityArray(validity: OdrLaneValidity[]): XmlNode[] {
-  return validity.map((v) => ({
-    '@_fromLane': v.fromLane,
-    '@_toLane': v.toLane,
-  }));
+  return validity.map((v) => {
+    const node: XmlNode = { '@_fromLane': v.fromLane, '@_toLane': v.toLane };
+    optAttr(node, '@_layer', v.layer);
+    return applyExtra(node, v.extra);
+  });
 }

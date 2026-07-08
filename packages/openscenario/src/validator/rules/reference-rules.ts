@@ -1,4 +1,4 @@
-import type { ScenarioDocument, ValidationIssue } from '@osce/shared';
+import type { ScenarioDocument, ValidationIssue, Trigger } from '@osce/shared';
 
 export function validateReferenceRules(
   doc: ScenarioDocument,
@@ -19,6 +19,7 @@ export function validateReferenceRules(
               code: 'REF_001',
               message: `Entity reference "${ref}" in ManeuverGroup "${mg.name}" does not match any defined entity`,
               messageKey: 'validation.ref001',
+              params: { ref, location: `ManeuverGroup "${mg.name}"` },
               severity: 'error',
               path: `storyboard.maneuverGroups.${mg.name}.actors`,
               elementId: mg.id,
@@ -36,6 +37,7 @@ export function validateReferenceRules(
         code: 'REF_001',
         message: `Entity reference "${ea.entityRef}" in Init does not match any defined entity`,
         messageKey: 'validation.ref001',
+        params: { ref: ea.entityRef, location: 'Init' },
         severity: 'error',
         path: `storyboard.init.entityActions.${ea.entityRef}`,
         elementId: ea.id,
@@ -64,8 +66,7 @@ export function validateReferenceRules(
 }
 
 function checkTriggerParamRefs(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  trigger: any,
+  trigger: Trigger | undefined,
   paramNames: Set<string>,
   errors: ValidationIssue[],
   path: string,
@@ -80,6 +81,7 @@ function checkTriggerParamRefs(
             code: 'REF_003',
             message: `Parameter reference "${body.valueCondition.parameterRef}" does not match any declared parameter`,
             messageKey: 'validation.ref003',
+            params: { ref: body.valueCondition.parameterRef },
             severity: 'error',
             path,
             elementId: cond.id,

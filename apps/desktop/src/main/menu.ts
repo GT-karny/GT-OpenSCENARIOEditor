@@ -1,5 +1,10 @@
 import { Menu, app } from 'electron';
 import type { MenuItemConstructorOptions , BrowserWindow} from 'electron';
+import { getRecentFiles } from './recent-files.js';
+
+function basename(filePath: string): string {
+  return filePath.split(/[/\\]/).pop() ?? filePath;
+}
 
 export function createMenu(mainWindow: BrowserWindow): void {
   const sendAction = (action: string) => {
@@ -7,6 +12,20 @@ export function createMenu(mainWindow: BrowserWindow): void {
   };
 
   const isMac = process.platform === 'darwin';
+
+  const recentFiles = getRecentFiles();
+  const recentSubmenu: MenuItemConstructorOptions[] =
+    recentFiles.length === 0
+      ? [{ label: 'No recent files', enabled: false }]
+      : [
+          ...recentFiles.map((filePath) => ({
+            label: basename(filePath),
+            toolTip: filePath,
+            click: () => sendAction(`open-recent:${filePath}`),
+          })),
+          { type: 'separator' as const },
+          { label: 'Clear Recent', click: () => sendAction('clear-recent') },
+        ];
 
   const template: MenuItemConstructorOptions[] = [
     ...(isMac
@@ -38,6 +57,10 @@ export function createMenu(mainWindow: BrowserWindow): void {
           label: 'Open .xosc...',
           accelerator: 'CmdOrCtrl+O',
           click: () => sendAction('open'),
+        },
+        {
+          label: 'Open Recent',
+          submenu: recentSubmenu,
         },
         {
           label: 'Save',

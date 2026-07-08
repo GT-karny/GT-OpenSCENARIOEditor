@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { createViewerStore } from '../../store/viewer-store.js';
-import type { SimulationFrame } from '@osce/shared';
 
 describe('createViewerStore', () => {
   it('creates store with default state', () => {
@@ -11,9 +10,6 @@ describe('createViewerStore', () => {
     expect(state.showLaneIds).toBe(false);
     expect(state.showRoadIds).toBe(false);
     expect(state.showEntityLabels).toBe(true);
-    expect(state.playback.status).toBe('idle');
-    expect(state.playback.currentTime).toBe(0);
-    expect(state.playback.frames).toHaveLength(0);
   });
 
   it('accepts initial preferences', () => {
@@ -43,30 +39,6 @@ describe('createViewerStore', () => {
     expect(store.getState().cameraMode).toBe('topDown');
     store.getState().setCameraMode('orbit');
     expect(store.getState().cameraMode).toBe('orbit');
-  });
-
-  it('manages playback state', () => {
-    const store = createViewerStore();
-    const frames: SimulationFrame[] = [
-      { time: 0, objects: [] },
-      { time: 1.0, objects: [] },
-      { time: 2.0, objects: [] },
-    ];
-
-    store.getState().setPlaybackFrames(frames);
-    expect(store.getState().playback.frames).toHaveLength(3);
-    expect(store.getState().playback.duration).toBe(2.0);
-    expect(store.getState().playback.status).toBe('idle');
-
-    store.getState().setPlaybackStatus('playing');
-    expect(store.getState().playback.status).toBe('playing');
-
-    store.getState().setPlaybackTime(1.5);
-    expect(store.getState().playback.currentTime).toBe(1.5);
-
-    store.getState().resetPlayback();
-    expect(store.getState().playback.status).toBe('idle');
-    expect(store.getState().playback.frames).toHaveLength(0);
   });
 
   it('toggles label visibility', () => {
@@ -102,12 +74,14 @@ describe('createViewerStore', () => {
       expect(store.getState().hoverLaneInfo).toBeNull();
     });
 
-    it('switches back to edit mode keeping gizmo off', () => {
+    it('switches back to edit mode restoring gizmo to translate', () => {
+      // Switching edit→play disables gizmo; switching back to edit restores it to 'translate'
+      // so the user can immediately edit after returning from play mode.
       const store = createViewerStore();
       store.getState().setViewerMode('play');
       store.getState().setViewerMode('edit');
       expect(store.getState().viewerMode).toBe('edit');
-      expect(store.getState().gizmoMode).toBe('off');
+      expect(store.getState().gizmoMode).toBe('translate');
     });
   });
 
@@ -157,6 +131,33 @@ describe('createViewerStore', () => {
       expect(store.getState().hoverLaneInfo).toEqual(info);
       store.getState().setHoverLaneInfo(null);
       expect(store.getState().hoverLaneInfo).toBeNull();
+    });
+  });
+
+  describe('temporary lanes and objects', () => {
+    it('both default to true', () => {
+      const store = createViewerStore();
+      expect(store.getState().showTemporaryLanes).toBe(true);
+      expect(store.getState().showObjects).toBe(true);
+    });
+
+    it('toggles flip each flag', () => {
+      const store = createViewerStore();
+      store.getState().toggleTemporaryLanes();
+      expect(store.getState().showTemporaryLanes).toBe(false);
+      store.getState().toggleTemporaryLanes();
+      expect(store.getState().showTemporaryLanes).toBe(true);
+
+      store.getState().toggleObjects();
+      expect(store.getState().showObjects).toBe(false);
+      store.getState().toggleObjects();
+      expect(store.getState().showObjects).toBe(true);
+    });
+
+    it('seed from preferences', () => {
+      const store = createViewerStore({ showTemporaryLanes: false, showObjects: false });
+      expect(store.getState().showTemporaryLanes).toBe(false);
+      expect(store.getState().showObjects).toBe(false);
     });
   });
 });

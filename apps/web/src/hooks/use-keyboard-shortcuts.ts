@@ -2,6 +2,9 @@ import { useEffect } from 'react';
 import { useScenarioStoreApi } from '../stores/use-scenario-store';
 import { useEditorStore } from '../stores/editor-store';
 import { useRouteEditStore } from '../stores/route-edit-store';
+import { useCatalogStore } from '../stores/catalog-store';
+import { useDistributionStore } from '../stores/distribution-store';
+import { getFocusedDocumentKind, useDocumentRegistry } from '../stores/document-registry';
 import { useFileOperations } from './use-file-operations';
 import { useElementDelete } from './use-element-delete';
 import { useCopyPaste } from './use-clipboard';
@@ -12,32 +15,49 @@ export function useKeyboardShortcuts() {
   const storeApi = useScenarioStoreApi();
   const { openXosc, saveXosc, saveAsXosc, loadXodr, saveXodr, saveAsXodr } = useFileOperations();
   const { deleteSelected } = useElementDelete();
-  const { copyElement, pasteAtSelection } = useCopyPaste();
+  const { copyElements, pasteAtSelection, duplicateElements } = useCopyPaste();
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const ctrl = e.ctrlKey || e.metaKey;
-      const editorMode = useEditorStore.getState().editorMode;
-      const isRoadNetwork = editorMode === 'roadNetwork';
+      const isRoadNetwork = useDocumentRegistry.getState().focusedBase === 'roadNetwork';
 
       const routeEditActive = useRouteEditStore.getState().active;
 
       if (ctrl && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
         if (!routeEditActive) {
-          if (isRoadNetwork) {
-            getOpenDriveStoreApi().getState().undo();
-          } else {
-            storeApi.getState().undo();
+          // Route undo to the focused document (a catalog modal / distribution
+          // affordance overrides focusedBase; see getFocusedDocumentKind).
+          switch (getFocusedDocumentKind()) {
+            case 'catalog':
+              useCatalogStore.getState().undoCatalog();
+              break;
+            case 'roadNetwork':
+              getOpenDriveStoreApi().getState().undo();
+              break;
+            case 'distribution':
+              useDistributionStore.getState().undoDistribution();
+              break;
+            default:
+              storeApi.getState().undo();
           }
         }
       } else if (ctrl && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
         e.preventDefault();
         if (!routeEditActive) {
-          if (isRoadNetwork) {
-            getOpenDriveStoreApi().getState().redo();
-          } else {
-            storeApi.getState().redo();
+          switch (getFocusedDocumentKind()) {
+            case 'catalog':
+              useCatalogStore.getState().redoCatalog();
+              break;
+            case 'roadNetwork':
+              getOpenDriveStoreApi().getState().redo();
+              break;
+            case 'distribution':
+              useDistributionStore.getState().redoDistribution();
+              break;
+            default:
+              storeApi.getState().redo();
           }
         }
       } else if (ctrl && e.shiftKey && e.key === 'S') {
@@ -61,17 +81,25 @@ export function useKeyboardShortcuts() {
         } else {
           openXosc();
         }
+      } else if (ctrl && e.key === 'd') {
+        if (isInputFocused() || isRoadNetwork) return;
+        const selectedIds = useEditorStore.getState().selection.selectedElementIds;
+        if (selectedIds.length > 0) {
+          e.preventDefault();
+          duplicateElements(selectedIds);
+        }
       } else if (ctrl && e.key === 'c') {
         if (isInputFocused() || isRoadNetwork) return;
         const selectedIds = useEditorStore.getState().selection.selectedElementIds;
-        if (selectedIds.length === 1) {
+        if (selectedIds.length > 0) {
           e.preventDefault();
-          copyElement(selectedIds[0]);
+          copyElements(selectedIds);
         }
       } else if (ctrl && e.key === 'v') {
         if (isInputFocused() || isRoadNetwork) return;
         const selectedIds = useEditorStore.getState().selection.selectedElementIds;
-        if (selectedIds.length === 1) {
+        // Paste is anchored on the primary (first) selected element.
+        if (selectedIds.length >= 1) {
           e.preventDefault();
           pasteAtSelection(selectedIds[0]);
         }
@@ -84,5 +112,5 @@ export function useKeyboardShortcuts() {
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [storeApi, openXosc, saveXosc, saveAsXosc, loadXodr, saveXodr, saveAsXodr, deleteSelected, copyElement, pasteAtSelection]);
+  }, [storeApi, openXosc, saveXosc, saveAsXosc, loadXodr, saveXodr, saveAsXodr, deleteSelected, copyElements, pasteAtSelection, duplicateElements]);
 }

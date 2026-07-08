@@ -28,7 +28,17 @@ export function buildRoutingOverrides(
   if (preset === 'all') return [];
   if (preset === 'custom') return existingOverrides ?? [];
 
-  // 'dedicated' preset: assign turn directions based on lane position
+  // 'dedicated' preset: assign turn directions based on lane position.
+  //
+  // The inner/outer → turn-direction mapping mirrors between traffic rules
+  // (see docs/development/opendrive-lht-rht.md §6):
+  // - RHT: innermost lane = left turn, outermost lane = right turn
+  // - LHT: innermost lane = right turn, outermost lane = left turn
+  // The rule is carried on each endpoint (RoadEndpoint.trafficRule); default RHT.
+  const trafficRule = endpoints[0]?.trafficRule ?? 'RHT';
+  const innerTurn: TurnType = trafficRule === 'LHT' ? 'right' : 'left';
+  const outerTurn: TurnType = trafficRule === 'LHT' ? 'left' : 'right';
+
   const result: EndpointLaneRouting[] = [];
 
   for (const incoming of endpoints) {
@@ -57,30 +67,32 @@ export function buildRoutingOverrides(
         allowedTurns: [...availableTurns],
       });
     } else if (laneCount === 2) {
-      // 2 lanes: inner=straight+left, outer=straight+right
+      // 2 lanes: inner=straight+innerTurn, outer=straight+outerTurn
+      // (innerTurn/outerTurn mirror between RHT and LHT — see above)
       const innerTurns: TurnType[] = [];
       const outerTurns: TurnType[] = [];
       if (availableTurns.has('straight')) {
         innerTurns.push('straight');
         outerTurns.push('straight');
       }
-      if (availableTurns.has('left')) innerTurns.push('left');
-      if (availableTurns.has('right')) outerTurns.push('right');
+      if (availableTurns.has(innerTurn)) innerTurns.push(innerTurn);
+      if (availableTurns.has(outerTurn)) outerTurns.push(outerTurn);
 
       permissions.push({ laneId: sorted[0].id, allowedTurns: innerTurns });
       permissions.push({ laneId: sorted[1].id, allowedTurns: outerTurns });
     } else {
-      // 3+ lanes: inner=left, middle=straight, outer=right
-      // Distribute: first lane = left, last lane = right, middle lanes = straight
+      // 3+ lanes: inner=innerTurn, middle=straight, outer=outerTurn
+      // Distribute: first lane = innerTurn, last lane = outerTurn, middle = straight
+      // (innerTurn/outerTurn mirror between RHT and LHT — see above)
       for (let i = 0; i < sorted.length; i++) {
         const turns: TurnType[] = [];
         if (i === 0) {
           // Innermost lane
-          if (availableTurns.has('left')) turns.push('left');
+          if (availableTurns.has(innerTurn)) turns.push(innerTurn);
           if (availableTurns.has('straight')) turns.push('straight');
         } else if (i === sorted.length - 1) {
           // Outermost lane
-          if (availableTurns.has('right')) turns.push('right');
+          if (availableTurns.has(outerTurn)) turns.push(outerTurn);
           if (availableTurns.has('straight')) turns.push('straight');
         } else {
           // Middle lanes

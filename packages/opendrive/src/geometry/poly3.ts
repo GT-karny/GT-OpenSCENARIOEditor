@@ -3,14 +3,14 @@
  * Lateral offset: v(ds) = a + b*ds + c*ds^2 + d*ds^3
  * Forward distance: u ≈ ds
  */
-import type { OdrGeometry } from '@osce/shared';
+import type { OdrGeometryPoly3 } from '@osce/shared';
 import type { Pose2D } from './types.js';
 
-export function evaluatePoly3(ds: number, geom: OdrGeometry): Pose2D {
-  const a = geom.a ?? 0;
-  const b = geom.b ?? 0;
-  const c = geom.c ?? 0;
-  const d = geom.d ?? 0;
+export function evaluatePoly3(ds: number, geom: OdrGeometryPoly3): Pose2D {
+  const a = geom.a;
+  const b = geom.b;
+  const c = geom.c;
+  const d = geom.d;
 
   const u = ds;
   const v = a + ds * (b + ds * (c + ds * d));

@@ -1,7 +1,8 @@
 import { useTranslation } from '@osce/i18n';
 import { useScenarioStore } from '../../stores/use-scenario-store';
 import { useEditorStore } from '../../stores/editor-store';
-import { useSimulationStore } from '../../stores/simulation-store';
+import { useDocumentRegistry } from '../../stores/document-registry';
+import { useSimulationStore } from '../../features/simulation/stores/simulation-store';
 import type { SimulationStatus } from '@osce/shared';
 
 function getStatusDot(
@@ -50,17 +51,23 @@ export function StatusBar() {
   const entityCount = useScenarioStore((s) => s.document.entities.length);
   const storyCount = useScenarioStore((s) => s.document.storyboard.stories.length);
   const validationResult = useEditorStore((s) => s.validationResult);
-  const editorMode = useEditorStore((s) => s.editorMode);
+  const isRoadNetwork = useDocumentRegistry((s) => s.focusedBase === 'roadNetwork');
   const xoscFileName = useEditorStore((s) => s.currentFileName);
-  const isXoscDirty = useEditorStore((s) => s.isDirty);
+  // Dirty is derived from each document's command-history revision (registry).
+  const isXoscDirty = useDocumentRegistry((s) => s.current.scenario !== s.saved.scenario);
   const xodrFileName = useEditorStore((s) => s.roadNetworkFileName);
-  const isXodrDirty = useEditorStore((s) => s.isRoadNetworkDirty);
+  const isXodrDirty = useDocumentRegistry(
+    (s) => s.current.roadNetwork !== s.saved.roadNetwork,
+  );
+  const isCatalogDirty = useDocumentRegistry((s) => s.current.catalog !== s.saved.catalog);
+  const isDistributionDirty = useDocumentRegistry(
+    (s) => s.current.distribution !== s.saved.distribution,
+  );
   const simStatus = useSimulationStore((s) => s.status);
   const compatibilityProfile = useEditorStore((s) => s.preferences.compatibilityProfile);
   const speedUnit = useEditorStore((s) => s.preferences.speedUnit);
   const updatePreferences = useEditorStore((s) => s.updatePreferences);
 
-  const isRoadNetwork = editorMode === 'roadNetwork';
   const displayName = isRoadNetwork ? xodrFileName : xoscFileName;
   const displayDirty = isRoadNetwork ? isXodrDirty : isXoscDirty;
 
@@ -99,6 +106,53 @@ export function StatusBar() {
         )}
       </div>
       <div className="flex items-center gap-6">
+        {/* Per-document dirty indicators: surface unsaved state for every
+            document independently, so a dirty road network or catalog is visible
+            while editing a scenario (and vice versa). */}
+        {(isXoscDirty || isXodrDirty || isCatalogDirty || isDistributionDirty) && (
+          <span
+            className="flex items-center gap-3"
+            data-testid="dirty-indicators"
+            title={t('labels.unsavedChanges')}
+          >
+            {isXoscDirty && (
+              <span
+                data-testid="dirty-indicator-scenario"
+                className="flex items-center gap-1 text-[var(--color-text-secondary)]"
+              >
+                {t('labels.scenarioDoc')}
+                <span className="text-[var(--color-warning,#f59e0b)]">●</span>
+              </span>
+            )}
+            {isXodrDirty && (
+              <span
+                data-testid="dirty-indicator-roadNetwork"
+                className="flex items-center gap-1 text-[var(--color-text-secondary)]"
+              >
+                {t('labels.roadDoc')}
+                <span className="text-[var(--color-warning,#f59e0b)]">●</span>
+              </span>
+            )}
+            {isCatalogDirty && (
+              <span
+                data-testid="dirty-indicator-catalog"
+                className="flex items-center gap-1 text-[var(--color-text-secondary)]"
+              >
+                {t('labels.catalogDoc')}
+                <span className="text-[var(--color-warning,#f59e0b)]">●</span>
+              </span>
+            )}
+            {isDistributionDirty && (
+              <span
+                data-testid="dirty-indicator-distribution"
+                className="flex items-center gap-1 text-[var(--color-text-secondary)]"
+              >
+                {t('labels.distributionDoc')}
+                <span className="text-[var(--color-warning,#f59e0b)]">●</span>
+              </span>
+            )}
+          </span>
+        )}
         <span>
           {displayName ?? 'Untitled'}
           {displayDirty ? ' ●' : ''}

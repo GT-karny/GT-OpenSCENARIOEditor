@@ -5,7 +5,7 @@
 
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import type { OdrRoad, OdrLaneSection } from '@osce/shared';
+import type { OdrRoad, OdrLaneSection, OdrGeometry } from '@osce/shared';
 import { generateRoadMesh } from '@osce/opendrive';
 import { computeAutoArc } from './arc-math.js';
 
@@ -46,21 +46,33 @@ export function RoadGhostPreview({
 
     const arc = computeAutoArc(startX, startY, startHdg, endX, endY, headingConstrained);
 
+    const geometry: OdrGeometry =
+      arc.type === 'arc'
+        ? {
+            s: 0,
+            x: startX,
+            y: startY,
+            hdg: arc.hdg,
+            length: arc.arcLength,
+            type: 'arc',
+            curvature: arc.curvature,
+          }
+        : {
+            s: 0,
+            x: startX,
+            y: startY,
+            hdg: arc.hdg,
+            length: arc.arcLength,
+            type: 'line',
+          };
+
     // Build a temporary road
     const tempRoad: OdrRoad = {
       id: '__ghost__',
       name: '',
       length: arc.arcLength,
       junction: '-1',
-      planView: [{
-        s: 0,
-        x: startX,
-        y: startY,
-        hdg: arc.hdg,
-        length: arc.arcLength,
-        type: arc.type,
-        ...(arc.type === 'arc' ? { curvature: arc.curvature } : {}),
-      }],
+      planView: [geometry],
       lanes,
       elevationProfile: [],
       lateralProfile: [],

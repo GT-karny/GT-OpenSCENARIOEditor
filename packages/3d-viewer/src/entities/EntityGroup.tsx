@@ -10,7 +10,7 @@ import type * as THREE from 'three';
 import { Mesh, MeshStandardMaterial, MeshBasicMaterial } from 'three';
 import type { ScenarioEntity, OpenDriveDocument } from '@osce/shared';
 import type { WorldCoords } from '../utils/position-resolver.js';
-import type { GizmoMode } from '../store/viewer-types.js';
+import type { GizmoMode, OrbitControlsLike } from '../store/viewer-types.js';
 import type { VehicleLightState } from '../scenario/useEntityLightStates.js';
 import { VehicleEntity } from './VehicleEntity.js';
 import { PedestrianEntity } from './PedestrianEntity.js';
@@ -28,7 +28,7 @@ interface EntityGroupProps {
   onEntityFocus?: (entityId: string) => void;
   showLabels: boolean;
   gizmoMode?: GizmoMode;
-  orbitControlsRef?: React.RefObject<any>;
+  orbitControlsRef?: React.RefObject<OrbitControlsLike | null>;
   onEntityPositionChange?: (entityName: string, x: number, y: number, z: number, h: number) => void;
   /** OpenDRIVE document for road-coordinate gizmo projection */
   openDriveDocument?: OpenDriveDocument | null;
@@ -76,7 +76,7 @@ function EntityWithRef({
     entityRef: React.RefObject<THREE.Group | null>;
     openDriveDocument: OpenDriveDocument;
     currentRoadPosition: { roadId: string; laneId: number; s: number };
-    orbitControlsRef?: React.RefObject<any>;
+    orbitControlsRef?: React.RefObject<OrbitControlsLike | null>;
     onDragEnd?: (worldX: number, worldY: number, worldZ: number, heading: number) => void;
   };
 }) {

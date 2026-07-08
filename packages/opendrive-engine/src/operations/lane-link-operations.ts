@@ -10,7 +10,11 @@
  * road extension, disconnect, and xodr import flows.
  */
 
-import type { OdrLaneSection } from '@osce/shared';
+import type { OdrLane, OdrLaneLink, OdrLaneSection } from '@osce/shared';
+import { computeLaneInnerT, computeLaneOuterT, computeLaneWidth } from '@osce/opendrive';
+
+/** An empty lane link (both sides unlinked). */
+const emptyLaneLink = (): OdrLaneLink => ({ predecessors: [], successors: [] });
 import type { OpenDriveStore } from '../store/opendrive-store.js';
 
 // ---------------------------------------------------------------------------
@@ -26,7 +30,7 @@ import type { OpenDriveStore } from '../store/opendrive-store.js';
  */
 export function buildSectionWithLaneLinks(
   section: OdrLaneSection,
-  linkType: 'predecessorId' | 'successorId',
+  linkType: 'predecessors' | 'successors',
   targetSection: OdrLaneSection,
 ): [OdrLaneSection, boolean] {
   const targetLaneIds = new Set([
@@ -38,10 +42,12 @@ export function buildSectionWithLaneLinks(
   const updateLanes = (lanes: OdrLaneSection['leftLanes']) =>
     lanes.map((lane) => {
       if (targetLaneIds.has(lane.id)) {
-        const currentVal = lane.link?.[linkType];
-        if (currentVal !== lane.id) {
+        // A direct road-to-road link is 1:1 (lane.id ↔ lane.id).
+        const current = lane.link?.[linkType];
+        if (!(current?.length === 1 && current[0].id === lane.id)) {
           modified = true;
-          return { ...lane, link: { ...lane.link, [linkType]: lane.id } };
+          const base: OdrLaneLink = lane.link ?? emptyLaneLink();
+          return { ...lane, link: { ...base, [linkType]: [{ id: lane.id }] } };
         }
       }
       return lane;
@@ -98,10 +104,10 @@ export function syncLaneLinksForDirectConnections(
           const thisIdx = road.lanes.length - 1;
           const targetIdx = contactPoint === 'start' ? 0 : targetRoad.lanes.length - 1;
 
-          // This road's last laneSection → successorId
+          // This road's last laneSection → successor link
           const [updatedThis, thisModified] = buildSectionWithLaneLinks(
             road.lanes[thisIdx],
-            'successorId',
+            'successors',
             targetRoad.lanes[targetIdx],
           );
           if (thisModified) {
@@ -110,7 +116,7 @@ export function syncLaneLinksForDirectConnections(
 
           // Target road's facing laneSection → predecessorId or successorId
           const targetLinkType =
-            contactPoint === 'start' ? 'predecessorId' : 'successorId';
+            contactPoint === 'start' ? 'predecessors' : 'successors';
           const [updatedTarget, targetModified] = buildSectionWithLaneLinks(
             targetRoad.lanes[targetIdx],
             targetLinkType,
@@ -138,10 +144,10 @@ export function syncLaneLinksForDirectConnections(
           const thisIdx = 0;
           const targetIdx = contactPoint === 'start' ? 0 : targetRoad.lanes.length - 1;
 
-          // This road's first laneSection → predecessorId
+          // This road's first laneSection → predecessor link
           const [updatedThis, thisModified] = buildSectionWithLaneLinks(
             freshRoad.lanes[thisIdx],
-            'predecessorId',
+            'predecessors',
             targetRoad.lanes[targetIdx],
           );
           if (thisModified) {
@@ -150,7 +156,7 @@ export function syncLaneLinksForDirectConnections(
 
           // Target road's facing laneSection
           const targetLinkType =
-            contactPoint === 'start' ? 'predecessorId' : 'successorId';
+            contactPoint === 'start' ? 'predecessors' : 'successors';
           const [updatedTarget, targetModified] = buildSectionWithLaneLinks(
             targetRoad.lanes[targetIdx],
             targetLinkType,
@@ -171,8 +177,8 @@ export function syncLaneLinksForDirectConnections(
  * When a road-to-road connection is broken, the lane-level links should also be
  * cleared to avoid stale references.
  *
- * - side === 'predecessor' → clears predecessorId from the first laneSection's lanes
- * - side === 'successor' → clears successorId from the last laneSection's lanes
+ * - side === 'predecessor' → clears predecessors from the first laneSection's lanes
+ * - side === 'successor' → clears successors from the last laneSection's lanes
  */
 export function clearLaneLinks(
   odrStore: OpenDriveStore,
@@ -184,19 +190,18 @@ export function clearLaneLinks(
   if (!road || road.lanes.length === 0) return;
 
   const sectionIdx = side === 'predecessor' ? 0 : road.lanes.length - 1;
-  const linkProp = side === 'predecessor' ? 'predecessorId' : 'successorId';
+  const linkProp = side === 'predecessor' ? 'predecessors' : 'successors';
   const section = road.lanes[sectionIdx];
 
   let modified = false;
 
   const clearFromLanes = (lanes: OdrLaneSection['leftLanes']) =>
     lanes.map((lane) => {
-      if (lane.link?.[linkProp] != null) {
+      if (lane.link && lane.link[linkProp].length > 0) {
         modified = true;
-        const newLink = { ...lane.link };
-        delete newLink[linkProp];
-        // If link becomes empty, remove it entirely
-        const hasAny = newLink.predecessorId != null || newLink.successorId != null;
+        const newLink: OdrLaneLink = { ...lane.link, [linkProp]: [] };
+        // If the link becomes empty on both sides, remove it entirely.
+        const hasAny = newLink.predecessors.length > 0 || newLink.successors.length > 0;
         return { ...lane, link: hasAny ? newLink : undefined };
       }
       return lane;
@@ -216,10 +221,163 @@ export function clearLaneLinks(
   }
 }
 
+/** Minimum t-tolerance for a lane-center match, used when all candidates are zero-width. */
+const LINK_T_FLOOR = 0.5;
+
 /**
- * Synchronize lane-level predecessor/successor links between adjacent lane sections
- * within the same road. Uses index-based matching: lanes with the same ID in
- * neighboring sections are linked. Lanes that exist in only one section get no link.
+ * Lateral t of a lane's center within a section, evaluated `ds` from the section
+ * start. Center lane (id 0) lies on the reference line (t = 0).
+ */
+function laneCenterT(section: OdrLaneSection, lane: OdrLane, ds: number): number {
+  if (lane.id === 0) return 0;
+  return (computeLaneInnerT(section, lane, ds) + computeLaneOuterT(section, lane, ds)) / 2;
+}
+
+interface LaneCenter {
+  lane: OdrLane;
+  t: number;
+}
+
+/**
+ * Mutual nearest-neighbor match between two lane lists by lane-center t.
+ * Returns a map from `a` lane id → `b` lane id for pairs (X, Y) where X's nearest
+ * is Y AND Y's nearest is X, and their centers are within `tolerance`. Lanes
+ * without a mutual partner — e.g. a newly inserted zero-width lane on the inner
+ * side — are intentionally absent so they receive no link.
+ */
+function mutualNearestMatch(
+  a: LaneCenter[],
+  b: LaneCenter[],
+  tolerance: number,
+): Map<number, number> {
+  const result = new Map<number, number>();
+  if (a.length === 0 || b.length === 0) return result;
+
+  const nearest = (from: LaneCenter, list: LaneCenter[]): LaneCenter => {
+    let best = list[0];
+    let bestDist = Math.abs(from.t - best.t);
+    for (const c of list) {
+      const d = Math.abs(from.t - c.t);
+      if (d < bestDist) {
+        bestDist = d;
+        best = c;
+      }
+    }
+    return best;
+  };
+
+  for (const x of a) {
+    const y = nearest(x, b);
+    const back = nearest(y, a);
+    if (back.lane.id === x.lane.id && Math.abs(x.t - y.t) <= tolerance) {
+      result.set(x.lane.id, y.lane.id);
+    }
+  }
+  return result;
+}
+
+/**
+ * Apply a desired link target to each lane, following the existing link-object
+ * conventions (delete the prop when undefined; drop an empty link entirely).
+ * Returns the same array reference when nothing changed.
+ */
+function applyLaneLinks(
+  lanes: OdrLane[],
+  prop: 'successors' | 'predecessors',
+  desired: Map<number, number>,
+): OdrLane[] {
+  let changed = false;
+  const out = lanes.map((lane) => {
+    const target = desired.get(lane.id);
+    const current = lane.link?.[prop] ?? [];
+    // Intra-road matching yields a single target per lane; represent it as a
+    // one-element array (or empty when there is no match).
+    const isCorrect =
+      target === undefined ? current.length === 0 : current.length === 1 && current[0].id === target;
+    if (isCorrect) return lane;
+    changed = true;
+    const base: OdrLaneLink = lane.link ?? emptyLaneLink();
+    const newLink: OdrLaneLink = { ...base, [prop]: target === undefined ? [] : [{ id: target }] };
+    const hasAny = newLink.predecessors.length > 0 || newLink.successors.length > 0;
+    return { ...lane, link: hasAny ? newLink : undefined };
+  });
+  return changed ? out : lanes;
+}
+
+/**
+ * Recompute intra-road lane links across each internal lane-section boundary by
+ * **geometric mutual-nearest-neighbor matching** of lane-center t — not by lane
+ * ID. When a lane is inserted on the inner side, the through lane's ID shifts
+ * (e.g. -1 → -2); ID-based matching would wrongly link the through lane to the
+ * new zero-width lane. Matching by lane-center t keeps the physically continuous
+ * lane linked and leaves the new lane unlinked on its closed end.
+ *
+ * Each side (left/right) is matched independently; the center lane (id 0) is
+ * never linked. Road-to-road end links (the first section's predecessors and the
+ * last section's successors) are outside any internal boundary and preserved.
+ *
+ * Pure: takes and returns lane sections, returning the same reference when
+ * unchanged. Shared by `syncIntraRoadLaneLinks` and the xodr repair script.
+ */
+export function relinkIntraRoadLanes(sections: OdrLaneSection[]): OdrLaneSection[] {
+  if (sections.length <= 1) return sections;
+
+  let result = sections;
+  let anyModified = false;
+
+  for (let i = 0; i < result.length - 1; i++) {
+    const sectionA = result[i];
+    const sectionB = result[i + 1];
+    const dsA = sectionB.s - sectionA.s; // A evaluated at the shared boundary
+
+    const aSucc = new Map<number, number>(); // A lane id → B lane id
+    const bPred = new Map<number, number>(); // B lane id → A lane id
+
+    for (const side of ['left', 'right'] as const) {
+      const lanesA = side === 'left' ? sectionA.leftLanes : sectionA.rightLanes;
+      const lanesB = side === 'left' ? sectionB.leftLanes : sectionB.rightLanes;
+      const aCenters = lanesA.map<LaneCenter>((l) => ({ lane: l, t: laneCenterT(sectionA, l, dsA) }));
+      const bCenters = lanesB.map<LaneCenter>((l) => ({ lane: l, t: laneCenterT(sectionB, l, 0) }));
+
+      // Tolerance ≈ one lane width, so a clearly displaced match is rejected even
+      // if it happens to be mutual; floored so zero-width lanes can still match.
+      const tolerance = Math.max(
+        LINK_T_FLOOR,
+        ...lanesA.map((l) => computeLaneWidth(l, dsA)),
+        ...lanesB.map((l) => computeLaneWidth(l, 0)),
+      );
+
+      for (const [aId, bId] of mutualNearestMatch(aCenters, bCenters, tolerance)) {
+        aSucc.set(aId, bId);
+        bPred.set(bId, aId);
+      }
+    }
+
+    const newALeft = applyLaneLinks(sectionA.leftLanes, 'successors', aSucc);
+    const newARight = applyLaneLinks(sectionA.rightLanes, 'successors', aSucc);
+    const newBLeft = applyLaneLinks(sectionB.leftLanes, 'predecessors', bPred);
+    const newBRight = applyLaneLinks(sectionB.rightLanes, 'predecessors', bPred);
+
+    const aChanged = newALeft !== sectionA.leftLanes || newARight !== sectionA.rightLanes;
+    const bChanged = newBLeft !== sectionB.leftLanes || newBRight !== sectionB.rightLanes;
+
+    if (aChanged || bChanged) {
+      anyModified = true;
+      result = result.map((s, idx) => {
+        if (idx === i && aChanged) return { ...s, leftLanes: newALeft, rightLanes: newARight };
+        if (idx === i + 1 && bChanged) return { ...s, leftLanes: newBLeft, rightLanes: newBRight };
+        return s;
+      });
+    }
+  }
+
+  return anyModified ? result : sections;
+}
+
+/**
+ * Synchronize lane-level predecessor/successor links between adjacent lane
+ * sections within the same road. Delegates to {@link relinkIntraRoadLanes} and
+ * writes the result back to the store.
  *
  * This should be called after adding/removing lanes or splitting sections.
  */
@@ -228,73 +386,8 @@ export function syncIntraRoadLaneLinks(odrStore: OpenDriveStore, roadId: string)
   const road = doc.roads.find((r) => r.id === roadId);
   if (!road || road.lanes.length <= 1) return;
 
-  let anyModified = false;
-  let sections = road.lanes;
-
-  for (let i = 0; i < sections.length - 1; i++) {
-    const sectionA = sections[i];
-    const sectionB = sections[i + 1];
-
-    const idsInA = new Set([
-      ...sectionA.leftLanes.map((l) => l.id),
-      ...sectionA.rightLanes.map((l) => l.id),
-    ]);
-    const idsInB = new Set([
-      ...sectionB.leftLanes.map((l) => l.id),
-      ...sectionB.rightLanes.map((l) => l.id),
-    ]);
-
-    let sectionAModified = false;
-    let sectionBModified = false;
-
-    // Update successorId on section[i] lanes
-    const updateSuccessor = (lanes: OdrLaneSection['leftLanes']) =>
-      lanes.map((lane) => {
-        const desired = idsInB.has(lane.id) ? lane.id : undefined;
-        if (lane.link?.successorId !== desired) {
-          sectionAModified = true;
-          const newLink = { ...lane.link, successorId: desired };
-          if (newLink.successorId === undefined) delete newLink.successorId;
-          const hasAny = newLink.predecessorId != null || newLink.successorId != null;
-          return { ...lane, link: hasAny ? newLink : undefined };
-        }
-        return lane;
-      });
-
-    // Update predecessorId on section[i+1] lanes
-    const updatePredecessor = (lanes: OdrLaneSection['leftLanes']) =>
-      lanes.map((lane) => {
-        const desired = idsInA.has(lane.id) ? lane.id : undefined;
-        if (lane.link?.predecessorId !== desired) {
-          sectionBModified = true;
-          const newLink = { ...lane.link, predecessorId: desired };
-          if (newLink.predecessorId === undefined) delete newLink.predecessorId;
-          const hasAny = newLink.predecessorId != null || newLink.successorId != null;
-          return { ...lane, link: hasAny ? newLink : undefined };
-        }
-        return lane;
-      });
-
-    const updatedALeft = updateSuccessor(sectionA.leftLanes);
-    const updatedARight = updateSuccessor(sectionA.rightLanes);
-    const updatedBLeft = updatePredecessor(sectionB.leftLanes);
-    const updatedBRight = updatePredecessor(sectionB.rightLanes);
-
-    if (sectionAModified || sectionBModified) {
-      anyModified = true;
-      sections = sections.map((s, idx) => {
-        if (idx === i && sectionAModified) {
-          return { ...s, leftLanes: updatedALeft, rightLanes: updatedARight };
-        }
-        if (idx === i + 1 && sectionBModified) {
-          return { ...s, leftLanes: updatedBLeft, rightLanes: updatedBRight };
-        }
-        return s;
-      });
-    }
-  }
-
-  if (anyModified) {
-    odrStore.updateRoad(roadId, { lanes: sections });
+  const newLanes = relinkIntraRoadLanes(road.lanes);
+  if (newLanes !== road.lanes) {
+    odrStore.updateRoad(roadId, { lanes: newLanes });
   }
 }

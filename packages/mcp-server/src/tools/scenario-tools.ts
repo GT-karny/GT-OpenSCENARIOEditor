@@ -124,26 +124,10 @@ export const scenarioTools: ToolDefinition[] = [
         const parser = new XoscParser();
         const parsed = parser.parse(xml);
 
-        // Reset the store and rebuild from parsed document
-        const s = store.getState();
-        s.createScenario();
-
-        // Add entities
-        for (const entity of parsed.entities) {
-          s.addEntity(entity);
-        }
-
-        // Add init actions
-        for (const entityInit of parsed.storyboard.init.entityActions) {
-          for (const initAction of entityInit.privateActions) {
-            store.getState().addInitAction(entityInit.entityRef, initAction.action);
-          }
-        }
-
-        // Add stories (with full hierarchy)
-        for (const story of parsed.storyboard.stories) {
-          store.getState().addStory(story);
-        }
+        // Replace the whole document verbatim — preserves fileHeader,
+        // roadNetwork, catalogLocations, parameterDeclarations, and the
+        // storyboard stopTrigger that the old piecemeal approach discarded.
+        store.getState().loadDocument(parsed);
 
         const doc = store.getState().getScenario();
         return successResult({
@@ -153,7 +137,7 @@ export const scenarioTools: ToolDefinition[] = [
           message: 'XOSC imported successfully.',
         });
       } catch (e) {
-        return errorResult(`Failed to import XOSC: ${(e as Error).message}. Check that the XML is valid OpenSCENARIO v1.2.`);
+        return errorResult(`Failed to import XOSC: ${(e as Error).message}. Check that the XML is valid OpenSCENARIO v1.3.1.`);
       }
     },
   },

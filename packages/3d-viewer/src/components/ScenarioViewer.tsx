@@ -12,17 +12,18 @@ import type {
   OpenDriveDocument,
   SimulationFrame,
   SimulationStatus,
-  EditorPreferences,
   ScenarioDocument,
   Route,
 } from '@osce/shared';
 import { createViewerStore, useViewerStore } from '../store/viewer-store.js';
+import type { ViewerPreferences } from '../store/viewer-store.js';
 import type { HoverLaneInfo, ViewerMode } from '../store/viewer-types.js';
 import { ViewerCanvas } from '../scene/ViewerCanvas.js';
 import { SceneEnvironment } from '../scene/SceneEnvironment.js';
 import { CameraController } from '../scene/CameraController.js';
 import type { CameraControllerHandle } from '../scene/CameraController.js';
 import { RoadNetwork } from '../road/RoadNetwork.js';
+import { RoadObjectsGroup } from '../road/RoadObjectsGroup.js';
 import { EntityGroup } from '../entities/EntityGroup.js';
 import { RoadClickHandler } from '../interaction/RoadClickHandler.js';
 import type { PickedPositionData } from '../interaction/RoadClickHandler.js';
@@ -36,6 +37,7 @@ import { SimulationOverlay } from '../scenario/SimulationOverlay.js';
 import { useCameraFollow } from '../scene/useCameraFollow.js';
 import { Minimap } from './Minimap.js';
 import { RouteOverlay } from '../route/RouteOverlay.js';
+import type { RouteLaneChangeMarker } from '../route/RouteOverlay.js';
 import { RoutePreviewOverlay } from '../route/RoutePreviewOverlay.js';
 import type { RoutePreviewData } from '../route/RoutePreviewOverlay.js';
 import { RouteClickHandler } from '../interaction/RouteClickHandler.js';
@@ -45,11 +47,337 @@ import { TrajectoryClickHandler } from '../interaction/TrajectoryClickHandler.js
 import { TrajectoryEditOverlay } from '../trajectory/TrajectoryEditOverlay.js';
 import { TrajectoryPreviewOverlay } from '../trajectory/TrajectoryPreviewOverlay.js';
 import type { TrajectoryPreviewData } from '../trajectory/TrajectoryPreviewOverlay.js';
+import { LaneChangePreviewOverlay } from '../preview/LaneChangePreviewOverlay.js';
+import type { LaneChangePreviewData } from '../preview/LaneChangePreviewOverlay.js';
 import { TrafficSignalGroup } from '../signals/TrafficSignalGroup.js';
 import { useScenarioPositions } from '../scenario/useScenarioPositions.js';
 import { PositionMarkersOverlay } from '../markers/PositionMarkersOverlay.js';
 import type { ThreeEvent } from '@react-three/fiber';
 import { RoadEditingLayer } from '../interaction/road-editing/RoadEditingLayer.js';
+
+/**
+ * Route editing session configuration.
+ * Grouped so a single referentially-stable object can be forwarded to the viewer.
+ */
+export interface RouteEditConfig {
+  /** Whether route editing mode is active */
+  active?: boolean;
+  /** Waypoints in OpenDRIVE coordinates */
+  waypoints?: Array<{ x: number; y: number; z: number; h: number }>;
+  /** Path segments (interpolated points between waypoints) */
+  pathSegments?: Array<Array<{ x: number; y: number; z: number }>>;
+  /** Currently selected waypoint index */
+  selectedWaypointIndex?: number | null;
+  /** Callback when user clicks a waypoint marker */
+  onWaypointClick?: (index: number) => void;
+  /** Callback when user right-clicks a waypoint marker */
+  onWaypointContextMenu?: (index: number, event: ThreeEvent<MouseEvent>) => void;
+  /** Callback when user clicks a route line segment */
+  onLineClick?: (segmentIndex: number, event: ThreeEvent<MouseEvent>) => void;
+  /** Callback when user clicks road surface to add a waypoint */
+  onWaypointAdd?: (
+    worldX: number, worldY: number, worldZ: number, heading: number,
+    roadId: string, laneId: string, s: number, offset: number,
+  ) => void;
+  /** Callback when user drags a waypoint to a new position */
+  onWaypointDragEnd?: (
+    index: number,
+    worldX: number, worldY: number, worldZ: number, heading: number,
+    roadId: string, laneId: string, s: number, offset: number,
+  ) => void;
+  /** Callback to save and exit route editing */
+  onEditSave?: () => void;
+  /** Callback to cancel route editing */
+  onEditCancel?: () => void;
+  /** Warnings from route validation */
+  warnings?: string[];
+  /** Number of waypoints in the editing route */
+  waypointCount?: number;
+  /** Lane-change markers (lane-change-aware routing mode) */
+  laneChangeMarkers?: RouteLaneChangeMarker[];
+  /** Whether lane-change-aware routing is enabled */
+  laneChangeAware?: boolean;
+  /** Whether the lane-change-aware toggle is usable (WASM router ready) */
+  laneChangeAvailable?: boolean;
+  /** Toggle lane-change-aware routing */
+  onToggleLaneChangeAware?: (on: boolean) => void;
+  /** Routing strategy: 0 = SHORTEST, 1 = FASTEST, 2 = MIN_INTERSECTIONS */
+  calcStrategy?: number;
+  /** Change the routing strategy */
+  onCalcStrategyChange?: (strategy: number) => void;
+  /** Resolve a catalog reference to a Route definition (for RoutePosition placement) */
+  resolveCatalogRoute?: (ref: { catalogName: string; entryName: string }) => Route | null;
+  /** Route preview data for selected entity/action (read-only visualization) */
+  previewData?: RoutePreviewData[];
+}
+
+/**
+ * Trajectory editing session configuration.
+ */
+export interface TrajectoryEditConfig {
+  /** Whether trajectory editing mode is active */
+  active?: boolean;
+  /** Trajectory shape type being edited */
+  shapeType?: 'polyline' | 'clothoid' | 'nurbs' | 'clothoidSpline';
+  /** World positions of trajectory points (vertices / origin / control points) */
+  points?: Array<{ x: number; y: number; z: number; h: number }>;
+  /** Evaluated curve sample points for rendering */
+  curvePoints?: Array<{ x: number; y: number; z: number }>;
+  /** Time values per point */
+  pointTimes?: Array<number | undefined>;
+  /** Currently selected point index */
+  selectedPointIndex?: number | null;
+  /** Callback when user clicks a trajectory point marker */
+  onPointClick?: (index: number) => void;
+  /** Callback when user right-clicks a trajectory point marker */
+  onPointContextMenu?: (index: number, event: ThreeEvent<MouseEvent>) => void;
+  /** Callback when user clicks the trajectory line */
+  onLineClick?: (event: ThreeEvent<MouseEvent>) => void;
+  /** Callback when user double-clicks road surface to add a point */
+  onPointAdd?: (
+    worldX: number, worldY: number, worldZ: number, heading: number,
+    roadId: string, laneId: string, s: number, offset: number,
+    snapped: boolean,
+  ) => void;
+  /** Callback when user drags a point to a new position */
+  onPointDragEnd?: (
+    index: number,
+    worldX: number, worldY: number, worldZ: number, heading: number,
+    roadId: string, laneId: string, s: number, offset: number,
+    snapped: boolean,
+  ) => void;
+  /** Callback to save and exit trajectory editing */
+  onEditSave?: () => void;
+  /** Callback to cancel trajectory editing */
+  onEditCancel?: () => void;
+  /** Indices of trajectory points that use relative positions (rendered with dashed connections) */
+  relativePointIndices?: number[];
+  /** Warnings from trajectory validation */
+  warnings?: string[];
+  /** Number of points in the editing trajectory */
+  pointCount?: number;
+  /** Trajectory preview data for selected entity/action (read-only visualization) */
+  previewData?: TrajectoryPreviewData[];
+  /** Lane-change preview data for selected entity/action (read-only visualization) */
+  laneChangePreviewData?: LaneChangePreviewData[];
+}
+
+/**
+ * Traffic signal selection / pick-mode configuration.
+ */
+export interface SignalSelectionConfig {
+  /** Currently selected traffic signal key (roadId:signalId) */
+  selectedSignalKey?: string | null;
+  /** Callback when user clicks a traffic signal in the viewer */
+  onSignalSelect?: (key: string) => void;
+  /** Signal IDs to highlight in the viewer (e.g. signals belonging to selected controller) */
+  highlightedSignalIds?: ReadonlySet<string>;
+  /** Signal pick mode configuration (null = not in pick mode) */
+  signalPickMode?: {
+    bulbCount: number;
+    trackSignalIds: ReadonlySet<string>;
+    allTrackSignalMap: ReadonlyMap<string, ReadonlySet<string>>;
+  } | null;
+  /** Callback when a signal is hovered during pick mode */
+  onSignalHover?: (signalId: string | null) => void;
+  /** Map from signalId to assembly info for arm pole rendering */
+  signalAssemblyMap?: Map<string, import('../signals/InstancedPoles.js').PoleAssemblyInfo>;
+}
+
+/**
+ * Position pick-mode configuration.
+ */
+export interface PositionPickConfig {
+  /** Whether position pick mode is active */
+  active?: boolean;
+  /** Callback when a position is picked from the 3D viewer */
+  onPositionPicked?: (data: PickedPositionData) => void;
+  /** Callback when pick mode is cancelled (Escape key) */
+  onPositionPickCancel?: () => void;
+  /** Element IDs to highlight their associated position markers */
+  highlightedElementIds?: string[];
+}
+
+/**
+ * Road network geometry editing configuration.
+ */
+export interface RoadEditingConfig {
+  /** Whether road geometry editing mode is active */
+  active?: boolean;
+  /** Currently selected road ID for editing */
+  selectedRoadId?: string | null;
+  /** Currently selected geometry index */
+  selectedGeometryIndex?: number | null;
+  /** Callback when a control point is Ctrl+dragged to translate (only x,y change) */
+  onGeometryDragEnd?: (
+    roadId: string,
+    geometryIndex: number,
+    newX: number,
+    newY: number,
+  ) => void;
+  /** Callback when a start point is dragged to reshape (keep endpoint fixed) */
+  onStartpointDragEnd?: (
+    roadId: string,
+    geometryIndex: number,
+    updates: { x: number; y: number; hdg: number; length: number; curvature?: number },
+  ) => void;
+  /** Callback when a geometry control point is selected */
+  onGeometrySelect?: (roadId: string, geometryIndex: number) => void;
+  /** Whether road creation mode is active (click ground to create) */
+  creationModeActive?: boolean;
+  /** Current creation phase */
+  creationPhase?: 'idle' | 'startPlaced';
+  /** Start position (valid when phase === 'startPlaced') */
+  creationStartX?: number;
+  creationStartY?: number;
+  creationStartHdg?: number;
+  /** Cursor position for ghost preview */
+  creationCursorX?: number;
+  creationCursorY?: number;
+  /** Lane sections for ghost preview */
+  creationLanes?: import('@osce/shared').OdrLaneSection[];
+  /** Callback when user clicks to place start point */
+  onCreationStartPlace?: (
+    x: number,
+    y: number,
+    hdg: number,
+    snap?: { roadId: string; contactPoint: 'start' | 'end' },
+  ) => void;
+  /** Callback when user clicks to create a road (2-point) */
+  onRoadCreate?: (
+    startX: number,
+    startY: number,
+    startHdg: number,
+    endX: number,
+    endY: number,
+    curvature: number,
+    snapInfo?: { roadId: string; contactPoint: 'start' | 'end' },
+  ) => void;
+  /** Callback to update cursor position during creation */
+  onCreationCursorMove?: (x: number, y: number) => void;
+  /** Whether grid snap is enabled for road editing */
+  gridSnap?: boolean;
+  /** Callback when a tangent handle is dragged to change heading */
+  onHeadingDragEnd?: (roadId: string, geometryIndex: number, newHdg: number) => void;
+  /** Callback when arc curvature is changed via drag */
+  onCurvatureDragEnd?: (roadId: string, geometryIndex: number, newCurvature: number) => void;
+  /** Callback when a geometry point is Shift+clicked */
+  onGeometryShiftClick?: (roadId: string, geometryIndex: number) => void;
+  /** Callback when an endpoint gizmo is dragged to reshape geometry */
+  onEndpointDragEnd?: (
+    roadId: string,
+    geometryIndex: number,
+    updates: { hdg?: number; length: number; curvature?: number },
+  ) => void;
+  /** Set of selected geometry indices for multi-selection */
+  selectedGeometryIndices?: Set<number>;
+  /** Callback when a road endpoint snaps to another road's endpoint */
+  onLinkSet?: (
+    roadId: string,
+    linkType: 'predecessor' | 'successor',
+    targetRoadId: string,
+    targetContactPoint: 'start' | 'end',
+  ) => void;
+  /** Callback when a road endpoint is unsnapped (dragged away from connection) */
+  onLinkUnset?: (roadId: string, linkType: 'predecessor' | 'successor') => void;
+  /** Callback when endpoint is right-clicked */
+  onEndpointContextMenu?: (
+    roadId: string,
+    contactPoint: 'start' | 'end',
+    screenX: number,
+    screenY: number,
+  ) => void;
+  /** Whether road creation has a heading constraint at start */
+  creationHasStartConstraint?: boolean;
+  /** Whether road select mode is active (click road meshes to select) */
+  selectModeActive?: boolean;
+  /** Callback when a road is selected via click in the 3D viewer */
+  onRoadSelect?: (roadId: string) => void;
+  /** Callback when a road is hovered in select mode */
+  onRoadHover?: (roadId: string | null) => void;
+}
+
+/**
+ * Lane editing configuration.
+ */
+export interface LaneEditConfig {
+  /** Whether lane editing mode is active */
+  active?: boolean;
+  /** Active road ID for lane editing */
+  roadId?: string | null;
+  /** Callback when a lane is hovered in lane edit mode */
+  onLaneHover?: (info: import('../interaction/road-editing/LaneEditInteraction.js').LaneHoverInfo | null) => void;
+  /** Callback when a lane is clicked in lane edit mode */
+  onLaneClick?: (info: import('../interaction/road-editing/LaneEditInteraction.js').LaneHoverInfo) => void;
+  /** Callback when a lane is right-clicked */
+  onLaneContextMenu?: (info: import('../interaction/road-editing/LaneEditInteraction.js').LaneHoverInfo, screenX: number, screenY: number) => void;
+  /** Callback when road surface is right-clicked (for section split) */
+  onRoadSurfaceContextMenu?: (roadId: string, s: number, screenX: number, screenY: number) => void;
+  /** Callback when a section boundary is dragged */
+  onSectionBoundaryDragEnd?: (roadId: string, sectionIdx: number, newS: number) => void;
+  /** Current lane edit sub-mode */
+  subMode?: import('../interaction/road-editing/LaneEditInteraction.js').LaneEditSubModeType;
+  /** Callback when split mode click occurs */
+  onSplitClick?: (roadId: string, sectionIdx: number, s: number) => void;
+  /** Callback when taper start/end is clicked */
+  onTaperClick?: (roadId: string, s: number, side: 'left' | 'right') => void;
+  /** Taper creation phase for preview rendering */
+  taperCreationPhase?: 'idle' | 'start-picked' | 'end-picked' | 'lane-extend';
+  /** Taper start S (when phase === 'start-picked') */
+  taperStartS?: number;
+  /** Taper target side */
+  taperSide?: 'left' | 'right';
+}
+
+/**
+ * Junction create + junction editing configuration.
+ */
+export interface JunctionToolsConfig {
+  /** Whether junction create mode is active */
+  createActive?: boolean;
+  /** Selected endpoints for junction creation */
+  createSelectedEndpoints?: Array<{ roadId: string; contactPoint: 'start' | 'end' }>;
+  /** Currently hovered endpoint */
+  createHoveredEndpoint?: { roadId: string; contactPoint: 'start' | 'end' } | null;
+  /** Callback when an endpoint is clicked */
+  onEndpointClick?: (roadId: string, contactPoint: 'start' | 'end') => void;
+  /** Callback when an endpoint is hovered */
+  onEndpointHover?: (endpoint: { roadId: string; contactPoint: 'start' | 'end' } | null) => void;
+  /** Currently selected junction ID (renders with highlight) */
+  selectedJunctionId?: string | null;
+  /** Ghost junction surface data for auto-detection preview */
+  ghostJunctionSurface?: import('@osce/opendrive').JunctionSurfaceData | null;
+  /** Callback when a junction surface is clicked */
+  onJunctionClick?: (junctionId: string) => void;
+  /** Callback when a junction surface is right-clicked */
+  onJunctionContextMenu?: (junctionId: string, event: ThreeEvent<MouseEvent>) => void;
+}
+
+/**
+ * Signal placement configuration.
+ */
+export interface SignalPlaceConfig {
+  /** Whether signal place mode is active */
+  active?: boolean;
+  /** Signal place sub-mode */
+  subMode?: 'place' | 'move';
+  /** Signal t-snap mode */
+  tSnapMode?: 'lane-above' | 'road-edge';
+  /** Ghost preview data for signal placement */
+  ghost?: import('../interaction/road-editing/SignalPlaceInteraction.js').SignalPlaceGhostData | null;
+  /** Callback when user clicks to place a signal */
+  onSignalPlace?: (roadId: string, s: number, t: number, heading: number) => void;
+  /** Callback to update ghost preview position */
+  onSignalGhostUpdate?: (ghost: import('../interaction/road-editing/SignalPlaceInteraction.js').SignalPlaceGhostData | null) => void;
+  /** Callback when a signal is moved via drag */
+  onSignalMove?: (
+    roadId: string,
+    signalId: string,
+    newS: number,
+    newT: number,
+    armInfo?: { armLength: number; armAngle: number },
+  ) => void;
+}
 
 export interface ScenarioViewerProps {
   /** The scenario engine Zustand store (vanilla) */
@@ -78,7 +406,7 @@ export interface ScenarioViewerProps {
   /** Simulation status for auto-mode-switching */
   simulationStatus?: SimulationStatus;
   /** Editor preferences for display toggles */
-  preferences?: Partial<EditorPreferences>;
+  preferences?: ViewerPreferences;
   /** CSS class for the container */
   className?: string;
   /** Callback when the viewer mode changes (edit/play) */
@@ -87,282 +415,25 @@ export interface ScenarioViewerProps {
   style?: React.CSSProperties;
   /** Entity ID to focus camera on (from external panel double-click) */
   focusEntityId?: string | null;
-  /** Whether route editing mode is active */
-  routeEditActive?: boolean;
-  /** Waypoints in OpenDRIVE coordinates */
-  routeWaypoints?: Array<{ x: number; y: number; z: number; h: number }>;
-  /** Path segments (interpolated points between waypoints) */
-  routePathSegments?: Array<Array<{ x: number; y: number; z: number }>>;
-  /** Currently selected waypoint index */
-  routeSelectedWaypointIndex?: number | null;
-  /** Callback when user clicks a waypoint marker */
-  onRouteWaypointClick?: (index: number) => void;
-  /** Callback when user right-clicks a waypoint marker */
-  onRouteWaypointContextMenu?: (index: number, event: ThreeEvent<MouseEvent>) => void;
-  /** Callback when user clicks a route line segment */
-  onRouteLineClick?: (segmentIndex: number, event: ThreeEvent<MouseEvent>) => void;
-  /** Callback when user clicks road surface to add a waypoint */
-  onRouteWaypointAdd?: (
-    worldX: number, worldY: number, worldZ: number, heading: number,
-    roadId: string, laneId: string, s: number, offset: number,
-  ) => void;
-  /** Callback when user drags a waypoint to a new position */
-  onRouteWaypointDragEnd?: (
-    index: number,
-    worldX: number, worldY: number, worldZ: number, heading: number,
-    roadId: string, laneId: string, s: number, offset: number,
-  ) => void;
-  /** Callback to save and exit route editing */
-  onRouteEditSave?: () => void;
-  /** Callback to cancel route editing */
-  onRouteEditCancel?: () => void;
-  /** Warnings from route validation */
-  routeWarnings?: string[];
-  /** Number of waypoints in the editing route */
-  routeWaypointCount?: number;
-  /** Resolve a catalog reference to a Route definition (for RoutePosition placement) */
-  resolveCatalogRoute?: (ref: { catalogName: string; entryName: string }) => Route | null;
-  /** Route preview data for selected entity/action (read-only visualization) */
-  routePreviewData?: RoutePreviewData[];
-
-  // ---- Trajectory Editing ----
-  /** Whether trajectory editing mode is active */
-  trajectoryEditActive?: boolean;
-  /** Trajectory shape type being edited */
-  trajectoryShapeType?: 'polyline' | 'clothoid' | 'nurbs';
-  /** World positions of trajectory points (vertices / origin / control points) */
-  trajectoryPoints?: Array<{ x: number; y: number; z: number; h: number }>;
-  /** Evaluated curve sample points for rendering */
-  trajectoryCurvePoints?: Array<{ x: number; y: number; z: number }>;
-  /** Time values per point */
-  trajectoryPointTimes?: Array<number | undefined>;
-  /** Currently selected point index */
-  trajectorySelectedPointIndex?: number | null;
-  /** Callback when user clicks a trajectory point marker */
-  onTrajectoryPointClick?: (index: number) => void;
-  /** Callback when user right-clicks a trajectory point marker */
-  onTrajectoryPointContextMenu?: (index: number, event: ThreeEvent<MouseEvent>) => void;
-  /** Callback when user clicks the trajectory line */
-  onTrajectoryLineClick?: (event: ThreeEvent<MouseEvent>) => void;
-  /** Callback when user double-clicks road surface to add a point */
-  onTrajectoryPointAdd?: (
-    worldX: number, worldY: number, worldZ: number, heading: number,
-    roadId: string, laneId: string, s: number, offset: number,
-    snapped: boolean,
-  ) => void;
-  /** Callback when user drags a point to a new position */
-  onTrajectoryPointDragEnd?: (
-    index: number,
-    worldX: number, worldY: number, worldZ: number, heading: number,
-    roadId: string, laneId: string, s: number, offset: number,
-    snapped: boolean,
-  ) => void;
-  /** Callback to save and exit trajectory editing */
-  onTrajectoryEditSave?: () => void;
-  /** Callback to cancel trajectory editing */
-  onTrajectoryEditCancel?: () => void;
-  /** Indices of trajectory points that use relative positions (rendered with dashed connections) */
-  trajectoryRelativePointIndices?: number[];
-  /** Warnings from trajectory validation */
-  trajectoryWarnings?: string[];
-  /** Number of points in the editing trajectory */
-  trajectoryPointCount?: number;
-  /** Trajectory preview data for selected entity/action (read-only visualization) */
-  trajectoryPreviewData?: TrajectoryPreviewData[];
-
-  /** Currently selected traffic signal key (roadId:signalId) */
-  selectedSignalKey?: string | null;
-  /** Callback when user clicks a traffic signal in the viewer */
-  onSignalSelect?: (key: string) => void;
-  /** Signal IDs to highlight in the viewer (e.g. signals belonging to selected controller) */
-  highlightedSignalIds?: ReadonlySet<string>;
-  /** Signal pick mode configuration (null = not in pick mode) */
-  signalPickMode?: {
-    bulbCount: number;
-    trackSignalIds: ReadonlySet<string>;
-    allTrackSignalMap: ReadonlyMap<string, ReadonlySet<string>>;
-  } | null;
-  /** Callback when a signal is hovered during pick mode */
-  onSignalHover?: (signalId: string | null) => void;
-  /** Map from signalId to assembly info for arm pole rendering */
-  signalAssemblyMap?: Map<string, import('../signals/InstancedPoles.js').PoleAssemblyInfo>;
   /** Show r3f-perf overlay for performance monitoring */
   showPerf?: boolean;
-  /** Whether position pick mode is active */
-  positionPickActive?: boolean;
-  /** Callback when a position is picked from the 3D viewer */
-  onPositionPicked?: (data: PickedPositionData) => void;
-  /** Callback when pick mode is cancelled (Escape key) */
-  onPositionPickCancel?: () => void;
-  /** Element IDs to highlight their associated position markers */
-  highlightedPositionElementIds?: string[];
 
-  // ---- Road Network Editing ----
-  /** Whether road geometry editing mode is active */
-  roadEditMode?: boolean;
-  /** Currently selected road ID for editing */
-  roadEditSelectedRoadId?: string | null;
-  /** Currently selected geometry index */
-  roadEditSelectedGeometryIndex?: number | null;
-  /** Callback when a control point is Ctrl+dragged to translate (only x,y change) */
-  onRoadGeometryDragEnd?: (
-    roadId: string,
-    geometryIndex: number,
-    newX: number,
-    newY: number,
-  ) => void;
-  /** Callback when a start point is dragged to reshape (keep endpoint fixed) */
-  onRoadStartpointDragEnd?: (
-    roadId: string,
-    geometryIndex: number,
-    updates: { x: number; y: number; hdg: number; length: number; curvature?: number },
-  ) => void;
-  /** Callback when a geometry control point is selected */
-  onRoadGeometrySelect?: (roadId: string, geometryIndex: number) => void;
-  /** Whether road creation mode is active (click ground to create) */
-  roadCreationModeActive?: boolean;
-  /** Current creation phase */
-  roadCreationPhase?: 'idle' | 'startPlaced';
-  /** Start position (valid when phase === 'startPlaced') */
-  roadCreationStartX?: number;
-  roadCreationStartY?: number;
-  roadCreationStartHdg?: number;
-  /** Cursor position for ghost preview */
-  roadCreationCursorX?: number;
-  roadCreationCursorY?: number;
-  /** Lane sections for ghost preview */
-  roadCreationLanes?: import('@osce/shared').OdrLaneSection[];
-  /** Callback when user clicks to place start point */
-  onRoadCreationStartPlace?: (
-    x: number,
-    y: number,
-    hdg: number,
-    snap?: { roadId: string; contactPoint: 'start' | 'end' },
-  ) => void;
-  /** Callback when user clicks to create a road (2-point) */
-  onRoadCreate?: (
-    startX: number,
-    startY: number,
-    startHdg: number,
-    endX: number,
-    endY: number,
-    curvature: number,
-    snapInfo?: { roadId: string; contactPoint: 'start' | 'end' },
-  ) => void;
-  /** Callback to update cursor position during creation */
-  onRoadCreationCursorMove?: (x: number, y: number) => void;
-  /** Whether grid snap is enabled for road editing */
-  roadGridSnap?: boolean;
-  /** Callback when a tangent handle is dragged to change heading */
-  onRoadHeadingDragEnd?: (roadId: string, geometryIndex: number, newHdg: number) => void;
-  /** Callback when arc curvature is changed via drag */
-  onRoadCurvatureDragEnd?: (roadId: string, geometryIndex: number, newCurvature: number) => void;
-  /** Callback when a geometry point is Shift+clicked */
-  onRoadGeometryShiftClick?: (roadId: string, geometryIndex: number) => void;
-  /** Callback when an endpoint gizmo is dragged to reshape geometry */
-  onRoadEndpointDragEnd?: (
-    roadId: string,
-    geometryIndex: number,
-    updates: { hdg?: number; length: number; curvature?: number },
-  ) => void;
-  /** Set of selected geometry indices for multi-selection */
-  roadEditSelectedGeometryIndices?: Set<number>;
-  /** Callback when a road endpoint snaps to another road's endpoint */
-  onRoadLinkSet?: (
-    roadId: string,
-    linkType: 'predecessor' | 'successor',
-    targetRoadId: string,
-    targetContactPoint: 'start' | 'end',
-  ) => void;
-  /** Callback when a road endpoint is unsnapped (dragged away from connection) */
-  onRoadLinkUnset?: (roadId: string, linkType: 'predecessor' | 'successor') => void;
-  /** Callback when endpoint is right-clicked */
-  onRoadEndpointContextMenu?: (
-    roadId: string,
-    contactPoint: 'start' | 'end',
-    screenX: number,
-    screenY: number,
-  ) => void;
-  /** Whether road creation has a heading constraint at start */
-  roadCreationHasStartConstraint?: boolean;
-  /** Whether road select mode is active (click road meshes to select) */
-  roadSelectModeActive?: boolean;
-  /** Callback when a road is selected via click in the 3D viewer */
-  onRoadSelect?: (roadId: string) => void;
-  /** Callback when a road is hovered in select mode */
-  onRoadHover?: (roadId: string | null) => void;
-
-  // ---- Lane Editing ----
-  /** Whether lane editing mode is active */
-  laneEditActive?: boolean;
-  /** Active road ID for lane editing */
-  laneEditRoadId?: string | null;
-  /** Callback when a lane is hovered in lane edit mode */
-  onLaneHover?: (info: import('../interaction/road-editing/LaneEditInteraction.js').LaneHoverInfo | null) => void;
-  /** Callback when a lane is clicked in lane edit mode */
-  onLaneClick?: (info: import('../interaction/road-editing/LaneEditInteraction.js').LaneHoverInfo) => void;
-  /** Callback when a lane is right-clicked */
-  onLaneContextMenu?: (info: import('../interaction/road-editing/LaneEditInteraction.js').LaneHoverInfo, screenX: number, screenY: number) => void;
-  /** Callback when road surface is right-clicked (for section split) */
-  onRoadSurfaceContextMenu?: (roadId: string, s: number, screenX: number, screenY: number) => void;
-  /** Callback when a section boundary is dragged */
-  onSectionBoundaryDragEnd?: (roadId: string, sectionIdx: number, newS: number) => void;
-  /** Current lane edit sub-mode */
-  laneEditSubMode?: import('../interaction/road-editing/LaneEditInteraction.js').LaneEditSubModeType;
-  /** Callback when split mode click occurs */
-  onSplitClick?: (roadId: string, sectionIdx: number, s: number) => void;
-  /** Callback when taper start/end is clicked */
-  onTaperClick?: (roadId: string, s: number, side: 'left' | 'right') => void;
-  /** Taper creation phase for preview rendering */
-  taperCreationPhase?: 'idle' | 'start-picked' | 'end-picked' | 'lane-extend';
-  /** Taper start S (when phase === 'start-picked') */
-  taperStartS?: number;
-  /** Taper target side */
-  taperSide?: 'left' | 'right';
-
-  // ---- Junction Create ----
-  /** Whether junction create mode is active */
-  junctionCreateActive?: boolean;
-  /** Selected endpoints for junction creation */
-  junctionCreateSelectedEndpoints?: Array<{ roadId: string; contactPoint: 'start' | 'end' }>;
-  /** Currently hovered endpoint */
-  junctionCreateHoveredEndpoint?: { roadId: string; contactPoint: 'start' | 'end' } | null;
-  /** Callback when an endpoint is clicked */
-  onJunctionEndpointClick?: (roadId: string, contactPoint: 'start' | 'end') => void;
-  /** Callback when an endpoint is hovered */
-  onJunctionEndpointHover?: (endpoint: { roadId: string; contactPoint: 'start' | 'end' } | null) => void;
-
-  // ---- Signal Place ----
-  /** Whether signal place mode is active */
-  signalPlaceActive?: boolean;
-  /** Signal place sub-mode */
-  signalPlaceSubMode?: 'place' | 'move';
-  /** Signal t-snap mode */
-  signalPlaceTSnapMode?: 'lane-above' | 'road-edge';
-  /** Ghost preview data for signal placement */
-  signalPlaceGhost?: import('../interaction/road-editing/SignalPlaceInteraction.js').SignalPlaceGhostData | null;
-  /** Callback when user clicks to place a signal */
-  onSignalPlace?: (roadId: string, s: number, t: number, heading: number) => void;
-  /** Callback to update ghost preview position */
-  onSignalGhostUpdate?: (ghost: import('../interaction/road-editing/SignalPlaceInteraction.js').SignalPlaceGhostData | null) => void;
-  /** Callback when a signal is moved via drag */
-  onSignalMove?: (
-    roadId: string,
-    signalId: string,
-    newS: number,
-    newT: number,
-    armInfo?: { armLength: number; armAngle: number },
-  ) => void;
-
-  // ---- Junction Editing ----
-  /** Currently selected junction ID (renders with highlight) */
-  selectedJunctionId?: string | null;
-  /** Ghost junction surface data for auto-detection preview */
-  ghostJunctionSurface?: import('@osce/opendrive').JunctionSurfaceData | null;
-  /** Callback when a junction surface is clicked */
-  onJunctionClick?: (junctionId: string) => void;
-  /** Callback when a junction surface is right-clicked */
-  onJunctionContextMenu?: (junctionId: string, event: ThreeEvent<MouseEvent>) => void;
+  /** Route editing session configuration */
+  routeEdit?: RouteEditConfig;
+  /** Trajectory editing session configuration */
+  trajectoryEdit?: TrajectoryEditConfig;
+  /** Traffic signal selection / pick-mode configuration */
+  signalSelection?: SignalSelectionConfig;
+  /** Position pick-mode configuration */
+  positionPick?: PositionPickConfig;
+  /** Road network geometry editing configuration */
+  roadEditing?: RoadEditingConfig;
+  /** Lane editing configuration */
+  laneEdit?: LaneEditConfig;
+  /** Junction create + editing configuration */
+  junctionTools?: JunctionToolsConfig;
+  /** Signal placement configuration */
+  signalPlace?: SignalPlaceConfig;
 }
 
 /**
@@ -380,99 +451,14 @@ function ScenarioViewerScene({
   viewerStore,
   focusEntityId,
   cameraStateRef,
-  routeEditActive,
-  routeWaypoints,
-  routePathSegments,
-  routeSelectedWaypointIndex,
-  onRouteWaypointClick,
-  onRouteWaypointContextMenu,
-  onRouteLineClick,
-  onRouteWaypointAdd,
-  onRouteWaypointDragEnd,
-  resolveCatalogRoute,
-  routePreviewData,
-  trajectoryEditActive,
-  trajectoryShapeType,
-  trajectoryPoints,
-  trajectoryCurvePoints,
-  trajectoryPointTimes,
-  trajectorySelectedPointIndex,
-  onTrajectoryPointClick,
-  onTrajectoryPointContextMenu,
-  onTrajectoryLineClick,
-  onTrajectoryPointAdd,
-  onTrajectoryPointDragEnd,
-  trajectoryRelativePointIndices,
-  trajectoryPreviewData,
-  selectedSignalKey,
-  onSignalSelect,
-  highlightedSignalIds,
-  signalPickMode,
-  onSignalHover,
-  signalAssemblyMap,
-  positionPickActive,
-  onPositionPicked,
-  onPositionPickCancel,
-  highlightedPositionElementIds,
-  roadEditMode,
-  roadEditSelectedRoadId,
-  roadEditSelectedGeometryIndex,
-  onRoadGeometryDragEnd,
-  onRoadStartpointDragEnd,
-  onRoadGeometrySelect,
-  roadCreationModeActive,
-  roadCreationPhase,
-  roadCreationStartX,
-  roadCreationStartY,
-  roadCreationStartHdg,
-  roadCreationCursorX,
-  roadCreationCursorY,
-  roadCreationLanes,
-  onRoadCreationStartPlace,
-  onRoadCreate,
-  onRoadCreationCursorMove,
-  roadGridSnap,
-  onRoadHeadingDragEnd,
-  onRoadCurvatureDragEnd,
-  onRoadEndpointDragEnd,
-  onRoadGeometryShiftClick,
-  roadEditSelectedGeometryIndices,
-  onRoadLinkSet,
-  onRoadLinkUnset,
-  onRoadEndpointContextMenu,
-  roadCreationHasStartConstraint,
-  roadSelectModeActive,
-  onRoadSelect,
-  onRoadHover,
-  laneEditActive,
-  laneEditRoadId,
-  onLaneHover,
-  onLaneClick,
-  onLaneContextMenu,
-  onRoadSurfaceContextMenu,
-  onSectionBoundaryDragEnd,
-  laneEditSubMode,
-  onSplitClick,
-  onTaperClick,
-  taperCreationPhase,
-  taperStartS,
-  taperSide,
-  junctionCreateActive,
-  junctionCreateSelectedEndpoints,
-  junctionCreateHoveredEndpoint,
-  onJunctionEndpointClick,
-  onJunctionEndpointHover,
-  signalPlaceActive,
-  signalPlaceSubMode,
-  signalPlaceTSnapMode,
-  signalPlaceGhost,
-  onSignalPlace,
-  onSignalGhostUpdate,
-  onSignalMove,
-  selectedJunctionId,
-  ghostJunctionSurface,
-  onJunctionClick,
-  onJunctionContextMenu,
+  routeEdit,
+  trajectoryEdit,
+  signalSelection,
+  positionPick,
+  roadEditing,
+  laneEdit,
+  junctionTools,
+  signalPlace,
 }: {
   scenarioStore: ScenarioViewerProps['scenarioStore'];
   openDriveDocument: OpenDriveDocument | null;
@@ -485,104 +471,142 @@ function ScenarioViewerScene({
   viewerStore: ReturnType<typeof createViewerStore>;
   focusEntityId?: string | null;
   cameraStateRef?: React.RefObject<{ position: THREE.Vector3; target: THREE.Vector3 }>;
-  routeEditActive?: boolean;
-  routeWaypoints?: Array<{ x: number; y: number; z: number; h: number }>;
-  routePathSegments?: Array<Array<{ x: number; y: number; z: number }>>;
-  routeSelectedWaypointIndex?: number | null;
-  onRouteWaypointClick?: (index: number) => void;
-  onRouteWaypointContextMenu?: (index: number, event: ThreeEvent<MouseEvent>) => void;
-  onRouteLineClick?: (segmentIndex: number, event: ThreeEvent<MouseEvent>) => void;
-  onRouteWaypointAdd?: ScenarioViewerProps['onRouteWaypointAdd'];
-  onRouteWaypointDragEnd?: ScenarioViewerProps['onRouteWaypointDragEnd'];
-  resolveCatalogRoute?: ScenarioViewerProps['resolveCatalogRoute'];
-  routePreviewData?: RoutePreviewData[];
-  trajectoryEditActive?: boolean;
-  trajectoryShapeType?: 'polyline' | 'clothoid' | 'nurbs';
-  trajectoryPoints?: Array<{ x: number; y: number; z: number; h: number }>;
-  trajectoryCurvePoints?: Array<{ x: number; y: number; z: number }>;
-  trajectoryPointTimes?: Array<number | undefined>;
-  trajectorySelectedPointIndex?: number | null;
-  onTrajectoryPointClick?: (index: number) => void;
-  onTrajectoryPointContextMenu?: (index: number, event: ThreeEvent<MouseEvent>) => void;
-  onTrajectoryLineClick?: (event: ThreeEvent<MouseEvent>) => void;
-  onTrajectoryPointAdd?: ScenarioViewerProps['onTrajectoryPointAdd'];
-  onTrajectoryPointDragEnd?: ScenarioViewerProps['onTrajectoryPointDragEnd'];
-  trajectoryRelativePointIndices?: number[];
-  trajectoryPreviewData?: TrajectoryPreviewData[];
-  selectedSignalKey?: string | null;
-  onSignalSelect?: (key: string) => void;
-  highlightedSignalIds?: ReadonlySet<string>;
-  signalPickMode?: ScenarioViewerProps['signalPickMode'];
-  onSignalHover?: (signalId: string | null) => void;
-  signalAssemblyMap?: ScenarioViewerProps['signalAssemblyMap'];
-  positionPickActive?: boolean;
-  onPositionPicked?: (data: PickedPositionData) => void;
-  onPositionPickCancel?: () => void;
-  highlightedPositionElementIds?: string[];
-  roadEditMode?: boolean;
-  roadEditSelectedRoadId?: string | null;
-  roadEditSelectedGeometryIndex?: number | null;
-  onRoadGeometryDragEnd?: ScenarioViewerProps['onRoadGeometryDragEnd'];
-  onRoadStartpointDragEnd?: ScenarioViewerProps['onRoadStartpointDragEnd'];
-  onRoadGeometrySelect?: ScenarioViewerProps['onRoadGeometrySelect'];
-  roadCreationModeActive?: boolean;
-  roadCreationPhase?: 'idle' | 'startPlaced';
-  roadCreationStartX?: number;
-  roadCreationStartY?: number;
-  roadCreationStartHdg?: number;
-  roadCreationCursorX?: number;
-  roadCreationCursorY?: number;
-  roadCreationLanes?: ScenarioViewerProps['roadCreationLanes'];
-  onRoadCreationStartPlace?: ScenarioViewerProps['onRoadCreationStartPlace'];
-  onRoadCreate?: ScenarioViewerProps['onRoadCreate'];
-  onRoadCreationCursorMove?: ScenarioViewerProps['onRoadCreationCursorMove'];
-  roadGridSnap?: boolean;
-  onRoadHeadingDragEnd?: ScenarioViewerProps['onRoadHeadingDragEnd'];
-  onRoadCurvatureDragEnd?: ScenarioViewerProps['onRoadCurvatureDragEnd'];
-  onRoadEndpointDragEnd?: ScenarioViewerProps['onRoadEndpointDragEnd'];
-  onRoadGeometryShiftClick?: ScenarioViewerProps['onRoadGeometryShiftClick'];
-  roadEditSelectedGeometryIndices?: Set<number>;
-  onRoadLinkSet?: ScenarioViewerProps['onRoadLinkSet'];
-  onRoadLinkUnset?: ScenarioViewerProps['onRoadLinkUnset'];
-  onRoadEndpointContextMenu?: ScenarioViewerProps['onRoadEndpointContextMenu'];
-  roadCreationHasStartConstraint?: boolean;
-  roadSelectModeActive?: boolean;
-  onRoadSelect?: (roadId: string) => void;
-  onRoadHover?: (roadId: string | null) => void;
-  laneEditActive?: boolean;
-  laneEditRoadId?: string | null;
-  onLaneHover?: ScenarioViewerProps['onLaneHover'];
-  onLaneClick?: ScenarioViewerProps['onLaneClick'];
-  onLaneContextMenu?: ScenarioViewerProps['onLaneContextMenu'];
-  onRoadSurfaceContextMenu?: ScenarioViewerProps['onRoadSurfaceContextMenu'];
-  onSectionBoundaryDragEnd?: ScenarioViewerProps['onSectionBoundaryDragEnd'];
-  laneEditSubMode?: ScenarioViewerProps['laneEditSubMode'];
-  onSplitClick?: ScenarioViewerProps['onSplitClick'];
-  onTaperClick?: ScenarioViewerProps['onTaperClick'];
-  taperCreationPhase?: ScenarioViewerProps['taperCreationPhase'];
-  taperStartS?: ScenarioViewerProps['taperStartS'];
-  taperSide?: ScenarioViewerProps['taperSide'];
-  junctionCreateActive?: boolean;
-  junctionCreateSelectedEndpoints?: ScenarioViewerProps['junctionCreateSelectedEndpoints'];
-  junctionCreateHoveredEndpoint?: ScenarioViewerProps['junctionCreateHoveredEndpoint'];
-  onJunctionEndpointClick?: ScenarioViewerProps['onJunctionEndpointClick'];
-  onJunctionEndpointHover?: ScenarioViewerProps['onJunctionEndpointHover'];
-  signalPlaceActive?: boolean;
-  signalPlaceSubMode?: ScenarioViewerProps['signalPlaceSubMode'];
-  signalPlaceTSnapMode?: ScenarioViewerProps['signalPlaceTSnapMode'];
-  signalPlaceGhost?: ScenarioViewerProps['signalPlaceGhost'];
-  onSignalPlace?: ScenarioViewerProps['onSignalPlace'];
-  onSignalGhostUpdate?: ScenarioViewerProps['onSignalGhostUpdate'];
-  onSignalMove?: ScenarioViewerProps['onSignalMove'];
-  selectedJunctionId?: string | null;
-  ghostJunctionSurface?: ScenarioViewerProps['ghostJunctionSurface'];
-  onJunctionClick?: ScenarioViewerProps['onJunctionClick'];
-  onJunctionContextMenu?: ScenarioViewerProps['onJunctionContextMenu'];
+  routeEdit?: RouteEditConfig;
+  trajectoryEdit?: TrajectoryEditConfig;
+  signalSelection?: SignalSelectionConfig;
+  positionPick?: PositionPickConfig;
+  roadEditing?: RoadEditingConfig;
+  laneEdit?: LaneEditConfig;
+  junctionTools?: JunctionToolsConfig;
+  signalPlace?: SignalPlaceConfig;
 }) {
+  // Destructure config objects into locals used throughout the scene body.
+  const {
+    active: routeEditActive,
+    waypoints: routeWaypoints,
+    pathSegments: routePathSegments,
+    laneChangeMarkers: routeLaneChangeMarkers,
+    selectedWaypointIndex: routeSelectedWaypointIndex,
+    onWaypointClick: onRouteWaypointClick,
+    onWaypointContextMenu: onRouteWaypointContextMenu,
+    onLineClick: onRouteLineClick,
+    onWaypointAdd: onRouteWaypointAdd,
+    onWaypointDragEnd: onRouteWaypointDragEnd,
+    resolveCatalogRoute,
+    previewData: routePreviewData,
+  } = routeEdit ?? {};
+
+  const {
+    active: trajectoryEditActive,
+    shapeType: trajectoryShapeType,
+    points: trajectoryPoints,
+    curvePoints: trajectoryCurvePoints,
+    pointTimes: trajectoryPointTimes,
+    selectedPointIndex: trajectorySelectedPointIndex,
+    onPointClick: onTrajectoryPointClick,
+    onPointContextMenu: onTrajectoryPointContextMenu,
+    onLineClick: onTrajectoryLineClick,
+    onPointAdd: onTrajectoryPointAdd,
+    onPointDragEnd: onTrajectoryPointDragEnd,
+    relativePointIndices: trajectoryRelativePointIndices,
+    previewData: trajectoryPreviewData,
+    laneChangePreviewData,
+  } = trajectoryEdit ?? {};
+
+  const {
+    selectedSignalKey,
+    onSignalSelect,
+    highlightedSignalIds,
+    signalPickMode,
+    onSignalHover,
+    signalAssemblyMap,
+  } = signalSelection ?? {};
+
+  const {
+    active: positionPickActive,
+    onPositionPicked,
+    onPositionPickCancel,
+    highlightedElementIds: highlightedPositionElementIds,
+  } = positionPick ?? {};
+
+  const {
+    active: roadEditMode,
+    selectedRoadId: roadEditSelectedRoadId,
+    selectedGeometryIndex: roadEditSelectedGeometryIndex,
+    onGeometryDragEnd: onRoadGeometryDragEnd,
+    onStartpointDragEnd: onRoadStartpointDragEnd,
+    onGeometrySelect: onRoadGeometrySelect,
+    creationModeActive: roadCreationModeActive,
+    creationPhase: roadCreationPhase,
+    creationStartX: roadCreationStartX,
+    creationStartY: roadCreationStartY,
+    creationStartHdg: roadCreationStartHdg,
+    creationCursorX: roadCreationCursorX,
+    creationCursorY: roadCreationCursorY,
+    creationLanes: roadCreationLanes,
+    onCreationStartPlace: onRoadCreationStartPlace,
+    onRoadCreate,
+    onCreationCursorMove: onRoadCreationCursorMove,
+    gridSnap: roadGridSnap,
+    onHeadingDragEnd: onRoadHeadingDragEnd,
+    onCurvatureDragEnd: onRoadCurvatureDragEnd,
+    onEndpointDragEnd: onRoadEndpointDragEnd,
+    onGeometryShiftClick: onRoadGeometryShiftClick,
+    selectedGeometryIndices: roadEditSelectedGeometryIndices,
+    onLinkSet: onRoadLinkSet,
+    onLinkUnset: onRoadLinkUnset,
+    onEndpointContextMenu: onRoadEndpointContextMenu,
+    creationHasStartConstraint: roadCreationHasStartConstraint,
+    selectModeActive: roadSelectModeActive,
+    onRoadSelect,
+    onRoadHover,
+  } = roadEditing ?? {};
+
+  const {
+    active: laneEditActive,
+    roadId: laneEditRoadId,
+    onLaneHover,
+    onLaneClick,
+    onLaneContextMenu,
+    onRoadSurfaceContextMenu,
+    onSectionBoundaryDragEnd,
+    subMode: laneEditSubMode,
+    onSplitClick,
+    onTaperClick,
+    taperCreationPhase,
+    taperStartS,
+    taperSide,
+  } = laneEdit ?? {};
+
+  const {
+    createActive: junctionCreateActive,
+    createSelectedEndpoints: junctionCreateSelectedEndpoints,
+    createHoveredEndpoint: junctionCreateHoveredEndpoint,
+    onEndpointClick: onJunctionEndpointClick,
+    onEndpointHover: onJunctionEndpointHover,
+    selectedJunctionId,
+    ghostJunctionSurface,
+    onJunctionClick,
+    onJunctionContextMenu,
+  } = junctionTools ?? {};
+
+  const {
+    active: signalPlaceActive,
+    subMode: signalPlaceSubMode,
+    tSnapMode: signalPlaceTSnapMode,
+    ghost: signalPlaceGhost,
+    onSignalPlace,
+    onSignalGhostUpdate,
+    onSignalMove,
+  } = signalPlace ?? {};
+
   const cameraMode = useViewerStore(viewerStore, (s) => s.cameraMode);
   const showGrid = useViewerStore(viewerStore, (s) => s.showGrid);
   const showLaneIds = useViewerStore(viewerStore, (s) => s.showLaneIds);
   const showRoadIds = useViewerStore(viewerStore, (s) => s.showRoadIds);
+  const showDrivingDirection = useViewerStore(viewerStore, (s) => s.showDrivingDirection);
+  const showTemporaryLanes = useViewerStore(viewerStore, (s) => s.showTemporaryLanes);
+  const showObjects = useViewerStore(viewerStore, (s) => s.showObjects);
   const showEntityLabels = useViewerStore(viewerStore, (s) => s.showEntityLabels);
   const showTrafficSignals = useViewerStore(viewerStore, (s) => s.showTrafficSignals);
   const gizmoMode = useViewerStore(viewerStore, (s) => s.gizmoMode);
@@ -726,12 +750,17 @@ function ScenarioViewerScene({
         showRoadMarks
         showRoadIds={showRoadIds}
         showLaneIds={showLaneIds}
+        showDrivingDirection={showDrivingDirection}
+        showTemporaryLanes={showTemporaryLanes}
         highlightedLaneRef={highlightedLaneRef}
         selectedJunctionId={selectedJunctionId}
         ghostJunctionSurface={ghostJunctionSurface}
         onJunctionClick={onJunctionClick}
         onJunctionContextMenu={onJunctionContextMenu}
       />
+
+      {/* Authored road objects (OpenDRIVE <object>) — z-up group applied inside */}
+      {showObjects && <RoadObjectsGroup openDriveDocument={openDriveDocument} />}
 
       {/* Traffic signals from OpenDRIVE */}
       {showTrafficSignals && (
@@ -780,6 +809,7 @@ function ScenarioViewerScene({
           <RouteOverlay
             waypoints={routeWaypoints}
             pathSegments={routePathSegments ?? []}
+            laneChangeMarkers={routeLaneChangeMarkers}
             selectedWaypointIndex={routeSelectedWaypointIndex ?? null}
             onWaypointClick={onRouteWaypointClick}
             onWaypointContextMenu={onRouteWaypointContextMenu}
@@ -806,6 +836,16 @@ function ScenarioViewerScene({
           <TrajectoryPreviewOverlay previews={trajectoryPreviewData} />
         </group>
       )}
+
+      {/* Lane-change preview overlay (shown when entity/action selected, not editing) */}
+      {!routeEditActive &&
+        !trajectoryEditActive &&
+        laneChangePreviewData &&
+        laneChangePreviewData.length > 0 && (
+          <group rotation={[-Math.PI / 2, 0, 0]}>
+            <LaneChangePreviewOverlay previews={laneChangePreviewData} />
+          </group>
+        )}
 
       {/* Trajectory overlay (inside rotation group to match OpenDRIVE coords) */}
       {trajectoryEditActive && trajectoryPoints && trajectoryPoints.length > 0 && (
@@ -987,109 +1027,45 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   className,
   style,
   focusEntityId,
-  routeEditActive,
-  routeWaypoints,
-  routePathSegments,
-  routeSelectedWaypointIndex,
-  onRouteWaypointClick,
-  onRouteWaypointContextMenu,
-  onRouteLineClick,
-  onRouteWaypointAdd,
-  onRouteWaypointDragEnd,
-  onRouteEditSave,
-  onRouteEditCancel,
-  routeWarnings,
-  routeWaypointCount,
-  resolveCatalogRoute,
-  routePreviewData,
-  trajectoryEditActive,
-  trajectoryShapeType,
-  trajectoryPoints,
-  trajectoryCurvePoints,
-  trajectoryPointTimes,
-  trajectorySelectedPointIndex,
-  onTrajectoryPointClick,
-  onTrajectoryPointContextMenu,
-  onTrajectoryLineClick,
-  onTrajectoryPointAdd,
-  onTrajectoryPointDragEnd,
-  trajectoryRelativePointIndices,
-  onTrajectoryEditSave,
-  onTrajectoryEditCancel,
-  trajectoryWarnings,
-  trajectoryPointCount,
-  trajectoryPreviewData,
-  selectedSignalKey,
-  onSignalSelect,
-  highlightedSignalIds,
-  signalPickMode,
-  onSignalHover,
-  signalAssemblyMap,
   showPerf,
-  positionPickActive,
-  onPositionPicked,
-  onPositionPickCancel,
-  highlightedPositionElementIds,
-  roadEditMode,
-  roadEditSelectedRoadId,
-  roadEditSelectedGeometryIndex,
-  onRoadGeometryDragEnd,
-  onRoadStartpointDragEnd,
-  onRoadGeometrySelect,
-  roadCreationModeActive,
-  roadCreationPhase,
-  roadCreationStartX,
-  roadCreationStartY,
-  roadCreationStartHdg,
-  roadCreationCursorX,
-  roadCreationCursorY,
-  roadCreationLanes,
-  onRoadCreationStartPlace,
-  onRoadCreate,
-  onRoadCreationCursorMove,
-  roadGridSnap,
-  onRoadHeadingDragEnd,
-  onRoadCurvatureDragEnd,
-  onRoadEndpointDragEnd,
-  onRoadGeometryShiftClick,
-  roadEditSelectedGeometryIndices,
-  onRoadLinkSet,
-  onRoadLinkUnset,
-  onRoadEndpointContextMenu,
-  roadCreationHasStartConstraint,
-  roadSelectModeActive,
-  onRoadSelect,
-  onRoadHover,
-  laneEditActive,
-  laneEditRoadId,
-  onLaneHover,
-  onLaneClick,
-  onLaneContextMenu,
-  onRoadSurfaceContextMenu,
-  onSectionBoundaryDragEnd,
-  laneEditSubMode,
-  onSplitClick,
-  onTaperClick,
-  taperCreationPhase,
-  taperStartS,
-  taperSide,
-  junctionCreateActive,
-  junctionCreateSelectedEndpoints,
-  junctionCreateHoveredEndpoint,
-  onJunctionEndpointClick,
-  onJunctionEndpointHover,
-  signalPlaceActive,
-  signalPlaceSubMode,
-  signalPlaceTSnapMode,
-  signalPlaceGhost,
-  onSignalPlace,
-  onSignalGhostUpdate,
-  onSignalMove,
-  selectedJunctionId,
-  ghostJunctionSurface,
-  onJunctionClick,
-  onJunctionContextMenu,
+  routeEdit,
+  trajectoryEdit,
+  signalSelection,
+  positionPick,
+  roadEditing,
+  laneEdit,
+  junctionTools,
+  signalPlace,
 }) => {
+  // Destructure config objects into locals used by outer-component overlays/minimap.
+  const {
+    active: routeEditActive,
+    waypoints: routeWaypoints,
+    pathSegments: routePathSegments,
+    onEditSave: onRouteEditSave,
+    onEditCancel: onRouteEditCancel,
+    warnings: routeWarnings,
+    waypointCount: routeWaypointCount,
+    laneChangeAware: routeLaneChangeAware,
+    laneChangeAvailable: routeLaneChangeAvailable,
+    onToggleLaneChangeAware: onToggleRouteLaneChangeAware,
+    calcStrategy: routeCalcStrategy,
+    onCalcStrategyChange: onRouteCalcStrategyChange,
+    previewData: routePreviewData,
+  } = routeEdit ?? {};
+
+  const {
+    active: trajectoryEditActive,
+    shapeType: trajectoryShapeType,
+    onEditSave: onTrajectoryEditSave,
+    onEditCancel: onTrajectoryEditCancel,
+    warnings: trajectoryWarnings,
+    pointCount: trajectoryPointCount,
+  } = trajectoryEdit ?? {};
+
+  const { active: positionPickActive, highlightedElementIds: highlightedPositionElementIds } =
+    positionPick ?? {};
+
   const viewerStoreRef = useRef<ReturnType<typeof createViewerStore> | null>(null);
   if (!viewerStoreRef.current) {
     viewerStoreRef.current = createViewerStore(preferences);
@@ -1124,6 +1100,9 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   const showEntityLabels = useViewerStore(viewerStore, (s) => s.showEntityLabels);
   const showRoadIds = useViewerStore(viewerStore, (s) => s.showRoadIds);
   const showLaneIds = useViewerStore(viewerStore, (s) => s.showLaneIds);
+  const showDrivingDirection = useViewerStore(viewerStore, (s) => s.showDrivingDirection);
+  const showTemporaryLanes = useViewerStore(viewerStore, (s) => s.showTemporaryLanes);
+  const showObjects = useViewerStore(viewerStore, (s) => s.showObjects);
   const showTrafficSignals = useViewerStore(viewerStore, (s) => s.showTrafficSignals);
   const showPositionMarkersOuter = useViewerStore(viewerStore, (s) => s.showPositionMarkers);
   const gizmoMode = useViewerStore(viewerStore, (s) => s.gizmoMode);
@@ -1232,6 +1211,12 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
         onToggleRoadIds={() => viewerStore.getState().toggleRoadIds()}
         showLaneIds={showLaneIds}
         onToggleLaneIds={() => viewerStore.getState().toggleLaneIds()}
+        showDrivingDirection={showDrivingDirection}
+        onToggleDrivingDirection={() => viewerStore.getState().toggleDrivingDirection()}
+        showTemporaryLanes={showTemporaryLanes}
+        onToggleTemporaryLanes={() => viewerStore.getState().toggleTemporaryLanes()}
+        showObjects={showObjects}
+        onToggleObjects={() => viewerStore.getState().toggleObjects()}
         showTrafficSignals={showTrafficSignals}
         onToggleTrafficSignals={() => viewerStore.getState().toggleTrafficSignals()}
         gizmoMode={gizmoMode}
@@ -1294,6 +1279,11 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           warnings={routeWarnings ?? []}
           onSave={onRouteEditSave}
           onCancel={onRouteEditCancel}
+          laneChangeAware={routeLaneChangeAware}
+          laneChangeAvailable={routeLaneChangeAvailable}
+          onToggleLaneChangeAware={onToggleRouteLaneChangeAware}
+          strategy={routeCalcStrategy}
+          onStrategyChange={onRouteCalcStrategyChange}
         />
       )}
 
@@ -1337,99 +1327,14 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
           viewerStore={viewerStore}
           focusEntityId={focusEntityId}
           cameraStateRef={cameraStateRef}
-          routeEditActive={routeEditActive}
-          routeWaypoints={routeWaypoints}
-          routePathSegments={routePathSegments}
-          routeSelectedWaypointIndex={routeSelectedWaypointIndex}
-          onRouteWaypointClick={onRouteWaypointClick}
-          onRouteWaypointContextMenu={onRouteWaypointContextMenu}
-          onRouteLineClick={onRouteLineClick}
-          onRouteWaypointAdd={onRouteWaypointAdd}
-          onRouteWaypointDragEnd={onRouteWaypointDragEnd}
-          resolveCatalogRoute={resolveCatalogRoute}
-          routePreviewData={routePreviewData}
-          trajectoryEditActive={trajectoryEditActive}
-          trajectoryShapeType={trajectoryShapeType}
-          trajectoryPoints={trajectoryPoints}
-          trajectoryCurvePoints={trajectoryCurvePoints}
-          trajectoryPointTimes={trajectoryPointTimes}
-          trajectorySelectedPointIndex={trajectorySelectedPointIndex}
-          onTrajectoryPointClick={onTrajectoryPointClick}
-          onTrajectoryPointContextMenu={onTrajectoryPointContextMenu}
-          onTrajectoryLineClick={onTrajectoryLineClick}
-          onTrajectoryPointAdd={onTrajectoryPointAdd}
-          onTrajectoryPointDragEnd={onTrajectoryPointDragEnd}
-          trajectoryRelativePointIndices={trajectoryRelativePointIndices}
-          trajectoryPreviewData={trajectoryPreviewData}
-          selectedSignalKey={selectedSignalKey}
-          onSignalSelect={onSignalSelect}
-          highlightedSignalIds={highlightedSignalIds}
-          signalPickMode={signalPickMode}
-          onSignalHover={onSignalHover}
-          signalAssemblyMap={signalAssemblyMap}
-          positionPickActive={positionPickActive}
-          onPositionPicked={onPositionPicked}
-          onPositionPickCancel={onPositionPickCancel}
-          highlightedPositionElementIds={highlightedPositionElementIds}
-          roadEditMode={roadEditMode}
-          roadEditSelectedRoadId={roadEditSelectedRoadId}
-          roadEditSelectedGeometryIndex={roadEditSelectedGeometryIndex}
-          onRoadGeometryDragEnd={onRoadGeometryDragEnd}
-          onRoadStartpointDragEnd={onRoadStartpointDragEnd}
-          onRoadGeometrySelect={onRoadGeometrySelect}
-          roadCreationModeActive={roadCreationModeActive}
-          roadCreationPhase={roadCreationPhase}
-          roadCreationStartX={roadCreationStartX}
-          roadCreationStartY={roadCreationStartY}
-          roadCreationStartHdg={roadCreationStartHdg}
-          roadCreationCursorX={roadCreationCursorX}
-          roadCreationCursorY={roadCreationCursorY}
-          roadCreationLanes={roadCreationLanes}
-          onRoadCreationStartPlace={onRoadCreationStartPlace}
-          onRoadCreate={onRoadCreate}
-          onRoadCreationCursorMove={onRoadCreationCursorMove}
-          roadGridSnap={roadGridSnap}
-          onRoadHeadingDragEnd={onRoadHeadingDragEnd}
-          onRoadCurvatureDragEnd={onRoadCurvatureDragEnd}
-          onRoadEndpointDragEnd={onRoadEndpointDragEnd}
-          onRoadGeometryShiftClick={onRoadGeometryShiftClick}
-          roadEditSelectedGeometryIndices={roadEditSelectedGeometryIndices}
-          onRoadLinkSet={onRoadLinkSet}
-          onRoadLinkUnset={onRoadLinkUnset}
-          onRoadEndpointContextMenu={onRoadEndpointContextMenu}
-          roadCreationHasStartConstraint={roadCreationHasStartConstraint}
-          roadSelectModeActive={roadSelectModeActive}
-          onRoadSelect={onRoadSelect}
-          onRoadHover={onRoadHover}
-          laneEditActive={laneEditActive}
-          laneEditRoadId={laneEditRoadId}
-          onLaneHover={onLaneHover}
-          onLaneClick={onLaneClick}
-          onLaneContextMenu={onLaneContextMenu}
-          onRoadSurfaceContextMenu={onRoadSurfaceContextMenu}
-          onSectionBoundaryDragEnd={onSectionBoundaryDragEnd}
-          laneEditSubMode={laneEditSubMode}
-          onSplitClick={onSplitClick}
-          onTaperClick={onTaperClick}
-          taperCreationPhase={taperCreationPhase}
-          taperStartS={taperStartS}
-          taperSide={taperSide}
-          junctionCreateActive={junctionCreateActive}
-          junctionCreateSelectedEndpoints={junctionCreateSelectedEndpoints}
-          junctionCreateHoveredEndpoint={junctionCreateHoveredEndpoint}
-          onJunctionEndpointClick={onJunctionEndpointClick}
-          onJunctionEndpointHover={onJunctionEndpointHover}
-          signalPlaceActive={signalPlaceActive}
-          signalPlaceSubMode={signalPlaceSubMode}
-          signalPlaceTSnapMode={signalPlaceTSnapMode}
-          signalPlaceGhost={signalPlaceGhost}
-          onSignalPlace={onSignalPlace}
-          onSignalGhostUpdate={onSignalGhostUpdate}
-          onSignalMove={onSignalMove}
-          selectedJunctionId={selectedJunctionId}
-          ghostJunctionSurface={ghostJunctionSurface}
-          onJunctionClick={onJunctionClick}
-          onJunctionContextMenu={onJunctionContextMenu}
+          routeEdit={routeEdit}
+          trajectoryEdit={trajectoryEdit}
+          signalSelection={signalSelection}
+          positionPick={positionPick}
+          roadEditing={roadEditing}
+          laneEdit={laneEdit}
+          junctionTools={junctionTools}
+          signalPlace={signalPlace}
         />
       </ViewerCanvas>
     </div>

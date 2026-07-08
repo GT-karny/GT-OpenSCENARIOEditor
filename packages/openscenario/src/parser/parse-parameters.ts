@@ -5,52 +5,46 @@ import type {
   ValueConstraint,
   ParameterType,
 } from '@osce/shared';
-import { ensureArray } from '../utils/ensure-array.js';
-import { generateId } from '../utils/uuid.js';
-import { strAttr } from '../utils/xml-helpers.js';
+import type { RawXml } from '../utils/xml-helpers.js';
+import { generateId } from '@osce/shared';
+import { strAttr, children, has } from '../utils/xml-helpers.js';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function parseParameterDeclarations(raw: any): ParameterDeclaration[] {
+export function parseParameterDeclarations(raw: RawXml | undefined): ParameterDeclaration[] {
   if (!raw) return [];
-  return ensureArray(raw.ParameterDeclaration).map(parseParameterDeclaration);
+  return children(raw, 'ParameterDeclaration').map(parseParameterDeclaration);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseParameterDeclaration(raw: any): ParameterDeclaration {
+function parseParameterDeclaration(raw: RawXml): ParameterDeclaration {
   return {
     id: generateId(),
     name: strAttr(raw, 'name'),
     parameterType: strAttr(raw, 'parameterType', 'string') as ParameterType,
     value: strAttr(raw, 'value'),
-    constraintGroups: raw?.ConstraintGroup
-      ? ensureArray(raw.ConstraintGroup).map(parseConstraintGroup)
+    constraintGroups: has(raw, 'ConstraintGroup')
+      ? children(raw, 'ConstraintGroup').map(parseConstraintGroup)
       : undefined,
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseConstraintGroup(raw: any): ConstraintGroup {
+function parseConstraintGroup(raw: RawXml): ConstraintGroup {
   return {
-    constraints: ensureArray(raw?.ValueConstraint).map(parseValueConstraint),
+    constraints: children(raw, 'ValueConstraint').map(parseValueConstraint),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseValueConstraint(raw: any): ValueConstraint {
+function parseValueConstraint(raw: RawXml): ValueConstraint {
   return {
     rule: strAttr(raw, 'rule', 'equalTo') as ValueConstraint['rule'],
     value: strAttr(raw, 'value'),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function parseVariableDeclarations(raw: any): VariableDeclaration[] {
+export function parseVariableDeclarations(raw: RawXml | undefined): VariableDeclaration[] {
   if (!raw) return [];
-  return ensureArray(raw.VariableDeclaration).map(parseVariableDeclaration);
+  return children(raw, 'VariableDeclaration').map(parseVariableDeclaration);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseVariableDeclaration(raw: any): VariableDeclaration {
+function parseVariableDeclaration(raw: RawXml): VariableDeclaration {
   return {
     id: generateId(),
     name: strAttr(raw, 'name'),

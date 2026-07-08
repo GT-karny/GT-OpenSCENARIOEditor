@@ -32,11 +32,23 @@ describe('getLaneColor', () => {
       'sidewalk', 'curb', 'biking', 'entry', 'exit',
       'onRamp', 'offRamp', 'median', 'restricted', 'none',
       'bus', 'taxi', 'hov', 'connectingRamp', 'bidirectional',
-      'roadWorks', 'tram', 'rail',
+      'roadWorks', 'tram', 'rail', 'shared', 'walking', 'slipLane',
     ];
     for (const t of knownTypes) {
       const color = getLaneColor(t);
       expect(color).toMatch(/^#[0-9A-Fa-f]{6}$/);
     }
+  });
+
+  it('returns a sidewalk-family tan for walking', () => {
+    expect(getLaneColor('walking')).toBe('#C8A868');
+  });
+
+  it('returns a biking/sidewalk blend for shared', () => {
+    expect(getLaneColor('shared')).toBe('#A48858');
+  });
+
+  it('returns a driving-variant gray for slipLane', () => {
+    expect(getLaneColor('slipLane')).toBe('#8C8868');
   });
 });

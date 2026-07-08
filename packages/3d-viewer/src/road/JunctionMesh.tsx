@@ -6,7 +6,7 @@
  * Supports selection highlight and ghost preview modes.
  */
 
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useEffect } from 'react';
 import * as THREE from 'three';
 import type { ThreeEvent } from '@react-three/fiber';
 import type { JunctionSurfaceData } from '@osce/opendrive';
@@ -32,6 +32,11 @@ export const JunctionMesh: React.FC<JunctionMeshProps> = React.memo(
       geom.computeVertexNormals();
       return geom;
     }, [surface]);
+
+    // Dispose the previous geometry when a new one is created, and on unmount.
+    useEffect(() => {
+      return () => geometry.dispose();
+    }, [geometry]);
 
     const handleClick = useCallback(
       (e: ThreeEvent<MouseEvent>) => {

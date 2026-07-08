@@ -11,11 +11,14 @@
  * - This module handles HOW to create/remove them
  */
 
+import type { OdrGeometry } from '@osce/shared';
 import type { OpenDriveStore } from '../store/opendrive-store.js';
 import type { EditorMetadataStore } from '../store/editor-metadata-store.js';
 import type { JunctionMetadata, VirtualRoad } from '../store/editor-metadata-types.js';
 import type { JunctionCreationPlan } from './junction-operations.js';
 import { syncLaneLinksForDirectConnections as syncLaneLinksImpl } from './lane-link-operations.js';
+import { computeRoadEndpoint, generateConnectingRoads } from '../builders/connecting-road-builder.js';
+import { createDefaultLaneRoutingConfig } from '../store/editor-metadata-types.js';
 
 // Re-export for backward compatibility
 export { syncLaneLinksForDirectConnections, buildSectionWithLaneLinks } from './lane-link-operations.js';
@@ -394,5 +397,95 @@ export function executeJunctionRemoval(
   metaStore.removeJunctionMetadata(junctionId);
   for (const vrId of meta.intersectingVirtualRoadIds) {
     metaStore.removeVirtualRoad(vrId);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Junction connection regeneration
+// ---------------------------------------------------------------------------
+
+/** Reference-line evaluator injected by callers (usually from @osce/opendrive). */
+export type EvaluateAtS = (
+  planView: readonly OdrGeometry[],
+  s: number,
+) => { x: number; y: number; hdg: number };
+
+/**
+ * Regenerate a junction's connecting roads from its current incoming roads.
+ *
+ * Steps:
+ * 1. Remove the junction's existing connecting roads.
+ * 2. Gather the unique incoming roads (first-seen contactPoint per road) and
+ *    recompute their endpoints via {@link computeRoadEndpoint}.
+ * 3. If fewer than two endpoints remain, clear the junction's connections.
+ * 4. Otherwise regenerate connecting roads with {@link generateConnectingRoads}
+ *    plus {@link createDefaultLaneRoutingConfig}, attach them to the junction,
+ *    and replace the junction's connections.
+ *
+ * The whole mutation is wrapped in a single beginBatch/endBatch so it collapses
+ * into one undo step. Returns the regenerated connecting road IDs (empty when
+ * the junction is missing or has fewer than two incoming endpoints).
+ */
+export function regenerateJunctionConnections(
+  store: OpenDriveStore,
+  junctionId: string,
+  evaluateAtS: EvaluateAtS,
+): string[] {
+  const junction = store.getDocument().junctions.find((j) => j.id === junctionId);
+  if (!junction) return [];
+
+  store.beginBatch(`Regenerate connections for junction ${junctionId}`);
+  try {
+    // Remove existing connecting roads
+    const existingConnRoadIds = junction.connections.map((c) => c.connectingRoad);
+    for (const connRoadId of existingConnRoadIds) {
+      if (store.getDocument().roads.some((r) => r.id === connRoadId)) {
+        store.removeRoad(connRoadId);
+      }
+    }
+
+    // Gather unique incoming road IDs and their contact points
+    const incomingEntries = new Map<string, 'start' | 'end'>();
+    for (const conn of junction.connections) {
+      if (!incomingEntries.has(conn.incomingRoad)) {
+        incomingEntries.set(conn.incomingRoad, conn.contactPoint ?? 'start');
+      }
+    }
+
+    // Build endpoints from incoming roads
+    const freshDoc = store.getDocument();
+    const endpoints = [];
+    for (const [roadId, contactPoint] of incomingEntries) {
+      const road = freshDoc.roads.find((r) => r.id === roadId);
+      if (road) {
+        // Each endpoint uses its own road's traffic rule (default RHT) so LHT
+        // roads select the correct incoming lanes.
+        endpoints.push(computeRoadEndpoint(road, contactPoint, evaluateAtS, road.rule ?? 'RHT'));
+      }
+    }
+
+    if (endpoints.length < 2) {
+      // Not enough roads to regenerate — clear connections
+      store.updateJunction(junctionId, { connections: [] });
+      return [];
+    }
+
+    // Generate new connecting roads
+    const routingConfig = createDefaultLaneRoutingConfig();
+    const result = generateConnectingRoads(endpoints, junctionId, routingConfig, store.getDocument());
+
+    // Add new connecting roads
+    const addedConnRoadIds: string[] = [];
+    for (const connRoad of result.roads) {
+      const added = store.addRoad({ ...connRoad, junction: junctionId });
+      addedConnRoadIds.push(added.id);
+    }
+
+    // Update junction connections
+    store.updateJunction(junctionId, { connections: result.connections });
+
+    return addedConnRoadIds;
+  } finally {
+    store.endBatch();
   }
 }

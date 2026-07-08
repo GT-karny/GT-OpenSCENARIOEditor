@@ -1,5 +1,12 @@
 import { create } from 'zustand';
 import type { Route, Position, RouteStrategy, Waypoint } from '@osce/shared';
+import type { LaneChangeMarker } from '../lib/route-path-computation';
+import {
+  cloneDraft,
+  createDraftEditActions,
+  type DraftEditConfig,
+  type DraftHistory,
+} from './draft-edit-store-factory';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -41,14 +48,19 @@ export interface RouteEditState {
   waypointWorldPositions: WaypointWorldPos[];
   pathSegments: Array<Array<{ x: number; y: number; z: number; h?: number }>>;
 
+  // --- Lane-change-aware routing (GT_esmini) ---
+  /** When true, paths between waypoints are computed via GTRouteJS (allows mid-road lane changes). */
+  laneChangeAware: boolean;
+  /** Routing strategy passed to GTRouteJS: 0 = SHORTEST, 1 = FASTEST, 2 = MIN_INTERSECTIONS. */
+  routeCalcStrategy: number;
+  /** Lane changes required along the lane-change-aware route, resolved to world coords. */
+  laneChangeMarkers: LaneChangeMarker[];
+
   // --- Validation ---
   warnings: string[];
 
   // --- Internal undo/redo history ---
-  history: {
-    past: Route[];
-    future: Route[];
-  };
+  history: DraftHistory<Route>;
 }
 
 export interface RouteEditActions {
@@ -74,6 +86,11 @@ export interface RouteEditActions {
   setWaypointWorldPositions: (positions: WaypointWorldPos[]) => void;
   setPathSegments: (segments: Array<Array<{ x: number; y: number; z: number }>>) => void;
 
+  // --- Lane-change-aware routing ---
+  setLaneChangeAware: (on: boolean) => void;
+  setRouteCalcStrategy: (strategy: number) => void;
+  setLaneChangeMarkers: (markers: LaneChangeMarker[]) => void;
+
   // --- Undo/Redo ---
   undoRouteEdit: () => void;
   redoRouteEdit: () => void;
@@ -88,16 +105,11 @@ export interface RouteEditActions {
 // Constants
 // ---------------------------------------------------------------------------
 
-const MAX_HISTORY = 50;
 const DEFAULT_ROUTE_STRATEGY: RouteStrategy = 'shortest';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function cloneRoute(route: Route): Route {
-  return JSON.parse(JSON.stringify(route));
-}
 
 function validateRoute(route: Route): string[] {
   const warnings: string[] = [];
@@ -125,6 +137,8 @@ function validateRoute(route: Route): string[] {
 // Store
 // ---------------------------------------------------------------------------
 
+type RouteStore = RouteEditState & RouteEditActions;
+
 const initialState: RouteEditState = {
   active: false,
   source: null,
@@ -133,245 +147,169 @@ const initialState: RouteEditState = {
   selectedWaypointIndex: null,
   waypointWorldPositions: [],
   pathSegments: [],
+  laneChangeAware: false,
+  routeCalcStrategy: 0,
+  laneChangeMarkers: [],
   warnings: [],
   history: { past: [], future: [] },
 };
 
-export const useRouteEditStore = create<RouteEditState & RouteEditActions>((set, get) => ({
-  ...initialState,
+const config: DraftEditConfig<Route, RouteStore> = {
+  getDraft: (s) => s.editingRoute,
+  setDraft: (draft) => ({ editingRoute: draft }),
+  getSelectedIndex: (s) => s.selectedWaypointIndex,
+  setSelectedIndex: (index) => ({ selectedWaypointIndex: index }),
+  getHistory: (s) => s.history,
+  validate: validateRoute,
+  pointCount: (route) => route.waypoints.length,
+};
 
-  // -----------------------------------------------------------------------
-  // Mode control
-  // -----------------------------------------------------------------------
+export const useRouteEditStore = create<RouteStore>((set, get) => {
+  const core = createDraftEditActions<Route, RouteStore>(set, get, config);
 
-  enterRouteEditMode: (source, route) => {
-    const copy = cloneRoute(route);
-    set({
-      active: true,
-      source,
-      editingRoute: copy,
-      originalRoute: cloneRoute(route),
-      selectedWaypointIndex: null,
-      waypointWorldPositions: [],
-      pathSegments: [],
-      warnings: validateRoute(copy),
-      history: { past: [], future: [] },
-    });
-  },
+  return {
+    ...initialState,
 
-  exitRouteEditMode: () => {
-    set(initialState);
-  },
+    // -----------------------------------------------------------------------
+    // Mode control
+    // -----------------------------------------------------------------------
 
-  // -----------------------------------------------------------------------
-  // Waypoint CRUD
-  // -----------------------------------------------------------------------
+    enterRouteEditMode: (source, route) => {
+      const copy = cloneDraft(route);
+      set({
+        active: true,
+        source,
+        editingRoute: copy,
+        originalRoute: cloneDraft(route),
+        selectedWaypointIndex: null,
+        waypointWorldPositions: [],
+        pathSegments: [],
+        warnings: validateRoute(copy),
+        history: { past: [], future: [] },
+      });
+    },
 
-  addWaypoint: (position, routeStrategy = DEFAULT_ROUTE_STRATEGY) => {
-    set((state) => {
-      if (!state.editingRoute) return state;
-      const past = pushHistory(state.history.past, state.editingRoute);
-      const waypoint: Waypoint = { position, routeStrategy };
-      const updated: Route = {
-        ...state.editingRoute,
-        waypoints: [...state.editingRoute.waypoints, waypoint],
-      };
-      return {
-        editingRoute: updated,
-        warnings: validateRoute(updated),
-        selectedWaypointIndex: updated.waypoints.length - 1,
-        history: { past, future: [] },
-      };
-    });
-  },
+    exitRouteEditMode: () => {
+      set(initialState);
+    },
 
-  insertWaypoint: (afterIndex, position, routeStrategy = DEFAULT_ROUTE_STRATEGY) => {
-    set((state) => {
-      if (!state.editingRoute) return state;
-      const past = pushHistory(state.history.past, state.editingRoute);
-      const waypoint: Waypoint = { position, routeStrategy };
-      const waypoints = [...state.editingRoute.waypoints];
-      waypoints.splice(afterIndex + 1, 0, waypoint);
-      const updated: Route = { ...state.editingRoute, waypoints };
-      return {
-        editingRoute: updated,
-        warnings: validateRoute(updated),
-        selectedWaypointIndex: afterIndex + 1,
-        history: { past, future: [] },
-      };
-    });
-  },
+    // -----------------------------------------------------------------------
+    // Waypoint CRUD
+    // -----------------------------------------------------------------------
 
-  removeWaypoint: (index) => {
-    set((state) => {
-      if (!state.editingRoute) return state;
-      if (index < 0 || index >= state.editingRoute.waypoints.length) return state;
-      const past = pushHistory(state.history.past, state.editingRoute);
-      const waypoints = state.editingRoute.waypoints.filter((_, i) => i !== index);
-      const updated: Route = { ...state.editingRoute, waypoints };
-      let selectedWaypointIndex = state.selectedWaypointIndex;
-      if (selectedWaypointIndex !== null) {
-        if (selectedWaypointIndex === index) {
-          selectedWaypointIndex =
-            waypoints.length > 0 ? Math.min(index, waypoints.length - 1) : null;
-        } else if (selectedWaypointIndex > index) {
-          selectedWaypointIndex--;
+    addWaypoint: (position, routeStrategy = DEFAULT_ROUTE_STRATEGY) => {
+      core.commitDraftChange((route) => {
+        const waypoint: Waypoint = { position, routeStrategy };
+        return {
+          draft: { ...route, waypoints: [...route.waypoints, waypoint] },
+          selectedIndex: route.waypoints.length,
+        };
+      });
+    },
+
+    insertWaypoint: (afterIndex, position, routeStrategy = DEFAULT_ROUTE_STRATEGY) => {
+      core.commitDraftChange((route) => {
+        const waypoint: Waypoint = { position, routeStrategy };
+        const waypoints = [...route.waypoints];
+        waypoints.splice(afterIndex + 1, 0, waypoint);
+        return { draft: { ...route, waypoints }, selectedIndex: afterIndex + 1 };
+      });
+    },
+
+    removeWaypoint: (index) => {
+      core.commitDraftChange((route) => {
+        if (index < 0 || index >= route.waypoints.length) return null;
+        const waypoints = route.waypoints.filter((_, i) => i !== index);
+        let selectedIndex = get().selectedWaypointIndex;
+        if (selectedIndex !== null) {
+          if (selectedIndex === index) {
+            selectedIndex = waypoints.length > 0 ? Math.min(index, waypoints.length - 1) : null;
+          } else if (selectedIndex > index) {
+            selectedIndex--;
+          }
         }
-      }
-      return {
-        editingRoute: updated,
-        warnings: validateRoute(updated),
-        selectedWaypointIndex,
-        history: { past, future: [] },
-      };
-    });
-  },
+        return { draft: { ...route, waypoints }, selectedIndex };
+      });
+    },
 
-  updateWaypointPosition: (index, position) => {
-    set((state) => {
-      if (!state.editingRoute) return state;
-      if (index < 0 || index >= state.editingRoute.waypoints.length) return state;
-      const past = pushHistory(state.history.past, state.editingRoute);
-      const waypoints = state.editingRoute.waypoints.map((wp, i) =>
-        i === index ? { ...wp, position } : wp,
+    updateWaypointPosition: (index, position) => {
+      core.commitDraftChange((route) => {
+        if (index < 0 || index >= route.waypoints.length) return null;
+        const waypoints = route.waypoints.map((wp, i) => (i === index ? { ...wp, position } : wp));
+        return { draft: { ...route, waypoints } };
+      });
+    },
+
+    updateWaypointStrategy: (index, strategy) => {
+      core.commitDraftChange(
+        (route) => {
+          if (index < 0 || index >= route.waypoints.length) return null;
+          const waypoints = route.waypoints.map((wp, i) =>
+            i === index ? { ...wp, routeStrategy: strategy } : wp,
+          );
+          return { draft: { ...route, waypoints } };
+        },
+        { revalidate: false },
       );
-      const updated: Route = { ...state.editingRoute, waypoints };
-      return {
-        editingRoute: updated,
-        warnings: validateRoute(updated),
-        history: { past, future: [] },
-      };
-    });
-  },
+    },
 
-  updateWaypointStrategy: (index, strategy) => {
-    set((state) => {
-      if (!state.editingRoute) return state;
-      if (index < 0 || index >= state.editingRoute.waypoints.length) return state;
-      const past = pushHistory(state.history.past, state.editingRoute);
-      const waypoints = state.editingRoute.waypoints.map((wp, i) =>
-        i === index ? { ...wp, routeStrategy: strategy } : wp,
-      );
-      const updated: Route = { ...state.editingRoute, waypoints };
-      return {
-        editingRoute: updated,
-        history: { past, future: [] },
-      };
-    });
-  },
+    // -----------------------------------------------------------------------
+    // Route properties
+    // -----------------------------------------------------------------------
 
-  // -----------------------------------------------------------------------
-  // Route properties
-  // -----------------------------------------------------------------------
+    updateRouteName: (name) => {
+      core.commitDraftChange((route) => ({ draft: { ...route, name } }), { revalidate: false });
+    },
 
-  updateRouteName: (name) => {
-    set((state) => {
-      if (!state.editingRoute) return state;
-      const past = pushHistory(state.history.past, state.editingRoute);
-      const updated: Route = { ...state.editingRoute, name };
-      return {
-        editingRoute: updated,
-        history: { past, future: [] },
-      };
-    });
-  },
+    updateRouteClosed: (closed) => {
+      core.commitDraftChange((route) => ({ draft: { ...route, closed } }), { revalidate: false });
+    },
 
-  updateRouteClosed: (closed) => {
-    set((state) => {
-      if (!state.editingRoute) return state;
-      const past = pushHistory(state.history.past, state.editingRoute);
-      const updated: Route = { ...state.editingRoute, closed };
-      return {
-        editingRoute: updated,
-        history: { past, future: [] },
-      };
-    });
-  },
+    // -----------------------------------------------------------------------
+    // Selection
+    // -----------------------------------------------------------------------
 
-  // -----------------------------------------------------------------------
-  // Selection
-  // -----------------------------------------------------------------------
+    selectWaypoint: (index) => {
+      core.selectIndex(index);
+    },
 
-  selectWaypoint: (index) => {
-    set({ selectedWaypointIndex: index });
-  },
+    // -----------------------------------------------------------------------
+    // Visualization data (set externally)
+    // -----------------------------------------------------------------------
 
-  // -----------------------------------------------------------------------
-  // Visualization data (set externally)
-  // -----------------------------------------------------------------------
+    setWaypointWorldPositions: (positions) => {
+      set({ waypointWorldPositions: positions });
+    },
 
-  setWaypointWorldPositions: (positions) => {
-    set({ waypointWorldPositions: positions });
-  },
+    setPathSegments: (segments) => {
+      set({ pathSegments: segments });
+    },
 
-  setPathSegments: (segments) => {
-    set({ pathSegments: segments });
-  },
+    // -----------------------------------------------------------------------
+    // Lane-change-aware routing
+    // -----------------------------------------------------------------------
 
-  // -----------------------------------------------------------------------
-  // Undo / Redo
-  // -----------------------------------------------------------------------
+    setLaneChangeAware: (on) => {
+      // Clear stale markers when turning the mode off.
+      set(on ? { laneChangeAware: true } : { laneChangeAware: false, laneChangeMarkers: [] });
+    },
 
-  undoRouteEdit: () => {
-    set((state) => {
-      if (state.history.past.length === 0 || !state.editingRoute) return state;
-      const past = [...state.history.past];
-      const previous = past.pop()!;
-      const future = [cloneRoute(state.editingRoute), ...state.history.future];
-      return {
-        editingRoute: previous,
-        warnings: validateRoute(previous),
-        selectedWaypointIndex:
-          state.selectedWaypointIndex !== null &&
-          state.selectedWaypointIndex < previous.waypoints.length
-            ? state.selectedWaypointIndex
-            : null,
-        history: { past, future },
-      };
-    });
-  },
+    setRouteCalcStrategy: (strategy) => {
+      set({ routeCalcStrategy: strategy });
+    },
 
-  redoRouteEdit: () => {
-    set((state) => {
-      if (state.history.future.length === 0 || !state.editingRoute) return state;
-      const future = [...state.history.future];
-      const next = future.shift()!;
-      const past = [...state.history.past, cloneRoute(state.editingRoute)];
-      return {
-        editingRoute: next,
-        warnings: validateRoute(next),
-        selectedWaypointIndex:
-          state.selectedWaypointIndex !== null &&
-          state.selectedWaypointIndex < next.waypoints.length
-            ? state.selectedWaypointIndex
-            : null,
-        history: { past, future },
-      };
-    });
-  },
+    setLaneChangeMarkers: (markers) => {
+      set({ laneChangeMarkers: markers });
+    },
 
-  canUndo: () => get().history.past.length > 0,
-  canRedo: () => get().history.future.length > 0,
+    // -----------------------------------------------------------------------
+    // Undo / Redo / Commit (shared infrastructure)
+    // -----------------------------------------------------------------------
 
-  // -----------------------------------------------------------------------
-  // Commit
-  // -----------------------------------------------------------------------
-
-  commitRoute: () => {
-    const { editingRoute } = get();
-    if (!editingRoute) return null;
-    return cloneRoute(editingRoute);
-  },
-}));
-
-// ---------------------------------------------------------------------------
-// History helpers
-// ---------------------------------------------------------------------------
-
-function pushHistory(past: Route[], route: Route): Route[] {
-  const newPast = [...past, cloneRoute(route)];
-  if (newPast.length > MAX_HISTORY) {
-    newPast.shift();
-  }
-  return newPast;
-}
+    undoRouteEdit: core.undo,
+    redoRouteEdit: core.redo,
+    canUndo: core.canUndo,
+    canRedo: core.canRedo,
+    commitRoute: core.commit,
+  };
+});

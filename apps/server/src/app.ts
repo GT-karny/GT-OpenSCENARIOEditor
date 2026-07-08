@@ -2,25 +2,15 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import websocket from '@fastify/websocket';
 import multipart from '@fastify/multipart';
-import { FileService } from './services/file-service.js';
-import { ScenarioService } from './services/scenario-service.js';
-import { SimulationService } from './services/simulation-service.js';
 import { ProjectService } from './services/project-service.js';
-import { GtSimService } from '@osce/esmini';
-import { MockEsminiService } from './services/mock-esmini-service.js';
-import { fileRoutes } from './routes/file-routes.js';
-import { scenarioRoutes } from './routes/scenario-routes.js';
-import { simulationRoutes } from './routes/simulation-routes.js';
 import { projectRoutes } from './routes/project-routes.js';
 import { settingsRoutes } from './routes/settings-routes.js';
 import { wsHandler } from './websocket/ws-handler.js';
 import { registerErrorHandler } from './utils/errors.js';
+import { DEFAULT_WEB_PORT } from '@osce/shared';
 
 declare module 'fastify' {
   interface FastifyInstance {
-    fileService: FileService;
-    scenarioService: ScenarioService;
-    simulationService: SimulationService;
     projectService: ProjectService;
   }
 }
@@ -32,38 +22,29 @@ export interface AppOptions {
   logger?: boolean;
 }
 
+// Allowed CORS origins for development. Extend via CORS_ORIGINS env var
+// (comma-separated list of additional origins).
+function buildCorsOrigins(): string[] {
+  const defaults = [`http://localhost:${DEFAULT_WEB_PORT}`, `http://127.0.0.1:${DEFAULT_WEB_PORT}`];
+  const extra = process.env.CORS_ORIGINS;
+  if (extra) {
+    return [...defaults, ...extra.split(',').map((s) => s.trim()).filter(Boolean)];
+  }
+  return defaults;
+}
+
 export async function buildApp(options?: AppOptions) {
   const app = Fastify({ logger: options?.logger ?? true });
 
   // Plugins
-  await app.register(cors, { origin: true });
+  await app.register(cors, { origin: buildCorsOrigins() });
   await app.register(websocket);
   await app.register(multipart, { limits: { fileSize: 100 * 1024 * 1024 } }); // 100MB
 
   // Services
-  const fileService = new FileService();
-  const scenarioService = new ScenarioService();
   const projectService = new ProjectService(options?.projectsBasePath);
-  const esminiService = process.env.GT_SIM_URL
-    ? new GtSimService({
-        restBaseUrl: process.env.GT_SIM_URL,
-        grpcHost: process.env.GT_SIM_GRPC ?? '127.0.0.1:50051',
-        timeout: 30_000,
-      })
-    : new MockEsminiService();
-  const simulationService = new SimulationService(esminiService);
 
-  app.decorate('fileService', fileService);
-  app.decorate('scenarioService', scenarioService);
-  app.decorate('simulationService', simulationService);
   app.decorate('projectService', projectService);
-
-  // Cleanup GtSimService gRPC channel on shutdown
-  app.addHook('onClose', async () => {
-    if ('dispose' in esminiService) {
-      (esminiService as GtSimService).dispose();
-    }
-  });
 
   // Seed sample project from esmini resources (if available)
   await projectService.seedSampleProject();
@@ -72,9 +53,6 @@ export async function buildApp(options?: AppOptions) {
   registerErrorHandler(app);
 
   // Routes
-  await app.register(fileRoutes);
-  await app.register(scenarioRoutes);
-  await app.register(simulationRoutes);
   await app.register(projectRoutes);
   await app.register(settingsRoutes);
   await app.register(wsHandler);

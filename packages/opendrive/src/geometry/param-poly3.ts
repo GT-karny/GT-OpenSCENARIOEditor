@@ -4,22 +4,22 @@
  * v(p) = aV + bV*p + cV*p^2 + dV*p^3
  * pRange: 'arcLength' → p = ds, 'normalized' → p = ds / length
  */
-import type { OdrGeometry } from '@osce/shared';
+import type { OdrGeometryParamPoly3 } from '@osce/shared';
 import type { Pose2D } from './types.js';
 
-export function evaluateParamPoly3(ds: number, geom: OdrGeometry): Pose2D {
+export function evaluateParamPoly3(ds: number, geom: OdrGeometryParamPoly3): Pose2D {
   const p = geom.pRange === 'normalized' && geom.length > 1e-12
     ? ds / geom.length
     : ds;
 
-  const aU = geom.aU ?? 0;
-  const bU = geom.bU ?? 0;
-  const cU = geom.cU ?? 0;
-  const dU = geom.dU ?? 0;
-  const aV = geom.aV ?? 0;
-  const bV = geom.bV ?? 0;
-  const cV = geom.cV ?? 0;
-  const dV = geom.dV ?? 0;
+  const aU = geom.aU;
+  const bU = geom.bU;
+  const cU = geom.cU;
+  const dU = geom.dU;
+  const aV = geom.aV;
+  const bV = geom.bV;
+  const cV = geom.cV;
+  const dV = geom.dV;
 
   const u = aU + p * (bU + p * (cU + p * dU));
   const v = aV + p * (bV + p * (cV + p * dV));

@@ -1,8 +1,15 @@
 /**
  * Parse OpenDRIVE geometry and profile elements.
  */
-import type { OdrGeometry, OdrElevation, OdrSuperelevation, OdrLaneOffset, OdrShape } from '@osce/shared';
-import { ensureArray, toNum } from './xml-helpers.js';
+import type {
+  OdrGeometry,
+  OdrGeometryBase,
+  OdrElevation,
+  OdrSuperelevation,
+  OdrLaneOffset,
+  OdrShape,
+} from '@osce/shared';
+import { ensureArray, attr, attrNum, ATTR_PREFIX } from './xml-helpers.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Raw = Record<string, any>;
@@ -13,12 +20,12 @@ export function parsePlanView(raw: Raw | undefined): OdrGeometry[] {
 }
 
 export function parseGeometry(raw: Raw): OdrGeometry {
-  const base = {
-    s: toNum(raw.s),
-    x: toNum(raw.x),
-    y: toNum(raw.y),
-    hdg: toNum(raw.hdg),
-    length: toNum(raw.length),
+  const base: OdrGeometryBase = {
+    s: attrNum(raw, 's'),
+    x: attrNum(raw, 'x'),
+    y: attrNum(raw, 'y'),
+    hdg: attrNum(raw, 'hdg'),
+    length: attrNum(raw, 'length'),
   };
 
   if ('line' in raw) {
@@ -30,7 +37,7 @@ export function parseGeometry(raw: Raw): OdrGeometry {
     return {
       ...base,
       type: 'arc' as const,
-      curvature: toNum(arc.curvature),
+      curvature: attrNum(arc, 'curvature'),
     };
   }
 
@@ -39,8 +46,8 @@ export function parseGeometry(raw: Raw): OdrGeometry {
     return {
       ...base,
       type: 'spiral' as const,
-      curvStart: toNum(sp.curvStart),
-      curvEnd: toNum(sp.curvEnd),
+      curvStart: attrNum(sp, 'curvStart'),
+      curvEnd: attrNum(sp, 'curvEnd'),
     };
   }
 
@@ -49,10 +56,10 @@ export function parseGeometry(raw: Raw): OdrGeometry {
     return {
       ...base,
       type: 'poly3' as const,
-      a: toNum(p.a),
-      b: toNum(p.b),
-      c: toNum(p.c),
-      d: toNum(p.d),
+      a: attrNum(p, 'a'),
+      b: attrNum(p, 'b'),
+      c: attrNum(p, 'c'),
+      d: attrNum(p, 'd'),
     };
   }
 
@@ -62,63 +69,70 @@ export function parseGeometry(raw: Raw): OdrGeometry {
     return {
       ...base,
       type: 'paramPoly3' as const,
-      aU: toNum(pp.aU),
-      bU: toNum(pp.bU),
-      cU: toNum(pp.cU),
-      dU: toNum(pp.dU),
-      aV: toNum(pp.aV),
-      bV: toNum(pp.bV),
-      cV: toNum(pp.cV),
-      dV: toNum(pp.dV),
-      pRange: pp.pRange === 'normalized' ? ('normalized' as const) : ('arcLength' as const),
+      aU: attrNum(pp, 'aU'),
+      bU: attrNum(pp, 'bU'),
+      cU: attrNum(pp, 'cU'),
+      dU: attrNum(pp, 'dU'),
+      aV: attrNum(pp, 'aV'),
+      bV: attrNum(pp, 'bV'),
+      cV: attrNum(pp, 'cV'),
+      dV: attrNum(pp, 'dV'),
+      pRange: attr(pp, 'pRange') === 'normalized' ? ('normalized' as const) : ('arcLength' as const),
     };
   }
 
-  // Fallback: treat unknown geometry as a line
-  return { ...base, type: 'line' as const };
+  // No known primitive present. Do NOT fabricate a <line> — that would
+  // silently corrupt the road shape. Fail loudly, naming the primitive so
+  // the caller can see which unsupported geometry was encountered.
+  const primitives = Object.keys(raw).filter((k) => !k.startsWith(ATTR_PREFIX));
+  const found = primitives.length > 0 ? primitives.join(', ') : '<none>';
+  throw new Error(
+    `Unsupported OpenDRIVE geometry primitive at s=${base.s}: expected one of ` +
+      `line/arc/spiral/poly3/paramPoly3 but found ${found}`,
+  );
 }
 
 export function parseElevations(raw: Raw | undefined): OdrElevation[] {
   if (!raw) return [];
   return ensureArray(raw.elevation).map((e: Raw) => ({
-    s: toNum(e.s),
-    a: toNum(e.a),
-    b: toNum(e.b),
-    c: toNum(e.c),
-    d: toNum(e.d),
+    s: attrNum(e, 's'),
+    a: attrNum(e, 'a'),
+    b: attrNum(e, 'b'),
+    c: attrNum(e, 'c'),
+    d: attrNum(e, 'd'),
   }));
 }
 
 export function parseSuperelevations(raw: Raw | undefined): OdrSuperelevation[] {
   if (!raw) return [];
   return ensureArray(raw.superelevation).map((e: Raw) => ({
-    s: toNum(e.s),
-    a: toNum(e.a),
-    b: toNum(e.b),
-    c: toNum(e.c),
-    d: toNum(e.d),
+    s: attrNum(e, 's'),
+    a: attrNum(e, 'a'),
+    b: attrNum(e, 'b'),
+    c: attrNum(e, 'c'),
+    d: attrNum(e, 'd'),
   }));
 }
 
 export function parseLaneOffsets(raw: Raw | undefined): OdrLaneOffset[] {
   if (!raw) return [];
   return ensureArray(raw.laneOffset).map((e: Raw) => ({
-    s: toNum(e.s),
-    a: toNum(e.a),
-    b: toNum(e.b),
-    c: toNum(e.c),
-    d: toNum(e.d),
+    s: attrNum(e, 's'),
+    a: attrNum(e, 'a'),
+    b: attrNum(e, 'b'),
+    c: attrNum(e, 'c'),
+    d: attrNum(e, 'd'),
   }));
 }
 
 export function parseShapes(raw: Raw | undefined): OdrShape[] {
   if (!raw) return [];
   return ensureArray(raw.shape).map((s: Raw) => ({
-    s: toNum(s.s),
-    t: toNum(s.t),
-    a: toNum(s.a),
-    b: toNum(s.b),
-    c: toNum(s.c),
-    d: toNum(s.d),
+    s: attrNum(s, 's'),
+    t: attrNum(s, 't'),
+    a: attrNum(s, 'a'),
+    b: attrNum(s, 'b'),
+    c: attrNum(s, 'c'),
+    d: attrNum(s, 'd'),
   }));
 }

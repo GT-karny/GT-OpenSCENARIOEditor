@@ -1,5 +1,12 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type RawXml = Record<string, any>;
+import { ensureArray } from './ensure-array.js';
+
+/**
+ * A parsed XML node as produced by fast-xml-parser: a record whose keys are
+ * child element names (object/array values) or prefixed attribute names
+ * (`@_name`, primitive values). Values are `unknown` and must be narrowed
+ * through the accessor helpers below before use.
+ */
+export type RawXml = Record<string, unknown>;
 
 // ---------------------------------------------------------------------------
 // Parser binding collector — captures $param references during parsing
@@ -54,7 +61,10 @@ function recordBinding(attrName: string, paramRef: string): void {
 // ---------------------------------------------------------------------------
 
 export function attr(raw: RawXml | undefined, name: string): string | undefined {
-  return raw?.[`@_${name}`] as string | undefined;
+  const v = raw?.[`@_${name}`];
+  // With `parseAttributeValue: false` fast-xml-parser yields attribute values as
+  // strings; the cast narrows the parser's `unknown` value to that contract.
+  return v === undefined ? undefined : (v as string);
 }
 
 export function numAttr(raw: RawXml | undefined, name: string, defaultValue = 0): number {
@@ -99,12 +109,48 @@ export function optBoolAttr(raw: RawXml | undefined, name: string): boolean | un
   return v === 'true' || v === '1';
 }
 
-export function numStr(value: number | undefined): string | undefined {
-  return value !== undefined ? String(value) : undefined;
+// ---------------------------------------------------------------------------
+// Child-element readers
+// ---------------------------------------------------------------------------
+
+function isRawXml(value: unknown): value is RawXml {
+  return typeof value === 'object' && value !== null;
 }
 
-export function boolStr(value: boolean | undefined): string | undefined {
-  return value !== undefined ? String(value) : undefined;
+/**
+ * Read a child element as a `RawXml` node, or `undefined` when it is absent or
+ * not an object (e.g. an empty self-closing element parsed as `''`). When the
+ * child is parsed as an array, the first entry is returned. This mirrors the
+ * truthiness guards (`if (raw.Child)`) used throughout the parsers.
+ */
+export function child(raw: RawXml | undefined, name: string): RawXml | undefined {
+  const value = raw?.[name];
+  if (Array.isArray(value)) {
+    return isRawXml(value[0]) ? value[0] : undefined;
+  }
+  return isRawXml(value) ? value : undefined;
+}
+
+/**
+ * Read a repeated child element as a `RawXml[]`. Non-object entries (e.g. empty
+ * elements) are dropped so callers can map parsers over the result directly.
+ */
+export function children(raw: RawXml | undefined, name: string): RawXml[] {
+  return ensureArray(raw?.[name]).filter(isRawXml);
+}
+
+/**
+ * Test whether a child element / attribute key is present, regardless of its
+ * value. Mirrors `'Name' in raw` and `raw.Name !== undefined` guards used for
+ * empty elements (e.g. `<RandomRouteAction/>`).
+ */
+export function has(raw: RawXml | undefined, name: string): boolean {
+  return raw !== undefined && name in raw;
+}
+
+/** Element/attribute keys of a node, for diagnostics in error messages. */
+export function rawKeys(raw: RawXml | undefined): string[] {
+  return raw ? Object.keys(raw) : [];
 }
 
 // ---------------------------------------------------------------------------

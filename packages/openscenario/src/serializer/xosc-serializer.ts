@@ -19,24 +19,24 @@ export class XoscSerializer implements IXoscSerializer {
   private buildXml(doc: ScenarioDocument, formatted: boolean): string {
     const builder = createXoscXmlBuilder(formatted);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const xmlObj: any = {
+    // Keys are inserted in XSD ScenarioDefinition sequence order so that
+    // fast-xml-parser emits elements in spec order:
+    // ParameterDeclarations?, VariableDeclarations?, CatalogLocations, RoadNetwork, Entities, Storyboard.
+    const variableDecls = buildVariableDeclarations(doc.variableDeclarations);
+
+    const xmlObj: Record<string, unknown> = {
       OpenSCENARIO: {
         '@_xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
         '@_xsi:noNamespaceSchemaLocation': 'OpenSCENARIO.xsd',
         FileHeader: buildFileHeader(doc.fileHeader),
         ParameterDeclarations: buildParameterDeclarations(doc.parameterDeclarations),
+        ...(variableDecls ? { VariableDeclarations: variableDecls } : {}),
         CatalogLocations: buildCatalogLocations(doc.catalogLocations),
         RoadNetwork: buildRoadNetwork(doc.roadNetwork),
         Entities: buildEntities(doc.entities),
         Storyboard: buildStoryboard(doc.storyboard, doc._editor.parameterBindings),
       },
     };
-
-    const variableDecls = buildVariableDeclarations(doc.variableDeclarations);
-    if (variableDecls) {
-      xmlObj.OpenSCENARIO.VariableDeclarations = variableDecls;
-    }
 
     const xmlDecl = '<?xml version="1.0" encoding="UTF-8"?>\n';
     return xmlDecl + builder.build(xmlObj);

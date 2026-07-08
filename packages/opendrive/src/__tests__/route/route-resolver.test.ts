@@ -12,7 +12,18 @@ import { resolveRoute } from '../../route/route-resolver.js';
 // ----- fixture builders (shared with road-linking tests) -----
 
 function makeLane(id: number, link?: { predecessorId?: number; successorId?: number }): OdrLane {
-  return { id, type: 'driving', width: [], roadMarks: [], link };
+  return {
+    id,
+    type: 'driving',
+    width: [],
+    roadMarks: [],
+    link: link
+      ? {
+          predecessors: link.predecessorId !== undefined ? [{ id: link.predecessorId }] : [],
+          successors: link.successorId !== undefined ? [{ id: link.successorId }] : [],
+        }
+      : undefined,
+  };
 }
 function makeSection(s: number, left: OdrLane[], center: OdrLane, right: OdrLane[]): OdrLaneSection {
   return { s, leftLanes: left, centerLane: center, rightLanes: right };
@@ -165,6 +176,57 @@ describe('resolveRoute: unreachable', () => {
   it('returns null when no path exists', () => {
     const r = resolveRoute(doc, lp('1', -1, 10), lp('2', -1, 20));
     expect(r).toBeNull();
+  });
+});
+
+describe('resolveRoute: multi-section road (internal lane insertion)', () => {
+  // The through lane -1 (section0) links to -2 (section1) via <lane><link>, e.g.
+  // an inner lane added with correct renumbered links. Goal is the destination ID.
+  const road = makeRoad({
+    id: '1',
+    length: 100,
+    lanes: [
+      makeSection(0, [], makeLane(0), [makeLane(-1, { successorId: -2 })]),
+      makeSection(50, [], makeLane(0), [makeLane(-1), makeLane(-2, { predecessorId: -1 })]),
+    ],
+  });
+  const doc = makeDoc([road]);
+
+  it('matches goal across the internal section boundary via links', () => {
+    const r = resolveRoute(doc, lp('1', -1, 10), lp('1', -2, 90));
+    expect(r).toEqual([{ roadId: '1', laneId: -1, entryS: 10, exitS: 90 }]);
+  });
+});
+
+describe('resolveRoute: exit lane ID follows internal section links', () => {
+  // road1 has an internal insertion: lane -1 (entry) links to -2 (exit side), and
+  // road1's successor lane link lives on the exit-side section (-2 → road2 -2).
+  const road1 = makeRoad({
+    id: '1',
+    length: 100,
+    link: { successor: { elementType: 'road', elementId: '2', contactPoint: 'start' } },
+    lanes: [
+      makeSection(0, [], makeLane(0), [makeLane(-1, { successorId: -2 })]),
+      makeSection(50, [], makeLane(0), [
+        makeLane(-1),
+        makeLane(-2, { predecessorId: -1, successorId: -2 }),
+      ]),
+    ],
+  });
+  const road2 = makeRoad({
+    id: '2',
+    length: 80,
+    link: { predecessor: { elementType: 'road', elementId: '1', contactPoint: 'end' } },
+    lanes: [makeSection(0, [], makeLane(0), [makeLane(-1), makeLane(-2, { predecessorId: -2 })])],
+  });
+  const doc = makeDoc([road1, road2]);
+
+  it('uses the exit-side lane ID (not the entry ID) for the boundary link', () => {
+    const r = resolveRoute(doc, lp('1', -1, 20), lp('2', -2, 40));
+    expect(r).toEqual([
+      { roadId: '1', laneId: -1, entryS: 20, exitS: 100 },
+      { roadId: '2', laneId: -2, entryS: 0, exitS: 40 },
+    ]);
   });
 });
 

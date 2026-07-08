@@ -56,7 +56,7 @@ export const promptDefinitions: PromptDefinition[] = [
               `5. set_init_speed: Ego at ${egoSpeed} m/s, TargetVehicle at ${targetSpeed} m/s\n` +
               `6. add_story → add_act → add_maneuver_group (actors: ["TargetVehicle"])\n` +
               `7. add_event to the maneuver\n` +
-              `8. add_lane_change_action with targetLane (relative: -1 or 1)\n` +
+              `8. add_lane_change_action with targetLane=-1, targetType="relative", entityRef="Ego" for a left cut-in\n` +
               `9. add_simulation_time_trigger to set when the lane change starts\n` +
               `10. validate_scenario to check for errors`,
           },

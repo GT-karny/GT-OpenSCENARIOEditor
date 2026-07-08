@@ -2,19 +2,27 @@
  * Types for the 3D viewer local state.
  */
 
-import type { SimulationFrame } from '@osce/shared';
+import type { Vector3 } from 'three';
+
+/**
+ * Minimal interface for OrbitControls-like objects from @react-three/drei.
+ * Used instead of `any` for refs that hold an OrbitControls instance.
+ * The concrete drei OrbitControls instance satisfies this structurally.
+ */
+export interface OrbitControlsLike {
+  enabled: boolean;
+  enableRotate: boolean;
+  /** The orbit target point. */
+  target: Vector3;
+  /** The camera controlled by OrbitControls. */
+  object: { position: Vector3 };
+  update: () => void;
+}
 
 export type CameraMode = 'orbit' | 'topDown';
 export type ViewerMode = 'edit' | 'play';
 export type GizmoMode = 'translate' | 'rotate' | 'place' | 'off';
 export type MinimapSize = 'small' | 'medium' | 'large';
-
-export interface PlaybackState {
-  status: 'idle' | 'playing' | 'paused';
-  currentTime: number;
-  duration: number;
-  frames: SimulationFrame[];
-}
 
 /** Information about the lane under the mouse cursor during hover */
 export interface HoverLaneInfo {
@@ -36,9 +44,14 @@ export interface ViewerState {
   showGrid: boolean;
   showLaneIds: boolean;
   showRoadIds: boolean;
+  /** Per-lane driving-direction arrows (rule-aware, RHT/LHT) */
+  showDrivingDirection: boolean;
+  /** Temporary (roadworks) lane-layer overlay (OpenDRIVE 1.9) */
+  showTemporaryLanes: boolean;
+  /** Authored road-object visualization (OpenDRIVE `<object>`) */
+  showObjects: boolean;
   showEntityLabels: boolean;
   showTrafficSignals: boolean;
-  playback: PlaybackState;
 
   /** Top-level viewer interaction mode (edit = full editing, play = view-only) */
   viewerMode: ViewerMode;
@@ -81,12 +94,11 @@ export interface ViewerActions {
   toggleGrid: () => void;
   toggleLaneIds: () => void;
   toggleRoadIds: () => void;
+  toggleDrivingDirection: () => void;
+  toggleTemporaryLanes: () => void;
+  toggleObjects: () => void;
   toggleEntityLabels: () => void;
   toggleTrafficSignals: () => void;
-  setPlaybackFrames: (frames: SimulationFrame[]) => void;
-  setPlaybackStatus: (status: PlaybackState['status']) => void;
-  setPlaybackTime: (time: number) => void;
-  resetPlayback: () => void;
 
   setGizmoMode: (mode: GizmoMode) => void;
   toggleReverseDirection: () => void;

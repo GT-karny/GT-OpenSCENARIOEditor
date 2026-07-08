@@ -6,9 +6,8 @@
 import React, { useRef } from 'react';
 import type * as THREE from 'three';
 import type { ScenarioEntity } from '@osce/shared';
-import { getEntityGeometry, getEntityColor } from '../utils/entity-geometry.js';
+import { getEntityGeometry, resolveEntityColor } from '../utils/entity-geometry.js';
 import type { WorldCoords } from '../utils/position-resolver.js';
-// import { ApexGlassMaterial } from '../materials/ApexGlassMaterial.js';
 import { EntityLabel } from './EntityLabel.js';
 import { HOVER_MATERIAL } from '../constants/selection-theme.js';
 import { SelectionFeedback } from '../interaction/primitives/SelectionFeedback.js';
@@ -31,7 +30,7 @@ export const VehicleEntity: React.FC<VehicleEntityProps> = React.memo(
   ({ entity, position, isSelected, isHovered, isEgo, showLabel, lightState, onClick, onDoubleClick }) => {
     const meshRef = useRef<THREE.Mesh>(null);
     const geom = getEntityGeometry(entity);
-    const color = getEntityColor('vehicle', isEgo);
+    const color = resolveEntityColor(entity, isEgo);
 
     return (
       <group

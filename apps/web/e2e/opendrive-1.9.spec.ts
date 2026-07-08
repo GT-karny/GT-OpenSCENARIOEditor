@@ -1,0 +1,432 @@
+import { test, expect, type Page, type APIRequestContext } from '@playwright/test';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { readFileSync } from 'fs';
+import { gotoEditor, dismissDiscardDialog } from './helpers';
+
+/**
+ * E2E coverage for OpenDRIVE 1.9 gap補填 (opendrive-1.9-support proposal,
+ * Phase 0-A item 4). Two behaviours are pinned:
+ *
+ *  1. <include> hard-error path — the freshly-rebuilt GT_Sim WASM treats any
+ *     `.xodr` containing `<include>` as a permanent load failure
+ *     (RoadManagerJS.loadOpenDrive / SE_Init returns false). The UI must
+ *     surface the SPECIFIC, actionable include-unsupported message
+ *     (INCLUDE_UNSUPPORTED_MESSAGE / kind `includeUnsupported`), not the generic
+ *     "failed to load road" toast.
+ *
+ *  2. 1.9 structural smoke — new 1.9 fixtures (multi lane-layer roads, virtual
+ *     junctions) must load into the Road Network editor without crashing or
+ *     raising a load-error toast. This guards against the parser/editor choking
+ *     on 1.9-era OpenDRIVE structures.
+ *
+ * ── Loading mechanisms ──
+ *  - Smoke tests use File > Open .xodr, driven through Playwright's filechooser
+ *    (File System Access API removed so the legacy <input type=file> fallback is
+ *    used — same trick as file-operations.spec.ts). That menu item only exists
+ *    in Road Network editor mode, so those tests switch modes first via the
+ *    header toggle (same control lht-default-rule.spec.ts uses).
+ *  - The include test needs the include-bearing xodr to be the authoritative
+ *    verbatim source so the Run button feeds it to the simulator as-is. The
+ *    verbatim text lives in `roadNetworkRawXml: {text, validForRevision}` on
+ *    the editor store; simulation-xodr.ts's getSimulationXodr() only uses it
+ *    while `validForRevision` still matches the live OpenDRIVE command-history
+ *    revision — validity is revision-derived, not a clear/null flag. Entering
+ *    Road Network *editor* mode RE-STAMPS the cache at the current revision
+ *    rather than clearing it, so an unedited visit (or an undo back to the
+ *    load baseline) keeps/restores the lossless verbatim path. The path that
+ *    populates it cleanly in the first place is the project scenario-open
+ *    auto-loader (openXoscFromProject → autoLoadXodr), exactly as the seeded
+ *    scenarios do. So this test seeds a scenario + its include-bearing road
+ *    into the sample project via the file API, then opens the scenario from
+ *    the file tree — mirroring real project usage.
+ *
+ * The include message is asserted against the exact user-facing string from
+ * apps/web/src/lib/wasm/sim-error.ts (INCLUDE_UNSUPPORTED_MESSAGE), via a stable
+ * substring. It is only ever rendered in the sonner toast (the status bar shows
+ * a generic "Error" label), so the assertion targets the toast text.
+ */
+
+const FIXTURE_DIR = resolve(dirname(fileURLToPath(import.meta.url)), 'fixtures/opendrive');
+
+/** An `.xodr` whose single road carries a `<include file="...">` element. */
+const INCLUDE_XODR = resolve(FIXTURE_DIR, 'include_error.xodr');
+/** OpenDRIVE 1.9 multi lane-layer example (Ex_Lane_MultiLaneLayer). */
+const MULTILAYER_XODR = resolve(FIXTURE_DIR, 'Ex_Lane_MultiLaneLayer.xodr');
+/** Virtual-junction fixture (GT_23_virtual_junction_17, 3 roads). */
+const VIRTUAL_JUNCTION_XODR = resolve(FIXTURE_DIR, 'GT_23_virtual_junction_17.xodr');
+/** ASAM 1.9 official example: single road, 12 authored `<object>` entries (1.9-P3 D4/D6). */
+const OBJECTS_XODR = resolve(FIXTURE_DIR, 'Ex_Objects.xodr');
+
+/** Stable ID of the server-seeded sample project (project-service.ts). */
+const SAMPLE_PROJECT_ID = 'esmini-samples';
+
+/** Test-owned filenames seeded into the sample project (idempotent overwrite). */
+const INCLUDE_XODR_REL = 'xodr/e2e-include-error.xodr';
+const INCLUDE_XOSC_NAME = 'e2e-include-error.xosc';
+const INCLUDE_XOSC_REL = `xosc/${INCLUDE_XOSC_NAME}`;
+
+/** Test-owned files for the rawXml-passthrough regression (1.9-P1 3-D). */
+const PASSTHROUGH_XODR_REL = 'xodr/e2e-vj-passthrough.xodr';
+const PASSTHROUGH_XOSC_NAME = 'e2e-vj-passthrough.xosc';
+const PASSTHROUGH_XOSC_REL = `xosc/${PASSTHROUGH_XOSC_NAME}`;
+
+/**
+ * Stable substring of INCLUDE_UNSUPPORTED_MESSAGE
+ * (apps/web/src/lib/wasm/sim-error.ts). Kept as a substring so incidental
+ * wording tweaks around it don't break the assertion, while still proving the
+ * SPECIFIC include-unsupported branch fired (not the generic road-load error).
+ */
+const INCLUDE_MESSAGE_SUBSTRING =
+  'uses <include> references, which the simulator cannot load';
+
+/**
+ * Minimal single-entity scenario whose RoadNetwork/LogicFile points at the
+ * seeded include-bearing road. Ego + an init TeleportAction is enough for esmini
+ * to attempt the road load (which then hard-fails on <include>).
+ */
+const INCLUDE_XOSC = `<?xml version="1.0" encoding="UTF-8"?>
+<OpenSCENARIO>
+  <FileHeader revMajor="1" revMinor="3" date="2026-07-05T00:00:00" description="e2e include-error" author="e2e"/>
+  <ParameterDeclarations/>
+  <CatalogLocations/>
+  <RoadNetwork>
+    <LogicFile filepath="../xodr/e2e-include-error.xodr"/>
+  </RoadNetwork>
+  <Entities>
+    <ScenarioObject name="Ego">
+      <Vehicle name="Ego" vehicleCategory="car">
+        <BoundingBox>
+          <Center x="1.4" y="0" z="0.9"/>
+          <Dimensions width="2.0" length="4.5" height="1.8"/>
+        </BoundingBox>
+        <Performance maxSpeed="69.444" maxAcceleration="200" maxDeceleration="10"/>
+        <Axles>
+          <FrontAxle maxSteering="0.5" wheelDiameter="0.6" trackWidth="1.8" positionX="3.1" positionZ="0.3"/>
+          <RearAxle maxSteering="0" wheelDiameter="0.6" trackWidth="1.8" positionX="0" positionZ="0.3"/>
+        </Axles>
+        <Properties/>
+      </Vehicle>
+    </ScenarioObject>
+  </Entities>
+  <Storyboard>
+    <Init>
+      <Actions>
+        <Private entityRef="Ego">
+          <PrivateAction>
+            <TeleportAction>
+              <Position><WorldPosition x="0" y="0" z="0" h="0"/></Position>
+            </TeleportAction>
+          </PrivateAction>
+        </Private>
+      </Actions>
+    </Init>
+    <StopTrigger>
+      <ConditionGroup>
+        <Condition name="stop" delay="0" conditionEdge="none">
+          <ByValueCondition>
+            <SimulationTimeCondition value="3" rule="greaterThan"/>
+          </ByValueCondition>
+        </Condition>
+      </ConditionGroup>
+    </StopTrigger>
+  </Storyboard>
+</OpenSCENARIO>`;
+
+/** PUT a file into the sample project via the server file API. */
+async function writeProjectFile(
+  request: APIRequestContext,
+  relativePath: string,
+  content: string,
+): Promise<void> {
+  const encoded = relativePath.split('/').map(encodeURIComponent).join('/');
+  const res = await request.put(
+    `/api/projects/${SAMPLE_PROJECT_ID}/files/${encoded}`,
+    { data: { content } },
+  );
+  expect(res.ok(), `write ${relativePath}`).toBeTruthy();
+}
+
+/** Scenario referencing the seeded virtual-junction road (rawXml passthrough test). */
+const PASSTHROUGH_XOSC = INCLUDE_XOSC.replace(
+  '../xodr/e2e-include-error.xodr',
+  '../xodr/e2e-vj-passthrough.xodr',
+);
+
+/** Switch the editor into Road Network mode (scoped to the header toggle). */
+async function enterRoadNetworkMode(page: Page): Promise<void> {
+  await page.getByRole('banner').getByRole('button', { name: 'Road Network' }).click();
+}
+
+/** Switch the editor back into Scenario mode (scoped to the header toggle). */
+async function enterScenarioMode(page: Page): Promise<void> {
+  await page.getByRole('banner').getByRole('button', { name: 'Scenario', exact: true }).click();
+}
+
+/** Open a scenario from the project file tree (mirrors smoke.spec.ts). */
+async function openScenarioFromTree(page: Page, fileName: string): Promise<void> {
+  await page.getByRole('button', { name: 'Show file explorer' }).click();
+  await page.getByRole('button', { name: 'xosc', exact: true }).click();
+  await page.getByRole('button', { name: fileName }).click();
+  // Project-tree opens now route through the unsaved-changes guard; the seeded
+  // default document is dirty, so discard it to proceed to the scenario load.
+  await dismissDiscardDialog(page, 'discard');
+}
+
+/** Drive File > Open .xodr → pick `filePath` (Road Network mode must be active). */
+async function openXodr(page: Page, filePath: string): Promise<void> {
+  const fileChooserPromise = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'File', exact: true }).click();
+  await page.getByRole('menuitem', { name: /Open \.xodr/ }).click();
+  // The seeded default document marks the editor dirty, so the open guard
+  // prompts before the picker; discard to continue to the file chooser.
+  await dismissDiscardDialog(page, 'discard');
+  const fileChooser = await fileChooserPromise;
+  await fileChooser.setFiles(filePath);
+}
+
+/**
+ * The `<input>` immediately following a given exact-text `<label>` in the
+ * OpenDRIVE property editors. Addressed via XPath sibling rather than a
+ * `div.grid` parent + `has:` filter: OdrJunctionPropertyEditor renders
+ * Start S / End S as two `grid gap-1` fields nested inside a shared
+ * `grid grid-cols-2 gap-2` row, so `div.grid` matches BOTH the wrapper and
+ * the field's own div (same ambiguity documented in catalog-guard.spec.ts's
+ * `entryNameInput` helper) — the label-sibling XPath is unambiguous either way.
+ */
+function labeledInput(page: Page, labelText: string) {
+  return page.locator(
+    `xpath=.//label[normalize-space(text())="${labelText}"]/following-sibling::input[1]`,
+  );
+}
+
+test.describe('OpenDRIVE 1.9 support', () => {
+  // WASM compile + load inside Chromium can exceed the default 30s.
+  test.setTimeout(120_000);
+
+  test.beforeEach(async ({ page }) => {
+    // Force the legacy <input type=file> fallback so the picker is drivable by
+    // Playwright (Chromium otherwise prefers the non-drivable FS Access API).
+    await page.addInitScript(() => {
+      // @ts-expect-error — intentionally remove FS Access API for the fallback path
+      delete window.showOpenFilePicker;
+      // @ts-expect-error — same as above for the save dialog
+      delete window.showSaveFilePicker;
+    });
+  });
+
+  test('surfaces the include-unsupported message when simulating an <include> map', async ({
+    page,
+    request,
+  }) => {
+    // Seed the include-bearing road + a scenario that references it into the
+    // sample project (idempotent — overwrites any prior run's files).
+    await writeProjectFile(request, INCLUDE_XODR_REL, readFileSync(INCLUDE_XODR, 'utf-8'));
+    await writeProjectFile(request, INCLUDE_XOSC_REL, INCLUDE_XOSC);
+
+    await gotoEditor(page);
+
+    // Opening the scenario auto-loads its LogicFile road into
+    // roadNetworkRawXml (openXoscFromProject → autoLoadXodr), so the Run
+    // button can feed the include-bearing road to the simulator verbatim.
+    await openScenarioFromTree(page, INCLUDE_XOSC_NAME);
+    await expect(page.getByTestId('status-bar')).not.toContainText(
+      /Entities:\s*0(?!\d)/,
+      { timeout: 10_000 },
+    );
+
+    // Run → the worker writes the include-bearing xodr, rewrites the scenario's
+    // LogicFile to it, SE_Init hard-fails on <include>, and the classifier routes
+    // the failure to the specific includeUnsupported toast.
+    await page.getByRole('button', { name: /Run|実行/ }).click();
+
+    // The SPECIFIC include-unsupported message (toasted verbatim), not the
+    // generic missing-road error.
+    await expect(page.getByText(INCLUDE_MESSAGE_SUBSTRING)).toBeVisible({
+      timeout: 90_000,
+    });
+  });
+
+  // 1.9 structural smoke: each fixture must load into the Road Network editor
+  // (road list populates) without a load-error toast.
+  for (const { title, filePath } of [
+    { title: 'multi lane-layer (Ex_Lane_MultiLaneLayer)', filePath: MULTILAYER_XODR },
+    { title: 'virtual junction (GT_23_virtual_junction_17)', filePath: VIRTUAL_JUNCTION_XODR },
+  ]) {
+    test(`loads a 1.9 ${title} map without a load error`, async ({ page }) => {
+      await gotoEditor(page);
+      await enterRoadNetworkMode(page);
+      await openXodr(page, filePath);
+
+      // Road list populates → the parser accepted the 1.9 structure and the
+      // editor rendered the network. Allow a generous timeout: heavier 1.9 maps
+      // (multi lane-layer) parse+render slower under full-suite resource load.
+      await expect(page.getByText(/\d+ roads?/).first()).toBeVisible({ timeout: 30_000 });
+
+      // No open-xodr failure toast. The failure toast is templated as
+      // "Failed to open road network: ..." (fileErrors.openXodrFailed) — its
+      // stable prefix must never appear for a valid 1.9 map.
+      await expect(page.getByText(/Failed to open road network/i)).toHaveCount(0);
+
+      // The editor chrome is intact (no crash / white screen).
+      await expect(page.getByTestId('status-bar')).toBeVisible();
+      await expect(page.getByRole('banner')).toBeVisible();
+    });
+  }
+
+  // 1.9-P1 Stage 3-D: opening a road, visiting the Road Network editor, and
+  // running WITHOUT editing keeps the verbatim xodr flowing to the simulator.
+  // Validity is revision-derived (simulation-xodr.ts): entering Road Network
+  // mode re-stamps roadNetworkRawXml.validForRevision at the current OpenDRIVE
+  // command-history revision instead of clearing the cache, so an unedited
+  // visit (or an undo back to the load baseline) keeps/restores the lossless
+  // verbatim path. (The degraded-road warning that used to guard the
+  // re-serialize fallback was removed 2026-07-07 by owner decision after 1.9-P2
+  // closed the known losses, so this pins a clean run, not the warning's absence.)
+  test('keeps raw xodr passthrough after visiting road mode unedited (simulates cleanly)', async ({
+    page,
+    request,
+  }) => {
+    await writeProjectFile(request, PASSTHROUGH_XODR_REL, readFileSync(VIRTUAL_JUNCTION_XODR, 'utf-8'));
+    await writeProjectFile(request, PASSTHROUGH_XOSC_REL, PASSTHROUGH_XOSC);
+
+    await gotoEditor(page);
+
+    // Scenario open auto-loads the referenced road into roadNetworkRawXml.
+    await openScenarioFromTree(page, PASSTHROUGH_XOSC_NAME);
+    await expect(page.getByTestId('status-bar')).not.toContainText(/Entities:\s*0(?!\d)/, {
+      timeout: 10_000,
+    });
+
+    // Round-trip through the Road Network editor without editing, then back.
+    await enterRoadNetworkMode(page);
+    await expect(page.getByText(/\d+ roads?/).first()).toBeVisible({ timeout: 30_000 });
+    await enterScenarioMode(page);
+
+    // The unedited road passes through verbatim and simulates: playback is
+    // reached with no error.
+    await page.getByRole('button', { name: /Run|実行/ }).click();
+    await expect(page.getByTestId('playback-controls')).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByTestId('status-bar')).not.toContainText(/Error|エラー/);
+  });
+
+  // Phase 2 (explicit modeling): junction @type is now a 4-value union with
+  // editable virtual-junction attributes (odr-junction.ts, W2/W3 of the P2
+  // plan). This pins the property-editor surface against the fixture's
+  // junction id=888 (name="virtualJunction", type="virtual", mainRoad="1",
+  // sStart="95", sEnd="105", orientation="+") — see
+  // apps/web/e2e/fixtures/opendrive/GT_23_virtual_junction_17.xodr.
+  test('junction property editor shows and edits virtual-junction attributes (Ctrl+Z undoes)', async ({
+    page,
+  }) => {
+    await gotoEditor(page);
+    await enterRoadNetworkMode(page);
+    await openXodr(page, VIRTUAL_JUNCTION_XODR);
+    await expect(page.getByText(/\d+ roads?/).first()).toBeVisible({ timeout: 30_000 });
+
+    // Switch to the Junctions tab and select the fixture's single junction.
+    await page.getByRole('tab', { name: 'Junctions' }).click();
+    await page.getByText('virtualJunction', { exact: true }).click();
+
+    // Type dropdown reflects the loaded @type="virtual". The Identity
+    // section's "Type" row is a standalone div.grid (not nested inside
+    // another grid), so a has: filter is unambiguous here (unlike Start
+    // S/End S below).
+    const typeRow = page.locator('div.grid', { has: page.getByText('Type', { exact: true }) });
+    await expect(typeRow.getByRole('combobox')).toHaveText('virtual');
+
+    // The VIRTUAL JUNCTION section renders the fixture's mainRoad/sStart/
+    // sEnd/orientation values.
+    await expect(page.getByText('Virtual Junction', { exact: true })).toBeVisible();
+    await expect(labeledInput(page, 'Main Road')).toHaveValue('1');
+    const startSInput = labeledInput(page, 'Start S');
+    await expect(startSInput).toHaveValue('95');
+    await expect(labeledInput(page, 'End S')).toHaveValue('105');
+    const orientationRow = page.locator('div.grid', {
+      has: page.getByText('Orientation', { exact: true }),
+    });
+    await expect(orientationRow.getByRole('combobox')).toHaveText('+');
+
+    // Editing Start S persists through the undoable UpdateJunctionCommand;
+    // road-focused Ctrl+Z (focusedBase === 'roadNetwork' in Road Network
+    // mode — use-keyboard-shortcuts.ts) reverts it.
+    await startSInput.fill('50');
+    await expect(startSInput).toHaveValue('50');
+
+    await page.keyboard.press('Control+z');
+    await expect(startSInput).toHaveValue('95');
+  });
+
+  // Phase 3 (visualization, D3/D4): the temporary-lane-layer and road-object
+  // viewer toggles are a permanent viewer preference (viewer-store.ts), so
+  // both buttons render in Road Network mode regardless of which fixture is
+  // loaded — MULTILAYER_XODR is used here only because it is already a known
+  // multi-lane-layer fixture, not because the toggles depend on its content.
+  // Both default ON (showTemporaryLanes/showObjects seed `true`).
+  test('temporary-lane and objects viewer toggles flip aria-pressed (default ON)', async ({
+    page,
+  }) => {
+    await gotoEditor(page);
+    await enterRoadNetworkMode(page);
+    await openXodr(page, MULTILAYER_XODR);
+    await expect(page.getByText(/\d+ roads?/).first()).toBeVisible({ timeout: 30_000 });
+
+    const tempToggle = page.getByTestId('toggle-temporary-lanes');
+    const objectsToggle = page.getByTestId('toggle-objects');
+    await expect(tempToggle).toBeVisible();
+    await expect(objectsToggle).toBeVisible();
+    await expect(tempToggle).toHaveAttribute('aria-pressed', 'true');
+    await expect(objectsToggle).toHaveAttribute('aria-pressed', 'true');
+
+    // This test originally found the toolbar's tail end (Temp, Objects, and
+    // Dir's trailing edge) rendering underneath — and unclickable through —
+    // the always-on-top Speed fly-control slider at this viewport (real
+    // click and even `click({force:true})` both failed to reach the button;
+    // only keyboard focus+Enter did). Fixed in ViewerToolbar.tsx (`right:
+    // 200` on toolbarStyle bounds the row so flexWrap engages before
+    // reaching Speed's column) — real `.click()` is used below now that the
+    // overlap no longer exists.
+    await tempToggle.click();
+    await expect(tempToggle).toHaveAttribute('aria-pressed', 'false');
+    await tempToggle.click();
+    await expect(tempToggle).toHaveAttribute('aria-pressed', 'true');
+
+    await objectsToggle.click();
+    await expect(objectsToggle).toHaveAttribute('aria-pressed', 'false');
+    await objectsToggle.click();
+    await expect(objectsToggle).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  // Phase 3 (D4): the Objects sidebar tab lists document-authored `<object>`
+  // entries (ObjectListPanel) grouped by road, and selecting one renders the
+  // read-only OdrObjectPropertyEditor (editing is P4 scope). Ex_Objects.xodr
+  // (ASAM official example) carries exactly 12 <object> elements — its single
+  // <repeat> (on the id=4000203 guardRail barrier) has 12 sub-entries but does
+  // NOT add additional top-level objects, so the header count pins at 12, not
+  // 12+12. First object (id=0): type=building/subtype=building name="house"
+  // s=24.0281... (renders "s=24.0" in the list row via toFixed(1)).
+  test('Objects tab lists document objects and shows a read-only property editor', async ({
+    page,
+  }) => {
+    await gotoEditor(page);
+    await enterRoadNetworkMode(page);
+    await openXodr(page, OBJECTS_XODR);
+    await expect(page.getByText(/\d+ roads?/).first()).toBeVisible({ timeout: 30_000 });
+
+    await page.getByRole('tab', { name: 'Objects' }).click();
+
+    // Header count — ObjectListPanel's "{totalCount} object(s)" text.
+    await expect(page.getByText('12 objects', { exact: true })).toBeVisible();
+
+    // First object's list row (name + s), then select it.
+    await expect(page.getByText('s=24.0', { exact: true })).toBeVisible();
+    await page.getByText('house', { exact: true }).click();
+
+    // Read-only property editor (OdrObjectPropertyEditor) shows the fixture's
+    // values via label-sibling <input readOnly> fields (labeledInput helper).
+    await expect(page.getByText('Object Properties')).toBeVisible();
+    await expect(labeledInput(page, 'Name')).toHaveValue('house');
+    await expect(labeledInput(page, 'Type')).toHaveValue('building');
+    await expect(labeledInput(page, 'Subtype')).toHaveValue('building');
+  });
+});

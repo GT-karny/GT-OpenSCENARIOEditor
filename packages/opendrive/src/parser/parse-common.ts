@@ -2,7 +2,9 @@
  * Parse OpenDRIVE common elements shared across multiple categories.
  */
 import type { OdrLaneValidity, OdrDataQuality, OdrUserData, OdrInclude } from '@osce/shared';
-import { ensureArray, toNum, toStr, toOptStr } from './xml-helpers.js';
+import { ODR_LAYER_TYPES } from '@osce/shared';
+import { ensureArray, attrNum, attrStr, attrOptStr, asEnum } from './xml-helpers.js';
+import { trackNode } from './node-tracker.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Raw = Record<string, any>;
@@ -12,10 +14,22 @@ export function parseLaneValidity(raw: Raw | undefined): OdrLaneValidity[] | und
   if (!raw) return undefined;
   const arr = ensureArray(raw);
   if (arr.length === 0) return undefined;
-  return arr.map((v: Raw) => ({
-    fromLane: toNum(v.fromLane),
-    toLane: toNum(v.toLane),
-  }));
+  return arr.map((v: Raw) => {
+    const t = trackNode(v);
+    const validity: OdrLaneValidity = {
+      fromLane: t.num('fromLane'),
+      toLane: t.num('toLane'),
+    };
+    // 1.9 @layer (e_layerType).
+    const layer = asEnum(attrOptStr(v, 'layer'), ODR_LAYER_TYPES);
+    if (layer) {
+      validity.layer = layer;
+      t.takeAttr('layer');
+    }
+    const extra = t.rest();
+    if (extra) validity.extra = extra;
+    return validity;
+  });
 }
 
 /** Parse <dataQuality> element */
@@ -24,37 +38,43 @@ export function parseDataQuality(raw: Raw | undefined): OdrDataQuality | undefin
   const dq: OdrDataQuality = {};
   if (raw.error) {
     dq.error = {
-      xyAbsolute: toNum(raw.error.xyAbsolute),
-      zAbsolute: toNum(raw.error.zAbsolute),
-      xyRelative: toNum(raw.error.xyRelative),
-      zRelative: toNum(raw.error.zRelative),
+      xyAbsolute: attrNum(raw.error, 'xyAbsolute'),
+      zAbsolute: attrNum(raw.error, 'zAbsolute'),
+      xyRelative: attrNum(raw.error, 'xyRelative'),
+      zRelative: attrNum(raw.error, 'zRelative'),
     };
   }
   if (raw.rawData) {
     dq.rawData = {
-      date: toOptStr(raw.rawData.date),
-      source: toOptStr(raw.rawData.source),
-      sourceComment: toOptStr(raw.rawData.sourceComment),
-      postProcessing: toOptStr(raw.rawData.postProcessing),
-      postProcessingComment: toOptStr(raw.rawData.postProcessingComment),
+      date: attrOptStr(raw.rawData, 'date'),
+      source: attrOptStr(raw.rawData, 'source'),
+      sourceComment: attrOptStr(raw.rawData, 'sourceComment'),
+      postProcessing: attrOptStr(raw.rawData, 'postProcessing'),
+      postProcessingComment: attrOptStr(raw.rawData, 'postProcessingComment'),
     };
   }
   return dq.error || dq.rawData ? dq : undefined;
 }
 
-/** Parse <userData> elements */
+/** Parse <userData> elements, preserving any nested vendor payload for round-trip. */
 export function parseUserData(raw: Raw | undefined): OdrUserData[] {
   if (!raw) return [];
-  return ensureArray(raw).map((u: Raw) => ({
-    code: toStr(u.code),
-    value: toOptStr(u.value),
-  }));
+  return ensureArray(raw).map((u: Raw) => {
+    const t = trackNode(u);
+    const ud: OdrUserData = {
+      code: t.str('code'),
+      value: t.optStr('value'),
+    };
+    const extra = t.rest();
+    if (extra) ud.extra = extra;
+    return ud;
+  });
 }
 
 /** Parse <include> elements */
 export function parseIncludes(raw: Raw | undefined): OdrInclude[] {
   if (!raw) return [];
   return ensureArray(raw).map((i: Raw) => ({
-    file: toStr(i.file),
+    file: attrStr(i, 'file'),
   }));
 }

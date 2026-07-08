@@ -1,8 +1,16 @@
 /**
  * Build XML structure for OpenDRIVE <junction> elements.
  */
-import type { OdrJunction, OdrJunctionConnection, OdrJunctionGroup } from '@osce/shared';
+import type {
+  OdrJunction,
+  OdrJunctionConnection,
+  OdrJunctionCrossPath,
+  OdrJunctionCrossPathLaneLink,
+  OdrJunctionRoadSection,
+  OdrJunctionGroup,
+} from '@osce/shared';
 import { fmtNum, optAttr } from './format-utils.js';
+import { applyExtra } from './apply-extra.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type XmlNode = Record<string, any>;
@@ -15,18 +23,45 @@ export function buildJunction(junction: OdrJunction): XmlNode {
 
   optAttr(node, '@_type', junction.type);
 
-  if (junction.connections.length > 0) {
+  // Virtual-junction attributes (t_junction_virtual) — schema-valid ONLY on a
+  // virtual junction, so never emit them for other types (guards a stale model
+  // after a type switch away from 'virtual').
+  if (junction.type === 'virtual') {
+    optAttr(node, '@_mainRoad', junction.mainRoad);
+    optAttr(node, '@_sStart', junction.sStart, fmtNum);
+    optAttr(node, '@_sEnd', junction.sEnd, fmtNum);
+    optAttr(node, '@_orientation', junction.orientation);
+  }
+
+  // XSD content models per junction @type (OpenDRIVE_Junction.xsd):
+  //   default/common + virtual → connection + crossPath
+  //   crossing                 → roadSection ONLY (no connection/crossPath)
+  //   direct                   → connection ONLY (no crossPath/roadSection)
+  // Gate each child on its allowed types so a stale model left behind by a type
+  // switch never strands variant-specific children into a schema-invalid slot.
+  const type = junction.type;
+  const crossPathAllowed = type === undefined || type === 'default' || type === 'virtual';
+
+  if (type !== 'crossing' && junction.connections.length > 0) {
     node.connection = junction.connections.map(buildConnection);
   }
 
-  // priority
+  // crossPath (default/virtual) then roadSection (crossing) — XSD child order.
+  if (crossPathAllowed && junction.crossPaths && junction.crossPaths.length > 0) {
+    node.crossPath = junction.crossPaths.map(buildCrossPath);
+  }
+  if (type === 'crossing' && junction.roadSections && junction.roadSections.length > 0) {
+    node.roadSection = junction.roadSections.map(buildRoadSection);
+  }
+
+  // priority — XSD 1.9 makes both @high and @low required (use="required"),
+  // so always emit both sides (empty string for a missing side rather than
+  // dropping the attribute, which would be schema-invalid).
   if (junction.priority && junction.priority.length > 0) {
-    node.priority = junction.priority.map((p) => {
-      const pn: XmlNode = {};
-      optAttr(pn, '@_high', p.high);
-      optAttr(pn, '@_low', p.low);
-      return pn;
-    });
+    node.priority = junction.priority.map((p) => ({
+      '@_high': p.high ?? '',
+      '@_low': p.low ?? '',
+    }));
   }
 
   // controller
@@ -59,24 +94,29 @@ export function buildJunction(junction: OdrJunction): XmlNode {
     };
   }
 
-  return node;
+  return applyExtra(node, junction.extra);
 }
 
 function buildConnection(conn: OdrJunctionConnection): XmlNode {
-  const node: XmlNode = {
-    '@_id': conn.id,
-    '@_incomingRoad': conn.incomingRoad,
-    '@_connectingRoad': conn.connectingRoad,
-    '@_contactPoint': conn.contactPoint,
-  };
-
+  // Emit road refs only when set: a direct-junction connection has no
+  // @connectingRoad (it uses @linkedRoad instead), and a virtual connection may
+  // omit @incomingRoad/@contactPoint. Skipping empties avoids schema-invalid
+  // connectingRoad="" and spurious contactPoint attributes.
+  const node: XmlNode = { '@_id': conn.id };
+  optAttr(node, '@_incomingRoad', conn.incomingRoad || undefined);
+  optAttr(node, '@_connectingRoad', conn.connectingRoad || undefined);
+  optAttr(node, '@_linkedRoad', conn.linkedRoad || undefined);
+  optAttr(node, '@_contactPoint', conn.contactPoint);
   optAttr(node, '@_type', conn.type);
 
   if (conn.laneLinks.length > 0) {
-    node.laneLink = conn.laneLinks.map((ll) => ({
-      '@_from': ll.from,
-      '@_to': ll.to,
-    }));
+    node.laneLink = conn.laneLinks.map((ll) => {
+      const ln: XmlNode = { '@_from': ll.from, '@_to': ll.to };
+      optAttr(ln, '@_overlapZone', ll.overlapZone, fmtNum);
+      optAttr(ln, '@_fromLayer', ll.fromLayer);
+      optAttr(ln, '@_toLayer', ll.toLayer);
+      return applyExtra(ln, ll.extra);
+    });
   }
 
   // predecessor
@@ -99,7 +139,35 @@ function buildConnection(conn: OdrJunctionConnection): XmlNode {
     };
   }
 
-  return node;
+  return applyExtra(node, conn.extra);
+}
+
+function buildCrossPath(cp: OdrJunctionCrossPath): XmlNode {
+  const node: XmlNode = {};
+  optAttr(node, '@_crossingRoad', cp.crossingRoad);
+  optAttr(node, '@_id', cp.id);
+  optAttr(node, '@_roadAtEnd', cp.roadAtEnd);
+  optAttr(node, '@_roadAtStart', cp.roadAtStart);
+  node.startLaneLink = buildCrossPathLaneLink(cp.startLaneLink);
+  node.endLaneLink = buildCrossPathLaneLink(cp.endLaneLink);
+  return applyExtra(node, cp.extra);
+}
+
+function buildCrossPathLaneLink(link: OdrJunctionCrossPathLaneLink): XmlNode {
+  const node: XmlNode = {};
+  optAttr(node, '@_s', link.s, fmtNum);
+  optAttr(node, '@_from', link.from);
+  optAttr(node, '@_to', link.to);
+  return applyExtra(node, link.extra);
+}
+
+function buildRoadSection(rs: OdrJunctionRoadSection): XmlNode {
+  const node: XmlNode = {};
+  optAttr(node, '@_id', rs.id);
+  optAttr(node, '@_roadId', rs.roadId);
+  optAttr(node, '@_sStart', rs.sStart, fmtNum);
+  optAttr(node, '@_sEnd', rs.sEnd, fmtNum);
+  return applyExtra(node, rs.extra);
 }
 
 export function buildJunctionGroup(group: OdrJunctionGroup): XmlNode {

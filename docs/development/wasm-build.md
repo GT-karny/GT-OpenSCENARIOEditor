@@ -4,7 +4,7 @@ The OpenSCENARIO Editor embeds [esmini](https://github.com/esmini/esmini) as a W
 
 ## When to rebuild
 
-Rebuild only when the C++ esmini source under [Thirdparty/GT_Sim/EnvironmentSimulator/Libraries/esminiJS/](../../Thirdparty/GT_Sim/EnvironmentSimulator/Libraries/esminiJS/) changes (e.g. new bindings, signal-state APIs, traffic logic fixes). Frequency is low — typically a few times per release cycle.
+Rebuild only when the C++ source under [Thirdparty/GT_Sim/GT_esmini/web/wasm/](../../Thirdparty/GT_Sim/GT_esmini/web/wasm/) (the GT esminiJS glue) or the core esmini modules it links change (e.g. new bindings, signal-state APIs, traffic logic fixes). Frequency is low — typically a few times per release cycle.
 
 ## Prerequisites
 
@@ -12,14 +12,20 @@ Rebuild only when the C++ esmini source under [Thirdparty/GT_Sim/EnvironmentSimu
   Common locations: `E:/emsdk` (project owner's Windows setup), `~/emsdk` (Linux/macOS).
   See [Emscripten SDK install guide](https://emscripten.org/docs/getting_started/downloads.html).
 - **Python** and **ninja** — both ship inside the emsdk.
+  On the owner's setup ninja is at `E:/emsdk/python/<version>/Scripts/ninja.exe` and is
+  NOT on PATH after `emsdk_env.bat`; pass it explicitly (see below).
 
 ## Source layout
 
-- Build root: `Thirdparty/GT_Sim/EnvironmentSimulator/Libraries/esminiJS/`
+- Build root: `Thirdparty/GT_Sim/GT_esmini/web/wasm/`
+  (the GT variant of esminiJS — relocated out of `EnvironmentSimulator/Libraries/esminiJS/`,
+  which is now **vanilla upstream** and must not carry GT edits; see the README in the
+  build root for the relocation rationale)
 - Key files:
-  - `esminijs.cpp`
-  - `esminijs.hpp`
-  - `embind.cpp`
+  - `esminijs.cpp` / `esminijs.hpp` — `OpenScenario` class, step API, dirty-bits handling
+  - `embind.cpp` — step API + introspection bindings
+  - `embind_rm.cpp` — `RoadManagerJS` coordinate-conversion wrapper
+  - `gt_embind_route.cpp` — `GTRouteJS` lane-change-aware route binding
   - `CMakeLists.txt`
 
 ## Build procedure
@@ -38,30 +44,118 @@ E:\emsdk\emsdk_env.bat
 source ~/emsdk/emsdk_env.sh
 ```
 
-> **Note for Windows + Git Bash users:** Git Bash cannot resolve the Emscripten PATH correctly via `source`. Either run the build from `cmd.exe`, or write a temporary `.bat` and invoke it via `cmd.exe //C "path\to\file.bat"`.
+> **Note for Windows + Git Bash users:** Git Bash cannot resolve the Emscripten PATH correctly via `source` (only `.bat`/`.ps1` entry points exist). Either run the build from `cmd.exe`, or write a temporary `.bat` and invoke it via `cmd.exe //C "path\to\file.bat"`.
 
-### 2. Configure (only when CMakeLists.txt changes)
+### 2. Configure (first build, or when CMakeLists.txt changes)
 
-```bash
-cd Thirdparty/GT_Sim/EnvironmentSimulator/Libraries/esminiJS/build
-emcmake cmake ..
+```cmd
+cd Thirdparty\GT_Sim\GT_esmini\web\wasm
+mkdir build & cd build
+emcmake cmake -G Ninja -DCMAKE_MAKE_PROGRAM=E:/emsdk/python/3.13.3_64bit/Scripts/ninja.exe ..
 ```
+
+The `CMAKE_MAKE_PROGRAM` override is required on Windows because emsdk's ninja is not on PATH. Adjust the embedded-Python version segment to your emsdk.
 
 ### 3. Build
 
-```bash
+```cmd
+set PATH=E:\emsdk\python\3.13.3_64bit\Scripts;%PATH%
 ninja
 ```
 
-The CMake cache is already configured in the repo, so `ninja` alone rebuilds only changed files in normal use.
+After the first configure, `ninja` alone rebuilds only changed files.
 
 ## Output
 
-- Build artifact: `Thirdparty/GT_Sim/EnvironmentSimulator/Libraries/esminiJS/build/esmini.js` (~5MB, single-file with embedded WASM).
-- Deploy target: copy (or symlink) to `apps/web/public/wasm/esmini.js`.
+- Build artifact: `Thirdparty/GT_Sim/GT_esmini/web/wasm/build/esmini.js` (single-file
+  with embedded WASM; `MODULARIZE=1`, `EXPORT_NAME="esmini"`). At the current pin it is
+  6,331,405 bytes (~6.0 MB); the authoritative size and hash live in the
+  [Provenance](#provenance) block below.
+- Deploy target: copy to `apps/web/public/wasm/esmini.js`.
+
+## Provenance
+
+The committed `apps/web/public/wasm/esmini.js` is verified against the block below by
+`pnpm check:wasm` (`scripts/check-wasm-consistency.mjs`), which runs in CI. The check
+fails if the submodule pin, the file's sha256, or its size drifts from the recorded
+values. Update this block in the **same commit** whenever you rebuild and replace the
+artifact — see the Operations note section below.
+
+```
+<!-- wasm-provenance:begin -->
+submodule_pin: db7d609e9a257609df9827106cc6021a65bdd999
+file: apps/web/public/wasm/esmini.js
+sha256: e29568f8210ef191399a3a4088c57bebfef47b25de05bcd2224f8bc673fe489e
+size_bytes: 6331405
+<!-- wasm-provenance:end -->
+```
+
+The `submodule_pin` is the gitlink commit that `HEAD` records for `Thirdparty/GT_Sim`
+(read with `git ls-tree HEAD Thirdparty/GT_Sim`), i.e. the GT_Sim revision the artifact
+was built from — not necessarily a checked-out working tree.
+
+## Operations note (運用注記)
+
+Updating the WASM artifact is a three-part atomic change. Do all three in the **same
+commit** so the provenance block never disagrees with the binary:
+
+1. **Bump the submodule pin** — move `Thirdparty/GT_Sim` to the new commit.
+2. **Rebuild** `esmini.js` per the build procedure above and copy it to
+   `apps/web/public/wasm/esmini.js`.
+3. **Update the provenance block** (`submodule_pin` / `sha256` / `size_bytes`) in this
+   document. Recompute the hash and size from the freshly built file:
+   ```bash
+   sha256sum apps/web/public/wasm/esmini.js
+   stat -c %s apps/web/public/wasm/esmini.js
+   ```
+   Then run `pnpm check:wasm` to confirm the block matches.
+
+Because `pnpm check:wasm` runs in the CI `check` job, a commit that moves the pin or the
+binary without updating the provenance block — or vice versa — fails the build.
+
+**git-lfs is deliberately NOT used** for this binary (owner decision, 2026-07-06). The
+single ~6 MB blob is tracked as an ordinary Git object. Revisit LFS only if the
+repository size becomes a real problem; if it is ever adopted, migrate forward only —
+**never rewrite history** to retrofit LFS.
+
+## Verification
+
+After deploying, run the WASM E2E suite — it executes the seeded sample scenarios
+in-browser and asserts entities actually move during playback (guarding the
+dirty-bits class of regression, see below):
+
+```bash
+cd apps/web && npx playwright test wasm-simulation
+```
 
 ## Notes
 
-- **Expected warnings:** `-Winconsistent-missing-override` from esmini headers. No errors should appear.
+- **Expected warnings:** `-Winconsistent-missing-override` and similar from esmini headers. No errors should appear.
 - **Do not edit `apps/web/public/wasm/` files directly** — they are build outputs.
 - **CI does not rebuild WASM** — the artifact is a manually-committed binary.
+- **Do not build in `EnvironmentSimulator/Libraries/esminiJS/`** — since the upstream
+  v3.3.0 catch-up that directory is vanilla upstream; the GT build lives only in
+  `GT_esmini/web/wasm/`.
+
+## Resolved issues
+
+### Entities stayed frozen during simulation (per-step dirty bits not cleared) — FIXED
+
+**Status:** Resolved in GT_Sim `672fb061`, which is included in the current submodule
+pin `db7d609e` (recorded in the [Provenance](#provenance) block above).
+`apps/web/e2e/wasm-simulation.spec.ts` now asserts
+entity positions change between the first and last frame across the seeded sample
+scenarios, so a regression of this class fails E2E.
+
+**Symptom (historical):** Running any scenario completed and produced frames with a
+correctly advancing simulation time, but every entity stayed pinned to its `Init`
+position; `speed` was set correctly while `s` / `x` / `y` never changed.
+
+**Root cause:** The standalone esmini player clears each object's per-step dirty bits
+once per frame via `ScenarioEngine::SwapAndClearDirtyBits()`. The WASM glue called only
+`scenarioEngine->step(dt)` + `prepareGroundTruth(dt)`, so the `LONGITUDINAL` dirty bit
+set by an `Init` `SpeedAction` persisted forever and
+`ScenarioEngine::defaultController()` skipped `MoveAlongS()` on every subsequent frame.
+The fix mirrors the canonical `ScenarioPlayer::ScenarioFrame()` sequence by calling
+`SwapAndClearDirtyBits()` after each `prepareGroundTruth()` (both the step API and the
+batch `get_object_state` loop).

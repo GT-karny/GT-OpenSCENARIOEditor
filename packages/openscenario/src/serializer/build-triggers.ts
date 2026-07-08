@@ -12,8 +12,7 @@ type AllBindings = Record<string, Record<string, string>>;
  * triggers with no condition groups (producing self-closing elements like
  * `<StopTrigger/>`).
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildTrigger(trigger: Trigger, allBindings: AllBindings = {}): any {
+export function buildTrigger(trigger: Trigger, allBindings: AllBindings = {}): Record<string, unknown> | string {
   if (trigger.conditionGroups.length === 0) {
     return '';
   }
@@ -25,8 +24,7 @@ export function buildTrigger(trigger: Trigger, allBindings: AllBindings = {}): a
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildCondition(c: Condition, allBindings: AllBindings): any {
+function buildCondition(c: Condition, allBindings: AllBindings): Record<string, unknown> {
   const elementBindings = allBindings[c.id] ?? {};
   return {
     ...buildAttrs({

@@ -5,14 +5,15 @@ import { Separator } from '../ui/separator';
 import { Button } from '../ui/button';
 import { FileMenu } from '../toolbar/FileMenu';
 import { UndoRedoButtons } from '../toolbar/UndoRedoButtons';
-import { ValidateButton } from '../toolbar/ValidateButton';
+import { ValidateButton } from '../../features/scenario/components/toolbar/ValidateButton';
 import { LanguageToggle } from '../toolbar/LanguageToggle';
-import { ScenarioPropertiesButton } from '../toolbar/ScenarioPropertiesButton';
-import { SimulationButtons } from '../toolbar/SimulationButtons';
+import { ScenarioPropertiesButton } from '../../features/scenario/components/toolbar/ScenarioPropertiesButton';
+import { SimulationButtons } from '../../features/simulation/components/toolbar/SimulationButtons';
 import { CatalogButton } from '../toolbar/CatalogButton';
 import { useProjectStore } from '../../stores/project-store';
 import { useEditorStore } from '../../stores/editor-store';
-import type { EditorMode } from '../../stores/editor-store';
+import { useDocumentRegistry } from '../../stores/document-registry';
+import type { EditorMode } from '../../stores/document-registry';
 import { useAppLifecycle } from '../../hooks/use-app-lifecycle';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { WindowControls } from './WindowControls';
@@ -21,7 +22,7 @@ export function HeaderToolbar() {
   const { t } = useTranslation('common');
   const currentProject = useProjectStore((s) => s.currentProject);
   const closeProjectStore = useProjectStore((s) => s.closeProject);
-  const editorMode = useEditorStore((s) => s.editorMode);
+  const focusedBase = useDocumentRegistry((s) => s.focusedBase);
   const { switchEditorMode, resetForNewFile, resetForNewRoadNetwork } = useAppLifecycle();
 
   const handleCloseProject = useCallback(() => {
@@ -98,7 +99,7 @@ export function HeaderToolbar() {
             backgroundClip: 'text',
           }}
         >
-          {editorMode === 'roadNetwork' ? t('app.titleRoadNetwork') : t('app.title')}
+          {focusedBase === 'roadNetwork' ? t('app.titleRoadNetwork') : t('app.title')}
         </span>
       </div>
 
@@ -111,7 +112,7 @@ export function HeaderToolbar() {
             type="button"
             onClick={() => switchEditorMode(mode)}
             className={`px-3 py-1 text-xs font-medium rounded transition-all whitespace-nowrap ${
-              editorMode === mode
+              focusedBase === mode
                 ? 'bg-[var(--color-accent-1)] text-white shadow-sm'
                 : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-glass-3)]'
             }`}

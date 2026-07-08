@@ -4,7 +4,7 @@
  * Dragging the endpoint sphere rotates the heading of the geometry segment.
  */
 
-import React, { useMemo, useRef, useState, useCallback } from 'react';
+import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { OdrGeometry } from '@osce/shared';
@@ -45,6 +45,11 @@ export function TangentHandle({
   const lineGeometry = useMemo(() => {
     return new THREE.BufferGeometry().setFromPoints(linePoints);
   }, [linePoints]);
+
+  // Dispose the previous line geometry when a new one is created, and on unmount.
+  useEffect(() => {
+    return () => lineGeometry.dispose();
+  }, [lineGeometry]);
 
   const propsRef = useRef({ geometry, index, handleLength, onHeadingChange });
   propsRef.current = { geometry, index, handleLength, onHeadingChange };

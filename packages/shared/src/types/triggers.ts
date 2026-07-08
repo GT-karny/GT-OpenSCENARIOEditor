@@ -6,13 +6,17 @@
 
 import type { Position } from './positions.js';
 import type {
+  AngleType,
   ConditionEdge,
+  CoordinateSystem,
   Rule,
   RelativeDistanceType,
   DirectionalDimension,
   StoryboardElementType,
   StoryboardElementState,
+  TriggeringEntitiesRule,
 } from '../enums/osc-enums.js';
+import type { Assert, Equals } from './type-utils.js';
 
 // --- Trigger structure ---
 
@@ -43,7 +47,7 @@ export interface ByEntityCondition {
 }
 
 export interface TriggeringEntities {
-  triggeringEntitiesRule: 'any' | 'all';
+  triggeringEntitiesRule: TriggeringEntitiesRule;
   entityRefs: string[];
 }
 
@@ -61,7 +65,34 @@ export type EntityCondition =
   | EndOfRoadCondition
   | CollisionCondition
   | OffroadCondition
-  | RelativeClearanceCondition;
+  | RelativeClearanceCondition
+  | AngleCondition
+  | RelativeAngleCondition;
+
+/**
+ * Discriminators of {@link EntityCondition}, in union declaration order. Welded
+ * to the union by {@link _WeldEntityConditionTypes}.
+ */
+export const ENTITY_CONDITION_TYPES = [
+  'distance',
+  'relativeDistance',
+  'timeHeadway',
+  'timeToCollision',
+  'acceleration',
+  'speed',
+  'relativeSpeed',
+  'reachPosition',
+  'standStill',
+  'traveledDistance',
+  'endOfRoad',
+  'collision',
+  'offroad',
+  'relativeClearance',
+  'angle',
+  'relativeAngle',
+] as const;
+export type EntityConditionType = (typeof ENTITY_CONDITION_TYPES)[number];
+type _WeldEntityConditionTypes = Assert<Equals<EntityConditionType, EntityCondition['type']>>;
 
 export interface DistanceCondition {
   type: 'distance';
@@ -173,6 +204,32 @@ export interface RelativeClearanceCondition {
   laneRange?: { from: number; to: number }[];
 }
 
+/**
+ * XSD AngleCondition (new in OpenSCENARIO v1.3): compares an entity's absolute
+ * orientation angle against a target within a tolerance. Note the XSD defines no
+ * `rule` attribute — the tolerance band is the comparison.
+ */
+export interface AngleCondition {
+  type: 'angle';
+  angleType: AngleType;
+  angle: number;
+  angleTolerance: number;
+  coordinateSystem?: CoordinateSystemCond;
+}
+
+/**
+ * XSD RelativeAngleCondition (new in OpenSCENARIO v1.3): like {@link
+ * AngleCondition} but relative to a referenced entity (`entityRef`).
+ */
+export interface RelativeAngleCondition {
+  type: 'relativeAngle';
+  entityRef: string;
+  angleType: AngleType;
+  angle: number;
+  angleTolerance: number;
+  coordinateSystem?: CoordinateSystemCond;
+}
+
 // --- By Value Condition ---
 
 export interface ByValueCondition {
@@ -188,6 +245,22 @@ export type ValueCondition =
   | TrafficSignalCondition
   | TrafficSignalControllerCondition
   | UserDefinedValueCondition;
+
+/**
+ * Discriminators of {@link ValueCondition}, in union declaration order. Welded
+ * to the union by {@link _WeldValueConditionTypes}.
+ */
+export const VALUE_CONDITION_TYPES = [
+  'simulationTime',
+  'storyboardElementState',
+  'parameter',
+  'variable',
+  'trafficSignal',
+  'trafficSignalController',
+  'userDefinedValue',
+] as const;
+export type ValueConditionType = (typeof VALUE_CONDITION_TYPES)[number];
+type _WeldValueConditionTypes = Assert<Equals<ValueConditionType, ValueCondition['type']>>;
 
 export interface SimulationTimeCondition {
   type: 'simulationTime';
@@ -235,4 +308,5 @@ export interface UserDefinedValueCondition {
   rule: Rule;
 }
 
-export type CoordinateSystemCond = 'entity' | 'lane' | 'road' | 'trajectory';
+/** Alias for CoordinateSystem — kept for backward compatibility with existing dependents. */
+export type CoordinateSystemCond = CoordinateSystem;

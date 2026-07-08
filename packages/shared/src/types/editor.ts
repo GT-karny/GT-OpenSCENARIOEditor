@@ -8,15 +8,6 @@ export interface EditorSelection {
   focusedPanelId: string | null;
 }
 
-export interface EditorViewport {
-  nodeEditorViewport: { x: number; y: number; zoom: number };
-  threeDViewport: {
-    cameraPosition: [number, number, number];
-    cameraTarget: [number, number, number];
-  };
-  timelineViewport: { scrollX: number; scrollY: number; zoom: number };
-}
-
 export type EditorPanel =
   | 'nodeEditor'
   | '3dViewer'

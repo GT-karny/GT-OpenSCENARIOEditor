@@ -91,6 +91,64 @@ describe('OpenDriveStore', () => {
     });
   });
 
+  describe('geometry operations', () => {
+    it('addGeometry appends a segment and marks the road dirty', () => {
+      const road = s.addRoad({ name: 'R1' });
+      s = store.getState();
+      const before = s.getDocument().roads[0].planView.length;
+      s.consumeDirtyRoadIds();
+
+      s.addGeometry(road.id, { type: 'line', s: 100, x: 10, y: 20, hdg: 0, length: 50 });
+      s = store.getState();
+      const planView = s.getDocument().roads[0].planView;
+      expect(planView).toHaveLength(before + 1);
+      expect(planView[planView.length - 1]).toMatchObject({ type: 'line', s: 100, length: 50 });
+      expect(s.consumeDirtyRoadIds().has(road.id)).toBe(true);
+    });
+
+    it('addGeometry is undoable', () => {
+      const road = s.addRoad({ name: 'R1' });
+      s = store.getState();
+      const before = s.getDocument().roads[0].planView.length;
+
+      s.addGeometry(road.id, { type: 'line', s: 100, length: 50 });
+      s = store.getState();
+      expect(s.getDocument().roads[0].planView).toHaveLength(before + 1);
+
+      s.undo();
+      s = store.getState();
+      expect(s.getDocument().roads[0].planView).toHaveLength(before);
+    });
+
+    it('removeGeometry deletes a segment by index and marks dirty', () => {
+      const road = s.addRoad({ name: 'R1' });
+      s = store.getState();
+      s.addGeometry(road.id, { type: 'line', s: 100, length: 50 });
+      s = store.getState();
+      const count = s.getDocument().roads[0].planView.length;
+      s.consumeDirtyRoadIds();
+
+      s.removeGeometry(road.id, count - 1);
+      s = store.getState();
+      expect(s.getDocument().roads[0].planView).toHaveLength(count - 1);
+      expect(s.consumeDirtyRoadIds().has(road.id)).toBe(true);
+    });
+
+    it('removeGeometry is undoable', () => {
+      const road = s.addRoad({ name: 'R1' });
+      s = store.getState();
+      const original = structuredClone(s.getDocument().roads[0].planView);
+
+      s.removeGeometry(road.id, 0);
+      s = store.getState();
+      expect(s.getDocument().roads[0].planView).toHaveLength(original.length - 1);
+
+      s.undo();
+      s = store.getState();
+      expect(s.getDocument().roads[0].planView).toEqual(original);
+    });
+  });
+
   describe('lane operations', () => {
     it('addLane adds a lane to a road section', () => {
       const road = s.addRoad({ name: 'R1' });
@@ -172,6 +230,29 @@ describe('OpenDriveStore', () => {
       expect(conn.incomingRoad).toBe('road1');
     });
 
+    it('removeJunctionConnection removes a connection and is undoable', () => {
+      const junction = s.addJunction({ name: 'J1' });
+      s = store.getState();
+      const conn = s.addJunctionConnection(junction.id, {
+        incomingRoad: 'road1',
+        connectingRoad: 'road2',
+        contactPoint: 'start',
+      });
+      s = store.getState();
+      expect(s.getDocument().junctions[0].connections).toHaveLength(1);
+      s.consumeDirtyJunctionIds();
+
+      s.removeJunctionConnection(junction.id, conn.id);
+      s = store.getState();
+      expect(s.getDocument().junctions[0].connections).toHaveLength(0);
+      expect(s.consumeDirtyJunctionIds().has(junction.id)).toBe(true);
+
+      s.undo();
+      s = store.getState();
+      expect(s.getDocument().junctions[0].connections).toHaveLength(1);
+      expect(s.getDocument().junctions[0].connections[0].id).toBe(conn.id);
+    });
+
     it('tracks dirty junction IDs', () => {
       const junction = s.addJunction({ name: 'J1' });
       s = store.getState();
@@ -200,6 +281,30 @@ describe('OpenDriveStore', () => {
       s.updateController(ctrl.id, { name: 'UpdatedCtrl' });
       s = store.getState();
       expect(s.getDocument().controllers[0].name).toBe('UpdatedCtrl');
+    });
+
+    it('tracks dirty controller IDs', () => {
+      const ctrl = s.addController({ name: 'Ctrl1' });
+      s = store.getState();
+      const dirty = s.consumeDirtyControllerIds();
+      expect(dirty.has(ctrl.id)).toBe(true);
+      // After consuming, the set should be empty
+      s = store.getState();
+      expect(s.consumeDirtyControllerIds().size).toBe(0);
+    });
+
+    it('marks dirty on update and remove', () => {
+      const ctrl = s.addController({ name: 'Ctrl1' });
+      s = store.getState();
+      s.consumeDirtyControllerIds();
+
+      s.updateController(ctrl.id, { name: 'Renamed' });
+      s = store.getState();
+      expect(s.consumeDirtyControllerIds().has(ctrl.id)).toBe(true);
+
+      s.removeController(ctrl.id);
+      s = store.getState();
+      expect(s.consumeDirtyControllerIds().has(ctrl.id)).toBe(true);
     });
   });
 
@@ -294,6 +399,228 @@ describe('OpenDriveStore', () => {
       s.undo();
       s = store.getState();
       expect(s.getDocument().header.name).toBe('Original');
+    });
+  });
+
+  /**
+   * Redo coverage per operation category.
+   *
+   * Regression guard for the bug where inline command objects used
+   * `execute: () => {}` no-ops: after undo, redo restored NOTHING while still
+   * moving the undo/redo stacks, corrupting state and history.
+   *
+   * Pattern for every case:
+   *   apply op  -> capture state A (deep clone)
+   *   undo      -> capture state B (deep clone)
+   *   redo      -> expect document deep-equals A
+   *   undo      -> expect document deep-equals B
+   */
+  describe('redo restores state (per operation category)', () => {
+    const snapshot = (): unknown => structuredClone(store.getState().getDocument());
+
+    /** Run the full A/B redo cycle and assert symmetry. */
+    function expectRedoCycle(): void {
+      const stateA = snapshot();
+
+      store.getState().undo();
+      const stateB = snapshot();
+      // Undo must actually change something for this to be a meaningful test.
+      expect(stateB).not.toEqual(stateA);
+
+      store.getState().redo();
+      expect(snapshot()).toEqual(stateA);
+
+      store.getState().undo();
+      expect(snapshot()).toEqual(stateB);
+    }
+
+    describe('lanes', () => {
+      it('redo re-applies addLane', () => {
+        const road = s.addRoad({ name: 'R1' });
+        s.addLane(road.id, 0, 'left', { type: 'shoulder' });
+        expectRedoCycle();
+      });
+
+      it('redo re-applies removeLane', () => {
+        const road = s.addRoad({ name: 'R1' });
+        const laneId = store.getState().getDocument().roads[0].lanes[0].rightLanes[0].id;
+        s.removeLane(road.id, 0, 'right', laneId);
+        expectRedoCycle();
+      });
+
+      it('redo re-applies updateLane', () => {
+        const road = s.addRoad({ name: 'R1' });
+        const laneId = store.getState().getDocument().roads[0].lanes[0].leftLanes[0].id;
+        s.updateLane(road.id, 0, 'left', laneId, { type: 'parking' });
+        expectRedoCycle();
+      });
+    });
+
+    describe('junctions', () => {
+      it('redo re-applies addJunction', () => {
+        s.addJunction({ name: 'J1' });
+        expectRedoCycle();
+      });
+
+      it('redo re-applies removeJunction', () => {
+        const j = s.addJunction({ name: 'J1' });
+        s.removeJunction(j.id);
+        expectRedoCycle();
+      });
+
+      it('redo re-applies updateJunction', () => {
+        const j = s.addJunction({ name: 'J1' });
+        s.updateJunction(j.id, { name: 'J1-renamed', type: 'default' });
+        expectRedoCycle();
+      });
+
+      it('redo re-applies addJunctionConnection', () => {
+        const j = s.addJunction({ name: 'J1' });
+        s.addJunctionConnection(j.id, {
+          incomingRoad: 'road1',
+          connectingRoad: 'road2',
+          contactPoint: 'start',
+        });
+        expectRedoCycle();
+      });
+    });
+
+    describe('signals', () => {
+      it('redo re-applies addSignal', () => {
+        const road = s.addRoad({ name: 'R1' });
+        s.addSignal(road.id, { s: 50, t: 3, orientation: '+' });
+        expectRedoCycle();
+      });
+
+      it('redo re-applies removeSignal', () => {
+        const road = s.addRoad({ name: 'R1' });
+        const sig = s.addSignal(road.id, { s: 50, t: 3, orientation: '+' });
+        s.removeSignal(road.id, sig.id);
+        expectRedoCycle();
+      });
+
+      it('redo re-applies updateSignal', () => {
+        const road = s.addRoad({ name: 'R1' });
+        const sig = s.addSignal(road.id, { s: 10, t: 2, orientation: '+' });
+        s.updateSignal(road.id, sig.id, { s: 25, name: 'StopSign' });
+        expectRedoCycle();
+      });
+    });
+
+    describe('objects', () => {
+      it('redo re-applies addObject', () => {
+        const road = s.addRoad({ name: 'R1' });
+        s.addObject(road.id, { type: 'pole', name: 'p1', s: 5, t: 1 });
+        expectRedoCycle();
+      });
+
+      it('redo re-applies removeObject', () => {
+        const road = s.addRoad({ name: 'R1' });
+        const obj = s.addObject(road.id, { type: 'pole', name: 'p1', s: 5, t: 1 });
+        s.removeObject(road.id, obj.id);
+        expectRedoCycle();
+      });
+    });
+
+    describe('controllers', () => {
+      it('redo re-applies addController', () => {
+        s.addController({ name: 'Ctrl1' });
+        expectRedoCycle();
+      });
+
+      it('redo re-applies removeController', () => {
+        const c = s.addController({ name: 'Ctrl1' });
+        s.removeController(c.id);
+        expectRedoCycle();
+      });
+
+      it('redo re-applies updateController', () => {
+        const c = s.addController({ name: 'Ctrl1' });
+        s.updateController(c.id, { name: 'UpdatedCtrl' });
+        expectRedoCycle();
+      });
+    });
+
+    describe('setRoadLink', () => {
+      it('redo re-applies a successor link', () => {
+        const r1 = s.addRoad({ name: 'R1' });
+        const r2 = s.addRoad({ name: 'R2' });
+        s.setRoadLink(r1.id, 'successor', {
+          elementType: 'road',
+          elementId: r2.id,
+          contactPoint: 'start',
+        });
+        expectRedoCycle();
+      });
+
+      it('redo re-applies clearing a link', () => {
+        const r1 = s.addRoad({ name: 'R1' });
+        const r2 = s.addRoad({ name: 'R2' });
+        s.setRoadLink(r1.id, 'successor', {
+          elementType: 'road',
+          elementId: r2.id,
+          contactPoint: 'start',
+        });
+        // Clearing is the operation under test (its own undo step).
+        s.setRoadLink(r1.id, 'successor', undefined);
+        expectRedoCycle();
+      });
+    });
+
+    describe('batch collapse', () => {
+      it('redo re-applies a collapsed batch as a single step', () => {
+        const road = s.addRoad({ name: 'R1' });
+
+        s.beginBatch('Add two lanes');
+        s.addLane(road.id, 0, 'left', { type: 'shoulder' });
+        s.addLane(road.id, 0, 'right', { type: 'sidewalk' });
+        s.endBatch();
+
+        // The batch must be one undo step, not two.
+        s = store.getState();
+        const leftAfter = store.getState().getDocument().roads[0].lanes[0].leftLanes.length;
+        const rightAfter = store.getState().getDocument().roads[0].lanes[0].rightLanes.length;
+        expect(leftAfter).toBe(2);
+        expect(rightAfter).toBe(2);
+
+        // Single undo reverts BOTH lane additions.
+        store.getState().undo();
+        expect(store.getState().getDocument().roads[0].lanes[0].leftLanes).toHaveLength(1);
+        expect(store.getState().getDocument().roads[0].lanes[0].rightLanes).toHaveLength(1);
+        expect(store.getState().canRedo()).toBe(true);
+
+        // Single redo re-applies BOTH.
+        store.getState().redo();
+        expect(store.getState().getDocument().roads[0].lanes[0].leftLanes).toHaveLength(2);
+        expect(store.getState().getDocument().roads[0].lanes[0].rightLanes).toHaveLength(2);
+      });
+
+      it('redo of a collapsed batch is deep-equal symmetric', () => {
+        const road = s.addRoad({ name: 'R1' });
+        s = store.getState();
+
+        s.beginBatch('Mutate road then add lane');
+        s.updateRoad(road.id, { length: 222 });
+        s.addLane(road.id, 0, 'left', { type: 'shoulder' });
+        s.endBatch();
+
+        expectRedoCycle();
+      });
+
+      it('empty batch leaves history untouched', () => {
+        s.addRoad({ name: 'R1' });
+        s = store.getState();
+        const before = structuredClone(store.getState().getDocument());
+
+        s.beginBatch('No-op batch');
+        s.endBatch();
+
+        s = store.getState();
+        // No new redo entry, document unchanged, undo still targets addRoad.
+        expect(store.getState().getDocument()).toEqual(before);
+        s.undo();
+        expect(store.getState().getDocument().roads).toHaveLength(0);
+      });
     });
   });
 });

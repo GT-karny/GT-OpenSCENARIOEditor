@@ -22,6 +22,12 @@ interface ViewerToolbarProps {
   onToggleRoadIds: () => void;
   showLaneIds: boolean;
   onToggleLaneIds: () => void;
+  showDrivingDirection: boolean;
+  onToggleDrivingDirection: () => void;
+  showTemporaryLanes: boolean;
+  onToggleTemporaryLanes: () => void;
+  showObjects: boolean;
+  onToggleObjects: () => void;
   showTrafficSignals: boolean;
   onToggleTrafficSignals: () => void;
   gizmoMode: GizmoMode;
@@ -47,6 +53,10 @@ const toolbarStyle: React.CSSProperties = {
   position: 'absolute',
   top: 8,
   left: 8,
+  // Bound the row so flex wrapping engages before the fly-speed slider's
+  // column (top-right, ~180px wide) — otherwise trailing buttons render
+  // underneath it and become unclickable.
+  right: 200,
   display: 'flex',
   gap: '4px',
   flexWrap: 'wrap',
@@ -146,6 +156,12 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = React.memo(
     onToggleRoadIds,
     showLaneIds,
     onToggleLaneIds,
+    showDrivingDirection,
+    onToggleDrivingDirection,
+    showTemporaryLanes,
+    onToggleTemporaryLanes,
+    showObjects,
+    onToggleObjects,
     showTrafficSignals,
     onToggleTrafficSignals,
     gizmoMode,
@@ -330,6 +346,33 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = React.memo(
           title="Toggle lane IDs"
         >
           LaneID
+        </button>
+        <button
+          data-testid="toggle-driving-direction"
+          aria-pressed={showDrivingDirection}
+          style={showDrivingDirection ? activeButtonStyle : buttonStyle}
+          onClick={onToggleDrivingDirection}
+          title="Toggle driving-direction arrows (RHT/LHT)"
+        >
+          Dir
+        </button>
+        <button
+          data-testid="toggle-temporary-lanes"
+          aria-pressed={showTemporaryLanes}
+          style={showTemporaryLanes ? activeButtonStyle : buttonStyle}
+          onClick={onToggleTemporaryLanes}
+          title="Toggle temporary (roadworks) lane layer"
+        >
+          Temp
+        </button>
+        <button
+          data-testid="toggle-objects"
+          aria-pressed={showObjects}
+          style={showObjects ? activeButtonStyle : buttonStyle}
+          onClick={onToggleObjects}
+          title="Toggle road objects"
+        >
+          Objects
         </button>
         <button
           style={showTrafficSignals ? activeButtonStyle : buttonStyle}

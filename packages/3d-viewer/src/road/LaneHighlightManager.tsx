@@ -1,11 +1,9 @@
 /**
  * Centralized lane highlight manager.
  *
- * Supports two registration modes:
- *   1. Individual LaneMesh (legacy): one mesh per lane, emissive-based highlight
- *   2. MergedLaneMesh: one mesh per road, vertex-color-based highlight
+ * Uses MergedLaneMesh registration: one mesh per road, vertex-color-based highlight.
  *
- * A single useFrame callback handles both — no per-instance useFrame needed.
+ * A single useFrame callback handles all highlights — no per-instance useFrame needed.
  */
 
 import { useEffect } from 'react';
@@ -18,31 +16,6 @@ import { useFrame } from '@react-three/fiber';
 
 const HIGHLIGHT_COLOR = new THREE.Color(0x3388cc);
 const HIGHLIGHT_BLEND = 0.4; // lerp factor: 0 = base color, 1 = full highlight
-
-// ---------------------------------------------------------------------------
-// Individual lane mesh registry (legacy)
-// ---------------------------------------------------------------------------
-
-interface LaneEntry {
-  mesh: THREE.Mesh;
-  roadId: string;
-  laneId: number;
-}
-
-const registry = new Map<string, LaneEntry>();
-
-export function registerLaneMesh(
-  key: string,
-  mesh: THREE.Mesh,
-  roadId: string,
-  laneId: number,
-): void {
-  registry.set(key, { mesh, roadId, laneId });
-}
-
-export function unregisterLaneMesh(key: string): void {
-  registry.delete(key);
-}
 
 // ---------------------------------------------------------------------------
 // Merged lane mesh registry
@@ -127,16 +100,6 @@ export function LaneHighlightManager({ highlightedLaneRef }: LaneHighlightManage
 // ---------------------------------------------------------------------------
 
 function unhighlightLane(key: string): void {
-  // Try individual registry first
-  const individual = registry.get(key);
-  if (individual) {
-    const mat = individual.mesh.material as THREE.MeshStandardMaterial;
-    mat.emissive.setHex(0x000000);
-    mat.emissiveIntensity = 0;
-    return;
-  }
-
-  // Try merged registry
   const [roadId, laneIdStr] = key.split(':');
   const laneId = Number(laneIdStr);
   const merged = mergedRegistry.get(roadId);
@@ -159,18 +122,6 @@ function unhighlightLane(key: string): void {
 }
 
 function highlightLane(roadId: string, laneId: number): void {
-  const key = `${roadId}:${laneId}`;
-
-  // Try individual registry first
-  const individual = registry.get(key);
-  if (individual) {
-    const mat = individual.mesh.material as THREE.MeshStandardMaterial;
-    mat.emissive.setHex(0x3388cc);
-    mat.emissiveIntensity = 0.4;
-    return;
-  }
-
-  // Try merged registry
   const merged = mergedRegistry.get(roadId);
   if (!merged) return;
 

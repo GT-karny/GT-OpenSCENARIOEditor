@@ -6,7 +6,9 @@ import type { OdrRoad, OdrLaneSection, OdrLane } from '@osce/shared';
 import type { Vec3, Pose2D } from './types.js';
 import { evaluateReferenceLineAtS } from './reference-line.js';
 import { evaluateElevation } from './elevation.js';
+import { evaluateSuperelevation } from './superelevation.js';
 import { evaluateLaneOffset } from './lane-offset.js';
+import { getCrossSectionEvaluator } from './cross-section-profile.js';
 import { evalCubic, findRecordAtS } from '../utils/math.js';
 
 export interface LaneBoundaryPoint {
@@ -89,16 +91,22 @@ export function computeLaneInnerT(
 
 /**
  * Convert (s, t) to world XYZ coordinates.
+ *
+ * `roll` (radians, superelevation) rotates the cross-section about the reference
+ * line: the lateral offset shrinks to `t·cos(roll)` along the XY perpendicular
+ * and the point rises by `t·sin(roll)`. Full rotation, not a small-angle
+ * approximation. Defaults to 0 so existing callers are unaffected.
  */
-export function stToXyz(pose: Pose2D, t: number, z: number): Vec3 {
+export function stToXyz(pose: Pose2D, t: number, z: number, roll = 0): Vec3 {
   // Perpendicular direction: left of heading
   const perpX = -Math.sin(pose.hdg);
   const perpY = Math.cos(pose.hdg);
+  const lateral = t * Math.cos(roll);
 
   return {
-    x: pose.x + t * perpX,
-    y: pose.y + t * perpY,
-    z,
+    x: pose.x + lateral * perpX,
+    y: pose.y + lateral * perpY,
+    z: z + t * Math.sin(roll),
   };
 }
 
@@ -111,6 +119,11 @@ export function computeLaneBoundaries(
   lane: OdrLane,
   sValues: readonly number[],
 ): LaneBoundaryPoint[] {
+  // Road-surface banking. crossSectionSurface and superelevation are mutually
+  // exclusive (XSD assert): a cross-section surface is a height field applied
+  // per-edge with no rotation; superelevation is a roll about the reference line.
+  const crossSection = getCrossSectionEvaluator(road);
+
   return sValues.map((s) => {
     const dsFromSectionStart = s - laneSection.s;
     const pose = evaluateReferenceLineAtS(road.planView, s);
@@ -120,12 +133,23 @@ export function computeLaneBoundaries(
     const innerT = computeLaneInnerT(laneSection, lane, dsFromSectionStart) + offset;
     const outerT = computeLaneOuterT(laneSection, lane, dsFromSectionStart) + offset;
 
+    if (crossSection) {
+      return {
+        s,
+        innerT,
+        outerT,
+        innerPos: stToXyz(pose, innerT, z + crossSection(s, innerT)),
+        outerPos: stToXyz(pose, outerT, z + crossSection(s, outerT)),
+      };
+    }
+
+    const roll = evaluateSuperelevation(road.lateralProfile, s);
     return {
       s,
       innerT,
       outerT,
-      innerPos: stToXyz(pose, innerT, z),
-      outerPos: stToXyz(pose, outerT, z),
+      innerPos: stToXyz(pose, innerT, z, roll),
+      outerPos: stToXyz(pose, outerT, z, roll),
     };
   });
 }

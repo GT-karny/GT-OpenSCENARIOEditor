@@ -12,10 +12,8 @@ const CATALOG_KEYS: Array<[keyof CatalogLocations, string]> = [
   ['routeCatalog', 'RouteCatalog'],
 ];
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildCatalogLocations(cl: CatalogLocations): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: any = {};
+export function buildCatalogLocations(cl: CatalogLocations): Record<string, unknown> | string {
+  const result: Record<string, unknown> = {};
   let hasAny = false;
   for (const [tsKey, xmlKey] of CATALOG_KEYS) {
     const loc = cl[tsKey];

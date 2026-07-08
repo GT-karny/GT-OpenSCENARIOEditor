@@ -4,17 +4,19 @@
  * Manual camera rotation/zoom remains functional during follow.
  */
 
+import type React from 'react';
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { WorldCoords } from '../utils/position-resolver.js';
 import type { SimulationFrame } from '@osce/shared';
+import type { OrbitControlsLike } from '../store/viewer-types.js';
 
 interface CameraFollowOptions {
   /** Entity name to follow (null = disabled) */
   targetEntity: string | null;
   /** Reference to OrbitControls */
-  orbitControlsRef: React.RefObject<any>;
+  orbitControlsRef: React.RefObject<OrbitControlsLike | null>;
   /** Init entity positions (used when not simulating) */
   entityPositions: Map<string, WorldCoords>;
   /** Current simulation frame (used during playback) */

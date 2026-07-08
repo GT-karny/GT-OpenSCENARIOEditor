@@ -2,7 +2,8 @@
  * Human-readable display strings for action types.
  */
 
-import type { PrivateAction, GlobalAction } from '@osce/shared';
+import type { PrivateAction, GlobalAction, ScenarioActionType } from '@osce/shared';
+import { GLOBAL_ACTION_TYPES } from '@osce/shared';
 
 type ElementBindings = Record<string, string> | undefined;
 
@@ -14,7 +15,10 @@ function rv(value: number | string | undefined | null, field: string, eb: Elemen
   return String(value ?? '');
 }
 
-const actionTypeLabels: Record<string, string> = {
+// Typed as Record<ScenarioActionType, ...>: a new action discriminator that
+// lacks a label here (or a stale key that is no longer a discriminator) is a
+// compile error.
+const actionTypeLabels: Record<ScenarioActionType, string> = {
   speedAction: 'Speed',
   speedProfileAction: 'Speed Profile',
   laneChangeAction: 'Lane Change',
@@ -41,11 +45,14 @@ const actionTypeLabels: Record<string, string> = {
   variableAction: 'Variable',
   infrastructureAction: 'Infrastructure',
   trafficAction: 'Traffic',
+  setMonitorAction: 'Set Monitor',
   userDefinedAction: 'User Defined',
 };
 
 export function getActionTypeLabel(actionType: string): string {
-  return actionTypeLabels[actionType] ?? actionType;
+  // Tolerant lookup: unknown/legacy discriminators echo back as their raw
+  // string. The weld lives on the object literal above, not this read.
+  return (actionTypeLabels as Record<string, string | undefined>)[actionType] ?? actionType;
 }
 
 export function getPrivateActionSummary(action: PrivateAction, eb?: ElementBindings): string {
@@ -77,13 +84,13 @@ export function getPrivateActionSummary(action: PrivateAction, eb?: ElementBindi
     case 'synchronizeAction':
       return `Sync with ${action.masterEntityRef}`;
     case 'followTrajectoryAction':
-      return `Follow: ${action.trajectory.name}`;
+      return `Follow: ${action.trajectory?.name ?? action.trajectoryRef?.entryName ?? 'Trajectory (catalog)'}`;
     case 'acquirePositionAction':
       return `Acquire: ${action.position.type}`;
     case 'routingAction':
       return `Route: ${action.routeAction}`;
     case 'assignControllerAction':
-      return 'Assign Controller';
+      return action.controller ? `Assign Controller: ${action.controller.name}` : 'Assign Controller';
     case 'activateControllerAction':
       return 'Activate Controller';
     case 'overrideControllerAction':
@@ -103,20 +110,24 @@ export function getPrivateActionSummary(action: PrivateAction, eb?: ElementBindi
   }
 }
 
-export function getGlobalActionSummary(action: GlobalAction): string {
+export function getGlobalActionSummary(action: GlobalAction, eb?: ElementBindings): string {
+  const v = (val: number | string | undefined | null, field: string) => rv(val, field, eb);
+
   switch (action.type) {
     case 'environmentAction':
-      return `Environment: ${action.environment.name}`;
+      return `Environment: ${action.environment?.name ?? action.catalogReference?.entryName ?? ''}`;
     case 'entityAction':
       return `Entity: ${action.actionType} ${action.entityRef}`;
     case 'parameterAction':
-      return `Param: ${action.actionType} ${action.parameterRef}`;
+      return `Param: ${action.parameterRef} = ${v(action.value ?? action.modifyValue, action.actionType === 'set' ? 'value' : 'modifyValue')}`;
     case 'variableAction':
-      return `Var: ${action.actionType} ${action.variableRef}`;
+      return `Var: ${action.variableRef} = ${v(action.value ?? action.modifyValue, action.actionType === 'set' ? 'value' : 'modifyValue')}`;
     case 'infrastructureAction':
       return 'Infrastructure';
     case 'trafficAction':
       return 'Traffic';
+    case 'setMonitorAction':
+      return `Monitor ${action.monitorRef} = ${action.value}`;
   }
 }
 
@@ -125,11 +136,11 @@ export function getActionSummary(action: PrivateAction | GlobalAction | { type: 
     return `Custom: ${(action as { customCommandAction: string }).customCommandAction}`;
   }
   if (isGlobalAction(action.type)) {
-    return getGlobalActionSummary(action as GlobalAction);
+    return getGlobalActionSummary(action as GlobalAction, eb);
   }
   return getPrivateActionSummary(action as PrivateAction, eb);
 }
 
 function isGlobalAction(type: string): boolean {
-  return ['environmentAction', 'entityAction', 'parameterAction', 'variableAction', 'infrastructureAction', 'trafficAction'].includes(type);
+  return (GLOBAL_ACTION_TYPES as readonly string[]).includes(type);
 }

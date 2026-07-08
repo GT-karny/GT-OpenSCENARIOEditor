@@ -28,8 +28,29 @@ describe('XoscValidator', () => {
       if (firstAct?.maneuverGroups.length > 0) {
         firstAct.maneuverGroups[0].actors.entityRefs = ['NonExistentEntity'];
         const result = validator.validate(doc);
-        expect(result.errors.some((e) => e.code === 'REF_001')).toBe(true);
+        const ref001 = result.errors.find((e) => e.code === 'REF_001');
+        expect(ref001).toBeDefined();
+        // The i18n contract: params carry the interpolation values for messageKey.
+        expect(ref001?.messageKey).toBe('validation.ref001');
+        expect(ref001?.params?.ref).toBe('NonExistentEntity');
+        expect(ref001?.params?.location).toContain(firstAct.maneuverGroups[0].name);
       }
+    }
+  });
+
+  it('emits messageKey/params for structural warnings', () => {
+    const xml = readFileSync(resolve(EXAMPLES_DIR, 'CutIn.xosc'), 'utf-8');
+    const doc = parser.parse(xml);
+
+    // STRUCT_003: empty a story's acts to force a warning carrying a name param.
+    if (doc.storyboard.stories.length > 0) {
+      const story = doc.storyboard.stories[0];
+      story.acts = [];
+      const result = validator.validate(doc);
+      const struct003 = result.warnings.find((w) => w.code === 'STRUCT_003');
+      expect(struct003).toBeDefined();
+      expect(struct003?.messageKey).toBe('validation.struct003');
+      expect(struct003?.params?.name).toBe(story.name);
     }
   });
 });

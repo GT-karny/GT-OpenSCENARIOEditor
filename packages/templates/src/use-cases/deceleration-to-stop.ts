@@ -77,7 +77,4 @@ export const decelerationToStopUseCase: UseCaseComponent = {
       },
     };
   },
-  reconcile(params) {
-    return { ...params };
-  },
 };

@@ -386,7 +386,7 @@ describe('XodrSerializer', () => {
                   type: 'driving',
                   width: [{ sOffset: 0, a: 3.5, b: 0, c: 0, d: 0 }],
                   roadMarks: [],
-                  link: { predecessorId: 1, successorId: 2 },
+                  link: { predecessors: [{ id: 1 }], successors: [{ id: 2 }] },
                 },
               ],
               centerLane: { id: 0, type: 'none', width: [], roadMarks: [] },

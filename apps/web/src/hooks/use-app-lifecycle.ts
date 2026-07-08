@@ -1,11 +1,13 @@
 import { useCallback } from 'react';
-import type { EditorMode } from '../stores/editor-store';
+import type { EditorMode } from '../stores/document-registry';
 import { useEditorStore } from '../stores/editor-store';
-import { useSimulationStore } from '../stores/simulation-store';
+import { useSimulationStore } from '../features/simulation/stores/simulation-store';
 import { useRouteEditStore } from '../stores/route-edit-store';
 import { useCatalogStore } from '../stores/catalog-store';
-import { getOpenDriveStoreApi, useOdrSidebarStore } from './use-opendrive-store';
+import { useDistributionStore } from '../stores/distribution-store';
+import { resetOpenDriveStore, useOdrSidebarStore } from './use-opendrive-store';
 import { editorMetadataStoreApi } from '../stores/editor-metadata-store-instance';
+import { useDocumentRegistry } from '../stores/document-registry';
 
 /**
  * Centralized lifecycle management for app-wide state transitions.
@@ -34,7 +36,7 @@ export function useAppLifecycle() {
     useOdrSidebarStore.getState().resetAll();
 
     // 5. Actually switch mode
-    useEditorStore.getState().setEditorMode(mode);
+    useDocumentRegistry.getState().setFocusedBase(mode);
   }, []);
 
   const resetForNewFile = useCallback(() => {
@@ -52,6 +54,10 @@ export function useAppLifecycle() {
     // 4. Clear loaded catalogs (will be re-populated by file loading)
     useCatalogStore.getState().resetAll();
 
+    // 4b. Clear the distribution side-document — it must not survive File>New
+    // (clear() re-baselines the registry so the kind ends clean).
+    useDistributionStore.getState().clear();
+
     // 5. Reset OpenDRIVE sidebar tool state
     useOdrSidebarStore.getState().resetAll();
 
@@ -60,17 +66,27 @@ export function useAppLifecycle() {
 
     // 7. Reset editor metadata (virtual roads, junction metadata)
     editorMetadataStoreApi.getState().resetMetadata();
+
+    // 8. Reset opendrive-engine store (empty document + undo history)
+    // so a previously-edited road never leaks into the new scenario.
+    resetOpenDriveStore();
+
+    // 9. Registry: the freshly-reset road network is clean at revision 0.
+    useDocumentRegistry.getState().markLoaded('roadNetwork');
   }, []);
 
   const resetForNewRoadNetwork = useCallback(() => {
     // 1. Reset opendrive-engine store (creates empty document, clears undo history)
-    getOpenDriveStoreApi().getState().createDocument();
+    resetOpenDriveStore();
 
     // 2. Reset sidebar state (tool selection, creation states)
     useOdrSidebarStore.getState().resetAll();
 
     // 3. Reset editor metadata (virtual roads, junction metadata)
     editorMetadataStoreApi.getState().resetMetadata();
+
+    // 4. Registry: the freshly-reset road network is clean at revision 0.
+    useDocumentRegistry.getState().markLoaded('roadNetwork');
   }, []);
 
   return { switchEditorMode, resetForNewFile, resetForNewRoadNetwork };

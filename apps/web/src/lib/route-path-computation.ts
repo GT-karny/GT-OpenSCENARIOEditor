@@ -14,11 +14,12 @@ import type { Route, OpenDriveDocument, LanePosition, Position } from '@osce/sha
 import { resolvePositionToWorld, roadCoordsToWorld } from '@osce/3d-viewer';
 import {
   generateCurvatureAdaptiveSamples,
+  laneSpansAcrossSections,
   resolveRoute,
   computeDrivingHeading,
   type RouteSegment,
 } from '@osce/opendrive';
-import type { RoadManagerClient } from './wasm/road-manager-client';
+import type { RoadManagerClient } from '../features/simulation/lib/wasm/road-manager-client';
 
 /**
  * A point on a computed route path.
@@ -35,6 +36,21 @@ export interface WaypointWorldPos {
   y: number;
   z: number;
   h: number;
+}
+
+/**
+ * A lane change required along a lane-change-aware route, resolved to world
+ * coordinates for visualization. `roadId`/`fromLane`/`toLane`/`s` come from the
+ * GT_esmini router; `x`/`y`/`z` are the world position of `fromLane` at `s`.
+ */
+export interface LaneChangeMarker {
+  x: number;
+  y: number;
+  z: number;
+  roadId: string;
+  fromLane: number;
+  toLane: number;
+  s: number;
 }
 
 /** Sampling options for same-road route segments (curvature-adaptive). */
@@ -61,6 +77,11 @@ export function resolveRouteWaypoints(
 /**
  * Interpolate points along a road lane between two s values using JS geometry.
  * Uses curvature-adaptive sampling for smooth lines on curves.
+ *
+ * `laneId` is the lane at `sFrom`. Spans that cross internal lane-section
+ * boundaries follow `<lane><link>` so the physically continuous lane is tracked
+ * even when lane IDs shift mid-road (e.g. a lane is added/dropped internally),
+ * instead of sticking to the same numeric ID in each section.
  */
 export function interpolateRoadSegment(
   odrDoc: OpenDriveDocument,
@@ -76,14 +97,24 @@ export function interpolateRoadSegment(
   const road = odrDoc.roads.find((r) => r.id === roadId);
   if (!road) return null;
 
-  const sValues = generateCurvatureAdaptiveSamples(road, sMin, sMax, ROUTE_SAMPLING);
   const reverse = sFrom > sTo;
-  const points: Point3[] = [];
+  // Split at lane-section boundaries, remapping laneId via <lane><link>. The
+  // input laneId is valid at sFrom, so anchor to the high end when reversed.
+  const spans = laneSpansAcrossSections(road, laneId, sMin, sMax, reverse ? 'high' : 'low');
 
-  for (const s of sValues) {
-    const result = roadCoordsToWorld(odrDoc, roadId, laneId, s);
-    if (result) {
-      const h = computeDrivingHeading(road, laneId, s, reverse);
+  // Sample each sub-span with its own laneId; concatenate in increasing-s order,
+  // dropping the duplicate point shared at each section boundary.
+  const points: Point3[] = [];
+  for (const span of spans) {
+    if (span.sEnd - span.sStart < 1e-6) continue;
+    const sValues = generateCurvatureAdaptiveSamples(road, span.sStart, span.sEnd, ROUTE_SAMPLING);
+    const dropFirst = points.length > 0;
+    for (let i = 0; i < sValues.length; i++) {
+      if (i === 0 && dropFirst) continue;
+      const s = sValues[i];
+      const result = roadCoordsToWorld(odrDoc, roadId, span.laneId, s);
+      if (!result) continue;
+      const h = computeDrivingHeading(road, span.laneId, s, reverse);
       points.push({ x: result.x, y: result.y, z: result.z, h });
     }
   }
@@ -272,4 +303,105 @@ export async function computeRoadFollowingSegmentsAsync(
   }
 
   return segments;
+}
+
+// ---------------------------------------------------------------------------
+// Lane-change-aware route computation (GT_esmini LaneIndependentRouter)
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute a single lane-change-aware segment between two lane positions via the
+ * GT_esmini router. Returns the route polyline plus the lane changes required
+ * along it (resolved to world coordinates). Falls back to a straight line when
+ * the router finds no path or either endpoint is not a lane position.
+ */
+async function computeLaneChangeAwareSegment(
+  fromPos: Position,
+  toPos: Position,
+  fromWorld: WaypointWorldPos,
+  toWorld: WaypointWorldPos,
+  odrDoc: OpenDriveDocument,
+  rmClient: RoadManagerClient,
+  strategy: number,
+): Promise<{ points: Point3[]; markers: LaneChangeMarker[] }> {
+  if (fromPos.type === 'lanePosition' && toPos.type === 'lanePosition') {
+    try {
+      const result = await rmClient.calculateRoute(
+        parseInt(fromPos.roadId, 10),
+        parseInt(fromPos.laneId, 10),
+        fromPos.s,
+        parseInt(toPos.roadId, 10),
+        parseInt(toPos.laneId, 10),
+        toPos.s,
+        strategy,
+      );
+      if (result.found && result.waypoints.length >= 2) {
+        const points: Point3[] = result.waypoints.map((p) => ({
+          x: p.x,
+          y: p.y,
+          z: p.z,
+          h: p.h,
+        }));
+        const markers: LaneChangeMarker[] = [];
+        for (const lc of result.laneChanges) {
+          const roadId = String(lc.road_id);
+          const world = roadCoordsToWorld(odrDoc, roadId, lc.from_lane, lc.s);
+          if (!world) continue;
+          markers.push({
+            x: world.x,
+            y: world.y,
+            z: world.z,
+            roadId,
+            fromLane: lc.from_lane,
+            toLane: lc.to_lane,
+            s: lc.s,
+          });
+        }
+        return { points, markers };
+      }
+    } catch (err) {
+      console.warn('[Route] calculateRoute (lane-change-aware) failed:', err);
+    }
+  }
+
+  // Fallback: straight line, no lane changes
+  return { points: straightLine(fromWorld, toWorld), markers: [] };
+}
+
+/**
+ * Compute lane-change-aware road-following segments for all waypoint pairs.
+ * Mirrors {@link computeRoadFollowingSegmentsAsync} but uses the GT_esmini
+ * router so the path may change lanes mid-road; also returns the lane-change
+ * markers collected across all segments.
+ */
+export async function computeLaneChangeAwareSegmentsAsync(
+  route: Route,
+  positions: WaypointWorldPos[],
+  odrDoc: OpenDriveDocument,
+  rmClient: RoadManagerClient,
+  strategy: number,
+): Promise<{ segments: Array<Point3[]>; markers: LaneChangeMarker[] }> {
+  const segments: Array<Point3[]> = [];
+  const markers: LaneChangeMarker[] = [];
+  const wpCount = route.waypoints.length;
+
+  const pairs: Array<[number, number]> = [];
+  for (let i = 0; i < wpCount - 1; i++) pairs.push([i, i + 1]);
+  if (route.closed && wpCount >= 2) pairs.push([wpCount - 1, 0]);
+
+  for (const [a, b] of pairs) {
+    const { points, markers: segMarkers } = await computeLaneChangeAwareSegment(
+      route.waypoints[a].position,
+      route.waypoints[b].position,
+      positions[a],
+      positions[b],
+      odrDoc,
+      rmClient,
+      strategy,
+    );
+    segments.push(points);
+    markers.push(...segMarkers);
+  }
+
+  return { segments, markers };
 }

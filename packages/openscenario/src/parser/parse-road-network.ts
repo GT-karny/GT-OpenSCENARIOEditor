@@ -1,46 +1,41 @@
 import type { RoadNetwork, TrafficSignalController, TrafficSignalPhase, TrafficSignalState } from '@osce/shared';
-import { ensureArray } from '../utils/ensure-array.js';
-import { generateId } from '../utils/uuid.js';
-import { strAttr, numAttr, optNumAttr, optStrAttr } from '../utils/xml-helpers.js';
+import type { RawXml } from '../utils/xml-helpers.js';
+import { generateId } from '@osce/shared';
+import { strAttr, numAttr, optNumAttr, optStrAttr, child, children } from '../utils/xml-helpers.js';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function parseRoadNetwork(raw: any): RoadNetwork {
+export function parseRoadNetwork(raw: RawXml | undefined): RoadNetwork {
   if (!raw) return {};
+  const logicFile = child(raw, 'LogicFile');
+  const sceneGraphFile = child(raw, 'SceneGraphFile');
+  const trafficSignals = child(raw, 'TrafficSignals');
   return {
-    logicFile: raw.LogicFile
-      ? { filepath: strAttr(raw.LogicFile, 'filepath') }
-      : undefined,
-    sceneGraphFile: raw.SceneGraphFile
-      ? { filepath: strAttr(raw.SceneGraphFile, 'filepath') }
-      : undefined,
-    trafficSignals: raw.TrafficSignals?.TrafficSignalController
-      ? ensureArray(raw.TrafficSignals.TrafficSignalController).map(parseTrafficSignalController)
+    logicFile: logicFile ? { filepath: strAttr(logicFile, 'filepath') } : undefined,
+    sceneGraphFile: sceneGraphFile ? { filepath: strAttr(sceneGraphFile, 'filepath') } : undefined,
+    trafficSignals: child(trafficSignals, 'TrafficSignalController')
+      ? children(trafficSignals, 'TrafficSignalController').map(parseTrafficSignalController)
       : undefined,
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseTrafficSignalController(raw: any): TrafficSignalController {
+function parseTrafficSignalController(raw: RawXml): TrafficSignalController {
   return {
     id: generateId(),
     name: strAttr(raw, 'name'),
     delay: optNumAttr(raw, 'delay'),
     reference: optStrAttr(raw, 'reference'),
-    phases: ensureArray(raw?.Phase).map(parseTrafficSignalPhase),
+    phases: children(raw, 'Phase').map(parseTrafficSignalPhase),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseTrafficSignalPhase(raw: any): TrafficSignalPhase {
+function parseTrafficSignalPhase(raw: RawXml): TrafficSignalPhase {
   return {
     name: strAttr(raw, 'name'),
     duration: numAttr(raw, 'duration'),
-    trafficSignalStates: ensureArray(raw?.TrafficSignalState).map(parseTrafficSignalState),
+    trafficSignalStates: children(raw, 'TrafficSignalState').map(parseTrafficSignalState),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseTrafficSignalState(raw: any): TrafficSignalState {
+function parseTrafficSignalState(raw: RawXml): TrafficSignalState {
   return {
     trafficSignalId: strAttr(raw, 'trafficSignalId'),
     state: strAttr(raw, 'state'),

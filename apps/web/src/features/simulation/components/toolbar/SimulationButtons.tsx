@@ -1,0 +1,146 @@
+import { useTranslation } from '@osce/i18n';
+import { Play, Square } from 'lucide-react';
+import { toast } from 'sonner';
+import { XoscSerializer, serializeCatalog } from '@osce/openscenario';
+import { Button } from '../../../../components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../../../components/ui/tooltip';
+import { useSimulationStore } from '../../stores/simulation-store';
+import { useScenarioStoreApi } from '../../../../stores/use-scenario-store';
+import { useCatalogStore } from '../../../../stores/catalog-store';
+import { useProjectStore } from '../../../../stores/project-store';
+import { useWasmSimulation } from '../../hooks/use-wasm-simulation';
+import { getSimulationXodr } from '../../lib/simulation-xodr';
+import * as api from '../../../../lib/project-api';
+
+/** Collect catalog XMLs from the catalog store */
+function collectCatalogXmls(): Record<string, string> {
+  const catalogState = useCatalogStore.getState();
+  const catalogXmls: Record<string, string> = {};
+  for (const [name] of catalogState.catalogs) {
+    const raw = catalogState.rawXmls.get(name);
+    if (raw) {
+      catalogXmls[name] = raw;
+    } else {
+      const doc = catalogState.catalogs.get(name);
+      if (doc) catalogXmls[name] = serializeCatalog(doc);
+    }
+  }
+  return catalogXmls;
+}
+
+/** Load catalogs from the project's catalogs/ directory on-demand */
+async function loadProjectCatalogs(): Promise<void> {
+  const project = useProjectStore.getState().currentProject;
+  if (!project) return;
+
+  const catalogFiles = project.files.filter((f) => {
+    if (f.type !== 'xosc') return false;
+    const lower = f.relativePath.toLowerCase();
+    return lower.startsWith('catalogs/') || lower.includes('/catalogs/');
+  });
+
+  if (catalogFiles.length === 0) {
+    console.warn('[SimulationButtons] No catalog files found in project');
+    return;
+  }
+
+  await Promise.allSettled(
+    catalogFiles.map(async (f) => {
+      try {
+        const content = await api.readProjectFile(project.meta.id, f.relativePath);
+        useCatalogStore.getState().loadCatalog(content, f.relativePath);
+      } catch (err) {
+        console.error(`[SimulationButtons] Failed to load ${f.relativePath}:`, err);
+      }
+    }),
+  );
+}
+
+export function SimulationButtons({ compact }: { compact?: boolean }) {
+  const { t } = useTranslation('common');
+  const simStatus = useSimulationStore((s) => s.status);
+  const storeApi = useScenarioStoreApi();
+  const { startSimulation, stopSimulation } = useWasmSimulation();
+
+  const handleRun = async () => {
+    try {
+      const doc = storeApi.getState().document;
+      const serializer = new XoscSerializer();
+      const xml = serializer.serializeFormatted(doc);
+      const { xml: xodrXml } = getSimulationXodr();
+
+      const hasCatalogLocations = Object.values(doc.catalogLocations).some(
+        (loc) => loc?.directory,
+      );
+
+      // Collect catalogs from the store
+      let catalogXmls = collectCatalogXmls();
+
+      // On-demand fallback: if scenario needs catalogs but none are loaded,
+      // try loading from the project before giving up
+      if (hasCatalogLocations && Object.keys(catalogXmls).length === 0) {
+        console.warn('[SimulationButtons] No catalogs loaded, attempting on-demand load...');
+        await loadProjectCatalogs();
+        catalogXmls = collectCatalogXmls();
+      }
+
+      // Block simulation if catalogs are still missing
+      if (hasCatalogLocations && Object.keys(catalogXmls).length === 0) {
+        toast.error(t('simulation.missingCatalogs'));
+        return;
+      }
+
+      // Runtime/load failures are surfaced via the WASM service onError funnel
+      // (see useWasmSimulation). This catch only covers pre-flight serialization.
+      await startSimulation(xml, xodrXml, catalogXmls);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t('labels.serializeFailed'),
+      );
+    }
+  };
+
+  const handleStop = async () => {
+    await stopSimulation();
+  };
+
+  if (simStatus === 'running') {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size={compact ? 'icon' : 'sm'}
+            className={
+              compact
+                ? 'h-8 w-8 text-[var(--color-destructive)] hover:text-[var(--color-destructive)]'
+                : 'text-xs text-[var(--color-destructive)] hover:text-[var(--color-destructive)]'
+            }
+            onClick={handleStop}
+          >
+            <Square className={compact ? 'h-3.5 w-3.5' : 'h-3.5 w-3.5 mr-1'} />
+            {!compact && t('buttons.stop')}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{t('buttons.stop')}</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size={compact ? 'icon' : 'sm'}
+          className={compact ? 'h-8 w-8' : 'text-xs'}
+          onClick={handleRun}
+        >
+          <Play className={compact ? 'h-3.5 w-3.5' : 'h-3.5 w-3.5 mr-1'} />
+          {!compact && t('buttons.run')}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{t('buttons.run')}</TooltipContent>
+    </Tooltip>
+  );
+}

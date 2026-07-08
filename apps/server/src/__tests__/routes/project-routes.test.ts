@@ -3,7 +3,6 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { buildApp } from '../../app.js';
-import { ProjectService } from '../../services/project-service.js';
 import type { FastifyInstance } from 'fastify';
 import type { ProjectDetail, ProjectSummary } from '@osce/shared';
 
@@ -13,12 +12,7 @@ describe('Project Routes', () => {
 
   beforeAll(async () => {
     tmpDir = await mkdtemp(path.join(os.tmpdir(), 'osce-project-route-test-'));
-    app = await buildApp();
-
-    // Replace the projectService with one using a temp directory
-    const testService = new ProjectService(tmpDir);
-    (app as unknown as Record<string, unknown>).projectService = testService;
-
+    app = await buildApp({ projectsBasePath: tmpDir, logger: false });
     await app.ready();
   });
 

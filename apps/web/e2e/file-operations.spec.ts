@@ -1,86 +1,102 @@
 import { test, expect } from '@playwright/test';
-import { resolve } from 'path';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { gotoEditor, addEntity, entityList, dismissDiscardDialog } from './helpers';
 
+// Committed fixture copy (test-fixtures) rather than Thirdparty/, which is a
+// local-only directory absent from CI checkouts.
 const CUTIN_XOSC = resolve(
-  __dirname,
-  '../../../Thirdparty/openscenario-v1.2.0/Examples/CutIn.xosc',
+  dirname(fileURLToPath(import.meta.url)),
+  '../../../test-fixtures/openscenario-v1.2.0/Examples/CutIn.xosc',
 );
 
 test.describe('File Operations', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    // Force the legacy <input type=file> / anchor-download fallbacks so the
+    // file dialogs are drivable by Playwright. In Chromium the app otherwise
+    // prefers the File System Access API (showOpenFilePicker / showSaveFilePicker),
+    // which Playwright cannot interact with.
+    await page.addInitScript(() => {
+      // @ts-expect-error — intentionally remove FS Access API for the fallback path
+      delete window.showOpenFilePicker;
+      // @ts-expect-error — same as above for the save dialog
+      delete window.showSaveFilePicker;
+    });
+    await gotoEditor(page);
   });
 
   test('should open File menu', async ({ page }) => {
-    await page.getByRole('button', { name: 'File' }).click();
+    await page.getByRole('button', { name: 'File', exact: true }).click();
     await expect(page.getByRole('menuitem', { name: 'New' })).toBeVisible();
-    await expect(page.getByRole('menuitem', { name: /Open/ })).toBeVisible();
-    await expect(page.getByRole('menuitem', { name: /Save/ })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: /Open \.xosc/ })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: /Save \.xosc/ })).toBeVisible();
   });
 
   test('should create new scenario via File > New', async ({ page }) => {
-    // First add an entity so there's something to clear
+    // First add an entity so there's something to clear.
     await page.getByRole('tab', { name: /Entities|エンティティ/ }).click();
-    await page.getByRole('button', { name: 'Add new entity' }).click();
-    await page.getByLabel(/Name|名前/).fill('TempEntity');
-    await page.getByRole('dialog').getByRole('button', { name: /Add|追加/ }).click();
-    await expect(page.getByText('TempEntity')).toBeVisible();
+    await addEntity(page, 'TempEntity');
+    await expect(entityList(page).getByText('TempEntity')).toBeVisible();
 
     // File > New
-    await page.getByRole('button', { name: 'File' }).click();
+    await page.getByRole('button', { name: 'File', exact: true }).click();
     await page.getByRole('menuitem', { name: 'New' }).click();
 
-    // Entity should be gone (fresh scenario)
-    await expect(page.getByText('TempEntity')).not.toBeVisible();
+    // The edit made the document dirty, so the unsaved-changes guard prompts;
+    // discard to proceed with the fresh scenario.
+    await dismissDiscardDialog(page, 'discard');
+
+    // Entity should be gone (fresh scenario).
+    await expect(entityList(page).getByText('TempEntity')).not.toBeVisible();
   });
 
   test('should import .xosc file via File > Open', async ({ page }) => {
-    // Set up filechooser listener
     const fileChooserPromise = page.waitForEvent('filechooser');
 
-    await page.getByRole('button', { name: 'File' }).click();
-    await page.getByRole('menuitem', { name: /Open/ }).click();
+    await page.getByRole('button', { name: 'File', exact: true }).click();
+    await page.getByRole('menuitem', { name: /Open \.xosc/ }).click();
+
+    // Opening a project seeds a default document that marks the editor dirty,
+    // so the open guard prompts before the picker; discard to continue.
+    await dismissDiscardDialog(page, 'discard');
 
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(CUTIN_XOSC);
 
-    // After import, entities from CutIn.xosc should appear
-    // CutIn.xosc typically has entities like "Ego" and "OverTaker"
+    // After import, entities from CutIn.xosc (Ego, HAF) should appear.
     const statusBar = page.getByTestId('status-bar');
-    await expect(statusBar).not.toContainText(/Entities:\s*0(?!\d)|エンティティ:\s*0(?!\d)/, { timeout: 5000 });
+    await expect(statusBar).not.toContainText(/Entities:\s*0(?!\d)|エンティティ:\s*0(?!\d)/, {
+      timeout: 5000,
+    });
+    await expect(entityList(page).getByText('Ego', { exact: true })).toBeVisible();
   });
 
   test('should support Undo/Redo with keyboard shortcuts', async ({ page }) => {
-    // Add an entity
     await page.getByRole('tab', { name: /Entities|エンティティ/ }).click();
-    await page.getByRole('button', { name: 'Add new entity' }).click();
-    await page.getByLabel(/Name|名前/).fill('UndoTest');
-    await page.getByRole('dialog').getByRole('button', { name: /Add|追加/ }).click();
-    await expect(page.getByText('UndoTest')).toBeVisible();
+    await addEntity(page, 'UndoTest');
+    await expect(entityList(page).getByText('UndoTest')).toBeVisible();
 
     // Undo (Ctrl+Z)
     await page.keyboard.press('Control+z');
-    await expect(page.getByText('UndoTest')).not.toBeVisible();
+    await expect(entityList(page).getByText('UndoTest')).not.toBeVisible();
 
     // Redo (Ctrl+Y)
     await page.keyboard.press('Control+y');
-    await expect(page.getByText('UndoTest')).toBeVisible();
+    await expect(entityList(page).getByText('UndoTest')).toBeVisible();
   });
 
-  test('should export .xosc via File > Save', async ({ page }) => {
-    // Add some content first
+  test('should open Save As dialog via File > Save in project mode', async ({ page }) => {
+    // In project mode without an active file path, File > Save routes to the
+    // "Save As" dialog (pick a destination inside the project) rather than an
+    // immediate download.
     await page.getByRole('tab', { name: /Entities|エンティティ/ }).click();
-    await page.getByRole('button', { name: 'Add new entity' }).click();
-    await page.getByLabel(/Name|名前/).fill('ExportTest');
-    await page.getByRole('dialog').getByRole('button', { name: /Add|追加/ }).click();
+    await addEntity(page, 'ExportTest');
 
-    // Set up download listener
-    const downloadPromise = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'File', exact: true }).click();
+    await page.getByRole('menuitem', { name: /Save \.xosc/ }).click();
 
-    await page.getByRole('button', { name: 'File' }).click();
-    await page.getByRole('menuitem', { name: /Save/ }).click();
-
-    const download = await downloadPromise;
-    expect(download.suggestedFilename()).toMatch(/\.xosc$/);
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText(/Save Scenario|シナリオを保存/);
   });
 });

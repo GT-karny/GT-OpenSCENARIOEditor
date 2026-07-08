@@ -3,6 +3,7 @@ import { ipcMain, dialog } from 'electron';
 import fs from 'node:fs/promises';
 import { getRecentFiles, addRecentFile, clearRecentFiles } from './recent-files.js';
 import { getAssemblyPresets, saveAssemblyPresets } from './assembly-presets.js';
+import { createMenu } from './menu.js';
 
 export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   // File dialogs
@@ -31,11 +32,6 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     }
   });
 
-  // Window title
-  ipcMain.on('window:setTitle', (_event, title: string) => {
-    mainWindow.setTitle(title);
-  });
-
   // Window controls (custom titlebar)
   ipcMain.on('window:minimize', () => {
     mainWindow.minimize();
@@ -62,10 +58,17 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     mainWindow.webContents.send('window:maximized-changed', false);
   });
 
-  // Recent files
+  // Recent files. Rebuild the native menu after mutations so the
+  // "Open Recent" submenu stays in sync.
   ipcMain.handle('recent:get', () => getRecentFiles());
-  ipcMain.on('recent:add', (_event, filePath: string) => addRecentFile(filePath));
-  ipcMain.on('recent:clear', () => clearRecentFiles());
+  ipcMain.on('recent:add', (_event, filePath: string) => {
+    addRecentFile(filePath);
+    createMenu(mainWindow);
+  });
+  ipcMain.on('recent:clear', () => {
+    clearRecentFiles();
+    createMenu(mainWindow);
+  });
 
   // Assembly presets (editor-wide)
   ipcMain.handle('presets:get', () => getAssemblyPresets());
@@ -81,7 +84,6 @@ export function unregisterIpcHandlers(): void {
   ipcMain.removeHandler('recent:get');
   ipcMain.removeHandler('presets:get');
   ipcMain.removeAllListeners('presets:save');
-  ipcMain.removeAllListeners('window:setTitle');
   ipcMain.removeAllListeners('window:minimize');
   ipcMain.removeAllListeners('window:maximize');
   ipcMain.removeAllListeners('window:close');

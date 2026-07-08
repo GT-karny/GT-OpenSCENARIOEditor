@@ -2,11 +2,11 @@
  * Arc geometry evaluator.
  * Constant curvature road segment (circular arc).
  */
-import type { OdrGeometry } from '@osce/shared';
+import type { OdrGeometryArc } from '@osce/shared';
 import type { Pose2D } from './types.js';
 
-export function evaluateArc(ds: number, geom: OdrGeometry): Pose2D {
-  const k = geom.curvature ?? 0;
+export function evaluateArc(ds: number, geom: OdrGeometryArc): Pose2D {
+  const k = geom.curvature;
   const cosH0 = Math.cos(geom.hdg);
   const sinH0 = Math.sin(geom.hdg);
 

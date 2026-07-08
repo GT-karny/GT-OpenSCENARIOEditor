@@ -20,6 +20,9 @@ import type {
   CollisionTarget,
   OffroadCondition,
   RelativeClearanceCondition,
+  AngleCondition,
+  RelativeAngleCondition,
+  AngleType,
   SimulationTimeCondition,
   StoryboardElementStateCondition,
   StoryboardElementType,
@@ -34,75 +37,87 @@ import type {
   DirectionalDimension,
   Rule,
 } from '@osce/shared';
+import type { RawXml } from '../utils/xml-helpers.js';
 import { parsePosition } from './parse-positions.js';
-import { ensureArray } from '../utils/ensure-array.js';
-import { numAttr, strAttr, optNumAttr, optStrAttr, boolAttr, optBoolAttr, pushBindingFieldPrefix, popBindingFieldPrefix } from '../utils/xml-helpers.js';
+import { numAttr, strAttr, optNumAttr, optStrAttr, boolAttr, optBoolAttr, pushBindingFieldPrefix, popBindingFieldPrefix, child, children, has, rawKeys } from '../utils/xml-helpers.js';
 
 /**
  * Parse a condition body element (ByEntityCondition or ByValueCondition)
  * from parsed XML into the internal representation.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function parseConditionBody(raw: any): ByEntityCondition | ByValueCondition {
-  if (raw.ByEntityCondition) {
-    return parseByEntityCondition(raw.ByEntityCondition);
+export function parseConditionBody(raw: RawXml): ByEntityCondition | ByValueCondition {
+  const byEntity = child(raw, 'ByEntityCondition');
+  if (byEntity) {
+    return parseByEntityCondition(byEntity);
   }
-  if (raw.ByValueCondition) {
-    return parseByValueCondition(raw.ByValueCondition);
+  const byValue = child(raw, 'ByValueCondition');
+  if (byValue) {
+    return parseByValueCondition(byValue);
   }
-  throw new Error(`Unknown condition body: ${Object.keys(raw).join(', ')}`);
+  throw new Error(`Unknown condition body: ${rawKeys(raw).join(', ')}`);
 }
 
 // ---------------------------------------------------------------------------
 // ByEntityCondition
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseByEntityCondition(raw: any): ByEntityCondition {
+function parseByEntityCondition(raw: RawXml): ByEntityCondition {
   return {
     kind: 'byEntity',
-    triggeringEntities: parseTriggeringEntities(raw.TriggeringEntities),
-    entityCondition: parseEntityCondition(raw.EntityCondition),
+    triggeringEntities: parseTriggeringEntities(child(raw, 'TriggeringEntities')),
+    entityCondition: parseEntityCondition(child(raw, 'EntityCondition')),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseTriggeringEntities(raw: any): TriggeringEntities {
+function parseTriggeringEntities(raw: RawXml | undefined): TriggeringEntities {
   return {
     triggeringEntitiesRule: strAttr(raw, 'triggeringEntitiesRule', 'any') as 'any' | 'all',
-    entityRefs: ensureArray(raw?.EntityRef).map(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (ref: any) => strAttr(ref, 'entityRef'),
-    ),
+    entityRefs: children(raw, 'EntityRef').map((ref) => strAttr(ref, 'entityRef')),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseEntityCondition(raw: any): EntityCondition {
+function parseEntityCondition(raw: RawXml | undefined): EntityCondition {
   if (!raw) throw new Error('EntityCondition element is missing');
 
-  if (raw.DistanceCondition) return parseDistanceCondition(raw.DistanceCondition);
-  if (raw.RelativeDistanceCondition) return parseRelativeDistanceCondition(raw.RelativeDistanceCondition);
-  if (raw.TimeHeadwayCondition) return parseTimeHeadwayCondition(raw.TimeHeadwayCondition);
-  if (raw.TimeToCollisionCondition) return parseTimeToCollisionCondition(raw.TimeToCollisionCondition);
-  if (raw.AccelerationCondition) return parseAccelerationCondition(raw.AccelerationCondition);
-  if (raw.SpeedCondition) return parseSpeedCondition(raw.SpeedCondition);
-  if (raw.RelativeSpeedCondition) return parseRelativeSpeedCondition(raw.RelativeSpeedCondition);
-  if (raw.ReachPositionCondition) return parseReachPositionCondition(raw.ReachPositionCondition);
-  if (raw.StandStillCondition) return parseStandStillCondition(raw.StandStillCondition);
-  if (raw.TraveledDistanceCondition) return parseTraveledDistanceCondition(raw.TraveledDistanceCondition);
-  if (raw.EndOfRoadCondition) return parseEndOfRoadCondition(raw.EndOfRoadCondition);
-  if (raw.CollisionCondition) return parseCollisionCondition(raw.CollisionCondition);
-  if (raw.OffroadCondition) return parseOffroadCondition(raw.OffroadCondition);
-  if (raw.RelativeClearanceCondition) return parseRelativeClearanceCondition(raw.RelativeClearanceCondition);
+  const distance = child(raw, 'DistanceCondition');
+  if (distance) return parseDistanceCondition(distance);
+  const relativeDistance = child(raw, 'RelativeDistanceCondition');
+  if (relativeDistance) return parseRelativeDistanceCondition(relativeDistance);
+  const timeHeadway = child(raw, 'TimeHeadwayCondition');
+  if (timeHeadway) return parseTimeHeadwayCondition(timeHeadway);
+  const timeToCollision = child(raw, 'TimeToCollisionCondition');
+  if (timeToCollision) return parseTimeToCollisionCondition(timeToCollision);
+  const acceleration = child(raw, 'AccelerationCondition');
+  if (acceleration) return parseAccelerationCondition(acceleration);
+  const speed = child(raw, 'SpeedCondition');
+  if (speed) return parseSpeedCondition(speed);
+  const relativeSpeed = child(raw, 'RelativeSpeedCondition');
+  if (relativeSpeed) return parseRelativeSpeedCondition(relativeSpeed);
+  const reachPosition = child(raw, 'ReachPositionCondition');
+  if (reachPosition) return parseReachPositionCondition(reachPosition);
+  const standStill = child(raw, 'StandStillCondition');
+  if (standStill) return parseStandStillCondition(standStill);
+  const traveledDistance = child(raw, 'TraveledDistanceCondition');
+  if (traveledDistance) return parseTraveledDistanceCondition(traveledDistance);
+  const endOfRoad = child(raw, 'EndOfRoadCondition');
+  if (endOfRoad) return parseEndOfRoadCondition(endOfRoad);
+  const collision = child(raw, 'CollisionCondition');
+  if (collision) return parseCollisionCondition(collision);
+  const offroad = child(raw, 'OffroadCondition');
+  if (offroad) return parseOffroadCondition(offroad);
+  const relativeClearance = child(raw, 'RelativeClearanceCondition');
+  if (relativeClearance) return parseRelativeClearanceCondition(relativeClearance);
+  const angle = child(raw, 'AngleCondition');
+  if (angle) return parseAngleCondition(angle);
+  const relativeAngle = child(raw, 'RelativeAngleCondition');
+  if (relativeAngle) return parseRelativeAngleCondition(relativeAngle);
 
-  throw new Error(`Unknown EntityCondition type: ${Object.keys(raw).join(', ')}`);
+  throw new Error(`Unknown EntityCondition type: ${rawKeys(raw).join(', ')}`);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseDistanceCondition(raw: any): DistanceCondition {
+function parseDistanceCondition(raw: RawXml): DistanceCondition {
   pushBindingFieldPrefix('position');
-  const position = parsePosition(raw.Position);
+  const position = parsePosition(child(raw, 'Position'));
   popBindingFieldPrefix();
 
   return {
@@ -116,8 +131,7 @@ function parseDistanceCondition(raw: any): DistanceCondition {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseRelativeDistanceCondition(raw: any): RelativeDistanceCondition {
+function parseRelativeDistanceCondition(raw: RawXml): RelativeDistanceCondition {
   return {
     type: 'relativeDistance',
     entityRef: strAttr(raw, 'entityRef'),
@@ -128,8 +142,7 @@ function parseRelativeDistanceCondition(raw: any): RelativeDistanceCondition {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseTimeHeadwayCondition(raw: any): TimeHeadwayCondition {
+function parseTimeHeadwayCondition(raw: RawXml): TimeHeadwayCondition {
   return {
     type: 'timeHeadway',
     entityRef: strAttr(raw, 'entityRef'),
@@ -141,8 +154,7 @@ function parseTimeHeadwayCondition(raw: any): TimeHeadwayCondition {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseTimeToCollisionCondition(raw: any): TimeToCollisionCondition {
+function parseTimeToCollisionCondition(raw: RawXml): TimeToCollisionCondition {
   return {
     type: 'timeToCollision',
     value: numAttr(raw, 'value'),
@@ -150,33 +162,32 @@ function parseTimeToCollisionCondition(raw: any): TimeToCollisionCondition {
     rule: strAttr(raw, 'rule') as Rule,
     coordinateSystem: optStrAttr(raw, 'coordinateSystem') as CoordinateSystemCond | undefined,
     relativeDistanceType: optStrAttr(raw, 'relativeDistanceType') as RelativeDistanceType | undefined,
-    target: parseTimeToCollisionTarget(raw.TimeToCollisionConditionTarget),
+    target: parseTimeToCollisionTarget(child(raw, 'TimeToCollisionConditionTarget')),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseTimeToCollisionTarget(raw: any): TimeToCollisionTarget {
+function parseTimeToCollisionTarget(raw: RawXml | undefined): TimeToCollisionTarget {
   if (!raw) throw new Error('TimeToCollisionConditionTarget element is missing');
 
-  if (raw.EntityRef) {
-    // EntityRef is parsed as an array by fxp-config; take the first element
-    const ref = Array.isArray(raw.EntityRef) ? raw.EntityRef[0] : raw.EntityRef;
+  // EntityRef is parsed as an array by fxp-config; `child` returns the first.
+  const ref = child(raw, 'EntityRef');
+  if (ref) {
     return {
       kind: 'entity',
       entityRef: strAttr(ref, 'entityRef'),
     };
   }
-  if (raw.Position) {
+  const position = child(raw, 'Position');
+  if (position) {
     return {
       kind: 'position',
-      position: parsePosition(raw.Position),
+      position: parsePosition(position),
     };
   }
-  throw new Error(`Unknown TimeToCollisionConditionTarget: ${Object.keys(raw).join(', ')}`);
+  throw new Error(`Unknown TimeToCollisionConditionTarget: ${rawKeys(raw).join(', ')}`);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseAccelerationCondition(raw: any): AccelerationCondition {
+function parseAccelerationCondition(raw: RawXml): AccelerationCondition {
   return {
     type: 'acceleration',
     value: numAttr(raw, 'value'),
@@ -185,8 +196,7 @@ function parseAccelerationCondition(raw: any): AccelerationCondition {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseSpeedCondition(raw: any): SpeedCondition {
+function parseSpeedCondition(raw: RawXml): SpeedCondition {
   return {
     type: 'speed',
     value: numAttr(raw, 'value'),
@@ -195,8 +205,7 @@ function parseSpeedCondition(raw: any): SpeedCondition {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseRelativeSpeedCondition(raw: any): RelativeSpeedCondition {
+function parseRelativeSpeedCondition(raw: RawXml): RelativeSpeedCondition {
   return {
     type: 'relativeSpeed',
     entityRef: strAttr(raw, 'entityRef'),
@@ -206,10 +215,9 @@ function parseRelativeSpeedCondition(raw: any): RelativeSpeedCondition {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseReachPositionCondition(raw: any): ReachPositionCondition {
+function parseReachPositionCondition(raw: RawXml): ReachPositionCondition {
   pushBindingFieldPrefix('position');
-  const position = parsePosition(raw.Position);
+  const position = parsePosition(child(raw, 'Position'));
   popBindingFieldPrefix();
 
   return {
@@ -219,86 +227,95 @@ function parseReachPositionCondition(raw: any): ReachPositionCondition {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseStandStillCondition(raw: any): StandStillCondition {
+function parseStandStillCondition(raw: RawXml): StandStillCondition {
   return {
     type: 'standStill',
     duration: numAttr(raw, 'duration'),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseTraveledDistanceCondition(raw: any): TraveledDistanceCondition {
+function parseTraveledDistanceCondition(raw: RawXml): TraveledDistanceCondition {
   return {
     type: 'traveledDistance',
     value: numAttr(raw, 'value'),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseEndOfRoadCondition(raw: any): EndOfRoadCondition {
+function parseEndOfRoadCondition(raw: RawXml): EndOfRoadCondition {
   return {
     type: 'endOfRoad',
     duration: numAttr(raw, 'duration'),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseCollisionCondition(raw: any): CollisionCondition {
+function parseCollisionCondition(raw: RawXml): CollisionCondition {
   return {
     type: 'collision',
     target: parseCollisionTarget(raw),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseCollisionTarget(raw: any): CollisionTarget {
-  if (raw.EntityRef) {
-    // EntityRef is parsed as an array by fxp-config; take the first element
-    const ref = Array.isArray(raw.EntityRef) ? raw.EntityRef[0] : raw.EntityRef;
+function parseCollisionTarget(raw: RawXml): CollisionTarget {
+  // EntityRef is parsed as an array by fxp-config; `child` returns the first.
+  const ref = child(raw, 'EntityRef');
+  if (ref) {
     return {
       kind: 'entity',
       entityRef: strAttr(ref, 'entityRef'),
     };
   }
-  if (raw.ByType) {
+  const byType = child(raw, 'ByType');
+  if (byType) {
     return {
       kind: 'objectType',
-      objectType: strAttr(raw.ByType, 'type'),
+      objectType: strAttr(byType, 'type'),
     };
   }
-  throw new Error(`Unknown CollisionCondition target: ${Object.keys(raw).join(', ')}`);
+  throw new Error(`Unknown CollisionCondition target: ${rawKeys(raw).join(', ')}`);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseOffroadCondition(raw: any): OffroadCondition {
+function parseOffroadCondition(raw: RawXml): OffroadCondition {
   return {
     type: 'offroad',
     duration: numAttr(raw, 'duration'),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseRelativeClearanceCondition(raw: any): RelativeClearanceCondition {
+function parseRelativeClearanceCondition(raw: RawXml): RelativeClearanceCondition {
   return {
     type: 'relativeClearance',
     distanceForward: optNumAttr(raw, 'distanceForward'),
     distanceBackward: optNumAttr(raw, 'distanceBackward'),
     freeSpace: boolAttr(raw, 'freeSpace'),
     oppositeLanes: boolAttr(raw, 'oppositeLanes'),
-    entityRefs: ensureArray(raw?.EntityRef).map(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (ref: any) => strAttr(ref, 'entityRef'),
-    ),
-    laneRange: raw?.RelativeLaneRange
-      ? ensureArray(raw.RelativeLaneRange).map(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (lr: any) => ({
-            from: numAttr(lr, 'from'),
-            to: numAttr(lr, 'to'),
-          }),
-        )
+    entityRefs: children(raw, 'EntityRef').map((ref) => strAttr(ref, 'entityRef')),
+    laneRange: has(raw, 'RelativeLaneRange')
+      ? children(raw, 'RelativeLaneRange').map((lr) => ({
+          from: numAttr(lr, 'from'),
+          to: numAttr(lr, 'to'),
+        }))
       : undefined,
+  };
+}
+
+function parseAngleCondition(raw: RawXml): AngleCondition {
+  return {
+    type: 'angle',
+    angleType: strAttr(raw, 'angleType') as AngleType,
+    angle: numAttr(raw, 'angle'),
+    angleTolerance: numAttr(raw, 'angleTolerance'),
+    coordinateSystem: optStrAttr(raw, 'coordinateSystem') as CoordinateSystemCond | undefined,
+  };
+}
+
+function parseRelativeAngleCondition(raw: RawXml): RelativeAngleCondition {
+  return {
+    type: 'relativeAngle',
+    entityRef: strAttr(raw, 'entityRef'),
+    angleType: strAttr(raw, 'angleType') as AngleType,
+    angle: numAttr(raw, 'angle'),
+    angleTolerance: numAttr(raw, 'angleTolerance'),
+    coordinateSystem: optStrAttr(raw, 'coordinateSystem') as CoordinateSystemCond | undefined,
   };
 }
 
@@ -306,31 +323,35 @@ function parseRelativeClearanceCondition(raw: any): RelativeClearanceCondition {
 // ByValueCondition
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseByValueCondition(raw: any): ByValueCondition {
+function parseByValueCondition(raw: RawXml): ByValueCondition {
   return {
     kind: 'byValue',
     valueCondition: parseValueCondition(raw),
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseValueCondition(raw: any): ValueCondition {
+function parseValueCondition(raw: RawXml | undefined): ValueCondition {
   if (!raw) throw new Error('ByValueCondition element is missing');
 
-  if (raw.SimulationTimeCondition) return parseSimulationTimeCondition(raw.SimulationTimeCondition);
-  if (raw.StoryboardElementStateCondition) return parseStoryboardElementStateCondition(raw.StoryboardElementStateCondition);
-  if (raw.ParameterCondition) return parseParameterCondition(raw.ParameterCondition);
-  if (raw.VariableCondition) return parseVariableCondition(raw.VariableCondition);
-  if (raw.TrafficSignalCondition) return parseTrafficSignalCondition(raw.TrafficSignalCondition);
-  if (raw.TrafficSignalControllerCondition) return parseTrafficSignalControllerCondition(raw.TrafficSignalControllerCondition);
-  if (raw.UserDefinedValueCondition) return parseUserDefinedValueCondition(raw.UserDefinedValueCondition);
+  const simulationTime = child(raw, 'SimulationTimeCondition');
+  if (simulationTime) return parseSimulationTimeCondition(simulationTime);
+  const storyboardElementState = child(raw, 'StoryboardElementStateCondition');
+  if (storyboardElementState) return parseStoryboardElementStateCondition(storyboardElementState);
+  const parameter = child(raw, 'ParameterCondition');
+  if (parameter) return parseParameterCondition(parameter);
+  const variable = child(raw, 'VariableCondition');
+  if (variable) return parseVariableCondition(variable);
+  const trafficSignal = child(raw, 'TrafficSignalCondition');
+  if (trafficSignal) return parseTrafficSignalCondition(trafficSignal);
+  const trafficSignalController = child(raw, 'TrafficSignalControllerCondition');
+  if (trafficSignalController) return parseTrafficSignalControllerCondition(trafficSignalController);
+  const userDefinedValue = child(raw, 'UserDefinedValueCondition');
+  if (userDefinedValue) return parseUserDefinedValueCondition(userDefinedValue);
 
-  throw new Error(`Unknown ByValueCondition type: ${Object.keys(raw).join(', ')}`);
+  throw new Error(`Unknown ByValueCondition type: ${rawKeys(raw).join(', ')}`);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseSimulationTimeCondition(raw: any): SimulationTimeCondition {
+function parseSimulationTimeCondition(raw: RawXml): SimulationTimeCondition {
   return {
     type: 'simulationTime',
     value: numAttr(raw, 'value'),
@@ -338,8 +359,7 @@ function parseSimulationTimeCondition(raw: any): SimulationTimeCondition {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseStoryboardElementStateCondition(raw: any): StoryboardElementStateCondition {
+function parseStoryboardElementStateCondition(raw: RawXml): StoryboardElementStateCondition {
   return {
     type: 'storyboardElementState',
     storyboardElementRef: strAttr(raw, 'storyboardElementRef'),
@@ -348,8 +368,7 @@ function parseStoryboardElementStateCondition(raw: any): StoryboardElementStateC
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseParameterCondition(raw: any): ParameterCondition {
+function parseParameterCondition(raw: RawXml): ParameterCondition {
   return {
     type: 'parameter',
     parameterRef: strAttr(raw, 'parameterRef'),
@@ -358,8 +377,7 @@ function parseParameterCondition(raw: any): ParameterCondition {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseVariableCondition(raw: any): VariableCondition {
+function parseVariableCondition(raw: RawXml): VariableCondition {
   return {
     type: 'variable',
     variableRef: strAttr(raw, 'variableRef'),
@@ -368,8 +386,7 @@ function parseVariableCondition(raw: any): VariableCondition {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseTrafficSignalCondition(raw: any): TrafficSignalCondition {
+function parseTrafficSignalCondition(raw: RawXml): TrafficSignalCondition {
   return {
     type: 'trafficSignal',
     name: strAttr(raw, 'name'),
@@ -377,8 +394,7 @@ function parseTrafficSignalCondition(raw: any): TrafficSignalCondition {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseTrafficSignalControllerCondition(raw: any): TrafficSignalControllerCondition {
+function parseTrafficSignalControllerCondition(raw: RawXml): TrafficSignalControllerCondition {
   return {
     type: 'trafficSignalController',
     trafficSignalControllerRef: strAttr(raw, 'trafficSignalControllerRef'),
@@ -386,8 +402,7 @@ function parseTrafficSignalControllerCondition(raw: any): TrafficSignalControlle
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseUserDefinedValueCondition(raw: any): UserDefinedValueCondition {
+function parseUserDefinedValueCondition(raw: RawXml): UserDefinedValueCondition {
   return {
     type: 'userDefinedValue',
     name: strAttr(raw, 'name'),

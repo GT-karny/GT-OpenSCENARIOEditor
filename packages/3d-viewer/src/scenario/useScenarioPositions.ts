@@ -122,6 +122,8 @@ function collectFromAction(
     }
     case 'followTrajectoryAction': {
       const a = action as PrivateAction & { type: 'followTrajectoryAction' };
+      // Catalog-referenced trajectories have no inline shape to render
+      if (!a.trajectory) break;
       const shape = a.trajectory.shape;
       if (shape.type === 'polyline') {
         for (let i = 0; i < shape.vertices.length; i++) {
@@ -134,6 +136,7 @@ function collectFromAction(
           addEntry(entries, actionId, `nurbs-${i}`, shape.controlPoints[i].position, 'action', `NURBS[${i}]`, odrDoc, options);
         }
       }
+      // clothoidSpline: no preview math implemented — skip silently
       break;
     }
     case 'routingAction': {

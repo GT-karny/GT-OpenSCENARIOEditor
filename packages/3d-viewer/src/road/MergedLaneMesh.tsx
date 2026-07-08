@@ -88,6 +88,11 @@ export const MergedLaneMesh: React.FC<MergedLaneMeshProps> = React.memo(
       return { geometry: geom, laneRanges: ranges };
     }, [lanes]);
 
+    // Dispose the previous geometry when a new one is created, and on unmount.
+    useEffect(() => {
+      return () => geometry.dispose();
+    }, [geometry]);
+
     // Register in highlight manager
     useEffect(() => {
       const mesh = meshRef.current;

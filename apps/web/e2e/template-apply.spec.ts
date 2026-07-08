@@ -1,45 +1,44 @@
 import { test, expect } from '@playwright/test';
+import { gotoEditor } from './helpers';
 
+/**
+ * NOTE (E2E repair): The use-case Template Palette is no longer reachable from
+ * the editor UI. The component still exists (apps/web/src/components/panels/
+ * TemplatePalettePanel.tsx) but it is not mounted anywhere in the live app —
+ * the only reference is its own unit test. The editor's left sidebar now hosts
+ * "Entities" + "Variables" tabs (see EditorLayout.tsx); there is no "Templates"
+ * tab and no other entry point that renders the category accordion / template
+ * cards these tests drive.
+ *
+ * This is a removed/relocated feature, not an app defect, so the assertions
+ * below cannot be exercised. They are kept as test.fixme so the intent is
+ * preserved and visible: re-enable (and update selectors) if/when a template
+ * palette entry point is reintroduced. Templates currently reach the canvas
+ * only via drag-and-drop, which has no static palette source to drag from.
+ */
 test.describe('Template Apply', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    // Switch to Templates tab
-    await page.getByRole('tab', { name: /Templates|テンプレート/ }).click();
+    await gotoEditor(page);
   });
 
-  test('should display template categories', async ({ page }) => {
-    // Accordion should show template categories
+  test.fixme('should display template categories', async ({ page }) => {
     await expect(page.getByText(/Highway|高速道路/i)).toBeVisible();
   });
 
-  test('should expand category and show template cards', async ({ page }) => {
-    // Highway category should be expanded by default
-    // Look for a known template name (e.g., "Cut-In")
+  test.fixme('should expand category and show template cards', async ({ page }) => {
     await expect(page.getByText(/Cut.?In/i)).toBeVisible();
   });
 
-  test('should open parameter dialog when clicking a template', async ({ page }) => {
-    // Click on a template card (e.g., Cut-In)
+  test.fixme('should open parameter dialog when clicking a template', async ({ page }) => {
     await page.getByText(/Cut.?In/i).first().click();
-
-    // Parameter dialog should appear
     await expect(page.getByRole('dialog')).toBeVisible();
   });
 
-  test('should apply template with default parameters', async ({ page }) => {
-    // Click on a template
+  test.fixme('should apply template with default parameters', async ({ page }) => {
     await page.getByText(/Cut.?In/i).first().click();
-
-    // Dialog should be visible
     await expect(page.getByRole('dialog')).toBeVisible();
-
-    // Click Apply button
     await page.getByRole('dialog').getByRole('button', { name: /Apply|適用/ }).click();
-
-    // Dialog should close
     await expect(page.getByRole('dialog')).not.toBeVisible();
-
-    // Node editor should now have nodes (check for entity count in status bar)
     const statusBar = page.getByTestId('status-bar');
     await expect(statusBar).not.toContainText(/Entities.*0|エンティティ.*0/);
   });

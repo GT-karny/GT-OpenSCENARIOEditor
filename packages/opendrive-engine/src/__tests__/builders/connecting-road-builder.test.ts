@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import type { OdrRoad, OdrLane, OpenDriveDocument } from '@osce/shared';
+import type { OdrRoad, OdrLane, OdrGeometry, OpenDriveDocument } from '@osce/shared';
+import { evaluateReferenceLineAtS } from '@osce/opendrive';
 import type { LaneRoutingConfig, EndpointLaneRouting } from '../../store/editor-metadata-types.js';
 import {
   computeRoadEndpoint,
@@ -14,65 +15,15 @@ import { createTestDocument, createTestRoad } from '../helpers.js';
 // ---------------------------------------------------------------------------
 
 /**
- * Minimal evaluateAtS for line geometries.
- * Walks through plan view geometry records and computes (x, y, hdg) at a given s.
+ * Evaluate a plan view at a given s using the canonical reference-line evaluator
+ * from @osce/opendrive. Adapts the readonly geometry input type expected by the
+ * builder's `evaluateAtS` callback.
  */
 function evaluateLineAtS(
   planView: readonly { s: number; x: number; y: number; hdg: number; length: number; type: string }[],
   s: number,
 ): { x: number; y: number; hdg: number } {
-  // Find the geometry segment that contains s
-  let geo = planView[0];
-  for (const g of planView) {
-    if (g.s <= s) geo = g;
-  }
-  const ds = s - geo.s;
-  if (geo.type === 'line') {
-    return {
-      x: geo.x + ds * Math.cos(geo.hdg),
-      y: geo.y + ds * Math.sin(geo.hdg),
-      hdg: geo.hdg,
-    };
-  }
-  if (geo.type === 'arc') {
-    const curvature = (geo as unknown as { curvature: number }).curvature;
-    if (Math.abs(curvature) < 1e-12) {
-      return { x: geo.x + ds * Math.cos(geo.hdg), y: geo.y + ds * Math.sin(geo.hdg), hdg: geo.hdg };
-    }
-    const r = 1 / curvature;
-    const theta = ds * curvature;
-    const cx = geo.x - r * Math.sin(geo.hdg);
-    const cy = geo.y + r * Math.cos(geo.hdg);
-    return {
-      x: cx + r * Math.sin(geo.hdg + theta),
-      y: cy - r * Math.cos(geo.hdg + theta),
-      hdg: geo.hdg + theta,
-    };
-  }
-  if (geo.type === 'paramPoly3') {
-    const g = geo as unknown as {
-      aU: number; bU: number; cU: number; dU: number;
-      aV: number; bV: number; cV: number; dV: number;
-      pRange?: string;
-    };
-    const p = g.pRange === 'normalized' ? ds / geo.length : ds;
-    const p2 = p * p;
-    const p3 = p2 * p;
-    const localX = g.aU + g.bU * p + g.cU * p2 + g.dU * p3;
-    const localY = g.aV + g.bV * p + g.cV * p2 + g.dV * p3;
-    const duDp = g.bU + 2 * g.cU * p + 3 * g.dU * p2;
-    const dvDp = g.bV + 2 * g.cV * p + 3 * g.dV * p2;
-    const localHdg = Math.atan2(dvDp, duDp);
-    const cosH = Math.cos(geo.hdg);
-    const sinH = Math.sin(geo.hdg);
-    return {
-      x: geo.x + localX * cosH - localY * sinH,
-      y: geo.y + localX * sinH + localY * cosH,
-      hdg: geo.hdg + localHdg,
-    };
-  }
-  // Fallback
-  return { x: geo.x, y: geo.y, hdg: geo.hdg };
+  return evaluateReferenceLineAtS(planView as readonly OdrGeometry[], s);
 }
 
 /** Create a simple line road along a given heading (right lanes only). */
@@ -130,7 +81,7 @@ function makeArcRoad(id: string, x: number, y: number, hdg: number, length: numb
     id,
     name: `Arc_${id}`,
     length,
-    planView: [{ s: 0, x, y, hdg, length, type: 'arc', curvature } as never],
+    planView: [{ s: 0, x, y, hdg, length, type: 'arc', curvature }],
     lanes: [
       {
         s: 0,
@@ -554,7 +505,7 @@ describe('connecting-road-builder', () => {
       for (const conn of from3Lane) {
         const road = result.roads.find((r) => r.id === conn.connectingRoad)!;
         const drivingLane = road.lanes[0].rightLanes[0];
-        const successorId = Math.abs(drivingLane.link?.successorId ?? 0);
+        const successorId = Math.abs(drivingLane.link?.successors[0]?.id ?? 0);
         expect(successorId).toBeLessThanOrEqual(2);
       }
     });
@@ -675,8 +626,8 @@ describe('connecting-road-builder', () => {
       for (const conn of fromA) {
         const road = result.roads.find((r) => r.id === conn.connectingRoad)!;
         const drivingLane = road.lanes[0].rightLanes[0];
-        expect(drivingLane.link?.predecessorId).toBe(conn.laneLinks[0].from);
-        expect(drivingLane.link?.successorId).toBeDefined();
+        expect(drivingLane.link?.predecessors[0]?.id).toBe(conn.laneLinks[0].from);
+        expect(drivingLane.link?.successors[0]?.id).toBeDefined();
       }
     });
   });

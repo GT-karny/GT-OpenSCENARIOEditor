@@ -1,5 +1,6 @@
 import { app } from 'electron';
 import path from 'node:path';
+import { DEFAULT_SERVER_PORT } from '@osce/shared';
 import { buildApp } from '@osce/server/app';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,7 +39,7 @@ export async function startServer(): Promise<number> {
 
   const address = await server.listen({ port: 0, host: '127.0.0.1' });
   const addrInfo = server.server.address();
-  const port = typeof addrInfo === 'object' && addrInfo ? addrInfo.port : 3001;
+  const port = typeof addrInfo === 'object' && addrInfo ? addrInfo.port : DEFAULT_SERVER_PORT;
 
   console.log(`Server listening at ${address}`);
   return port;

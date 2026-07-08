@@ -6,7 +6,8 @@
 import React, { useMemo } from 'react';
 import { Html } from '@react-three/drei';
 import type { OdrRoad } from '@osce/shared';
-import { evaluateReferenceLineAtS, evaluateElevation, evaluateLaneOffset, stToXyz, computeLaneInnerT, computeLaneOuterT } from '@osce/opendrive';
+import { evaluateReferenceLineAtS, evaluateElevation, evaluateLaneOffset, computeLaneInnerT, computeLaneOuterT } from '@osce/opendrive';
+import { bankedSurfacePoint } from '../utils/banked-surface.js';
 
 interface RoadLabelsProps {
   roads: OdrRoad[];
@@ -31,11 +32,12 @@ export const RoadLabels: React.FC<RoadLabelsProps> = React.memo(
         const z = evaluateElevation(road.elevationProfile, midS);
 
         if (showRoadIds) {
-          const pos = stToXyz(pose, 0, z + 2);
+          // Bank the reference point, then keep the +2m label lift on top.
+          const surf = bankedSurfacePoint(road, pose, midS, 0, z);
           result.push({
             key: `road-${road.id}`,
             text: `Road ${road.id}`,
-            position: [pos.x, pos.y, pos.z],
+            position: [surf.x, surf.y, surf.z + 2],
           });
         }
 
@@ -57,11 +59,12 @@ export const RoadLabels: React.FC<RoadLabelsProps> = React.memo(
               const innerT = computeLaneInnerT(section, lane, dsFromSection) + laneOff;
               const outerT = computeLaneOuterT(section, lane, dsFromSection) + laneOff;
               const t = (innerT + outerT) / 2;
-              const lanePos = stToXyz(secPose, t, secZ + 1);
+              // Bank the lane point, then keep the +1m label lift on top.
+              const surf = bankedSurfacePoint(road, secPose, secMidS, t, secZ);
               result.push({
                 key: `lane-${road.id}-s${i}-${lane.id}`,
                 text: `${lane.id}`,
-                position: [lanePos.x, lanePos.y, lanePos.z],
+                position: [surf.x, surf.y, surf.z + 1],
               });
             }
           }

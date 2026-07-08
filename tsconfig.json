@@ -8,6 +8,8 @@
     { "path": "packages/node-editor" },
     { "path": "packages/3d-viewer" },
     { "path": "packages/mcp-server" },
+    { "path": "packages/opendrive-engine" },
+    { "path": "packages/theme-apex" },
     { "path": "packages/esmini" },
     { "path": "packages/templates" },
     { "path": "packages/i18n" },

@@ -1,8 +1,8 @@
-import type { Position, Orientation, RoutePosition } from '@osce/shared';
+import type { Position, Orientation, RoutePosition, TrajectoryPosition } from '@osce/shared';
 import { buildAttrs, getSubBindings } from '../utils/xml-helpers.js';
+import { buildTrajectory } from './build-actions.js';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildPosition(pos: Position, bindings: Record<string, string> = {}): Record<string, any> {
+export function buildPosition(pos: Position, bindings: Record<string, string> = {}): Record<string, unknown> {
   const orientationBindings = getSubBindings(bindings, 'orientation');
   switch (pos.type) {
     case 'worldPosition':
@@ -17,8 +17,7 @@ export function buildPosition(pos: Position, bindings: Record<string, string> = 
         }, bindings),
       };
     case 'lanePosition': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const lp: any = buildAttrs({
+      const lp: Record<string, unknown> = buildAttrs({
         roadId: pos.roadId,
         laneId: pos.laneId,
         s: pos.s,
@@ -28,8 +27,7 @@ export function buildPosition(pos: Position, bindings: Record<string, string> = 
       return { LanePosition: lp };
     }
     case 'relativeLanePosition': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rlp: any = buildAttrs({
+      const rlp: Record<string, unknown> = buildAttrs({
         entityRef: pos.entityRef,
         dLane: pos.dLane,
         ds: pos.ds,
@@ -40,8 +38,7 @@ export function buildPosition(pos: Position, bindings: Record<string, string> = 
       return { RelativeLanePosition: rlp };
     }
     case 'roadPosition': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rp: any = buildAttrs({
+      const rp: Record<string, unknown> = buildAttrs({
         roadId: pos.roadId,
         s: pos.s,
         t: pos.t,
@@ -50,8 +47,7 @@ export function buildPosition(pos: Position, bindings: Record<string, string> = 
       return { RoadPosition: rp };
     }
     case 'relativeRoadPosition': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rrp: any = buildAttrs({
+      const rrp: Record<string, unknown> = buildAttrs({
         entityRef: pos.entityRef,
         ds: pos.ds,
         dt: pos.dt,
@@ -60,8 +56,7 @@ export function buildPosition(pos: Position, bindings: Record<string, string> = 
       return { RelativeRoadPosition: rrp };
     }
     case 'relativeObjectPosition': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rop: any = buildAttrs({
+      const rop: Record<string, unknown> = buildAttrs({
         entityRef: pos.entityRef,
         dx: pos.dx,
         dy: pos.dy,
@@ -71,8 +66,7 @@ export function buildPosition(pos: Position, bindings: Record<string, string> = 
       return { RelativeObjectPosition: rop };
     }
     case 'relativeWorldPosition': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rwp: any = buildAttrs({
+      const rwp: Record<string, unknown> = buildAttrs({
         entityRef: pos.entityRef,
         dx: pos.dx,
         dy: pos.dy,
@@ -84,8 +78,7 @@ export function buildPosition(pos: Position, bindings: Record<string, string> = 
     case 'routePosition':
       return { RoutePosition: buildRoutePosition(pos) };
     case 'geoPosition': {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const gp: any = buildAttrs({
+      const gp: Record<string, unknown> = buildAttrs({
         latitude: pos.latitude,
         longitude: pos.longitude,
         altitude: pos.altitude,
@@ -93,7 +86,31 @@ export function buildPosition(pos: Position, bindings: Record<string, string> = 
       if (pos.orientation) gp.Orientation = buildOrientation(pos.orientation, orientationBindings);
       return { GeoPosition: gp };
     }
+    case 'trajectoryPosition':
+      return { TrajectoryPosition: buildTrajectoryPosition(pos, orientationBindings) };
   }
+}
+
+function buildTrajectoryPosition(pos: TrajectoryPosition, orientationBindings: Record<string, string>): Record<string, unknown> {
+  // XSD TrajectoryPosition: all(Orientation?, TrajectoryRef) + s / t attributes.
+  const result: Record<string, unknown> = buildAttrs({ s: pos.s, t: pos.t });
+  if (pos.orientation) {
+    result.Orientation = buildOrientation(pos.orientation, orientationBindings);
+  }
+  // XSD TrajectoryRef: choice(Trajectory | CatalogReference).
+  if (pos.trajectoryRef.catalogReference) {
+    result.TrajectoryRef = {
+      CatalogReference: buildAttrs({
+        catalogName: pos.trajectoryRef.catalogReference.catalogName,
+        entryName: pos.trajectoryRef.catalogReference.entryName,
+      }),
+    };
+  } else if (pos.trajectoryRef.trajectory) {
+    result.TrajectoryRef = { Trajectory: buildTrajectory(pos.trajectoryRef.trajectory) };
+  } else {
+    result.TrajectoryRef = {};
+  }
+  return result;
 }
 
 export function buildPositionWrapped(pos: Position, bindings: Record<string, string> = {}): Record<string, unknown> {
@@ -104,10 +121,8 @@ export function buildOrientation(o: Orientation, bindings: Record<string, string
   return buildAttrs({ type: o.type, h: o.h, p: o.p, r: o.r }, bindings);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildRoutePosition(pos: RoutePosition): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: any = {};
+function buildRoutePosition(pos: RoutePosition): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
   if (pos.routeRef.route) {
     result.RouteRef = {
       Route: {
@@ -127,8 +142,7 @@ function buildRoutePosition(pos: RoutePosition): any {
     };
   }
   if (pos.inRoutePosition) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const irp: any = {};
+    const irp: Record<string, unknown> = {};
     if (pos.inRoutePosition.fromCurrentEntity) {
       irp.FromCurrentEntity = buildAttrs({ entityRef: pos.inRoutePosition.fromCurrentEntity.entityRef });
     }

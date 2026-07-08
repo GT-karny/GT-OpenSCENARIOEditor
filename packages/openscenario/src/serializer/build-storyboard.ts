@@ -8,8 +8,8 @@ import type {
   ScenarioAction,
   PrivateAction,
   GlobalAction,
-  UserDefinedAction,
 } from '@osce/shared';
+import { GLOBAL_ACTION_TYPES } from '@osce/shared';
 import { buildPrivateAction, buildGlobalAction, buildUserDefinedAction } from './build-actions.js';
 import { buildTrigger } from './build-triggers.js';
 import { buildParameterDeclarations } from './build-parameters.js';
@@ -18,10 +18,8 @@ import { buildAttrs } from '../utils/xml-helpers.js';
 
 type AllBindings = Record<string, Record<string, string>>;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildStoryboard(sb: Storyboard, allBindings: AllBindings = {}): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: any = {
+export function buildStoryboard(sb: Storyboard, allBindings: AllBindings = {}): Record<string, unknown> {
+  const result: Record<string, unknown> = {
     Init: buildInit(sb.init, allBindings),
   };
 
@@ -34,8 +32,7 @@ export function buildStoryboard(sb: Storyboard, allBindings: AllBindings = {}): 
   return result;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildStory(story: Story, allBindings: AllBindings): any {
+function buildStory(story: Story, allBindings: AllBindings): Record<string, unknown> {
   return {
     ...buildAttrs({ name: story.name }),
     ParameterDeclarations: buildParameterDeclarations(story.parameterDeclarations),
@@ -43,10 +40,8 @@ function buildStory(story: Story, allBindings: AllBindings): any {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildAct(act: Act, allBindings: AllBindings): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: any = {
+function buildAct(act: Act, allBindings: AllBindings): Record<string, unknown> {
+  const result: Record<string, unknown> = {
     ...buildAttrs({ name: act.name }),
     ManeuverGroup: act.maneuverGroups.map((mg) => buildManeuverGroup(mg, allBindings)),
     StartTrigger: buildTrigger(act.startTrigger, allBindings),
@@ -57,10 +52,8 @@ function buildAct(act: Act, allBindings: AllBindings): any {
   return result;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildManeuverGroup(mg: ManeuverGroup, allBindings: AllBindings): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const actors: any = buildAttrs({
+function buildManeuverGroup(mg: ManeuverGroup, allBindings: AllBindings): Record<string, unknown> {
+  const actors: Record<string, unknown> = buildAttrs({
     selectTriggeringEntities: mg.actors.selectTriggeringEntities,
   });
   if (mg.actors.entityRefs.length > 0) {
@@ -77,8 +70,7 @@ function buildManeuverGroup(mg: ManeuverGroup, allBindings: AllBindings): any {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function buildManeuver(m: Maneuver, allBindings: AllBindings): any {
+export function buildManeuver(m: Maneuver, allBindings: AllBindings): Record<string, unknown> {
   return {
     ...buildAttrs({ name: m.name }),
     ParameterDeclarations: buildParameterDeclarations(m.parameterDeclarations),
@@ -86,8 +78,7 @@ export function buildManeuver(m: Maneuver, allBindings: AllBindings): any {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildEvent(e: ScenarioEvent, allBindings: AllBindings): any {
+function buildEvent(e: ScenarioEvent, allBindings: AllBindings): Record<string, unknown> {
   return {
     ...buildAttrs({
       priority: e.priority,
@@ -99,28 +90,21 @@ function buildEvent(e: ScenarioEvent, allBindings: AllBindings): any {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildScenarioAction(sa: ScenarioAction, allBindings: AllBindings): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: any = buildAttrs({ name: sa.name });
+function buildScenarioAction(sa: ScenarioAction, allBindings: AllBindings): Record<string, unknown> {
+  const result: Record<string, unknown> = buildAttrs({ name: sa.name });
   const elementBindings = allBindings[sa.id] ?? {};
 
   const action = sa.action;
-  switch (action.type) {
-    case 'userDefinedAction':
-      result.UserDefinedAction = buildUserDefinedAction(action as UserDefinedAction);
-      break;
-    case 'environmentAction':
-    case 'entityAction':
-    case 'parameterAction':
-    case 'variableAction':
-    case 'infrastructureAction':
-    case 'trafficAction':
-      result.GlobalAction = buildGlobalAction(action as GlobalAction, elementBindings);
-      break;
-    default:
-      result.PrivateAction = buildPrivateAction(action as PrivateAction, elementBindings);
-      break;
+  // Route to the XSD wrapper element by the canonical GlobalAction discriminator
+  // set rather than a hand-maintained case list, so a newly added GlobalAction
+  // member (e.g. setMonitorAction) is dispatched to <GlobalAction> automatically
+  // instead of silently falling through to <PrivateAction>.
+  if (action.type === 'userDefinedAction') {
+    result.UserDefinedAction = buildUserDefinedAction(action);
+  } else if ((GLOBAL_ACTION_TYPES as readonly string[]).includes(action.type)) {
+    result.GlobalAction = buildGlobalAction(action as GlobalAction, elementBindings);
+  } else {
+    result.PrivateAction = buildPrivateAction(action as PrivateAction, elementBindings);
   }
 
   return result;

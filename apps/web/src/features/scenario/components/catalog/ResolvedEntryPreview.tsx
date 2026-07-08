@@ -1,0 +1,108 @@
+import { useState } from 'react';
+import { useTranslation } from '@osce/i18n';
+import type { CatalogReference, VehicleDefinition, PedestrianDefinition, MiscObjectDefinition, Route } from '@osce/shared';
+import { useCatalogStore, type ResolvedCatalogEntry } from '../../../../stores/catalog-store';
+import { applyParameterAssignments } from '@osce/openscenario';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+
+interface ResolvedEntryPreviewProps {
+  catalogRef: CatalogReference;
+}
+
+export function ResolvedEntryPreview({ catalogRef }: ResolvedEntryPreviewProps) {
+  const { t } = useTranslation('common');
+  const [expanded, setExpanded] = useState(false);
+  const resolveReference = useCatalogStore((s) => s.resolveReference);
+
+  const resolved: ResolvedCatalogEntry | null = resolveReference(catalogRef);
+
+  if (!resolved) {
+    return (
+      <p className="text-xs text-muted-foreground italic">
+        Catalog not loaded or entry not found.
+      </p>
+    );
+  }
+
+  const isEntityType =
+    resolved.catalogType === 'vehicle' ||
+    resolved.catalogType === 'pedestrian' ||
+    resolved.catalogType === 'miscObject';
+
+  const effectiveDef =
+    isEntityType && catalogRef.parameterAssignments.length > 0
+      ? applyParameterAssignments(
+          resolved.definition as VehicleDefinition | PedestrianDefinition | MiscObjectDefinition,
+          catalogRef.parameterAssignments,
+        )
+      : resolved.definition;
+
+  return (
+    <div className="space-y-1">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-[var(--color-text-primary)] transition-colors"
+      >
+        {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        {t('catalog.resolvedValues')}
+      </button>
+      {expanded && (
+        <div className="pl-4 space-y-1 text-xs">
+          <Row label={t('labels.name')} value={effectiveDef.name} />
+          <Row label="Type" value={resolved.catalogType} />
+          {resolved.catalogType === 'vehicle' && (() => {
+            const vDef = effectiveDef as VehicleDefinition;
+            return (
+              <>
+                <Row label={t('labels.category')} value={vDef.vehicleCategory} />
+                <Row label="Max Speed" value={String(vDef.performance.maxSpeed)} />
+                <Row label="Max Accel" value={String(vDef.performance.maxAcceleration)} />
+                <Row label="Max Decel" value={String(vDef.performance.maxDeceleration)} />
+                <Row label="BoundingBox" value={`${vDef.boundingBox.dimensions.width}×${vDef.boundingBox.dimensions.length}×${vDef.boundingBox.dimensions.height}`} />
+              </>
+            );
+          })()}
+          {resolved.catalogType === 'pedestrian' && (() => {
+            const pDef = effectiveDef as PedestrianDefinition;
+            return (
+              <>
+                <Row label={t('labels.category')} value={pDef.pedestrianCategory} />
+                <Row label="Mass" value={String(pDef.mass)} />
+                <Row label="BoundingBox" value={`${pDef.boundingBox.dimensions.width}×${pDef.boundingBox.dimensions.length}×${pDef.boundingBox.dimensions.height}`} />
+              </>
+            );
+          })()}
+          {resolved.catalogType === 'miscObject' && (() => {
+            const mDef = effectiveDef as MiscObjectDefinition;
+            return (
+              <>
+                <Row label={t('labels.category')} value={mDef.miscObjectCategory} />
+                <Row label="Mass" value={String(mDef.mass)} />
+                <Row label="BoundingBox" value={`${mDef.boundingBox.dimensions.width}×${mDef.boundingBox.dimensions.length}×${mDef.boundingBox.dimensions.height}`} />
+              </>
+            );
+          })()}
+          {resolved.catalogType === 'route' && (() => {
+            const rDef = effectiveDef as Route;
+            return (
+              <>
+                <Row label="Closed" value={rDef.closed ? 'Yes' : 'No'} />
+                <Row label="Waypoints" value={String(rDef.waypoints.length)} />
+              </>
+            );
+          })()}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex gap-2">
+      <span className="text-muted-foreground w-24 shrink-0">{label}</span>
+      <span>{value}</span>
+    </div>
+  );
+}

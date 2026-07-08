@@ -7,7 +7,8 @@
  * This is a non-destructive validation layer — it never modifies the document.
  */
 
-import type { OdrRoad, OdrGeometry, OpenDriveDocument } from '@osce/shared';
+import type { OdrRoad, OpenDriveDocument } from '@osce/shared';
+import { evaluateReferenceLineAtS, evaluateGeometry, normalizeAngle } from '@osce/opendrive';
 import type { JunctionCreationPlan } from '../operations/junction-operations.js';
 import type { OpenDriveStore } from '../store/opendrive-store.js';
 
@@ -32,81 +33,6 @@ export interface JunctionValidationResult {
 // ---------------------------------------------------------------------------
 
 /**
- * Evaluate a single geometry element at a local arc-length offset.
- * Supports line, arc, and paramPoly3 types.
- */
-function evaluateGeometryElement(
-  geo: OdrGeometry,
-  ds: number,
-): { x: number; y: number; hdg: number } {
-  const cosH = Math.cos(geo.hdg);
-  const sinH = Math.sin(geo.hdg);
-
-  if (geo.type === 'line') {
-    return {
-      x: geo.x + ds * cosH,
-      y: geo.y + ds * sinH,
-      hdg: geo.hdg,
-    };
-  }
-
-  if (geo.type === 'arc' && geo.curvature !== undefined) {
-    const k = geo.curvature;
-    if (Math.abs(k) < 1e-12) {
-      return { x: geo.x + ds * cosH, y: geo.y + ds * sinH, hdg: geo.hdg };
-    }
-    const r = 1 / k;
-    const theta = ds * k;
-    const cx = geo.x - r * sinH;
-    const cy = geo.y + r * cosH;
-    return {
-      x: cx + r * Math.sin(geo.hdg + theta),
-      y: cy - r * Math.cos(geo.hdg + theta),
-      hdg: geo.hdg + theta,
-    };
-  }
-
-  if (geo.type === 'paramPoly3') {
-    const { aU = 0, bU = 0, cU = 0, dU = 0, aV = 0, bV = 0, cV = 0, dV = 0 } = geo;
-    const len = geo.length;
-    const p = geo.pRange === 'normalized' && len > 0 ? ds / len : ds;
-    const localX = aU + p * (bU + p * (cU + p * dU));
-    const localY = aV + p * (bV + p * (cV + p * dV));
-    const rotX = localX * cosH - localY * sinH;
-    const rotY = localX * sinH + localY * cosH;
-    // Heading from derivative
-    const duDp = bU + p * (2 * cU + 3 * dU * p);
-    const dvDp = bV + p * (2 * cV + 3 * dV * p);
-    const localHdg = Math.atan2(dvDp, duDp);
-    return {
-      x: geo.x + rotX,
-      y: geo.y + rotY,
-      hdg: geo.hdg + localHdg,
-    };
-  }
-
-  // Fallback for unsupported types: straight line approximation
-  return { x: geo.x + ds * cosH, y: geo.y + ds * sinH, hdg: geo.hdg };
-}
-
-/**
- * Evaluate a road's reference line at a given s-coordinate.
- */
-function evaluateRoadAtS(
-  planView: readonly OdrGeometry[],
-  s: number,
-): { x: number; y: number; hdg: number } {
-  // Find the geometry element containing s
-  let geo = planView[0];
-  for (const g of planView) {
-    if (g.s <= s) geo = g;
-    else break;
-  }
-  if (!geo) return { x: 0, y: 0, hdg: 0 };
-  return evaluateGeometryElement(geo, s - geo.s);
-}
-
-/**
  * Sample a road at regular intervals for overlap checking.
  */
 function sampleRoad(
@@ -115,12 +41,12 @@ function sampleRoad(
 ): Array<{ x: number; y: number }> {
   const points: Array<{ x: number; y: number }> = [];
   for (let s = 0; s <= road.length; s += interval) {
-    const pose = evaluateRoadAtS(road.planView, s);
+    const pose = evaluateReferenceLineAtS(road.planView, s);
     points.push({ x: pose.x, y: pose.y });
   }
   // Always include the endpoint
   if (road.length > 0) {
-    const endPose = evaluateRoadAtS(road.planView, road.length);
+    const endPose = evaluateReferenceLineAtS(road.planView, road.length);
     points.push({ x: endPose.x, y: endPose.y });
   }
   return points;
@@ -164,10 +90,10 @@ function validateConnectingRoadGeometry(
 
     // Check start position matches first geometry element
     const startGeo = road.planView[0];
-    const startPose = evaluateGeometryElement(startGeo, 0);
+    const startPose = evaluateGeometry(0, startGeo);
 
     // Check end position: evaluate to the end of the road
-    const endPose = evaluateRoadAtS(road.planView, road.length);
+    const endPose = evaluateReferenceLineAtS(road.planView, road.length);
 
     // Verify the connecting road doesn't loop back on itself (self-intersection proxy)
     const dist = Math.sqrt(
@@ -188,7 +114,7 @@ function validateConnectingRoadGeometry(
       const predRoad = findRoadInPlan(predRoadId, plan);
       if (predRoad) {
         const predS = predContactPoint === 'start' ? 0 : predRoad.length;
-        const predPose = evaluateRoadAtS(predRoad.planView, predS);
+        const predPose = evaluateReferenceLineAtS(predRoad.planView, predS);
         const posError = Math.sqrt(
           (startPose.x - predPose.x) ** 2 + (startPose.y - predPose.y) ** 2,
         );
@@ -374,12 +300,6 @@ function validateNoConnectingRoadOverlap(
 // Helpers
 // ---------------------------------------------------------------------------
 
-function normalizeAngle(a: number): number {
-  while (a > Math.PI) a -= 2 * Math.PI;
-  while (a <= -Math.PI) a += 2 * Math.PI;
-  return a;
-}
-
 /**
  * Find a road in the plan's segments or connecting roads.
  */
@@ -435,11 +355,28 @@ export function validateJunctionPlan(
  * 2. Every junction connection's connectingRoad exists in the document
  * 3. Every incoming road has a predecessor or successor link back to the junction
  */
+/**
+ * Junction types whose connections do NOT carry a connectingRoad. These use
+ * predecessor/successor or linkedRoad topology instead (virtual/direct/crossing
+ * junctions), so the connectingRoad-based link checks below do not apply and
+ * would mis-flag/corrupt every connection. Only default/common junctions are
+ * validated and repaired via connectingRoad.
+ */
+const NON_CONNECTING_ROAD_JUNCTION_TYPES = new Set(['virtual', 'direct', 'crossing']);
+
+function usesConnectingRoadTopology(type: string | undefined): boolean {
+  return !NON_CONNECTING_ROAD_JUNCTION_TYPES.has(type ?? '');
+}
+
 export function validateJunctionLinks(doc: OpenDriveDocument): ValidationEntry[] {
   const entries: ValidationEntry[] = [];
   const roadIds = new Set(doc.roads.map((r) => r.id));
 
   for (const junction of doc.junctions) {
+    // Skip junctions whose connections are not connectingRoad-based; the
+    // checks below assume a resolvable connectingRoad and would mis-flag them.
+    if (!usesConnectingRoadTopology(junction.type)) continue;
+
     for (const conn of junction.connections) {
       // Check incomingRoad exists
       if (!roadIds.has(conn.incomingRoad)) {
@@ -501,6 +438,11 @@ export function repairJunctionLinks(
   const roadIds = new Set(doc.roads.map((r) => r.id));
 
   for (const junction of doc.junctions) {
+    // Skip virtual/direct/crossing junctions — their connections do not carry a
+    // connectingRoad, so the repair logic below would corrupt hand-authored
+    // predecessor/successor/linkedRoad topology.
+    if (!usesConnectingRoadTopology(junction.type)) continue;
+
     let connectionsModified = false;
     const repairedConnections = junction.connections.map((conn) => {
       // Fix stale incomingRoad references

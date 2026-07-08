@@ -1,17 +1,23 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { mkdtemp, rm } from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
 import { buildApp } from '../../app.js';
 import type { FastifyInstance } from 'fastify';
 
 describe('WebSocket Handler', () => {
   let app: FastifyInstance;
+  let tmpDir: string;
 
   beforeAll(async () => {
-    app = await buildApp();
+    tmpDir = await mkdtemp(path.join(os.tmpdir(), 'osce-ws-test-'));
+    app = await buildApp({ projectsBasePath: tmpDir, logger: false });
     await app.ready();
   });
 
   afterAll(async () => {
     await app.close();
+    await rm(tmpDir, { recursive: true, force: true });
   });
 
   it('should respond with pong to ping', async () => {
@@ -40,44 +46,8 @@ describe('WebSocket Handler', () => {
     });
 
     const msg = JSON.parse(response);
-    expect(msg.type).toBe('file:error');
+    expect(msg.type).toBe('error');
     expect(msg.payload.error).toContain('Invalid JSON');
-    ws.close();
-  });
-
-  it('should return simulation status', async () => {
-    const ws = await app.injectWS('/ws');
-
-    const response = await new Promise<string>((resolve) => {
-      ws.on('message', (data: unknown) => {
-        resolve(String(data));
-      });
-      ws.send(JSON.stringify({ type: 'simulation:status' }));
-    });
-
-    const msg = JSON.parse(response);
-    expect(msg.type).toBe('simulation:status');
-    expect(msg.payload.status).toBeDefined();
-    ws.close();
-  });
-
-  it('should handle file:open error for missing file', async () => {
-    const ws = await app.injectWS('/ws');
-
-    const response = await new Promise<string>((resolve) => {
-      ws.on('message', (data: unknown) => {
-        resolve(String(data));
-      });
-      ws.send(
-        JSON.stringify({
-          type: 'file:open',
-          payload: { filePath: '/nonexistent/file.xosc', fileType: 'xosc' },
-        }),
-      );
-    });
-
-    const msg = JSON.parse(response);
-    expect(msg.type).toBe('file:error');
     ws.close();
   });
 
@@ -92,7 +62,7 @@ describe('WebSocket Handler', () => {
     });
 
     const msg = JSON.parse(response);
-    expect(msg.type).toBe('file:error');
+    expect(msg.type).toBe('error');
     expect(msg.payload.error).toContain('Unknown message type');
     ws.close();
   });

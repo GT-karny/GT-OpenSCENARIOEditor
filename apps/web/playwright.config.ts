@@ -5,19 +5,34 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  // One local retry: WASM-simulation specs saturate the CPU in fully-parallel
+  // local runs and can starve UI specs of render time (they pass in isolation).
+  retries: process.env.CI ? 2 : 1,
+  // CI runners have 4 vCPUs; 2 workers roughly halves the serial ~50min suite
+  // while leaving headroom for the two dev servers and the WASM specs.
+  workers: process.env.CI ? 2 : undefined,
+  // Fail fast in CI when breakage is systemic (e.g. the app fails to boot):
+  // without a cap, ~64 failing tests x 2 retries burns the whole job timeout
+  // and the cancelled job never uploads its failure artifacts.
+  maxFailures: process.env.CI ? 10 : 0,
+  // CI: line reporter for readable step logs, plus a non-opening html report
+  // that the workflow uploads as a failure artifact. Local runs keep the
+  // interactive html report.
+  reporter: process.env.CI ? [['line'], ['html', { open: 'never' }]] : 'html',
 
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
+    // Wide viewport so the header toolbar renders in full (non-compact) mode.
+    // Below 1300px the toolbar collapses Validate/Catalog/etc. to icon-only
+    // buttons, which hides their text labels from getByRole name matching.
+    viewport: { width: 1600, height: 900 },
   },
 
   projects: [
     {
       name: 'default',
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1600, height: 900 } },
       testIgnore: /gt-sim\//,
     },
     ...(process.env.USE_GT_SIM
@@ -31,6 +46,10 @@ export default defineConfig({
       : []),
   ],
 
+  // The ports below (backend 3001, frontend 5173, also in `baseURL`) mirror
+  // @osce/shared's DEFAULT_SERVER_PORT / DEFAULT_WEB_PORT, which are the source
+  // of truth. They are kept as literals (not imported) because playwright.config
+  // is evaluated before @osce/shared's dist exists.
   webServer: [
     {
       command: 'pnpm --filter @osce/server dev',

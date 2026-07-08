@@ -223,3 +223,116 @@ describe('repairJunctionLinks', () => {
     expect(repaired).toBe(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// FIX B3: virtual/direct/crossing junctions must be skipped.
+//
+// These junction types use predecessor/successor or linkedRoad topology, not
+// connectingRoad. The connectingRoad-based validator wrongly flagged every
+// connection as STALE_CONNECTING_ROAD / MISSING_ROAD_JUNCTION_LINK and the
+// repairer could corrupt hand-authored virtual connections.
+// ---------------------------------------------------------------------------
+
+/**
+ * Set up a store with a hand-authored virtual junction: a single continuous
+ * main road, plus a virtual junction whose connection uses predecessor/successor
+ * (no connectingRoad in the document). The main road has NO junction link
+ * (correct for virtual junctions).
+ */
+function setupVirtualJunction(type: 'virtual' | 'direct' | 'crossing') {
+  const odrStoreApi = createOpenDriveStore();
+  const store = odrStoreApi.getState();
+
+  store.addRoad(makeSegmentRoad('1', 200, 0, 0, 0));
+
+  store.addJunction({
+    id: '888',
+    name: 'virtualJunction',
+    type,
+    mainRoad: '1',
+    sStart: 95,
+    sEnd: 105,
+    orientation: '+',
+    connections: [
+      {
+        id: '0',
+        incomingRoad: '1',
+        // For virtual junctions the connectingRoad is not a real document road.
+        connectingRoad: '1',
+        contactPoint: 'start',
+        laneLinks: [{ from: -1, to: -1 }],
+        predecessor: { elementType: 'road', elementId: '1', elementS: 95, elementDir: '+' },
+        successor: { elementType: 'road', elementId: '1', elementS: 105, elementDir: '+' },
+      },
+    ],
+  });
+
+  return { store, odrStoreApi };
+}
+
+describe('validateJunctionLinks — virtual/direct/crossing junctions', () => {
+  it.each(['virtual', 'direct', 'crossing'] as const)(
+    'does not flag a hand-authored %s junction',
+    (type) => {
+      const { store } = setupVirtualJunction(type);
+      const doc = store.getDocument();
+      const errors = validateJunctionLinks(doc);
+      expect(errors).toEqual([]);
+    },
+  );
+});
+
+describe('repairJunctionLinks — virtual/direct/crossing junctions', () => {
+  it.each(['virtual', 'direct', 'crossing'] as const)(
+    'does not modify a hand-authored %s junction',
+    (type) => {
+      const { store } = setupVirtualJunction(type);
+      const before = JSON.stringify(store.getDocument());
+
+      const repaired = repairJunctionLinks(store, store.getDocument());
+      expect(repaired).toBe(0);
+
+      const after = JSON.stringify(store.getDocument());
+      expect(after).toBe(before);
+    },
+  );
+
+  it('still repairs a default junction alongside a virtual one', () => {
+    const { store } = setupValidJunction();
+
+    // Add a virtual junction that must be left untouched.
+    store.addJunction({
+      id: '888',
+      name: 'virtualJunction',
+      type: 'virtual',
+      mainRoad: '10',
+      sStart: 10,
+      sEnd: 20,
+      orientation: '+',
+      connections: [
+        {
+          id: '0',
+          incomingRoad: '10',
+          connectingRoad: '10',
+          contactPoint: 'start',
+          laneLinks: [{ from: -1, to: -1 }],
+          predecessor: { elementType: 'road', elementId: '10', elementS: 10, elementDir: '+' },
+        },
+      ],
+    });
+
+    // Break the default junction so a repair is required.
+    store.setRoadLink('10', 'successor', undefined);
+    store.setRoadLink('11', 'predecessor', undefined);
+
+    const repaired = repairJunctionLinks(store, store.getDocument());
+    expect(repaired).toBeGreaterThan(0);
+
+    // Default junction fixed, virtual junction untouched.
+    const docAfter = store.getDocument();
+    expect(validateJunctionLinks(docAfter)).toEqual([]);
+    const virtual = docAfter.junctions.find((j) => j.id === '888')!;
+    expect(virtual.connections[0].incomingRoad).toBe('10');
+    expect(virtual.connections[0].predecessor?.elementId).toBe('10');
+  });
+});

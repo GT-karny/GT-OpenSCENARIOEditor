@@ -14,7 +14,16 @@ import type {
   CoordinateSystem,
   LateralDisplacement,
   LongitudinalDisplacement,
+  CloudState,
+  FractionalCloudCover,
+  PrecipitationType,
+  Wetness,
+  RouteStrategy,
+  SpeedTargetValueType,
+  LightMode,
+  ReferenceContext,
 } from '../enums/osc-enums.js';
+import type { Assert, Equals } from './type-utils.js';
 
 // --- Top-level Action wrapper ---
 
@@ -47,6 +56,37 @@ export type PrivateAction =
   | LightStateAction
   | ConnectTrailerAction
   | DisconnectTrailerAction;
+
+/**
+ * Discriminators of {@link PrivateAction}, in union declaration order. Single
+ * source of truth for runtime consumers (palettes, defaults, feature registry).
+ * Welded to the union by {@link _WeldPrivateActionTypes}: adding a member to the
+ * union without adding it here — or vice versa — is a compile error.
+ */
+export const PRIVATE_ACTION_TYPES = [
+  'speedAction',
+  'speedProfileAction',
+  'laneChangeAction',
+  'laneOffsetAction',
+  'lateralDistanceAction',
+  'longitudinalDistanceAction',
+  'teleportAction',
+  'synchronizeAction',
+  'followTrajectoryAction',
+  'acquirePositionAction',
+  'routingAction',
+  'assignControllerAction',
+  'activateControllerAction',
+  'overrideControllerAction',
+  'visibilityAction',
+  'appearanceAction',
+  'animationAction',
+  'lightStateAction',
+  'connectTrailerAction',
+  'disconnectTrailerAction',
+] as const;
+export type PrivateActionType = (typeof PRIVATE_ACTION_TYPES)[number];
+type _WeldPrivateActionTypes = Assert<Equals<PrivateActionType, PrivateAction['type']>>;
 
 export interface SpeedAction {
   type: 'speedAction';
@@ -121,7 +161,13 @@ export interface SynchronizeAction {
 
 export interface FollowTrajectoryAction {
   type: 'followTrajectoryAction';
-  trajectory: Trajectory;
+  /** Inline trajectory. Mutually exclusive with `trajectoryRef`. */
+  trajectory?: Trajectory;
+  /**
+   * Catalog reference to a trajectory (XSD: TrajectoryRef → CatalogReference).
+   * Mutually exclusive with `trajectory`.
+   */
+  trajectoryRef?: { catalogName: string; entryName: string };
   timeReference: TimeReference;
   followingMode: FollowingMode;
   initialDistanceOffset?: number;
@@ -134,8 +180,18 @@ export interface AcquirePositionAction {
 
 export interface RoutingAction {
   type: 'routingAction';
-  routeAction: 'assignRoute' | 'followToConnectingRoad' | 'acquirePosition';
-  route?: { name: string; closed: boolean; waypoints: Array<{ position: Position; routeStrategy: string }> };
+  /**
+   * Routing variant. Per the v1.3.1 XSD RoutingAction choice
+   * (AssignRouteAction | FollowTrajectoryAction | AcquirePositionAction |
+   * RandomRouteAction). `followTrajectory` is modeled separately as
+   * FollowTrajectoryAction; `randomRoute` is a typed passthrough.
+   */
+  routeAction: 'assignRoute' | 'acquirePosition' | 'randomRoute';
+  route?: {
+    name: string;
+    closed: boolean;
+    waypoints: Array<{ position: Position; routeStrategy: RouteStrategy }>;
+  };
   catalogReference?: { catalogName: string; entryName: string };
   position?: Position;
 }
@@ -193,8 +249,10 @@ export interface AnimationAction {
 
 export interface LightStateAction {
   type: 'lightStateAction';
+  // Either a VehicleLightType value or a user-defined light name (freeform per
+  // XSD UserDefinedLight), so intentionally kept as a permissive string.
   lightType: string;
-  mode: 'on' | 'off' | 'flashing';
+  mode: LightMode;
   intensity?: number;
   color?: { r: number; g: number; b: number };
   transitionTime?: number;
@@ -217,11 +275,35 @@ export type GlobalAction =
   | ParameterAction
   | VariableAction
   | InfrastructureAction
-  | TrafficAction;
+  | TrafficAction
+  | SetMonitorAction;
+
+/**
+ * Discriminators of {@link GlobalAction}, in union declaration order. Welded to
+ * the union by {@link _WeldGlobalActionTypes}.
+ */
+export const GLOBAL_ACTION_TYPES = [
+  'environmentAction',
+  'entityAction',
+  'parameterAction',
+  'variableAction',
+  'infrastructureAction',
+  'trafficAction',
+  'setMonitorAction',
+] as const;
+export type GlobalActionType = (typeof GLOBAL_ACTION_TYPES)[number];
+type _WeldGlobalActionTypes = Assert<Equals<GlobalActionType, GlobalAction['type']>>;
 
 export interface EnvironmentAction {
   type: 'environmentAction';
-  environment: Environment;
+  /** Inline environment. Mutually exclusive with `catalogReference`. */
+  environment?: Environment;
+  /**
+   * Catalog reference to an environment (XSD EnvironmentAction:
+   * choice of Environment | CatalogReference). Mutually exclusive with
+   * `environment`.
+   */
+  catalogReference?: { catalogName: string; entryName: string };
 }
 
 export interface Environment {
@@ -238,18 +320,20 @@ export interface TimeOfDay {
 }
 
 export interface Weather {
-  fractionalCloudCover?: string;
+  /** @deprecated Superseded by fractionalCloudCover in v1.3; kept for legacy round-trip. */
+  cloudState?: CloudState;
+  fractionalCloudCover?: FractionalCloudCover;
   atmosphericPressure?: number;
   temperature?: number;
   sun?: { intensity: number; azimuth: number; elevation: number };
   fog?: { visualRange: number; boundingBox?: { center: { x: number; y: number; z: number }; dimensions: { width: number; length: number; height: number } } };
-  precipitation?: { precipitationType: string; precipitationIntensity: number };
+  precipitation?: { precipitationType: PrecipitationType; precipitationIntensity: number };
   wind?: { direction: number; speed: number };
 }
 
 export interface RoadCondition {
   frictionScaleFactor: number;
-  wetness?: string;
+  wetness?: Wetness;
 }
 
 export interface EntityAction {
@@ -259,12 +343,18 @@ export interface EntityAction {
   position?: Position;
 }
 
+/**
+ * Modify rule for ParameterAction/VariableAction modify actions.
+ * Matches the XSD element names ModifyRule/VariableModifyRule → AddValue | MultiplyByValue.
+ */
+export type ModifyRule = 'addValue' | 'multiplyByValue';
+
 export interface ParameterAction {
   type: 'parameterAction';
   parameterRef: string;
   actionType: 'set' | 'modify';
   value?: string;
-  rule?: string;
+  rule?: ModifyRule;
   modifyValue?: number;
 }
 
@@ -273,7 +363,7 @@ export interface VariableAction {
   variableRef: string;
   actionType: 'set' | 'modify';
   value?: string;
-  rule?: string;
+  rule?: ModifyRule;
   modifyValue?: number;
 }
 
@@ -292,14 +382,43 @@ export interface TrafficAction {
   type: 'trafficAction';
   trafficName?: string;
   trafficActionType?: string;
-  /** Traffic action details - source, sink, swarm, etc. */
+  /**
+   * Traffic action details - source, sink, swarm, area, stop. TrafficAreaAction
+   * (XSD, new in v1.3) is one of these passthrough children and round-trips as-is
+   * via this index signature; it has no dedicated typed member.
+   */
   [key: string]: unknown;
+}
+
+/**
+ * XSD SetMonitorAction (GlobalAction member, new in OpenSCENARIO v1.3): sets a
+ * declared monitor's boolean value.
+ */
+export interface SetMonitorAction {
+  type: 'setMonitorAction';
+  monitorRef: string;
+  value: boolean;
 }
 
 export interface UserDefinedAction {
   type: 'userDefinedAction';
   customCommandAction: string;
 }
+
+/**
+ * All action discriminators: every {@link PrivateAction} and {@link GlobalAction}
+ * plus the `userDefinedAction` wrapper — i.e. the discriminators of
+ * {@link ScenarioAction.action}. Welded by {@link _WeldScenarioActionTypes}.
+ */
+export const SCENARIO_ACTION_TYPES = [
+  ...PRIVATE_ACTION_TYPES,
+  ...GLOBAL_ACTION_TYPES,
+  'userDefinedAction',
+] as const;
+export type ScenarioActionType = (typeof SCENARIO_ACTION_TYPES)[number];
+type _WeldScenarioActionTypes = Assert<
+  Equals<ScenarioActionType, (PrivateAction | GlobalAction | UserDefinedAction)['type']>
+>;
 
 // --- Supporting types ---
 
@@ -312,7 +431,13 @@ export interface TransitionDynamics {
 
 export type SpeedTarget =
   | { kind: 'absolute'; value: number }
-  | { kind: 'relative'; entityRef: string; value: number; speedTargetValueType: 'delta' | 'factor'; continuous: boolean };
+  | {
+      kind: 'relative';
+      entityRef: string;
+      value: number;
+      speedTargetValueType: SpeedTargetValueType;
+      continuous: boolean;
+    };
 
 export type LaneChangeTarget =
   | { kind: 'absolute'; value: number }
@@ -336,7 +461,11 @@ export interface DynamicConstraints {
 
 export interface FinalSpeed {
   absoluteSpeed?: { value: number; steadyState?: boolean };
-  relativeSpeedToMaster?: { value: number; speedTargetValueType: 'delta' | 'factor'; steadyState?: boolean };
+  relativeSpeedToMaster?: {
+    value: number;
+    speedTargetValueType: SpeedTargetValueType;
+    steadyState?: boolean;
+  };
 }
 
 export interface Trajectory {
@@ -349,7 +478,21 @@ export interface Trajectory {
 export type TrajectoryShape =
   | { type: 'polyline'; vertices: TrajectoryVertex[] }
   | { type: 'clothoid'; curvature: number; curvatureDot: number; length: number; startTime?: number; stopTime?: number; position?: Position }
+  | { type: 'clothoidSpline'; segments: ClothoidSplineSegment[]; timeEnd?: number }
   | { type: 'nurbs'; order: number; controlPoints: NurbsControlPoint[]; knots: number[] };
+
+/**
+ * One segment of a ClothoidSpline trajectory shape
+ * (XSD ClothoidSplineSegment, OpenSCENARIO v1.3).
+ */
+export interface ClothoidSplineSegment {
+  curvatureStart: number;
+  curvatureEnd: number;
+  length: number;
+  hOffset?: number;
+  timeStart?: number;
+  positionStart?: Position;
+}
 
 export interface TrajectoryVertex {
   position: Position;
@@ -364,7 +507,7 @@ export interface NurbsControlPoint {
 
 export interface TimeReference {
   none?: boolean;
-  timing?: { domainAbsoluteRelative: 'absolute' | 'relative'; offset: number; scale: number };
+  timing?: { domainAbsoluteRelative: ReferenceContext; offset: number; scale: number };
 }
 
 export interface OverrideValue {

@@ -9,6 +9,13 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { TransformControls } from '@react-three/drei';
 import type * as THREE from 'three';
+import type { OrbitControlsLike } from '../store/viewer-types.js';
+
+/** Minimal interface for TransformControls event handling. */
+interface TransformControlsLike {
+  addEventListener: (event: string, handler: (e: { value: boolean }) => void) => void;
+  removeEventListener: (event: string, handler: (e: { value: boolean }) => void) => void;
+}
 
 interface EntityGizmoProps {
   /** The Three.js object to attach the gizmo to */
@@ -16,7 +23,7 @@ interface EntityGizmoProps {
   /** Gizmo mode: translate or rotate */
   mode: 'translate' | 'rotate';
   /** Reference to OrbitControls (disabled during gizmo drag) */
-  orbitControlsRef?: React.RefObject<any>;
+  orbitControlsRef?: React.RefObject<OrbitControlsLike | null>;
   /** Called when drag ends with new position in OpenSCENARIO world coordinates */
   onDragEnd?: (worldX: number, worldY: number, worldZ: number, heading: number) => void;
 }
@@ -30,7 +37,7 @@ interface EntityGizmoProps {
  */
 export const EntityGizmo: React.FC<EntityGizmoProps> = React.memo(
   ({ object, mode, orbitControlsRef, onDragEnd }) => {
-    const controlsRef = useRef<any>(null);
+    const controlsRef = useRef<TransformControlsLike | null>(null);
 
     // Disable OrbitControls while dragging the gizmo
     useEffect(() => {

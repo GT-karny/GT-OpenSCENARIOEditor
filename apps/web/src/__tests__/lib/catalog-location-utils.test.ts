@@ -1,5 +1,26 @@
 import { describe, it, expect } from 'vitest';
-import { computeRelativeFilePath } from '../../lib/catalog-location-utils';
+import {
+  computeRelativeFilePath,
+  normalizeRelativePath,
+} from '../../lib/catalog-location-utils';
+
+describe('normalizeRelativePath', () => {
+  it('drops ./ and empty segments and converts backslashes', () => {
+    expect(normalizeRelativePath('./xodr/highway.xodr')).toBe('xodr/highway.xodr');
+    expect(normalizeRelativePath('xodr//highway.xodr')).toBe('xodr/highway.xodr');
+    expect(normalizeRelativePath('..\\xodr\\highway.xodr')).toBe('../xodr/highway.xodr');
+  });
+
+  it('collapses .. into its preceding segment', () => {
+    expect(normalizeRelativePath('xosc/../xodr/highway.xodr')).toBe('xodr/highway.xodr');
+  });
+
+  it('preserves leading .. segments (root escape stays visible)', () => {
+    expect(normalizeRelativePath('../xodr/highway.xodr')).toBe('../xodr/highway.xodr');
+    expect(normalizeRelativePath('../../xodr/highway.xodr')).toBe('../../xodr/highway.xodr');
+    expect(normalizeRelativePath('xosc/../../xodr/x.xodr')).toBe('../xodr/x.xodr');
+  });
+});
 
 describe('computeRelativeFilePath', () => {
   it('computes relative path from xosc in subfolder to xodr in sibling folder', () => {

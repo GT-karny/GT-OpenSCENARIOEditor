@@ -16,17 +16,19 @@
     "maturity:validate": "node scripts/maturity/validate-capabilities.mjs",
     "maturity:matrix": "node scripts/maturity/generate-matrix.mjs",
     "maturity:view": "node scripts/maturity/serve-viewer.mjs",
+    "check:wasm": "node scripts/check-wasm-consistency.mjs",
     "test": "vitest",
-    "test:e2e": "playwright test",
-    "lint": "eslint 'packages/*/src/**/*.{ts,tsx}' 'apps/*/src/**/*.{ts,tsx}'",
-    "lint:fix": "eslint --fix 'packages/*/src/**/*.{ts,tsx}' 'apps/*/src/**/*.{ts,tsx}'",
+    "test:e2e": "pnpm --filter @osce/web test:e2e",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "format": "prettier --write 'packages/*/src/**/*.{ts,tsx}' 'apps/*/src/**/*.{ts,tsx}'",
     "typecheck": "tsc --build",
-    "clean": "pnpm -r exec rm -rf dist && rm -f *.tsbuildinfo"
+    "clean": "node scripts/clean.mjs"
   },
+  "packageManager": "pnpm@10.30.3",
   "engines": {
     "node": ">=20.0.0",
-    "pnpm": ">=9.0.0"
+    "pnpm": ">=10.0.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": ["electron", "esbuild", "protobufjs"]
