@@ -17,7 +17,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "proto:version": "node scripts/generate-version-proto.mjs",
-    "proto:gen": "pnpm proto:version && pbjs -t static-module -w es6 --es6 -o src/generated/osi.js -p ../../Thirdparty/open-simulation-interface -p proto proto/service_groundtruth.proto && pbts -o src/generated/osi.d.ts src/generated/osi.js"
+    "proto:sync": "node scripts/sync-proto.mjs",
+    "proto:gen": "pnpm proto:version && pbjs -t static-module -w es6 --es6 -o src/generated/osi.js -p ../../Thirdparty/open-simulation-interface -p proto proto/service_groundtruth.proto proto/service_hostvehicledata.proto && pbts -o src/generated/osi.d.ts src/generated/osi.js"
   },
   "dependencies": {
     "@osce/shared": "workspace:*",

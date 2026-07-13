@@ -1,51 +1,100 @@
 import * as $protobuf from "protobufjs";
 import Long = require("long");
-/** Namespace gt_sim. */
-export namespace gt_sim {
+/** Namespace osi. */
+export namespace osi {
 
-    /** Represents a GroundTruthService */
-    class GroundTruthService extends $protobuf.rpc.Service {
+    /** Namespace server. */
+    namespace server {
 
-        /**
-         * Constructs a new GroundTruthService service.
-         * @param rpcImpl RPC implementation
-         * @param [requestDelimited=false] Whether requests are length-delimited
-         * @param [responseDelimited=false] Whether responses are length-delimited
-         */
-        constructor(rpcImpl: $protobuf.RPCImpl, requestDelimited?: boolean, responseDelimited?: boolean);
+        /** Represents a GroundTruthService */
+        class GroundTruthService extends $protobuf.rpc.Service {
 
-        /**
-         * Creates new GroundTruthService service using the specified rpc implementation.
-         * @param rpcImpl RPC implementation
-         * @param [requestDelimited=false] Whether requests are length-delimited
-         * @param [responseDelimited=false] Whether responses are length-delimited
-         * @returns RPC service. Useful where requests and/or responses are streamed.
-         */
-        public static create(rpcImpl: $protobuf.RPCImpl, requestDelimited?: boolean, responseDelimited?: boolean): GroundTruthService;
+            /**
+             * Constructs a new GroundTruthService service.
+             * @param rpcImpl RPC implementation
+             * @param [requestDelimited=false] Whether requests are length-delimited
+             * @param [responseDelimited=false] Whether responses are length-delimited
+             */
+            constructor(rpcImpl: $protobuf.RPCImpl, requestDelimited?: boolean, responseDelimited?: boolean);
 
-        /**
-         * Calls StreamGroundTruth.
-         * @param request Empty message or plain object
-         * @param callback Node-style callback called with the error, if any, and GroundTruth
-         */
-        public streamGroundTruth(request: google.protobuf.IEmpty, callback: gt_sim.GroundTruthService.StreamGroundTruthCallback): void;
+            /**
+             * Creates new GroundTruthService service using the specified rpc implementation.
+             * @param rpcImpl RPC implementation
+             * @param [requestDelimited=false] Whether requests are length-delimited
+             * @param [responseDelimited=false] Whether responses are length-delimited
+             * @returns RPC service. Useful where requests and/or responses are streamed.
+             */
+            public static create(rpcImpl: $protobuf.RPCImpl, requestDelimited?: boolean, responseDelimited?: boolean): GroundTruthService;
 
-        /**
-         * Calls StreamGroundTruth.
-         * @param request Empty message or plain object
-         * @returns Promise
-         */
-        public streamGroundTruth(request: google.protobuf.IEmpty): Promise<osi3.GroundTruth>;
-    }
+            /**
+             * Calls StreamGroundTruth.
+             * @param request Empty message or plain object
+             * @param callback Node-style callback called with the error, if any, and GroundTruth
+             */
+            public streamGroundTruth(request: google.protobuf.IEmpty, callback: osi.server.GroundTruthService.StreamGroundTruthCallback): void;
 
-    namespace GroundTruthService {
+            /**
+             * Calls StreamGroundTruth.
+             * @param request Empty message or plain object
+             * @returns Promise
+             */
+            public streamGroundTruth(request: google.protobuf.IEmpty): Promise<osi3.GroundTruth>;
+        }
 
-        /**
-         * Callback as used by {@link gt_sim.GroundTruthService#streamGroundTruth}.
-         * @param error Error, if any
-         * @param [response] GroundTruth
-         */
-        type StreamGroundTruthCallback = (error: (Error|null), response?: osi3.GroundTruth) => void;
+        namespace GroundTruthService {
+
+            /**
+             * Callback as used by {@link osi.server.GroundTruthService#streamGroundTruth}.
+             * @param error Error, if any
+             * @param [response] GroundTruth
+             */
+            type StreamGroundTruthCallback = (error: (Error|null), response?: osi3.GroundTruth) => void;
+        }
+
+        /** Represents a HostVehicleDataService */
+        class HostVehicleDataService extends $protobuf.rpc.Service {
+
+            /**
+             * Constructs a new HostVehicleDataService service.
+             * @param rpcImpl RPC implementation
+             * @param [requestDelimited=false] Whether requests are length-delimited
+             * @param [responseDelimited=false] Whether responses are length-delimited
+             */
+            constructor(rpcImpl: $protobuf.RPCImpl, requestDelimited?: boolean, responseDelimited?: boolean);
+
+            /**
+             * Creates new HostVehicleDataService service using the specified rpc implementation.
+             * @param rpcImpl RPC implementation
+             * @param [requestDelimited=false] Whether requests are length-delimited
+             * @param [responseDelimited=false] Whether responses are length-delimited
+             * @returns RPC service. Useful where requests and/or responses are streamed.
+             */
+            public static create(rpcImpl: $protobuf.RPCImpl, requestDelimited?: boolean, responseDelimited?: boolean): HostVehicleDataService;
+
+            /**
+             * Calls StreamHostVehicleData.
+             * @param request Empty message or plain object
+             * @param callback Node-style callback called with the error, if any, and HostVehicleData
+             */
+            public streamHostVehicleData(request: google.protobuf.IEmpty, callback: osi.server.HostVehicleDataService.StreamHostVehicleDataCallback): void;
+
+            /**
+             * Calls StreamHostVehicleData.
+             * @param request Empty message or plain object
+             * @returns Promise
+             */
+            public streamHostVehicleData(request: google.protobuf.IEmpty): Promise<osi3.HostVehicleData>;
+        }
+
+        namespace HostVehicleDataService {
+
+            /**
+             * Callback as used by {@link osi.server.HostVehicleDataService#streamHostVehicleData}.
+             * @param error Error, if any
+             * @param [response] HostVehicleData
+             */
+            type StreamHostVehicleDataCallback = (error: (Error|null), response?: osi3.HostVehicleData) => void;
+        }
     }
 }
 
@@ -10449,6 +10498,1781 @@ export namespace osi3 {
                 STEERING_CONTROL_LEFT_HAND = 5,
                 STEERING_CONTROL_RIGHT_HAND = 6
             }
+        }
+    }
+
+    /** Properties of a HostVehicleData. */
+    interface IHostVehicleData {
+
+        /** HostVehicleData version */
+        version?: (osi3.IInterfaceVersion|null);
+
+        /** HostVehicleData timestamp */
+        timestamp?: (osi3.ITimestamp|null);
+
+        /** HostVehicleData hostVehicleId */
+        hostVehicleId?: (osi3.IIdentifier|null);
+
+        /** HostVehicleData location */
+        location?: (osi3.IBaseMoving|null);
+
+        /** HostVehicleData locationRmse */
+        locationRmse?: (osi3.IBaseMoving|null);
+
+        /** HostVehicleData vehicleBasics */
+        vehicleBasics?: (osi3.HostVehicleData.IVehicleBasics|null);
+
+        /** HostVehicleData vehiclePowertrain */
+        vehiclePowertrain?: (osi3.HostVehicleData.IVehiclePowertrain|null);
+
+        /** HostVehicleData vehicleBrakeSystem */
+        vehicleBrakeSystem?: (osi3.HostVehicleData.IVehicleBrakeSystem|null);
+
+        /** HostVehicleData vehicleSteering */
+        vehicleSteering?: (osi3.HostVehicleData.IVehicleSteering|null);
+
+        /** HostVehicleData vehicleWheels */
+        vehicleWheels?: (osi3.HostVehicleData.IVehicleWheels|null);
+
+        /** HostVehicleData vehicleLocalization */
+        vehicleLocalization?: (osi3.HostVehicleData.IVehicleLocalization|null);
+
+        /** HostVehicleData vehicleAutomatedDrivingFunction */
+        vehicleAutomatedDrivingFunction?: (osi3.HostVehicleData.IVehicleAutomatedDrivingFunction[]|null);
+
+        /** HostVehicleData vehicleMotion */
+        vehicleMotion?: (osi3.HostVehicleData.IVehicleMotion|null);
+
+        /** HostVehicleData route */
+        route?: (osi3.IRoute|null);
+    }
+
+    /** Represents a HostVehicleData. */
+    class HostVehicleData implements IHostVehicleData {
+
+        /**
+         * Constructs a new HostVehicleData.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: osi3.IHostVehicleData);
+
+        /** HostVehicleData version. */
+        public version?: (osi3.IInterfaceVersion|null);
+
+        /** HostVehicleData timestamp. */
+        public timestamp?: (osi3.ITimestamp|null);
+
+        /** HostVehicleData hostVehicleId. */
+        public hostVehicleId?: (osi3.IIdentifier|null);
+
+        /** HostVehicleData location. */
+        public location?: (osi3.IBaseMoving|null);
+
+        /** HostVehicleData locationRmse. */
+        public locationRmse?: (osi3.IBaseMoving|null);
+
+        /** HostVehicleData vehicleBasics. */
+        public vehicleBasics?: (osi3.HostVehicleData.IVehicleBasics|null);
+
+        /** HostVehicleData vehiclePowertrain. */
+        public vehiclePowertrain?: (osi3.HostVehicleData.IVehiclePowertrain|null);
+
+        /** HostVehicleData vehicleBrakeSystem. */
+        public vehicleBrakeSystem?: (osi3.HostVehicleData.IVehicleBrakeSystem|null);
+
+        /** HostVehicleData vehicleSteering. */
+        public vehicleSteering?: (osi3.HostVehicleData.IVehicleSteering|null);
+
+        /** HostVehicleData vehicleWheels. */
+        public vehicleWheels?: (osi3.HostVehicleData.IVehicleWheels|null);
+
+        /** HostVehicleData vehicleLocalization. */
+        public vehicleLocalization?: (osi3.HostVehicleData.IVehicleLocalization|null);
+
+        /** HostVehicleData vehicleAutomatedDrivingFunction. */
+        public vehicleAutomatedDrivingFunction: osi3.HostVehicleData.IVehicleAutomatedDrivingFunction[];
+
+        /** HostVehicleData vehicleMotion. */
+        public vehicleMotion?: (osi3.HostVehicleData.IVehicleMotion|null);
+
+        /** HostVehicleData route. */
+        public route?: (osi3.IRoute|null);
+
+        /**
+         * Creates a new HostVehicleData instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns HostVehicleData instance
+         */
+        public static create(properties?: osi3.IHostVehicleData): osi3.HostVehicleData;
+
+        /**
+         * Encodes the specified HostVehicleData message. Does not implicitly {@link osi3.HostVehicleData.verify|verify} messages.
+         * @param message HostVehicleData message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: osi3.IHostVehicleData, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified HostVehicleData message, length delimited. Does not implicitly {@link osi3.HostVehicleData.verify|verify} messages.
+         * @param message HostVehicleData message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: osi3.IHostVehicleData, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a HostVehicleData message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns HostVehicleData
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): osi3.HostVehicleData;
+
+        /**
+         * Decodes a HostVehicleData message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns HostVehicleData
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): osi3.HostVehicleData;
+
+        /**
+         * Verifies a HostVehicleData message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a HostVehicleData message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns HostVehicleData
+         */
+        public static fromObject(object: { [k: string]: any }): osi3.HostVehicleData;
+
+        /**
+         * Creates a plain object from a HostVehicleData message. Also converts values to other types if specified.
+         * @param message HostVehicleData
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: osi3.HostVehicleData, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this HostVehicleData to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for HostVehicleData
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    namespace HostVehicleData {
+
+        /** Properties of a VehicleBasics. */
+        interface IVehicleBasics {
+
+            /** VehicleBasics curbWeight */
+            curbWeight?: (number|null);
+
+            /** VehicleBasics operatingState */
+            operatingState?: (osi3.HostVehicleData.VehicleBasics.OperatingState|null);
+        }
+
+        /** Represents a VehicleBasics. */
+        class VehicleBasics implements IVehicleBasics {
+
+            /**
+             * Constructs a new VehicleBasics.
+             * @param [properties] Properties to set
+             */
+            constructor(properties?: osi3.HostVehicleData.IVehicleBasics);
+
+            /** VehicleBasics curbWeight. */
+            public curbWeight: number;
+
+            /** VehicleBasics operatingState. */
+            public operatingState: osi3.HostVehicleData.VehicleBasics.OperatingState;
+
+            /**
+             * Creates a new VehicleBasics instance using the specified properties.
+             * @param [properties] Properties to set
+             * @returns VehicleBasics instance
+             */
+            public static create(properties?: osi3.HostVehicleData.IVehicleBasics): osi3.HostVehicleData.VehicleBasics;
+
+            /**
+             * Encodes the specified VehicleBasics message. Does not implicitly {@link osi3.HostVehicleData.VehicleBasics.verify|verify} messages.
+             * @param message VehicleBasics message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encode(message: osi3.HostVehicleData.IVehicleBasics, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Encodes the specified VehicleBasics message, length delimited. Does not implicitly {@link osi3.HostVehicleData.VehicleBasics.verify|verify} messages.
+             * @param message VehicleBasics message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encodeDelimited(message: osi3.HostVehicleData.IVehicleBasics, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Decodes a VehicleBasics message from the specified reader or buffer.
+             * @param reader Reader or buffer to decode from
+             * @param [length] Message length if known beforehand
+             * @returns VehicleBasics
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): osi3.HostVehicleData.VehicleBasics;
+
+            /**
+             * Decodes a VehicleBasics message from the specified reader or buffer, length delimited.
+             * @param reader Reader or buffer to decode from
+             * @returns VehicleBasics
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): osi3.HostVehicleData.VehicleBasics;
+
+            /**
+             * Verifies a VehicleBasics message.
+             * @param message Plain object to verify
+             * @returns `null` if valid, otherwise the reason why it is not
+             */
+            public static verify(message: { [k: string]: any }): (string|null);
+
+            /**
+             * Creates a VehicleBasics message from a plain object. Also converts values to their respective internal types.
+             * @param object Plain object
+             * @returns VehicleBasics
+             */
+            public static fromObject(object: { [k: string]: any }): osi3.HostVehicleData.VehicleBasics;
+
+            /**
+             * Creates a plain object from a VehicleBasics message. Also converts values to other types if specified.
+             * @param message VehicleBasics
+             * @param [options] Conversion options
+             * @returns Plain object
+             */
+            public static toObject(message: osi3.HostVehicleData.VehicleBasics, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+            /**
+             * Converts this VehicleBasics to JSON.
+             * @returns JSON object
+             */
+            public toJSON(): { [k: string]: any };
+
+            /**
+             * Gets the default type url for VehicleBasics
+             * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+             * @returns The default type url
+             */
+            public static getTypeUrl(typeUrlPrefix?: string): string;
+        }
+
+        namespace VehicleBasics {
+
+            /** OperatingState enum. */
+            enum OperatingState {
+                OPERATING_STATE_UNKNOWN = 0,
+                OPERATING_STATE_OTHER = 1,
+                OPERATING_STATE_SLEEP = 2,
+                OPERATING_STATE_STANDBY = 3,
+                OPERATING_STATE_BOARDING = 4,
+                OPERATING_STATE_ENTERTAINMENT = 5,
+                OPERATING_STATE_DRIVING = 6,
+                OPERATING_STATE_DIAGNOSTIC = 7
+            }
+        }
+
+        /** Properties of a VehiclePowertrain. */
+        interface IVehiclePowertrain {
+
+            /** VehiclePowertrain pedalPositionAcceleration */
+            pedalPositionAcceleration?: (number|null);
+
+            /** VehiclePowertrain pedalPositionClutch */
+            pedalPositionClutch?: (number|null);
+
+            /** VehiclePowertrain gearTransmission */
+            gearTransmission?: (number|null);
+
+            /** VehiclePowertrain motor */
+            motor?: (osi3.HostVehicleData.VehiclePowertrain.IMotor[]|null);
+        }
+
+        /** Represents a VehiclePowertrain. */
+        class VehiclePowertrain implements IVehiclePowertrain {
+
+            /**
+             * Constructs a new VehiclePowertrain.
+             * @param [properties] Properties to set
+             */
+            constructor(properties?: osi3.HostVehicleData.IVehiclePowertrain);
+
+            /** VehiclePowertrain pedalPositionAcceleration. */
+            public pedalPositionAcceleration: number;
+
+            /** VehiclePowertrain pedalPositionClutch. */
+            public pedalPositionClutch: number;
+
+            /** VehiclePowertrain gearTransmission. */
+            public gearTransmission: number;
+
+            /** VehiclePowertrain motor. */
+            public motor: osi3.HostVehicleData.VehiclePowertrain.IMotor[];
+
+            /**
+             * Creates a new VehiclePowertrain instance using the specified properties.
+             * @param [properties] Properties to set
+             * @returns VehiclePowertrain instance
+             */
+            public static create(properties?: osi3.HostVehicleData.IVehiclePowertrain): osi3.HostVehicleData.VehiclePowertrain;
+
+            /**
+             * Encodes the specified VehiclePowertrain message. Does not implicitly {@link osi3.HostVehicleData.VehiclePowertrain.verify|verify} messages.
+             * @param message VehiclePowertrain message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encode(message: osi3.HostVehicleData.IVehiclePowertrain, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Encodes the specified VehiclePowertrain message, length delimited. Does not implicitly {@link osi3.HostVehicleData.VehiclePowertrain.verify|verify} messages.
+             * @param message VehiclePowertrain message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encodeDelimited(message: osi3.HostVehicleData.IVehiclePowertrain, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Decodes a VehiclePowertrain message from the specified reader or buffer.
+             * @param reader Reader or buffer to decode from
+             * @param [length] Message length if known beforehand
+             * @returns VehiclePowertrain
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): osi3.HostVehicleData.VehiclePowertrain;
+
+            /**
+             * Decodes a VehiclePowertrain message from the specified reader or buffer, length delimited.
+             * @param reader Reader or buffer to decode from
+             * @returns VehiclePowertrain
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): osi3.HostVehicleData.VehiclePowertrain;
+
+            /**
+             * Verifies a VehiclePowertrain message.
+             * @param message Plain object to verify
+             * @returns `null` if valid, otherwise the reason why it is not
+             */
+            public static verify(message: { [k: string]: any }): (string|null);
+
+            /**
+             * Creates a VehiclePowertrain message from a plain object. Also converts values to their respective internal types.
+             * @param object Plain object
+             * @returns VehiclePowertrain
+             */
+            public static fromObject(object: { [k: string]: any }): osi3.HostVehicleData.VehiclePowertrain;
+
+            /**
+             * Creates a plain object from a VehiclePowertrain message. Also converts values to other types if specified.
+             * @param message VehiclePowertrain
+             * @param [options] Conversion options
+             * @returns Plain object
+             */
+            public static toObject(message: osi3.HostVehicleData.VehiclePowertrain, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+            /**
+             * Converts this VehiclePowertrain to JSON.
+             * @returns JSON object
+             */
+            public toJSON(): { [k: string]: any };
+
+            /**
+             * Gets the default type url for VehiclePowertrain
+             * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+             * @returns The default type url
+             */
+            public static getTypeUrl(typeUrlPrefix?: string): string;
+        }
+
+        namespace VehiclePowertrain {
+
+            /** Properties of a Motor. */
+            interface IMotor {
+
+                /** Motor type */
+                type?: (osi3.HostVehicleData.VehiclePowertrain.Motor.Type|null);
+
+                /** Motor rpm */
+                rpm?: (number|null);
+
+                /** Motor torque */
+                torque?: (number|null);
+            }
+
+            /** Represents a Motor. */
+            class Motor implements IMotor {
+
+                /**
+                 * Constructs a new Motor.
+                 * @param [properties] Properties to set
+                 */
+                constructor(properties?: osi3.HostVehicleData.VehiclePowertrain.IMotor);
+
+                /** Motor type. */
+                public type: osi3.HostVehicleData.VehiclePowertrain.Motor.Type;
+
+                /** Motor rpm. */
+                public rpm: number;
+
+                /** Motor torque. */
+                public torque: number;
+
+                /**
+                 * Creates a new Motor instance using the specified properties.
+                 * @param [properties] Properties to set
+                 * @returns Motor instance
+                 */
+                public static create(properties?: osi3.HostVehicleData.VehiclePowertrain.IMotor): osi3.HostVehicleData.VehiclePowertrain.Motor;
+
+                /**
+                 * Encodes the specified Motor message. Does not implicitly {@link osi3.HostVehicleData.VehiclePowertrain.Motor.verify|verify} messages.
+                 * @param message Motor message or plain object to encode
+                 * @param [writer] Writer to encode to
+                 * @returns Writer
+                 */
+                public static encode(message: osi3.HostVehicleData.VehiclePowertrain.IMotor, writer?: $protobuf.Writer): $protobuf.Writer;
+
+                /**
+                 * Encodes the specified Motor message, length delimited. Does not implicitly {@link osi3.HostVehicleData.VehiclePowertrain.Motor.verify|verify} messages.
+                 * @param message Motor message or plain object to encode
+                 * @param [writer] Writer to encode to
+                 * @returns Writer
+                 */
+                public static encodeDelimited(message: osi3.HostVehicleData.VehiclePowertrain.IMotor, writer?: $protobuf.Writer): $protobuf.Writer;
+
+                /**
+                 * Decodes a Motor message from the specified reader or buffer.
+                 * @param reader Reader or buffer to decode from
+                 * @param [length] Message length if known beforehand
+                 * @returns Motor
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): osi3.HostVehicleData.VehiclePowertrain.Motor;
+
+                /**
+                 * Decodes a Motor message from the specified reader or buffer, length delimited.
+                 * @param reader Reader or buffer to decode from
+                 * @returns Motor
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): osi3.HostVehicleData.VehiclePowertrain.Motor;
+
+                /**
+                 * Verifies a Motor message.
+                 * @param message Plain object to verify
+                 * @returns `null` if valid, otherwise the reason why it is not
+                 */
+                public static verify(message: { [k: string]: any }): (string|null);
+
+                /**
+                 * Creates a Motor message from a plain object. Also converts values to their respective internal types.
+                 * @param object Plain object
+                 * @returns Motor
+                 */
+                public static fromObject(object: { [k: string]: any }): osi3.HostVehicleData.VehiclePowertrain.Motor;
+
+                /**
+                 * Creates a plain object from a Motor message. Also converts values to other types if specified.
+                 * @param message Motor
+                 * @param [options] Conversion options
+                 * @returns Plain object
+                 */
+                public static toObject(message: osi3.HostVehicleData.VehiclePowertrain.Motor, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+                /**
+                 * Converts this Motor to JSON.
+                 * @returns JSON object
+                 */
+                public toJSON(): { [k: string]: any };
+
+                /**
+                 * Gets the default type url for Motor
+                 * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                 * @returns The default type url
+                 */
+                public static getTypeUrl(typeUrlPrefix?: string): string;
+            }
+
+            namespace Motor {
+
+                /** Type enum. */
+                enum Type {
+                    TYPE_UNKNOWN = 0,
+                    TYPE_OTHER = 1,
+                    TYPE_OTTO = 2,
+                    TYPE_DIESEL = 3,
+                    TYPE_ELECTRIC = 4
+                }
+            }
+        }
+
+        /** Properties of a VehicleBrakeSystem. */
+        interface IVehicleBrakeSystem {
+
+            /** VehicleBrakeSystem pedalPositionBrake */
+            pedalPositionBrake?: (number|null);
+        }
+
+        /** Represents a VehicleBrakeSystem. */
+        class VehicleBrakeSystem implements IVehicleBrakeSystem {
+
+            /**
+             * Constructs a new VehicleBrakeSystem.
+             * @param [properties] Properties to set
+             */
+            constructor(properties?: osi3.HostVehicleData.IVehicleBrakeSystem);
+
+            /** VehicleBrakeSystem pedalPositionBrake. */
+            public pedalPositionBrake: number;
+
+            /**
+             * Creates a new VehicleBrakeSystem instance using the specified properties.
+             * @param [properties] Properties to set
+             * @returns VehicleBrakeSystem instance
+             */
+            public static create(properties?: osi3.HostVehicleData.IVehicleBrakeSystem): osi3.HostVehicleData.VehicleBrakeSystem;
+
+            /**
+             * Encodes the specified VehicleBrakeSystem message. Does not implicitly {@link osi3.HostVehicleData.VehicleBrakeSystem.verify|verify} messages.
+             * @param message VehicleBrakeSystem message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encode(message: osi3.HostVehicleData.IVehicleBrakeSystem, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Encodes the specified VehicleBrakeSystem message, length delimited. Does not implicitly {@link osi3.HostVehicleData.VehicleBrakeSystem.verify|verify} messages.
+             * @param message VehicleBrakeSystem message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encodeDelimited(message: osi3.HostVehicleData.IVehicleBrakeSystem, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Decodes a VehicleBrakeSystem message from the specified reader or buffer.
+             * @param reader Reader or buffer to decode from
+             * @param [length] Message length if known beforehand
+             * @returns VehicleBrakeSystem
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): osi3.HostVehicleData.VehicleBrakeSystem;
+
+            /**
+             * Decodes a VehicleBrakeSystem message from the specified reader or buffer, length delimited.
+             * @param reader Reader or buffer to decode from
+             * @returns VehicleBrakeSystem
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): osi3.HostVehicleData.VehicleBrakeSystem;
+
+            /**
+             * Verifies a VehicleBrakeSystem message.
+             * @param message Plain object to verify
+             * @returns `null` if valid, otherwise the reason why it is not
+             */
+            public static verify(message: { [k: string]: any }): (string|null);
+
+            /**
+             * Creates a VehicleBrakeSystem message from a plain object. Also converts values to their respective internal types.
+             * @param object Plain object
+             * @returns VehicleBrakeSystem
+             */
+            public static fromObject(object: { [k: string]: any }): osi3.HostVehicleData.VehicleBrakeSystem;
+
+            /**
+             * Creates a plain object from a VehicleBrakeSystem message. Also converts values to other types if specified.
+             * @param message VehicleBrakeSystem
+             * @param [options] Conversion options
+             * @returns Plain object
+             */
+            public static toObject(message: osi3.HostVehicleData.VehicleBrakeSystem, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+            /**
+             * Converts this VehicleBrakeSystem to JSON.
+             * @returns JSON object
+             */
+            public toJSON(): { [k: string]: any };
+
+            /**
+             * Gets the default type url for VehicleBrakeSystem
+             * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+             * @returns The default type url
+             */
+            public static getTypeUrl(typeUrlPrefix?: string): string;
+        }
+
+        /** Properties of a VehicleSteering. */
+        interface IVehicleSteering {
+
+            /** VehicleSteering vehicleSteeringWheel */
+            vehicleSteeringWheel?: (osi3.IVehicleSteeringWheel|null);
+        }
+
+        /** Represents a VehicleSteering. */
+        class VehicleSteering implements IVehicleSteering {
+
+            /**
+             * Constructs a new VehicleSteering.
+             * @param [properties] Properties to set
+             */
+            constructor(properties?: osi3.HostVehicleData.IVehicleSteering);
+
+            /** VehicleSteering vehicleSteeringWheel. */
+            public vehicleSteeringWheel?: (osi3.IVehicleSteeringWheel|null);
+
+            /**
+             * Creates a new VehicleSteering instance using the specified properties.
+             * @param [properties] Properties to set
+             * @returns VehicleSteering instance
+             */
+            public static create(properties?: osi3.HostVehicleData.IVehicleSteering): osi3.HostVehicleData.VehicleSteering;
+
+            /**
+             * Encodes the specified VehicleSteering message. Does not implicitly {@link osi3.HostVehicleData.VehicleSteering.verify|verify} messages.
+             * @param message VehicleSteering message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encode(message: osi3.HostVehicleData.IVehicleSteering, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Encodes the specified VehicleSteering message, length delimited. Does not implicitly {@link osi3.HostVehicleData.VehicleSteering.verify|verify} messages.
+             * @param message VehicleSteering message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encodeDelimited(message: osi3.HostVehicleData.IVehicleSteering, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Decodes a VehicleSteering message from the specified reader or buffer.
+             * @param reader Reader or buffer to decode from
+             * @param [length] Message length if known beforehand
+             * @returns VehicleSteering
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): osi3.HostVehicleData.VehicleSteering;
+
+            /**
+             * Decodes a VehicleSteering message from the specified reader or buffer, length delimited.
+             * @param reader Reader or buffer to decode from
+             * @returns VehicleSteering
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): osi3.HostVehicleData.VehicleSteering;
+
+            /**
+             * Verifies a VehicleSteering message.
+             * @param message Plain object to verify
+             * @returns `null` if valid, otherwise the reason why it is not
+             */
+            public static verify(message: { [k: string]: any }): (string|null);
+
+            /**
+             * Creates a VehicleSteering message from a plain object. Also converts values to their respective internal types.
+             * @param object Plain object
+             * @returns VehicleSteering
+             */
+            public static fromObject(object: { [k: string]: any }): osi3.HostVehicleData.VehicleSteering;
+
+            /**
+             * Creates a plain object from a VehicleSteering message. Also converts values to other types if specified.
+             * @param message VehicleSteering
+             * @param [options] Conversion options
+             * @returns Plain object
+             */
+            public static toObject(message: osi3.HostVehicleData.VehicleSteering, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+            /**
+             * Converts this VehicleSteering to JSON.
+             * @returns JSON object
+             */
+            public toJSON(): { [k: string]: any };
+
+            /**
+             * Gets the default type url for VehicleSteering
+             * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+             * @returns The default type url
+             */
+            public static getTypeUrl(typeUrlPrefix?: string): string;
+        }
+
+        /** Properties of a VehicleWheels. */
+        interface IVehicleWheels {
+
+            /** VehicleWheels wheelData */
+            wheelData?: (osi3.HostVehicleData.VehicleWheels.IWheelData[]|null);
+        }
+
+        /** Represents a VehicleWheels. */
+        class VehicleWheels implements IVehicleWheels {
+
+            /**
+             * Constructs a new VehicleWheels.
+             * @param [properties] Properties to set
+             */
+            constructor(properties?: osi3.HostVehicleData.IVehicleWheels);
+
+            /** VehicleWheels wheelData. */
+            public wheelData: osi3.HostVehicleData.VehicleWheels.IWheelData[];
+
+            /**
+             * Creates a new VehicleWheels instance using the specified properties.
+             * @param [properties] Properties to set
+             * @returns VehicleWheels instance
+             */
+            public static create(properties?: osi3.HostVehicleData.IVehicleWheels): osi3.HostVehicleData.VehicleWheels;
+
+            /**
+             * Encodes the specified VehicleWheels message. Does not implicitly {@link osi3.HostVehicleData.VehicleWheels.verify|verify} messages.
+             * @param message VehicleWheels message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encode(message: osi3.HostVehicleData.IVehicleWheels, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Encodes the specified VehicleWheels message, length delimited. Does not implicitly {@link osi3.HostVehicleData.VehicleWheels.verify|verify} messages.
+             * @param message VehicleWheels message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encodeDelimited(message: osi3.HostVehicleData.IVehicleWheels, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Decodes a VehicleWheels message from the specified reader or buffer.
+             * @param reader Reader or buffer to decode from
+             * @param [length] Message length if known beforehand
+             * @returns VehicleWheels
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): osi3.HostVehicleData.VehicleWheels;
+
+            /**
+             * Decodes a VehicleWheels message from the specified reader or buffer, length delimited.
+             * @param reader Reader or buffer to decode from
+             * @returns VehicleWheels
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): osi3.HostVehicleData.VehicleWheels;
+
+            /**
+             * Verifies a VehicleWheels message.
+             * @param message Plain object to verify
+             * @returns `null` if valid, otherwise the reason why it is not
+             */
+            public static verify(message: { [k: string]: any }): (string|null);
+
+            /**
+             * Creates a VehicleWheels message from a plain object. Also converts values to their respective internal types.
+             * @param object Plain object
+             * @returns VehicleWheels
+             */
+            public static fromObject(object: { [k: string]: any }): osi3.HostVehicleData.VehicleWheels;
+
+            /**
+             * Creates a plain object from a VehicleWheels message. Also converts values to other types if specified.
+             * @param message VehicleWheels
+             * @param [options] Conversion options
+             * @returns Plain object
+             */
+            public static toObject(message: osi3.HostVehicleData.VehicleWheels, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+            /**
+             * Converts this VehicleWheels to JSON.
+             * @returns JSON object
+             */
+            public toJSON(): { [k: string]: any };
+
+            /**
+             * Gets the default type url for VehicleWheels
+             * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+             * @returns The default type url
+             */
+            public static getTypeUrl(typeUrlPrefix?: string): string;
+        }
+
+        namespace VehicleWheels {
+
+            /** Properties of a WheelData. */
+            interface IWheelData {
+
+                /** WheelData axle */
+                axle?: (number|null);
+
+                /** WheelData index */
+                index?: (number|null);
+
+                /** WheelData rotationRate */
+                rotationRate?: (number|null);
+
+                /** WheelData slip */
+                slip?: (number|null);
+            }
+
+            /** Represents a WheelData. */
+            class WheelData implements IWheelData {
+
+                /**
+                 * Constructs a new WheelData.
+                 * @param [properties] Properties to set
+                 */
+                constructor(properties?: osi3.HostVehicleData.VehicleWheels.IWheelData);
+
+                /** WheelData axle. */
+                public axle: number;
+
+                /** WheelData index. */
+                public index: number;
+
+                /** WheelData rotationRate. */
+                public rotationRate: number;
+
+                /** WheelData slip. */
+                public slip: number;
+
+                /**
+                 * Creates a new WheelData instance using the specified properties.
+                 * @param [properties] Properties to set
+                 * @returns WheelData instance
+                 */
+                public static create(properties?: osi3.HostVehicleData.VehicleWheels.IWheelData): osi3.HostVehicleData.VehicleWheels.WheelData;
+
+                /**
+                 * Encodes the specified WheelData message. Does not implicitly {@link osi3.HostVehicleData.VehicleWheels.WheelData.verify|verify} messages.
+                 * @param message WheelData message or plain object to encode
+                 * @param [writer] Writer to encode to
+                 * @returns Writer
+                 */
+                public static encode(message: osi3.HostVehicleData.VehicleWheels.IWheelData, writer?: $protobuf.Writer): $protobuf.Writer;
+
+                /**
+                 * Encodes the specified WheelData message, length delimited. Does not implicitly {@link osi3.HostVehicleData.VehicleWheels.WheelData.verify|verify} messages.
+                 * @param message WheelData message or plain object to encode
+                 * @param [writer] Writer to encode to
+                 * @returns Writer
+                 */
+                public static encodeDelimited(message: osi3.HostVehicleData.VehicleWheels.IWheelData, writer?: $protobuf.Writer): $protobuf.Writer;
+
+                /**
+                 * Decodes a WheelData message from the specified reader or buffer.
+                 * @param reader Reader or buffer to decode from
+                 * @param [length] Message length if known beforehand
+                 * @returns WheelData
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): osi3.HostVehicleData.VehicleWheels.WheelData;
+
+                /**
+                 * Decodes a WheelData message from the specified reader or buffer, length delimited.
+                 * @param reader Reader or buffer to decode from
+                 * @returns WheelData
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): osi3.HostVehicleData.VehicleWheels.WheelData;
+
+                /**
+                 * Verifies a WheelData message.
+                 * @param message Plain object to verify
+                 * @returns `null` if valid, otherwise the reason why it is not
+                 */
+                public static verify(message: { [k: string]: any }): (string|null);
+
+                /**
+                 * Creates a WheelData message from a plain object. Also converts values to their respective internal types.
+                 * @param object Plain object
+                 * @returns WheelData
+                 */
+                public static fromObject(object: { [k: string]: any }): osi3.HostVehicleData.VehicleWheels.WheelData;
+
+                /**
+                 * Creates a plain object from a WheelData message. Also converts values to other types if specified.
+                 * @param message WheelData
+                 * @param [options] Conversion options
+                 * @returns Plain object
+                 */
+                public static toObject(message: osi3.HostVehicleData.VehicleWheels.WheelData, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+                /**
+                 * Converts this WheelData to JSON.
+                 * @returns JSON object
+                 */
+                public toJSON(): { [k: string]: any };
+
+                /**
+                 * Gets the default type url for WheelData
+                 * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                 * @returns The default type url
+                 */
+                public static getTypeUrl(typeUrlPrefix?: string): string;
+            }
+        }
+
+        /** Properties of a VehicleLocalization. */
+        interface IVehicleLocalization {
+
+            /** VehicleLocalization position */
+            position?: (osi3.IVector3d|null);
+
+            /** VehicleLocalization orientation */
+            orientation?: (osi3.IOrientation3d|null);
+
+            /** VehicleLocalization geodeticPosition */
+            geodeticPosition?: (osi3.IGeodeticPosition|null);
+        }
+
+        /** Represents a VehicleLocalization. */
+        class VehicleLocalization implements IVehicleLocalization {
+
+            /**
+             * Constructs a new VehicleLocalization.
+             * @param [properties] Properties to set
+             */
+            constructor(properties?: osi3.HostVehicleData.IVehicleLocalization);
+
+            /** VehicleLocalization position. */
+            public position?: (osi3.IVector3d|null);
+
+            /** VehicleLocalization orientation. */
+            public orientation?: (osi3.IOrientation3d|null);
+
+            /** VehicleLocalization geodeticPosition. */
+            public geodeticPosition?: (osi3.IGeodeticPosition|null);
+
+            /**
+             * Creates a new VehicleLocalization instance using the specified properties.
+             * @param [properties] Properties to set
+             * @returns VehicleLocalization instance
+             */
+            public static create(properties?: osi3.HostVehicleData.IVehicleLocalization): osi3.HostVehicleData.VehicleLocalization;
+
+            /**
+             * Encodes the specified VehicleLocalization message. Does not implicitly {@link osi3.HostVehicleData.VehicleLocalization.verify|verify} messages.
+             * @param message VehicleLocalization message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encode(message: osi3.HostVehicleData.IVehicleLocalization, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Encodes the specified VehicleLocalization message, length delimited. Does not implicitly {@link osi3.HostVehicleData.VehicleLocalization.verify|verify} messages.
+             * @param message VehicleLocalization message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encodeDelimited(message: osi3.HostVehicleData.IVehicleLocalization, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Decodes a VehicleLocalization message from the specified reader or buffer.
+             * @param reader Reader or buffer to decode from
+             * @param [length] Message length if known beforehand
+             * @returns VehicleLocalization
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): osi3.HostVehicleData.VehicleLocalization;
+
+            /**
+             * Decodes a VehicleLocalization message from the specified reader or buffer, length delimited.
+             * @param reader Reader or buffer to decode from
+             * @returns VehicleLocalization
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): osi3.HostVehicleData.VehicleLocalization;
+
+            /**
+             * Verifies a VehicleLocalization message.
+             * @param message Plain object to verify
+             * @returns `null` if valid, otherwise the reason why it is not
+             */
+            public static verify(message: { [k: string]: any }): (string|null);
+
+            /**
+             * Creates a VehicleLocalization message from a plain object. Also converts values to their respective internal types.
+             * @param object Plain object
+             * @returns VehicleLocalization
+             */
+            public static fromObject(object: { [k: string]: any }): osi3.HostVehicleData.VehicleLocalization;
+
+            /**
+             * Creates a plain object from a VehicleLocalization message. Also converts values to other types if specified.
+             * @param message VehicleLocalization
+             * @param [options] Conversion options
+             * @returns Plain object
+             */
+            public static toObject(message: osi3.HostVehicleData.VehicleLocalization, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+            /**
+             * Converts this VehicleLocalization to JSON.
+             * @returns JSON object
+             */
+            public toJSON(): { [k: string]: any };
+
+            /**
+             * Gets the default type url for VehicleLocalization
+             * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+             * @returns The default type url
+             */
+            public static getTypeUrl(typeUrlPrefix?: string): string;
+        }
+
+        /** Properties of a VehicleMotion. */
+        interface IVehicleMotion {
+
+            /** VehicleMotion position */
+            position?: (osi3.IVector3d|null);
+
+            /** VehicleMotion orientation */
+            orientation?: (osi3.IOrientation3d|null);
+
+            /** VehicleMotion velocity */
+            velocity?: (osi3.IVector3d|null);
+
+            /** VehicleMotion orientationRate */
+            orientationRate?: (osi3.IOrientation3d|null);
+
+            /** VehicleMotion acceleration */
+            acceleration?: (osi3.IVector3d|null);
+
+            /** VehicleMotion currentCurvature */
+            currentCurvature?: (number|null);
+        }
+
+        /** Represents a VehicleMotion. */
+        class VehicleMotion implements IVehicleMotion {
+
+            /**
+             * Constructs a new VehicleMotion.
+             * @param [properties] Properties to set
+             */
+            constructor(properties?: osi3.HostVehicleData.IVehicleMotion);
+
+            /** VehicleMotion position. */
+            public position?: (osi3.IVector3d|null);
+
+            /** VehicleMotion orientation. */
+            public orientation?: (osi3.IOrientation3d|null);
+
+            /** VehicleMotion velocity. */
+            public velocity?: (osi3.IVector3d|null);
+
+            /** VehicleMotion orientationRate. */
+            public orientationRate?: (osi3.IOrientation3d|null);
+
+            /** VehicleMotion acceleration. */
+            public acceleration?: (osi3.IVector3d|null);
+
+            /** VehicleMotion currentCurvature. */
+            public currentCurvature: number;
+
+            /**
+             * Creates a new VehicleMotion instance using the specified properties.
+             * @param [properties] Properties to set
+             * @returns VehicleMotion instance
+             */
+            public static create(properties?: osi3.HostVehicleData.IVehicleMotion): osi3.HostVehicleData.VehicleMotion;
+
+            /**
+             * Encodes the specified VehicleMotion message. Does not implicitly {@link osi3.HostVehicleData.VehicleMotion.verify|verify} messages.
+             * @param message VehicleMotion message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encode(message: osi3.HostVehicleData.IVehicleMotion, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Encodes the specified VehicleMotion message, length delimited. Does not implicitly {@link osi3.HostVehicleData.VehicleMotion.verify|verify} messages.
+             * @param message VehicleMotion message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encodeDelimited(message: osi3.HostVehicleData.IVehicleMotion, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Decodes a VehicleMotion message from the specified reader or buffer.
+             * @param reader Reader or buffer to decode from
+             * @param [length] Message length if known beforehand
+             * @returns VehicleMotion
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): osi3.HostVehicleData.VehicleMotion;
+
+            /**
+             * Decodes a VehicleMotion message from the specified reader or buffer, length delimited.
+             * @param reader Reader or buffer to decode from
+             * @returns VehicleMotion
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): osi3.HostVehicleData.VehicleMotion;
+
+            /**
+             * Verifies a VehicleMotion message.
+             * @param message Plain object to verify
+             * @returns `null` if valid, otherwise the reason why it is not
+             */
+            public static verify(message: { [k: string]: any }): (string|null);
+
+            /**
+             * Creates a VehicleMotion message from a plain object. Also converts values to their respective internal types.
+             * @param object Plain object
+             * @returns VehicleMotion
+             */
+            public static fromObject(object: { [k: string]: any }): osi3.HostVehicleData.VehicleMotion;
+
+            /**
+             * Creates a plain object from a VehicleMotion message. Also converts values to other types if specified.
+             * @param message VehicleMotion
+             * @param [options] Conversion options
+             * @returns Plain object
+             */
+            public static toObject(message: osi3.HostVehicleData.VehicleMotion, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+            /**
+             * Converts this VehicleMotion to JSON.
+             * @returns JSON object
+             */
+            public toJSON(): { [k: string]: any };
+
+            /**
+             * Gets the default type url for VehicleMotion
+             * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+             * @returns The default type url
+             */
+            public static getTypeUrl(typeUrlPrefix?: string): string;
+        }
+
+        /** Properties of a VehicleAutomatedDrivingFunction. */
+        interface IVehicleAutomatedDrivingFunction {
+
+            /** VehicleAutomatedDrivingFunction name */
+            name?: (osi3.HostVehicleData.VehicleAutomatedDrivingFunction.Name|null);
+
+            /** VehicleAutomatedDrivingFunction customName */
+            customName?: (string|null);
+
+            /** VehicleAutomatedDrivingFunction state */
+            state?: (osi3.HostVehicleData.VehicleAutomatedDrivingFunction.State|null);
+
+            /** VehicleAutomatedDrivingFunction customState */
+            customState?: (string|null);
+
+            /** VehicleAutomatedDrivingFunction driverOverride */
+            driverOverride?: (osi3.HostVehicleData.VehicleAutomatedDrivingFunction.IDriverOverride|null);
+
+            /** VehicleAutomatedDrivingFunction customDetail */
+            customDetail?: (osi3.IKeyValuePair[]|null);
+        }
+
+        /** Represents a VehicleAutomatedDrivingFunction. */
+        class VehicleAutomatedDrivingFunction implements IVehicleAutomatedDrivingFunction {
+
+            /**
+             * Constructs a new VehicleAutomatedDrivingFunction.
+             * @param [properties] Properties to set
+             */
+            constructor(properties?: osi3.HostVehicleData.IVehicleAutomatedDrivingFunction);
+
+            /** VehicleAutomatedDrivingFunction name. */
+            public name: osi3.HostVehicleData.VehicleAutomatedDrivingFunction.Name;
+
+            /** VehicleAutomatedDrivingFunction customName. */
+            public customName: string;
+
+            /** VehicleAutomatedDrivingFunction state. */
+            public state: osi3.HostVehicleData.VehicleAutomatedDrivingFunction.State;
+
+            /** VehicleAutomatedDrivingFunction customState. */
+            public customState: string;
+
+            /** VehicleAutomatedDrivingFunction driverOverride. */
+            public driverOverride?: (osi3.HostVehicleData.VehicleAutomatedDrivingFunction.IDriverOverride|null);
+
+            /** VehicleAutomatedDrivingFunction customDetail. */
+            public customDetail: osi3.IKeyValuePair[];
+
+            /**
+             * Creates a new VehicleAutomatedDrivingFunction instance using the specified properties.
+             * @param [properties] Properties to set
+             * @returns VehicleAutomatedDrivingFunction instance
+             */
+            public static create(properties?: osi3.HostVehicleData.IVehicleAutomatedDrivingFunction): osi3.HostVehicleData.VehicleAutomatedDrivingFunction;
+
+            /**
+             * Encodes the specified VehicleAutomatedDrivingFunction message. Does not implicitly {@link osi3.HostVehicleData.VehicleAutomatedDrivingFunction.verify|verify} messages.
+             * @param message VehicleAutomatedDrivingFunction message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encode(message: osi3.HostVehicleData.IVehicleAutomatedDrivingFunction, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Encodes the specified VehicleAutomatedDrivingFunction message, length delimited. Does not implicitly {@link osi3.HostVehicleData.VehicleAutomatedDrivingFunction.verify|verify} messages.
+             * @param message VehicleAutomatedDrivingFunction message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encodeDelimited(message: osi3.HostVehicleData.IVehicleAutomatedDrivingFunction, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Decodes a VehicleAutomatedDrivingFunction message from the specified reader or buffer.
+             * @param reader Reader or buffer to decode from
+             * @param [length] Message length if known beforehand
+             * @returns VehicleAutomatedDrivingFunction
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): osi3.HostVehicleData.VehicleAutomatedDrivingFunction;
+
+            /**
+             * Decodes a VehicleAutomatedDrivingFunction message from the specified reader or buffer, length delimited.
+             * @param reader Reader or buffer to decode from
+             * @returns VehicleAutomatedDrivingFunction
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): osi3.HostVehicleData.VehicleAutomatedDrivingFunction;
+
+            /**
+             * Verifies a VehicleAutomatedDrivingFunction message.
+             * @param message Plain object to verify
+             * @returns `null` if valid, otherwise the reason why it is not
+             */
+            public static verify(message: { [k: string]: any }): (string|null);
+
+            /**
+             * Creates a VehicleAutomatedDrivingFunction message from a plain object. Also converts values to their respective internal types.
+             * @param object Plain object
+             * @returns VehicleAutomatedDrivingFunction
+             */
+            public static fromObject(object: { [k: string]: any }): osi3.HostVehicleData.VehicleAutomatedDrivingFunction;
+
+            /**
+             * Creates a plain object from a VehicleAutomatedDrivingFunction message. Also converts values to other types if specified.
+             * @param message VehicleAutomatedDrivingFunction
+             * @param [options] Conversion options
+             * @returns Plain object
+             */
+            public static toObject(message: osi3.HostVehicleData.VehicleAutomatedDrivingFunction, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+            /**
+             * Converts this VehicleAutomatedDrivingFunction to JSON.
+             * @returns JSON object
+             */
+            public toJSON(): { [k: string]: any };
+
+            /**
+             * Gets the default type url for VehicleAutomatedDrivingFunction
+             * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+             * @returns The default type url
+             */
+            public static getTypeUrl(typeUrlPrefix?: string): string;
+        }
+
+        namespace VehicleAutomatedDrivingFunction {
+
+            /** Name enum. */
+            enum Name {
+                NAME_UNKNOWN = 0,
+                NAME_OTHER = 1,
+                NAME_BLIND_SPOT_WARNING = 2,
+                NAME_FORWARD_COLLISION_WARNING = 3,
+                NAME_LANE_DEPARTURE_WARNING = 4,
+                NAME_PARKING_COLLISION_WARNING = 5,
+                NAME_REAR_CROSS_TRAFFIC_WARNING = 6,
+                NAME_AUTOMATIC_EMERGENCY_BRAKING = 7,
+                NAME_AUTOMATIC_EMERGENCY_STEERING = 8,
+                NAME_REVERSE_AUTOMATIC_EMERGENCY_BRAKING = 9,
+                NAME_ADAPTIVE_CRUISE_CONTROL = 10,
+                NAME_LANE_KEEPING_ASSIST = 11,
+                NAME_ACTIVE_DRIVING_ASSISTANCE = 12,
+                NAME_BACKUP_CAMERA = 13,
+                NAME_SURROUND_VIEW_CAMERA = 14,
+                NAME_ACTIVE_PARKING_ASSISTANCE = 15,
+                NAME_REMOTE_PARKING_ASSISTANCE = 16,
+                NAME_TRAILER_ASSISTANCE = 17,
+                NAME_AUTOMATIC_HIGH_BEAMS = 18,
+                NAME_DRIVER_MONITORING = 19,
+                NAME_HEAD_UP_DISPLAY = 20,
+                NAME_NIGHT_VISION = 21,
+                NAME_URBAN_DRIVING = 22,
+                NAME_HIGHWAY_AUTOPILOT = 23,
+                NAME_CRUISE_CONTROL = 24,
+                NAME_SPEED_LIMIT_CONTROL = 25
+            }
+
+            /** State enum. */
+            enum State {
+                STATE_UNKNOWN = 0,
+                STATE_OTHER = 1,
+                STATE_ERRORED = 2,
+                STATE_UNAVAILABLE = 3,
+                STATE_AVAILABLE = 4,
+                STATE_STANDBY = 5,
+                STATE_ACTIVE = 6
+            }
+
+            /** Properties of a DriverOverride. */
+            interface IDriverOverride {
+
+                /** DriverOverride active */
+                active?: (boolean|null);
+
+                /** DriverOverride overrideReason */
+                overrideReason?: (osi3.HostVehicleData.VehicleAutomatedDrivingFunction.DriverOverride.Reason[]|null);
+            }
+
+            /** Represents a DriverOverride. */
+            class DriverOverride implements IDriverOverride {
+
+                /**
+                 * Constructs a new DriverOverride.
+                 * @param [properties] Properties to set
+                 */
+                constructor(properties?: osi3.HostVehicleData.VehicleAutomatedDrivingFunction.IDriverOverride);
+
+                /** DriverOverride active. */
+                public active: boolean;
+
+                /** DriverOverride overrideReason. */
+                public overrideReason: osi3.HostVehicleData.VehicleAutomatedDrivingFunction.DriverOverride.Reason[];
+
+                /**
+                 * Creates a new DriverOverride instance using the specified properties.
+                 * @param [properties] Properties to set
+                 * @returns DriverOverride instance
+                 */
+                public static create(properties?: osi3.HostVehicleData.VehicleAutomatedDrivingFunction.IDriverOverride): osi3.HostVehicleData.VehicleAutomatedDrivingFunction.DriverOverride;
+
+                /**
+                 * Encodes the specified DriverOverride message. Does not implicitly {@link osi3.HostVehicleData.VehicleAutomatedDrivingFunction.DriverOverride.verify|verify} messages.
+                 * @param message DriverOverride message or plain object to encode
+                 * @param [writer] Writer to encode to
+                 * @returns Writer
+                 */
+                public static encode(message: osi3.HostVehicleData.VehicleAutomatedDrivingFunction.IDriverOverride, writer?: $protobuf.Writer): $protobuf.Writer;
+
+                /**
+                 * Encodes the specified DriverOverride message, length delimited. Does not implicitly {@link osi3.HostVehicleData.VehicleAutomatedDrivingFunction.DriverOverride.verify|verify} messages.
+                 * @param message DriverOverride message or plain object to encode
+                 * @param [writer] Writer to encode to
+                 * @returns Writer
+                 */
+                public static encodeDelimited(message: osi3.HostVehicleData.VehicleAutomatedDrivingFunction.IDriverOverride, writer?: $protobuf.Writer): $protobuf.Writer;
+
+                /**
+                 * Decodes a DriverOverride message from the specified reader or buffer.
+                 * @param reader Reader or buffer to decode from
+                 * @param [length] Message length if known beforehand
+                 * @returns DriverOverride
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): osi3.HostVehicleData.VehicleAutomatedDrivingFunction.DriverOverride;
+
+                /**
+                 * Decodes a DriverOverride message from the specified reader or buffer, length delimited.
+                 * @param reader Reader or buffer to decode from
+                 * @returns DriverOverride
+                 * @throws {Error} If the payload is not a reader or valid buffer
+                 * @throws {$protobuf.util.ProtocolError} If required fields are missing
+                 */
+                public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): osi3.HostVehicleData.VehicleAutomatedDrivingFunction.DriverOverride;
+
+                /**
+                 * Verifies a DriverOverride message.
+                 * @param message Plain object to verify
+                 * @returns `null` if valid, otherwise the reason why it is not
+                 */
+                public static verify(message: { [k: string]: any }): (string|null);
+
+                /**
+                 * Creates a DriverOverride message from a plain object. Also converts values to their respective internal types.
+                 * @param object Plain object
+                 * @returns DriverOverride
+                 */
+                public static fromObject(object: { [k: string]: any }): osi3.HostVehicleData.VehicleAutomatedDrivingFunction.DriverOverride;
+
+                /**
+                 * Creates a plain object from a DriverOverride message. Also converts values to other types if specified.
+                 * @param message DriverOverride
+                 * @param [options] Conversion options
+                 * @returns Plain object
+                 */
+                public static toObject(message: osi3.HostVehicleData.VehicleAutomatedDrivingFunction.DriverOverride, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+                /**
+                 * Converts this DriverOverride to JSON.
+                 * @returns JSON object
+                 */
+                public toJSON(): { [k: string]: any };
+
+                /**
+                 * Gets the default type url for DriverOverride
+                 * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+                 * @returns The default type url
+                 */
+                public static getTypeUrl(typeUrlPrefix?: string): string;
+            }
+
+            namespace DriverOverride {
+
+                /** Reason enum. */
+                enum Reason {
+                    REASON_BRAKE_PEDAL = 0,
+                    REASON_STEERING_INPUT = 1
+                }
+            }
+        }
+    }
+
+    /** Properties of a Route. */
+    interface IRoute {
+
+        /** Route routeId */
+        routeId?: (osi3.IIdentifier|null);
+
+        /** Route routeSegment */
+        routeSegment?: (osi3.Route.IRouteSegment[]|null);
+    }
+
+    /** Represents a Route. */
+    class Route implements IRoute {
+
+        /**
+         * Constructs a new Route.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: osi3.IRoute);
+
+        /** Route routeId. */
+        public routeId?: (osi3.IIdentifier|null);
+
+        /** Route routeSegment. */
+        public routeSegment: osi3.Route.IRouteSegment[];
+
+        /**
+         * Creates a new Route instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns Route instance
+         */
+        public static create(properties?: osi3.IRoute): osi3.Route;
+
+        /**
+         * Encodes the specified Route message. Does not implicitly {@link osi3.Route.verify|verify} messages.
+         * @param message Route message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: osi3.IRoute, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified Route message, length delimited. Does not implicitly {@link osi3.Route.verify|verify} messages.
+         * @param message Route message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: osi3.IRoute, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a Route message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns Route
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): osi3.Route;
+
+        /**
+         * Decodes a Route message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns Route
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): osi3.Route;
+
+        /**
+         * Verifies a Route message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a Route message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns Route
+         */
+        public static fromObject(object: { [k: string]: any }): osi3.Route;
+
+        /**
+         * Creates a plain object from a Route message. Also converts values to other types if specified.
+         * @param message Route
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: osi3.Route, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this Route to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for Route
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    namespace Route {
+
+        /** Properties of a LogicalLaneSegment. */
+        interface ILogicalLaneSegment {
+
+            /** LogicalLaneSegment logicalLaneId */
+            logicalLaneId?: (osi3.IIdentifier|null);
+
+            /** LogicalLaneSegment startS */
+            startS?: (number|null);
+
+            /** LogicalLaneSegment endS */
+            endS?: (number|null);
+        }
+
+        /** Represents a LogicalLaneSegment. */
+        class LogicalLaneSegment implements ILogicalLaneSegment {
+
+            /**
+             * Constructs a new LogicalLaneSegment.
+             * @param [properties] Properties to set
+             */
+            constructor(properties?: osi3.Route.ILogicalLaneSegment);
+
+            /** LogicalLaneSegment logicalLaneId. */
+            public logicalLaneId?: (osi3.IIdentifier|null);
+
+            /** LogicalLaneSegment startS. */
+            public startS: number;
+
+            /** LogicalLaneSegment endS. */
+            public endS: number;
+
+            /**
+             * Creates a new LogicalLaneSegment instance using the specified properties.
+             * @param [properties] Properties to set
+             * @returns LogicalLaneSegment instance
+             */
+            public static create(properties?: osi3.Route.ILogicalLaneSegment): osi3.Route.LogicalLaneSegment;
+
+            /**
+             * Encodes the specified LogicalLaneSegment message. Does not implicitly {@link osi3.Route.LogicalLaneSegment.verify|verify} messages.
+             * @param message LogicalLaneSegment message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encode(message: osi3.Route.ILogicalLaneSegment, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Encodes the specified LogicalLaneSegment message, length delimited. Does not implicitly {@link osi3.Route.LogicalLaneSegment.verify|verify} messages.
+             * @param message LogicalLaneSegment message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encodeDelimited(message: osi3.Route.ILogicalLaneSegment, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Decodes a LogicalLaneSegment message from the specified reader or buffer.
+             * @param reader Reader or buffer to decode from
+             * @param [length] Message length if known beforehand
+             * @returns LogicalLaneSegment
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): osi3.Route.LogicalLaneSegment;
+
+            /**
+             * Decodes a LogicalLaneSegment message from the specified reader or buffer, length delimited.
+             * @param reader Reader or buffer to decode from
+             * @returns LogicalLaneSegment
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): osi3.Route.LogicalLaneSegment;
+
+            /**
+             * Verifies a LogicalLaneSegment message.
+             * @param message Plain object to verify
+             * @returns `null` if valid, otherwise the reason why it is not
+             */
+            public static verify(message: { [k: string]: any }): (string|null);
+
+            /**
+             * Creates a LogicalLaneSegment message from a plain object. Also converts values to their respective internal types.
+             * @param object Plain object
+             * @returns LogicalLaneSegment
+             */
+            public static fromObject(object: { [k: string]: any }): osi3.Route.LogicalLaneSegment;
+
+            /**
+             * Creates a plain object from a LogicalLaneSegment message. Also converts values to other types if specified.
+             * @param message LogicalLaneSegment
+             * @param [options] Conversion options
+             * @returns Plain object
+             */
+            public static toObject(message: osi3.Route.LogicalLaneSegment, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+            /**
+             * Converts this LogicalLaneSegment to JSON.
+             * @returns JSON object
+             */
+            public toJSON(): { [k: string]: any };
+
+            /**
+             * Gets the default type url for LogicalLaneSegment
+             * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+             * @returns The default type url
+             */
+            public static getTypeUrl(typeUrlPrefix?: string): string;
+        }
+
+        /** Properties of a RouteSegment. */
+        interface IRouteSegment {
+
+            /** RouteSegment laneSegment */
+            laneSegment?: (osi3.Route.ILogicalLaneSegment[]|null);
+        }
+
+        /** Represents a RouteSegment. */
+        class RouteSegment implements IRouteSegment {
+
+            /**
+             * Constructs a new RouteSegment.
+             * @param [properties] Properties to set
+             */
+            constructor(properties?: osi3.Route.IRouteSegment);
+
+            /** RouteSegment laneSegment. */
+            public laneSegment: osi3.Route.ILogicalLaneSegment[];
+
+            /**
+             * Creates a new RouteSegment instance using the specified properties.
+             * @param [properties] Properties to set
+             * @returns RouteSegment instance
+             */
+            public static create(properties?: osi3.Route.IRouteSegment): osi3.Route.RouteSegment;
+
+            /**
+             * Encodes the specified RouteSegment message. Does not implicitly {@link osi3.Route.RouteSegment.verify|verify} messages.
+             * @param message RouteSegment message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encode(message: osi3.Route.IRouteSegment, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Encodes the specified RouteSegment message, length delimited. Does not implicitly {@link osi3.Route.RouteSegment.verify|verify} messages.
+             * @param message RouteSegment message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encodeDelimited(message: osi3.Route.IRouteSegment, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Decodes a RouteSegment message from the specified reader or buffer.
+             * @param reader Reader or buffer to decode from
+             * @param [length] Message length if known beforehand
+             * @returns RouteSegment
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): osi3.Route.RouteSegment;
+
+            /**
+             * Decodes a RouteSegment message from the specified reader or buffer, length delimited.
+             * @param reader Reader or buffer to decode from
+             * @returns RouteSegment
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): osi3.Route.RouteSegment;
+
+            /**
+             * Verifies a RouteSegment message.
+             * @param message Plain object to verify
+             * @returns `null` if valid, otherwise the reason why it is not
+             */
+            public static verify(message: { [k: string]: any }): (string|null);
+
+            /**
+             * Creates a RouteSegment message from a plain object. Also converts values to their respective internal types.
+             * @param object Plain object
+             * @returns RouteSegment
+             */
+            public static fromObject(object: { [k: string]: any }): osi3.Route.RouteSegment;
+
+            /**
+             * Creates a plain object from a RouteSegment message. Also converts values to other types if specified.
+             * @param message RouteSegment
+             * @param [options] Conversion options
+             * @returns Plain object
+             */
+            public static toObject(message: osi3.Route.RouteSegment, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+            /**
+             * Converts this RouteSegment to JSON.
+             * @returns JSON object
+             */
+            public toJSON(): { [k: string]: any };
+
+            /**
+             * Gets the default type url for RouteSegment
+             * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+             * @returns The default type url
+             */
+            public static getTypeUrl(typeUrlPrefix?: string): string;
         }
     }
 }
