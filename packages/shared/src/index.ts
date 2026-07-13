@@ -14,9 +14,12 @@ export type * from './types/editor.js';
 export type * from './types/esmini.js';
 export type * from './types/mcp.js';
 export type * from './types/project.js';
+export type * from './types/gt-sim-ipc.js';
 export type * from './types/type-utils.js';
 // Runtime constant colocated with the project types (project.json schema version).
 export { PROJECT_META_SCHEMA_VERSION } from './types/project.js';
+// GT_Sim backend IPC channel names (runtime const; `export type *` strips values).
+export { GTSIM_IPC_CHANNELS } from './types/gt-sim-ipc.js';
 // Canonical discriminator arrays colocated with the action/condition/position
 // unions (welded to those unions). `export type *` above strips these runtime
 // values, so re-export them explicitly (mirrors PROJECT_META_SCHEMA_VERSION).
