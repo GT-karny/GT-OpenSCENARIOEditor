@@ -503,12 +503,18 @@ importers:
       '@fontsource/orbitron':
         specifier: ^5.2.8
         version: 5.2.8
+      clsx:
+        specifier: ^2.1.0
+        version: 2.1.1
       react:
         specifier: ^19.0.0
         version: 19.2.4
       react-dom:
         specifier: ^19.0.0
         version: 19.2.4(react@19.2.4)
+      tailwind-merge:
+        specifier: ^2.6.0
+        version: 2.6.1
     devDependencies:
       '@types/react':
         specifier: ^19.0.0
