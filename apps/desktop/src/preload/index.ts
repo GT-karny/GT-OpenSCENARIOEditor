@@ -1,3 +1,6 @@
+import { GTSIM_IPC_CHANNELS } from '@osce/shared';
+import type { GtSimBackendStatus } from '@osce/shared';
+
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
@@ -67,6 +70,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Assembly presets (editor-wide)
   getAssemblyPresets: () => ipcRenderer.invoke('presets:get'),
   saveAssemblyPresets: (presets: unknown[]) => ipcRenderer.send('presets:save', presets),
+
+  // GT_Sim backend bridge (WP2). Contract: packages/shared/src/types/gt-sim-ipc.ts.
+  // Resolved endpoints; `null` until the backend is ready (or if disabled).
+  gtSimGetEndpoints: () => ipcRenderer.invoke(GTSIM_IPC_CHANNELS.getEndpoints),
+  // Lifecycle push (starting/ready/failed/crashed). Returns an unsubscribe fn.
+  onGtSimStatus: (callback: (status: GtSimBackendStatus) => void) => {
+    const handler = (_event: unknown, status: GtSimBackendStatus) => callback(status);
+    ipcRenderer.on(GTSIM_IPC_CHANNELS.status, handler);
+    return () => {
+      ipcRenderer.removeListener(GTSIM_IPC_CHANNELS.status, handler);
+    };
+  },
 
   // Platform info
   platform: process.platform,

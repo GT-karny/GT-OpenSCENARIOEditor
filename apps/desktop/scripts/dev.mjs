@@ -33,6 +33,26 @@ spawn('npx', ['tsc', '--project', 'tsconfig.main.json'], {
   cwd: desktopDir,
 });
 
+// GT_Sim backend (WP2) is spawned by the Electron main process itself
+// (src/main/python-server.ts), gated on env vars — not launched here to avoid a
+// double lifecycle. We only surface the selected mode and forward the vars.
+//
+//   GTSIM_BACKEND=1                  → main spawns the fork FastAPI backend
+//                                      (needs Thirdparty/GT_Sim/.../start_server.py;
+//                                      uses DriverScript/.venv python if present,
+//                                      else `python`/GTSIM_PYTHON).
+//   GTSIM_PORT=8000                  → connect mode: main only health-checks a
+//                                      manually-started backend (no spawn).
+//   GTSIM_BACKEND_ROOT=<esmini-root> → override backend location if autodetect
+//                                      fails.
+if (process.env.GTSIM_PORT) {
+  console.log(`[dev] GT_Sim: connect mode (health-check existing backend on port ${process.env.GTSIM_PORT}).`);
+} else if (/^(1|true|on)$/i.test(process.env.GTSIM_BACKEND ?? '')) {
+  console.log('[dev] GT_Sim: spawn mode (main process will start the FastAPI backend).');
+} else {
+  console.log('[dev] GT_Sim backend disabled (set GTSIM_BACKEND=1 or GTSIM_PORT to enable).');
+}
+
 // 5. Wait for servers to start, then launch Electron
 console.log('Waiting for dev servers to start...');
 setTimeout(() => {
@@ -40,6 +60,7 @@ setTimeout(() => {
     stdio: 'inherit',
     shell: true,
     cwd: desktopDir,
+    env: process.env,
   });
 
   electronProc.on('close', () => {
