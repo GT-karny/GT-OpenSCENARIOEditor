@@ -121,6 +121,9 @@ importers:
       '@osce/3d-viewer':
         specifier: workspace:*
         version: link:../../packages/3d-viewer
+      '@osce/esmini':
+        specifier: workspace:*
+        version: link:../../packages/esmini
       '@osce/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n

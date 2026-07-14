@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@osce/3d-viewer": "workspace:*",
+    "@osce/esmini": "workspace:*",
     "@osce/i18n": "workspace:*",
     "@osce/node-editor": "workspace:*",
     "@osce/opendrive": "workspace:*",
