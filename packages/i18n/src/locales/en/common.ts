@@ -2,7 +2,34 @@ export const common = {
   app: {
     title: 'OpenSCENARIO Editor',
     titleRoadNetwork: 'OpenDRIVE Editor',
+    titleExecution: 'GT_Sim Execution',
     version: 'Version {{version}}',
+  },
+  modeTabs: {
+    scenario: 'Scenario',
+    roadNetwork: 'Road Network',
+    execution: 'Execution',
+  },
+  gtSim: {
+    loading: 'Loading execution mode…',
+    empty: {
+      title: 'No execution panels registered',
+      description:
+        'GT_Sim execution panels (run form, jobs, live view) are added incrementally. The execution UI appears here once panels are registered and the backend connection is ready.',
+    },
+    banner: {
+      startingTitle: 'Starting GT_Sim backend…',
+      startingDetail: 'Waiting for the health check to complete.',
+      failedTitle: 'GT_Sim backend failed to start',
+      failedDetail: 'Restart the app or check the logs.',
+      crashedTitle: 'GT_Sim backend stopped unexpectedly',
+      crashedDetail: 'Restart the app to reconnect.',
+      disconnectedTitle: 'GT_Sim backend not connected',
+      disconnectedDetailBridge:
+        'The backend is not running (launch with GTSIM_BACKEND=1, or connect to a manually started backend with GTSIM_PORT).',
+      disconnectedDetailBrowser:
+        'The backend is unavailable in this environment (browser). For development, set VITE_GTSIM_REST_URL.',
+    },
   },
   buttons: {
     save: 'Save',

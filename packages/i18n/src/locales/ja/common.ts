@@ -2,7 +2,34 @@ export const common = {
   app: {
     title: 'OpenSCENARIOエディタ',
     titleRoadNetwork: 'OpenDRIVEエディタ',
+    titleExecution: 'GT_Sim 実行',
     version: 'バージョン {{version}}',
+  },
+  modeTabs: {
+    scenario: 'シナリオ',
+    roadNetwork: '道路ネットワーク',
+    execution: '実行',
+  },
+  gtSim: {
+    loading: '実行モードを読み込み中…',
+    empty: {
+      title: '実行パネルは未登録です',
+      description:
+        'GT_Sim 実行モードの画面(実行フォーム・ジョブ・ライブビュー等)は順次追加されます。パネル登録とバックエンド接続が整うとここに実行 UI が表示されます。',
+    },
+    banner: {
+      startingTitle: 'GT_Sim バックエンドを起動中…',
+      startingDetail: 'ヘルスチェックの完了を待っています。',
+      failedTitle: 'GT_Sim バックエンドの起動に失敗しました',
+      failedDetail: 'アプリを再起動するか、ログを確認してください。',
+      crashedTitle: 'GT_Sim バックエンドが停止しました',
+      crashedDetail: 'アプリを再起動して再接続してください。',
+      disconnectedTitle: 'GT_Sim バックエンド未接続',
+      disconnectedDetailBridge:
+        'バックエンドは起動していません(GTSIM_BACKEND=1 で自動起動、または GTSIM_PORT で手動起動したバックエンドに接続)。',
+      disconnectedDetailBrowser:
+        'この環境(ブラウザ)ではバックエンドに接続できません。開発時は VITE_GTSIM_REST_URL を設定してください。',
+    },
   },
   buttons: {
     save: '保存',

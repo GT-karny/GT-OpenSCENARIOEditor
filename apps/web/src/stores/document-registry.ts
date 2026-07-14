@@ -27,8 +27,14 @@ import { useDistributionStore } from './distribution-store';
 
 export type DocumentKind = 'scenario' | 'roadNetwork' | 'catalog' | 'distribution';
 
-/** The primary editor surface (Scenario / Road Network tab). */
-export type EditorMode = 'scenario' | 'roadNetwork';
+/**
+ * The primary editor surface (top-level mode tab).
+ *  - `scenario` / `roadNetwork`: document-backed editing surfaces (dirty-tracked).
+ *  - `execution`: the GT_Sim execution mode (`features/gt-sim/`). It owns NO
+ *    document, so it is intentionally absent from {@link DocumentKind} and never
+ *    participates in dirty tracking / unsaved-changes guards.
+ */
+export type EditorMode = 'scenario' | 'roadNetwork' | 'execution';
 
 const KINDS: readonly DocumentKind[] = ['scenario', 'roadNetwork', 'catalog', 'distribution'];
 
@@ -174,8 +180,13 @@ export function initDocumentRegistry(scenarioStoreApi: StoreApi<ScenarioStore>):
  * modal or distribution affordance sets {@link DocumentRegistryState.focusedOverride}
  * while open; otherwise focus follows the active editor surface
  * ({@link DocumentRegistryState.focusedBase}).
+ *
+ * Returns `null` in the execution mode (absent an override): that mode owns NO
+ * document, so document operations (undo/redo/save/open) must be inert there.
+ * Callers are required to no-op on `null` — never fall back to a document.
  */
-export function getFocusedDocumentKind(): DocumentKind {
+export function getFocusedDocumentKind(): DocumentKind | null {
   const { focusedOverride, focusedBase } = useDocumentRegistry.getState();
-  return focusedOverride ?? focusedBase;
+  if (focusedOverride) return focusedOverride;
+  return focusedBase === 'execution' ? null : focusedBase;
 }

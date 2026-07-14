@@ -49,12 +49,18 @@ export function UndoRedoButtons() {
       undoAvailable = distributionUndoAvailable;
       redoAvailable = distributionRedoAvailable;
       break;
+    case 'execution':
+      // Execution mode owns no document — undo/redo are inert and disabled.
+      undoAvailable = false;
+      redoAvailable = false;
+      break;
     default:
       undoAvailable = scenarioUndoAvailable;
       redoAvailable = scenarioRedoAvailable;
   }
 
   const handleUndo = () => {
+    // `null` = execution mode: no document, no-op (buttons are disabled too).
     switch (getFocusedDocumentKind()) {
       case 'catalog':
         useCatalogStore.getState().undoCatalog();
@@ -65,8 +71,11 @@ export function UndoRedoButtons() {
       case 'distribution':
         useDistributionStore.getState().undoDistribution();
         break;
-      default:
+      case 'scenario':
         scenarioStoreApi.getState().undo();
+        break;
+      case null:
+        break;
     }
   };
 
@@ -81,8 +90,11 @@ export function UndoRedoButtons() {
       case 'distribution':
         useDistributionStore.getState().redoDistribution();
         break;
-      default:
+      case 'scenario':
         scenarioStoreApi.getState().redo();
+        break;
+      case null:
+        break;
     }
   };
 

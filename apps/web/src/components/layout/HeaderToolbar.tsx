@@ -18,6 +18,17 @@ import { useAppLifecycle } from '../../hooks/use-app-lifecycle';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { WindowControls } from './WindowControls';
 
+/**
+ * Single source of truth per editor mode: the tab label key and the app-title
+ * key (both in the `common` namespace). One table so the tab strip and the
+ * header title can never disagree.
+ */
+const MODE_I18N = {
+  scenario: { label: 'modeTabs.scenario', title: 'app.title' },
+  roadNetwork: { label: 'modeTabs.roadNetwork', title: 'app.titleRoadNetwork' },
+  execution: { label: 'modeTabs.execution', title: 'app.titleExecution' },
+} as const satisfies Record<EditorMode, { label: string; title: string }>;
+
 export function HeaderToolbar() {
   const { t } = useTranslation('common');
   const currentProject = useProjectStore((s) => s.currentProject);
@@ -99,14 +110,14 @@ export function HeaderToolbar() {
             backgroundClip: 'text',
           }}
         >
-          {focusedBase === 'roadNetwork' ? t('app.titleRoadNetwork') : t('app.title')}
+          {t(MODE_I18N[focusedBase].title)}
         </span>
       </div>
 
-      {/* Mode tabs: Scenario / Road Network */}
+      {/* Mode tabs: Scenario / Road Network / Execution */}
       <Separator orientation="vertical" className="h-5 shrink-0 bg-[var(--color-glass-edge-bright)]" />
       <div className="flex items-center gap-0.5 shrink-0 rounded-md bg-[var(--color-glass-2)] p-0.5">
-        {(['scenario', 'roadNetwork'] as EditorMode[]).map((mode) => (
+        {(['scenario', 'roadNetwork', 'execution'] as EditorMode[]).map((mode) => (
           <button
             key={mode}
             type="button"
@@ -117,7 +128,7 @@ export function HeaderToolbar() {
                 : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-glass-3)]'
             }`}
           >
-            {mode === 'scenario' ? 'Scenario' : 'Road Network'}
+            {t(MODE_I18N[mode].label)}
           </button>
         ))}
       </div>

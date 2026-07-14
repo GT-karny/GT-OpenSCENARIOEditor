@@ -1,3 +1,5 @@
+import type { GtSimEndpoints, GtSimBackendStatus } from '@osce/shared';
+
 interface ElectronOpenDialogResult {
   canceled: boolean;
   filePaths: string[];
@@ -48,6 +50,20 @@ interface ElectronAPI {
   respondSaveComplete: (ok: boolean) => void;
   getAssemblyPresets: () => Promise<unknown[]>;
   saveAssemblyPresets: (presets: unknown[]) => void;
+  // --- GT_Sim execution-mode backend bridge (implemented in apps/desktop; see
+  // `@osce/shared` gt-sim-ipc contract). Optional because they only exist in
+  // builds that ship the GT_Sim backend supervisor. ---
+  /**
+   * Resolve the GT_Sim backend endpoints. Returns `null` before the backend is
+   * ready (still starting / failed / not launched).
+   */
+  gtSimGetEndpoints?: () => Promise<GtSimEndpoints | null>;
+  /**
+   * Subscribe to GT_Sim backend lifecycle pushes. The main process re-sends the
+   * current status on `did-finish-load`, so a late subscriber still gets state.
+   * Returns an unsubscribe function.
+   */
+  onGtSimStatus?: (callback: (status: GtSimBackendStatus) => void) => () => void;
   platform: string;
   isElectron: boolean;
 }

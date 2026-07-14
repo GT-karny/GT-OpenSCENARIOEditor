@@ -29,10 +29,16 @@ export function useElectronMenu() {
     if (!window.electronAPI?.isElectron) return;
 
     const cleanup = window.electronAPI.onMenuAction((action) => {
-      const isRoadNetwork = useDocumentRegistry.getState().focusedBase === 'roadNetwork';
+      const focusedBase = useDocumentRegistry.getState().focusedBase;
+      const isRoadNetwork = focusedBase === 'roadNetwork';
+      // Execution mode owns no document: document menu actions are ignored so
+      // they can never mutate a background scenario/road document. (Disabling
+      // the native items needs a main-process change — deferred; no-op here.)
+      const isExecution = focusedBase === 'execution';
 
       // Open a specific recent file by absolute path (carried in the action).
       if (action.startsWith('open-recent:')) {
+        if (isExecution) return;
         const filePath = action.slice('open-recent:'.length);
         const name = filePath.split(/[/\\]/).pop() ?? filePath;
         const kind = kindFromFileName(name);
@@ -55,15 +61,18 @@ export function useElectronMenu() {
 
       switch (action) {
         case 'new':
+          if (isExecution) break;
           newScenario();
           break;
         case 'open':
+          if (isExecution) break;
           openXosc();
           break;
         case 'clear-recent':
           window.electronAPI?.clearRecentFiles();
           break;
         case 'save':
+          if (isExecution) break;
           if (isRoadNetwork) {
             saveXodr();
           } else {
@@ -71,6 +80,7 @@ export function useElectronMenu() {
           }
           break;
         case 'saveAs':
+          if (isExecution) break;
           if (isRoadNetwork) {
             saveAsXodr();
           } else {
@@ -78,7 +88,8 @@ export function useElectronMenu() {
           }
           break;
         case 'undo':
-          // Route to the focused document (catalog modal / distribution override).
+          // Route to the focused document (catalog modal / distribution
+          // override). `null` = execution mode: no document, no-op.
           switch (getFocusedDocumentKind()) {
             case 'catalog':
               useCatalogStore.getState().undoCatalog();
@@ -89,8 +100,11 @@ export function useElectronMenu() {
             case 'distribution':
               useDistributionStore.getState().undoDistribution();
               break;
-            default:
+            case 'scenario':
               storeApi.getState().undo();
+              break;
+            case null:
+              break;
           }
           break;
         case 'redo':
@@ -104,8 +118,11 @@ export function useElectronMenu() {
             case 'distribution':
               useDistributionStore.getState().redoDistribution();
               break;
-            default:
+            case 'scenario':
               storeApi.getState().redo();
+              break;
+            case null:
+              break;
           }
           break;
       }

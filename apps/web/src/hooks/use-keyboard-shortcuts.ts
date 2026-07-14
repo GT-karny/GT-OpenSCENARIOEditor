@@ -20,7 +20,11 @@ export function useKeyboardShortcuts() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const ctrl = e.ctrlKey || e.metaKey;
-      const isRoadNetwork = useDocumentRegistry.getState().focusedBase === 'roadNetwork';
+      const focusedBase = useDocumentRegistry.getState().focusedBase;
+      const isRoadNetwork = focusedBase === 'roadNetwork';
+      // Execution mode owns no document: every document shortcut below must be
+      // inert (still preventDefault so the browser's own save/open cannot fire).
+      const isExecution = focusedBase === 'execution';
 
       const routeEditActive = useRouteEditStore.getState().active;
 
@@ -29,6 +33,7 @@ export function useKeyboardShortcuts() {
         if (!routeEditActive) {
           // Route undo to the focused document (a catalog modal / distribution
           // affordance overrides focusedBase; see getFocusedDocumentKind).
+          // `null` = execution mode: no document, no-op.
           switch (getFocusedDocumentKind()) {
             case 'catalog':
               useCatalogStore.getState().undoCatalog();
@@ -39,8 +44,11 @@ export function useKeyboardShortcuts() {
             case 'distribution':
               useDistributionStore.getState().undoDistribution();
               break;
-            default:
+            case 'scenario':
               storeApi.getState().undo();
+              break;
+            case null:
+              break;
           }
         }
       } else if (ctrl && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
@@ -56,12 +64,16 @@ export function useKeyboardShortcuts() {
             case 'distribution':
               useDistributionStore.getState().redoDistribution();
               break;
-            default:
+            case 'scenario':
               storeApi.getState().redo();
+              break;
+            case null:
+              break;
           }
         }
       } else if (ctrl && e.shiftKey && e.key === 'S') {
         e.preventDefault();
+        if (isExecution) return;
         if (isRoadNetwork) {
           saveAsXodr();
         } else {
@@ -69,6 +81,7 @@ export function useKeyboardShortcuts() {
         }
       } else if (ctrl && e.key === 's') {
         e.preventDefault();
+        if (isExecution) return;
         if (isRoadNetwork) {
           saveXodr();
         } else {
@@ -76,27 +89,28 @@ export function useKeyboardShortcuts() {
         }
       } else if (ctrl && e.key === 'o') {
         e.preventDefault();
+        if (isExecution) return;
         if (isRoadNetwork) {
           loadXodr();
         } else {
           openXosc();
         }
       } else if (ctrl && e.key === 'd') {
-        if (isInputFocused() || isRoadNetwork) return;
+        if (isInputFocused() || isRoadNetwork || isExecution) return;
         const selectedIds = useEditorStore.getState().selection.selectedElementIds;
         if (selectedIds.length > 0) {
           e.preventDefault();
           duplicateElements(selectedIds);
         }
       } else if (ctrl && e.key === 'c') {
-        if (isInputFocused() || isRoadNetwork) return;
+        if (isInputFocused() || isRoadNetwork || isExecution) return;
         const selectedIds = useEditorStore.getState().selection.selectedElementIds;
         if (selectedIds.length > 0) {
           e.preventDefault();
           copyElements(selectedIds);
         }
       } else if (ctrl && e.key === 'v') {
-        if (isInputFocused() || isRoadNetwork) return;
+        if (isInputFocused() || isRoadNetwork || isExecution) return;
         const selectedIds = useEditorStore.getState().selection.selectedElementIds;
         // Paste is anchored on the primary (first) selected element.
         if (selectedIds.length >= 1) {
@@ -104,7 +118,7 @@ export function useKeyboardShortcuts() {
           pasteAtSelection(selectedIds[0]);
         }
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (isInputFocused() || routeEditActive) return;
+        if (isInputFocused() || routeEditActive || isExecution) return;
         e.preventDefault();
         deleteSelected();
       }

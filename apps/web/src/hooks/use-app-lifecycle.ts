@@ -21,6 +21,11 @@ import { useDocumentRegistry } from '../stores/document-registry';
  */
 export function useAppLifecycle() {
   const switchEditorMode = useCallback((mode: EditorMode) => {
+    // Handles scenario / roadNetwork / execution. The `execution` mode owns no
+    // document, so there is no unsaved-changes guard here (guards live on the
+    // document-backed modes); the transient resets below are harmless for it and
+    // stop any running preview before entering/leaving the execution surface.
+
     // 1. Stop any active simulation
     useSimulationStore.getState().reset();
 

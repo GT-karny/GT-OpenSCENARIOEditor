@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
+import { useTranslation } from '@osce/i18n';
 import { HeaderToolbar } from './HeaderToolbar';
 import { StatusBar } from './StatusBar';
 import { AutosaveRecoveryDialog } from '../editor/AutosaveRecoveryDialog';
@@ -16,7 +17,12 @@ import { buildCatalogLocationsFromProject } from '../../lib/catalog-location-uti
 import { RoadNetworkEditorLayout } from '../../features/road/components/RoadNetworkEditorLayout';
 import { ScenarioEditorLayout } from '../../features/scenario/components/ScenarioEditorLayout';
 
+// Lazy so react-query and the GT_Sim execution stack stay out of the
+// scenario/road-network bundles (loaded only when the execution mode opens).
+const ExecutionLayout = lazy(() => import('../../features/gt-sim/ExecutionLayout'));
+
 export function EditorLayout() {
+  const { t } = useTranslation('common');
   const scenarioStoreApi = useScenarioStoreApi();
   const currentProject = useProjectStore((s) => s.currentProject);
   const focusedBase = useDocumentRegistry((s) => s.focusedBase);
@@ -69,7 +75,17 @@ export function EditorLayout() {
       {/* Save-time validation confirmation host (mode-independent) */}
       <ValidationConfirmHost />
 
-      {focusedBase === 'roadNetwork' ? (
+      {focusedBase === 'execution' ? (
+        <Suspense
+          fallback={
+            <div className="flex flex-1 items-center justify-center text-sm text-[var(--color-text-secondary)]">
+              {t('gtSim.loading')}
+            </div>
+          }
+        >
+          <ExecutionLayout />
+        </Suspense>
+      ) : focusedBase === 'roadNetwork' ? (
         <>
           <RoadNetworkEditorLayout />
 

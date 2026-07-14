@@ -20,6 +20,9 @@ import { useDocumentRegistry } from '../../stores/document-registry';
 export function FileMenu() {
   const { t } = useTranslation('common');
   const isRoadNetwork = useDocumentRegistry((s) => s.focusedBase === 'roadNetwork');
+  // Execution mode owns no document: document operations (New/Open/Save/recent)
+  // are disabled so they can never mutate a background scenario/road document.
+  const isExecution = useDocumentRegistry((s) => s.focusedBase === 'execution');
   const {
     newScenario,
     openXosc,
@@ -50,18 +53,18 @@ export function FileMenu() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start">
-        <DropdownMenuItem onClick={isRoadNetwork ? newOpenDrive : newScenario}>
+        <DropdownMenuItem disabled={isExecution} onClick={isRoadNetwork ? newOpenDrive : newScenario}>
           <FilePlus />
           New
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={isRoadNetwork ? loadXodr : openXosc}>
+        <DropdownMenuItem disabled={isExecution} onClick={isRoadNetwork ? loadXodr : openXosc}>
           <FolderOpen />
           Open {isRoadNetwork ? '.xodr' : '.xosc'}
           <DropdownMenuShortcut>Ctrl+O</DropdownMenuShortcut>
         </DropdownMenuItem>
         <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
+          <DropdownMenuSubTrigger disabled={isExecution}>
             <Clock />
             {t('recentFiles.title')}
           </DropdownMenuSubTrigger>
@@ -88,12 +91,12 @@ export function FileMenu() {
             )}
           </DropdownMenuSubContent>
         </DropdownMenuSub>
-        <DropdownMenuItem onClick={isRoadNetwork ? saveXodr : saveXosc}>
+        <DropdownMenuItem disabled={isExecution} onClick={isRoadNetwork ? saveXodr : saveXosc}>
           <Save />
           {t('buttons.save')} {isRoadNetwork ? '.xodr' : '.xosc'}
           <DropdownMenuShortcut>Ctrl+S</DropdownMenuShortcut>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={isRoadNetwork ? saveAsXodr : saveAsXosc}>
+        <DropdownMenuItem disabled={isExecution} onClick={isRoadNetwork ? saveAsXodr : saveAsXosc}>
           <SaveAll />
           {t('buttons.saveAs')} {isRoadNetwork ? '.xodr' : '.xosc'}
           <DropdownMenuShortcut>Ctrl+Shift+S</DropdownMenuShortcut>
