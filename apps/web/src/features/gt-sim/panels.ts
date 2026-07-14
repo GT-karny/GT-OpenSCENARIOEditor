@@ -6,4 +6,7 @@
  * and the trunk lane adds one import line here when that cluster lands.
  * Cluster lanes must not edit this file (or ExecutionLayout) themselves.
  */
-export {};
+import './jobs/register';
+import './live/register';
+import './run-form/register';
+import './verification/register';

@@ -166,9 +166,38 @@ export interface ScenarioInfo {
   has_controller: boolean;
 }
 
-/** GET .../road-geometry response. */
+/** A road sign placed along the route (OpenDRIVE `signal`/`RM_RoadSign`), as sent by `.../road-geometry`. */
+export interface RoadGeometrySign {
+  id: number;
+  road_id: number;
+  x: number;
+  y: number;
+  z: number;
+  h: number;
+  s: number;
+  t: number;
+  name: string;
+  orientation: number;
+  height: number;
+  width: number;
+}
+
+/** A stop line's road-surface polyline, as sent by `.../road-geometry`. */
+export interface RoadGeometryStopLine {
+  road_id: number;
+  sign_id: number;
+  points: [number, number][];
+}
+
+/**
+ * GET .../road-geometry response. `signs`/`stop_lines` are optional: the
+ * backend omits them for scenarios with no signage/stop-line data, and older
+ * responses may not carry them at all.
+ */
 export interface RoadGeometryResponse {
   boundaries: Array<{ road_id: number; type: string; points: [number, number][] }>;
+  signs?: RoadGeometrySign[];
+  stop_lines?: RoadGeometryStopLine[];
 }
 
 // --- Manual drive / controller config ---

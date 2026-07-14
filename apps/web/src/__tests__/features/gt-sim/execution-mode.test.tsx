@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, act, cleanup, renderHook } from '@testing-library/react';
 import {
   useDocumentRegistry,
@@ -12,6 +12,17 @@ import {
 } from '../../../features/gt-sim/panel-registry';
 import ExecutionLayout from '../../../features/gt-sim/ExecutionLayout';
 import { initTestI18n } from '../../helpers/render-with-providers';
+
+// `ExecutionLayout` pulls in `../../../features/gt-sim/panels`, which
+// registers every landed cluster's real panels into the (module-global)
+// panel-registry as a load-time side effect. This suite exercises
+// `ExecutionLayout`'s empty-state/slot-sorting behaviour in isolation from
+// whichever real panels happen to be registered elsewhere in the app, so the
+// side-effect module is stubbed out here (vi.mock calls are hoisted above
+// imports) — the registry-emptiness/order assertions below stay a pure
+// unit-level check ("when nothing is registered / only these ids are
+// registered..."), not a claim about the real app's panel set.
+vi.mock('../../../features/gt-sim/panels', () => ({}));
 
 beforeAll(async () => {
   await initTestI18n();
