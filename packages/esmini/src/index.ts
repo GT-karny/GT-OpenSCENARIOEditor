@@ -1,5 +1,7 @@
-// Service
-export { GtSimService } from './service/gt-sim-service.js';
+// Node-only service: `GtSimService` (gRPC streaming via `@grpc/grpc-js` +
+// Node `path`/`url`) is NOT exported from this browser-safe barrel — it
+// would break the Rollup web build. Import it from '@osce/esmini/node' in
+// Node-hosted consumers only. See src/node.ts for the rationale.
 
 // --- GT_Sim REST/WS contract (types-first freeze; implementation in WP1) ---
 
