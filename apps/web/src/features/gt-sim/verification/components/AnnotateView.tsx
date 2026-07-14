@@ -10,15 +10,17 @@
  *
  * Ported from the fork's `pages/VerificationAnnotatePage.tsx`. Filter/search/
  * next-unlabeled/summary logic is extracted to `../lib/annotation.ts` for
- * unit testing. The fork's `OdrMetadataPanel` sidebar (cluster G, not yet
- * built) is intentionally omitted — see the cluster F final report for the
- * integration note.
+ * unit testing. The fork's `OdrMetadataPanel` sidebar (cluster G) is wired in
+ * the right rail, matching the fork's placement (after `TelemetryInfoRows`,
+ * before `MatchPanel`), gated on the selected run having both
+ * `project_id`/`scenario_file` (batch runs lack these).
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '@osce/i18n';
 import { buildGtSimSimulationRequest } from '@osce/esmini';
 import type { AnnotationLabel, AnnotationRun, MatchResult } from '@osce/esmini';
+import { OdrMetadataPanel } from '@/features/gt-sim/odr';
 import { useGtSimApi } from '../../lib';
 import { useVdViewStore } from '../store/vd-view-store';
 import { Button } from '../../ui';
@@ -352,6 +354,14 @@ export function AnnotateView() {
           )}
 
           {frame && <TelemetryInfoRows frame={frame} />}
+
+          {selected?.project_id && selected?.scenario_file && (
+            <OdrMetadataPanel
+              key={`${selected.project_id}:${selected.scenario_file}`}
+              projectId={selected.project_id}
+              scenarioFile={selected.scenario_file}
+            />
+          )}
 
           {matchData && matchData.matches.length > 0 && <MatchPanel matches={matchData.matches} onSelect={selectRun} />}
         </div>

@@ -6,8 +6,14 @@
  * `jobs-view-store.selectJob`, per the migration plan's D6 decision (no
  * router in the execution mode) — a row click opens the detail side panel
  * (`JobDetailPanel`) instead of navigating to a route.
+ *
+ * "View Live" (WP5, trunk wiring): a running row's action button sets
+ * `live-view-store.watchedJobId` and switches `ExecutionLayout`'s `main`
+ * slot to the Live Monitor tab (`main-panel-store`) — see
+ * `JobDetailPanel.tsx` for the same action on the detail side panel.
  */
 import { useTranslation } from '@osce/i18n';
+import { Radio } from 'lucide-react';
 import type { GtSimSimulationStatus } from '@osce/esmini';
 import {
   StatusBadge,
@@ -18,6 +24,8 @@ import {
   Button,
   type TableColumn,
 } from '../../ui';
+import { useLiveViewStore } from '../../live/stores/live-view-store';
+import { useMainPanelStore, LIVE_MONITOR_PANEL_ID } from '../../stores/main-panel-store';
 import { useJobsList, JOBS_PAGE_SIZE } from '../hooks/useJobsList';
 import { useJobsViewStore, type JobStatusFilter } from '../stores/jobs-view-store';
 
@@ -30,8 +38,15 @@ export function JobListPanel() {
   const setStatusFilter = useJobsViewStore((s) => s.setStatusFilter);
   const setPage = useJobsViewStore((s) => s.setPage);
   const selectJob = useJobsViewStore((s) => s.selectJob);
+  const setWatchedJobId = useLiveViewStore((s) => s.setWatchedJobId);
+  const setActiveMainPanelId = useMainPanelStore((s) => s.setActivePanelId);
 
   const { jobs, total, totalPages, projectNames, isLoading, error, refetch } = useJobsList();
+
+  const viewLive = (jobId: string) => {
+    setWatchedJobId(jobId);
+    setActiveMainPanelId(LIVE_MONITOR_PANEL_ID);
+  };
 
   const columns: TableColumn[] = [
     { key: 'id', label: t('gtSim.jobs.list.columns.jobId') },
@@ -40,6 +55,7 @@ export function JobListPanel() {
     { key: 'controller', label: t('gtSim.jobs.list.columns.controller') },
     { key: 'status', label: t('gtSim.jobs.list.columns.status') },
     { key: 'started', label: t('gtSim.jobs.list.columns.started') },
+    { key: 'actions', label: '' },
   ];
 
   const filterLabel = (filter: JobStatusFilter): string =>
@@ -73,7 +89,7 @@ export function JobListPanel() {
         </div>
       </div>
 
-      {isLoading && <TableSkeleton columns={6} rows={4} />}
+      {isLoading && <TableSkeleton columns={7} rows={4} />}
 
       {!isLoading && error && <ErrorPanel error={error} onRetry={() => refetch()} />}
 
@@ -116,6 +132,22 @@ export function JobListPanel() {
                   {job.started_at
                     ? new Date(job.started_at).toLocaleTimeString()
                     : t('gtSim.jobs.notAvailable')}
+                </td>
+                <td className="px-4 py-3 text-right">
+                  {job.status === 'running' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1 text-[10px]"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        viewLive(job.job_id);
+                      }}
+                    >
+                      <Radio className="h-3 w-3" />
+                      {t('gtSim.target.jobs.viewLive')}
+                    </Button>
+                  )}
                 </td>
               </tr>
             ))}

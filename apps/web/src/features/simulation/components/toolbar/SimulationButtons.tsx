@@ -8,9 +8,16 @@ import { useSimulationStore } from '../../stores/simulation-store';
 import { useScenarioStoreApi } from '../../../../stores/use-scenario-store';
 import { useCatalogStore } from '../../../../stores/catalog-store';
 import { useProjectStore } from '../../../../stores/project-store';
+import { useDocumentRegistry } from '../../../../stores/document-registry';
 import { useWasmSimulation } from '../../hooks/use-wasm-simulation';
 import { getSimulationXodr } from '../../lib/simulation-xodr';
 import * as api from '../../../../lib/project-api';
+import { useExecutionTargetStore, useGtSimSimulation } from '../../../gt-sim/target';
+import { useGtSimConnectionStore } from '../../../gt-sim/stores/gt-sim-connection-store';
+import { useRunFormStore } from '../../../gt-sim/run-form/store';
+import { useMainPanelStore, LIVE_MONITOR_PANEL_ID } from '../../../gt-sim/stores/main-panel-store';
+import { useLiveViewStore } from '../../../gt-sim/live/stores/live-view-store';
+import { TargetSwitcher } from '../../../gt-sim/target/TargetSwitcher';
 
 /** Collect catalog XMLs from the catalog store */
 function collectCatalogXmls(): Record<string, string> {
@@ -60,9 +67,19 @@ export function SimulationButtons({ compact }: { compact?: boolean }) {
   const { t } = useTranslation('common');
   const simStatus = useSimulationStore((s) => s.status);
   const storeApi = useScenarioStoreApi();
-  const { startSimulation, stopSimulation } = useWasmSimulation();
+  const { startSimulation: startWasm, stopSimulation: stopWasm } = useWasmSimulation();
+  const { startSimulation: startGtSim, stopSimulation: stopGtSim, getJobId } = useGtSimSimulation();
+  const setWatchedJobId = useLiveViewStore((s) => s.setWatchedJobId);
+  const setActiveMainPanelId = useMainPanelStore((s) => s.setActivePanelId);
 
-  const handleRun = async () => {
+  const target = useExecutionTargetStore((s) => s.target);
+  const nativeWindow = useExecutionTargetStore((s) => s.nativeWindow);
+  const runningTarget = useExecutionTargetStore((s) => s.runningTarget);
+  const gtSimReady = useGtSimConnectionStore((s) => s.state === 'ready');
+  const runFormProjectId = useRunFormStore((s) => s.selectedProjectId);
+  const runFormScenarioFile = useRunFormStore((s) => s.selectedScenarioFile);
+
+  const handleRunWasm = async () => {
     try {
       const doc = storeApi.getState().document;
       const serializer = new XoscSerializer();
@@ -90,9 +107,12 @@ export function SimulationButtons({ compact }: { compact?: boolean }) {
         return;
       }
 
+      // Stamp the backend this run is actually started on (Stop routes
+      // through it — see handleStop below).
+      useExecutionTargetStore.getState().setRunningTarget('wasm');
       // Runtime/load failures are surfaced via the WASM service onError funnel
       // (see useWasmSimulation). This catch only covers pre-flight serialization.
-      await startSimulation(xml, xodrXml, catalogXmls);
+      await startWasm(xml, xodrXml, catalogXmls);
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : t('labels.serializeFailed'),
@@ -100,47 +120,95 @@ export function SimulationButtons({ compact }: { compact?: boolean }) {
     }
   };
 
-  const handleStop = async () => {
-    await stopSimulation();
+  // GT_Sim executes a named project scenario file (not the in-editor XML —
+  // see use-gtsim-simulation.ts), so this reuses the run-form's (cluster B)
+  // project/scenario selection rather than serializing the live document.
+  // Auto-linking the toolbar's currently-open document to a GT_Sim project id
+  // is out of scope for WP5 (no reliable id mapping between the editor's
+  // project store and GT_Sim's own project registry) — see final report.
+  const handleRunGtSim = async () => {
+    if (!gtSimReady) {
+      toast.error(t('gtSim.target.runtime.notConnected'));
+      return;
+    }
+    if (!runFormProjectId || !runFormScenarioFile) {
+      toast.error(t('gtSim.target.runtime.noScenarioSelected'));
+      return;
+    }
+    if (useDocumentRegistry.getState().isDirty('scenario')) {
+      toast.warning(t('gtSim.target.runtime.unsavedWarning'));
+    }
+    useExecutionTargetStore.getState().setRunningTarget('gt-sim');
+    await startGtSim(
+      { projectId: runFormProjectId, scenarioId: runFormScenarioFile },
+      { headless: !nativeWindow },
+    );
+    // Best-effort: preselect the new job in the live monitor so switching to
+    // execution mode immediately shows this run (job list / run-form panel
+    // wire the same pair — see JobListPanel.tsx / SimulationRunForm.tsx).
+    const jobId = getJobId();
+    if (jobId) {
+      setWatchedJobId(jobId);
+      setActiveMainPanelId(LIVE_MONITOR_PANEL_ID);
+    }
   };
+
+  const handleRun = target === 'gt-sim' ? handleRunGtSim : handleRunWasm;
+  // Stop must address the backend the run was actually started on, NOT the
+  // current selection: `runningTarget` is stamped at start (review finding —
+  // routing Stop through `target` alone would no-op if the selection ever
+  // changed mid-run). The TargetSwitcher is also disabled while running
+  // (first line of defense); `?? target` covers a pre-first-run Stop, which
+  // is a no-op on either service.
+  const handleStop = (runningTarget ?? target) === 'gt-sim' ? stopGtSim : stopWasm;
+  const runDisabled = target === 'gt-sim' && (!gtSimReady || !runFormProjectId || !runFormScenarioFile);
 
   if (simStatus === 'running') {
     return (
+      <div className="flex items-center gap-1">
+        <TargetSwitcher compact={compact} />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size={compact ? 'icon' : 'sm'}
+              className={
+                compact
+                  ? 'h-8 w-8 text-[var(--color-destructive)] hover:text-[var(--color-destructive)]'
+                  : 'text-xs text-[var(--color-destructive)] hover:text-[var(--color-destructive)]'
+              }
+              onClick={handleStop}
+            >
+              <Square className={compact ? 'h-3.5 w-3.5' : 'h-3.5 w-3.5 mr-1'} />
+              {!compact && t('buttons.stop')}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('buttons.stop')}</TooltipContent>
+        </Tooltip>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      <TargetSwitcher compact={compact} />
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
             variant="ghost"
             size={compact ? 'icon' : 'sm'}
-            className={
-              compact
-                ? 'h-8 w-8 text-[var(--color-destructive)] hover:text-[var(--color-destructive)]'
-                : 'text-xs text-[var(--color-destructive)] hover:text-[var(--color-destructive)]'
-            }
-            onClick={handleStop}
+            className={compact ? 'h-8 w-8' : 'text-xs'}
+            onClick={handleRun}
+            disabled={runDisabled}
           >
-            <Square className={compact ? 'h-3.5 w-3.5' : 'h-3.5 w-3.5 mr-1'} />
-            {!compact && t('buttons.stop')}
+            <Play className={compact ? 'h-3.5 w-3.5' : 'h-3.5 w-3.5 mr-1'} />
+            {!compact && t('buttons.run')}
           </Button>
         </TooltipTrigger>
-        <TooltipContent>{t('buttons.stop')}</TooltipContent>
+        <TooltipContent>
+          {runDisabled ? t('gtSim.target.runtime.runDisabledTooltip') : t('buttons.run')}
+        </TooltipContent>
       </Tooltip>
-    );
-  }
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant="ghost"
-          size={compact ? 'icon' : 'sm'}
-          className={compact ? 'h-8 w-8' : 'text-xs'}
-          onClick={handleRun}
-        >
-          <Play className={compact ? 'h-3.5 w-3.5' : 'h-3.5 w-3.5 mr-1'} />
-          {!compact && t('buttons.run')}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>{t('buttons.run')}</TooltipContent>
-    </Tooltip>
+    </div>
   );
 }

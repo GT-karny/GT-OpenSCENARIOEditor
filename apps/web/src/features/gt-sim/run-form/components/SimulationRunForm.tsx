@@ -11,12 +11,15 @@
  * dropped: this component only ever renders inside the fixed-width `side`
  * panel slot, so compact spacing is unconditional.
  *
- * Two fork behaviors are intentionally NOT ported here (see final report):
+ * One fork behavior is intentionally NOT ported here (see final report):
  *  - `rerunFrom` (restore options from a previous job) — there is no job
  *    detail page (cluster D) yet to source it from.
- *  - The `window.open('/live/vd/current?...')` "Live Telemetry ↗" button —
- *    deferred to the WP5 cluster E/F integration per the migration
- *    instructions (TODO below).
+ *
+ * The fork's `window.open('/live/vd/current?...')` "Live Telemetry ↗" button
+ * IS ported (WP5, trunk): on submit success this watches the new job in
+ * `live-view-store` and switches `ExecutionLayout`'s `main` slot to the Live
+ * Monitor tab, replacing the fork's separate browser window (design
+ * judgment D6 — no separate windows in the unified UI).
  */
 import { useEffect, useReducer } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -25,11 +28,13 @@ import { toast } from 'sonner';
 import type { ControllerConfig, GtSimSimulationRequest, GtSimSimulationStatus } from '@osce/esmini';
 import { useGtSimApi } from '../../lib';
 import { Button, Card } from '../../ui';
+import { useLiveViewStore } from '../../live/stores/live-view-store';
+import { useMainPanelStore, LIVE_MONITOR_PANEL_ID } from '../../stores/main-panel-store';
 import { buildRunRequest } from '../lib/build-run-request';
 import { DEFAULT_MANUAL_DRIVE_CONFIG, mergeManualDriveConfig } from '../lib/manual-drive-defaults';
 import type { ControllerType, DriveMode, LaneChangeGap, LaneChangeTiming, RunFormValues } from '../types';
+import { ManualDrivePanel } from '@/features/gt-sim/manual-drive';
 import { ControllerSection } from './ControllerSection';
-import { ManualDriveSettingsPlaceholder } from './ManualDriveSettingsPlaceholder';
 import { QuickOptionsBar } from './QuickOptionsBar';
 import { AdvancedSettings } from './AdvancedSettings';
 
@@ -113,6 +118,8 @@ export function SimulationRunForm({
 }: SimulationRunFormProps) {
   const { t } = useTranslation('common');
   const api = useGtSimApi();
+  const setWatchedJobId = useLiveViewStore((s) => s.setWatchedJobId);
+  const setActiveMainPanelId = useMainPanelStore((s) => s.setActivePanelId);
 
   const [values, dispatchValues] = useReducer(valuesReducer, INITIAL_VALUES);
   const {
@@ -232,10 +239,10 @@ export function SimulationRunForm({
     onSuccess: (job) => {
       toast.success(t('gtSim.runForm.submit.toastQueued', { jobId: job.job_id }));
       onSubmitted?.(job);
-      // TODO(WP5 / cluster E+F): once the live-view panels land, navigate to
-      // the VD live telemetry view here (fork: window.open('/live/vd/{jobId}')
-      // at SimulationRunForm.tsx:546). For now, the job id is only surfaced
-      // via this toast + InlineSimulationStatus.
+      // Watch the new job in the Live Monitor tab (ports the fork's
+      // window.open('/live/vd/{jobId}') as an in-panel tab switch — D6).
+      setWatchedJobId(job.job_id);
+      setActiveMainPanelId(LIVE_MONITOR_PANEL_ID);
     },
     onError: (error: Error) => {
       toast.error(t('gtSim.runForm.submit.toastError', { message: error.message }));
@@ -262,9 +269,11 @@ export function SimulationRunForm({
         setLaneChangeGap={(v: LaneChangeGap) => patchValues({ laneChangeGap: v })}
       />
 
-      <ManualDriveSettingsPlaceholder
+      <ManualDrivePanel
         open={showManualPanel}
         onClose={() => patchUi({ showManualPanel: false })}
+        config={manualDriveConfig}
+        onChange={(v) => patchValues({ manualDriveConfig: v })}
       />
 
       <div className="border-b border-[var(--color-glass-edge)] my-3" />

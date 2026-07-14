@@ -24,3 +24,6 @@ export {
 // Convenience type re-export: the concrete client type returned by
 // useGtSimApi()/getGtSimApi().
 export type { GtSimApiClient } from '@osce/esmini';
+
+// Shared VD visualization constants (WP5 cross-cluster dedup — see colors.ts).
+export { MID_LONG_CONSTRAINT_COLOR } from './colors';

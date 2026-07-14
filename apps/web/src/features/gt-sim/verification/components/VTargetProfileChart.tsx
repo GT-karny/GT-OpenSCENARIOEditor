@@ -16,14 +16,8 @@
  */
 import { useMemo } from 'react';
 import { useTranslation } from '@osce/i18n';
-import type { MidLongConstraint, MidLongProfile, VdTelemetryFrame } from '@osce/esmini';
-
-const KIND_COLOR: Record<MidLongConstraint['kind'], string> = {
-  curve: '#E8A24F',
-  junction: '#E0568A',
-  speed_limit: '#4F9DE8',
-  stop: '#E03131',
-};
+import type { MidLongProfile, VdTelemetryFrame } from '@osce/esmini';
+import { MID_LONG_CONSTRAINT_COLOR as KIND_COLOR } from '../../lib/colors';
 
 /** Accumulate per-road `ego.s` (which resets at road boundaries) into a
  *  monotonic route-s. Falls back to sim_time if any frame lacks `ego.s`. */

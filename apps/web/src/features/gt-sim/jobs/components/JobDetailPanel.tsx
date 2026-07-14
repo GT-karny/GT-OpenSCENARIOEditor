@@ -10,17 +10,22 @@
  * (`OsiLivePanel`) and VirtualDriver telemetry (`LiveVdPanel`) here while the
  * job is running, plus a "Re-run" button that navigates to the project's run
  * form. Those belong to other clusters:
- *  - OsiLivePanel / LiveVdPanel: clusters E / F (not yet landed). See the
- *    TODO marker below — WP5 (trunk) wires a "view live" transition from
- *    this panel once those land.
+ *  - OsiLivePanel / LiveVdPanel: clusters E / F (not yet landed). A "View
+ *    Live" action below (WP5, trunk) switches `ExecutionLayout`'s `main`
+ *    slot to the Live Monitor tab and points it at this job instead of
+ *    embedding either panel here — same wiring as `JobListPanel.tsx`'s
+ *    per-row action.
  *  - Re-run (re-opening the run form with the scenario preselected): cluster
  *    B's run form + cluster A's project navigation, neither in scope here.
  *    Deferred; see this lane's final report.
  */
 import { useMemo } from 'react';
 import { useTranslation } from '@osce/i18n';
+import { Radio } from 'lucide-react';
 import type { ResultFile } from '@osce/esmini';
 import { Card, StatusBadge, Button, ErrorPanel, EmptyState } from '../../ui';
+import { useLiveViewStore } from '../../live/stores/live-view-store';
+import { useMainPanelStore, LIVE_MONITOR_PANEL_ID } from '../../stores/main-panel-store';
 import { useJobsViewStore } from '../stores/jobs-view-store';
 import { useJobDetail } from '../hooks/useJobDetail';
 import { useJobResults } from '../hooks/useJobResults';
@@ -115,6 +120,8 @@ export function JobDetailPanel() {
   const { job, adapted, isLoading, error, refetch, cancel, isCancelling } =
     useJobDetail(selectedJobId);
   const { resultMeta, metrics } = useJobResults(selectedJobId, job?.status);
+  const setWatchedJobId = useLiveViewStore((s) => s.setWatchedJobId);
+  const setActiveMainPanelId = useMainPanelStore((s) => s.setActivePanelId);
 
   if (!selectedJobId) {
     return (
@@ -206,22 +213,25 @@ export function JobDetailPanel() {
         )}
 
         {job.status === 'running' && (
-          <div className="mt-3">
+          <div className="mt-3 flex gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => {
+                setWatchedJobId(job.job_id);
+                setActiveMainPanelId(LIVE_MONITOR_PANEL_ID);
+              }}
+            >
+              <Radio className="h-3.5 w-3.5" />
+              {t('gtSim.target.jobs.viewLive')}
+            </Button>
             <Button variant="danger" size="sm" onClick={() => cancel()} disabled={isCancelling}>
               {isCancelling ? t('gtSim.jobs.detail.cancelling') : t('gtSim.jobs.detail.cancel')}
             </Button>
           </div>
         )}
       </Card>
-
-      {/*
-       * TODO(WP5, trunk): the fork embeds a live OSI panel (OsiLivePanel,
-       * cluster E) and VirtualDriver telemetry (LiveVdPanel, cluster F) here
-       * while job.status === 'running'. Neither is embedded by this cluster
-       * (see the migration plan's cluster D task brief §3). Once clusters
-       * E/F land, wire a "view live" affordance here that opens their
-       * panel for `job.job_id`.
-       */}
 
       {summary && (
         <Card title={t('gtSim.jobs.metrics.title')}>

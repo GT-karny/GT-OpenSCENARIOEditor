@@ -29,6 +29,7 @@ import type {
   RoadGeometrySign,
   RoadGeometryStopLine,
 } from '@osce/esmini';
+import { MID_LONG_CONSTRAINT_COLOR } from '../../lib/colors';
 
 /* ---------- Scene data types ---------- */
 
@@ -107,12 +108,15 @@ export function getObjectColors(obj: OsiObject, isEgo: boolean): { fill: string;
 
 /* ---------- Mid/long maneuver colours ---------- */
 
-export const MANEUVER_COLOR: Record<MidLongConstraint['kind'], string> = {
-  curve: '#E8A24F',
-  junction: '#E0568A',
-  speed_limit: '#4F9DE8',
-  stop: '#E03131',
-};
+/**
+ * Re-export of the shared `features/gt-sim/lib/colors.ts` constant (WP5
+ * dedup — this used to be an independent literal, identical to
+ * `verification/components/VTargetProfileChart.tsx`'s `KIND_COLOR`). Kept
+ * under its original name/shape here since it is part of this module's
+ * cross-cluster contract (re-exported from `live/index.ts`, consumed by
+ * `sceneLayers.tsx`).
+ */
+export const MANEUVER_COLOR: Record<MidLongConstraint['kind'], string> = MID_LONG_CONSTRAINT_COLOR;
 
 /* ---------- Environment classification / colour helpers ---------- */
 

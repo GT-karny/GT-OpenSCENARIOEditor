@@ -8,5 +8,7 @@
  */
 import './jobs/register';
 import './live/register';
+import './odr/register';
 import './run-form/register';
+import './settings/register';
 import './verification/register';
