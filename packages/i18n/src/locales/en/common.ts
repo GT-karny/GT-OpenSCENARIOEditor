@@ -30,6 +30,38 @@ export const common = {
       disconnectedDetailBrowser:
         'The backend is unavailable in this environment (browser). For development, set VITE_GTSIM_REST_URL.',
     },
+    // Phase 2 cluster namespaces. Each lane edits ONLY its own block below
+    // (directory-ownership rules in CLAUDE.local.md); do not touch sibling blocks.
+    ui: {
+      // owned by L3 (features/gt-sim/ui/ shared primitives)
+    },
+    runForm: {
+      // cluster B (run form)
+    },
+    presets: {
+      // cluster B (preset selector / parameter panel)
+    },
+    jobs: {
+      // cluster D (job list / detail / results)
+    },
+    live: {
+      // cluster E (live view / OSI / HVD / SV panels)
+    },
+    manualDrive: {
+      // cluster C (manual drive)
+    },
+    vd: {
+      // cluster F (VD verification: replay / annotate / live VD)
+    },
+    odr: {
+      // cluster G (ODR metadata panel)
+    },
+    settings: {
+      // cluster H' (settings panel)
+    },
+    target: {
+      // WP5 (WASM/GT_Sim execution-target switch)
+    },
   },
   buttons: {
     save: 'Save',
