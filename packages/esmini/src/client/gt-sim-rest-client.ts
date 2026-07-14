@@ -5,7 +5,7 @@ import type {
   SimulationStatusResponse,
   SimulationResultsResponse,
 } from './types.js';
-import { GtSimApiError, GtSimNetworkError } from '../errors.js';
+import { gtSimFetch } from './http-transport.js';
 
 /**
  * HTTP client for GT_Sim REST API.
@@ -78,52 +78,20 @@ export class GtSimRestClient {
     return response.json() as Promise<T>;
   }
 
-  private async fetchRaw(
+  private fetchRaw(
     method: string,
     path: string,
     options?: { body?: string; contentType?: string },
   ): Promise<Response> {
-    const url = `${this.baseUrl}${path}`;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeout);
-
-    try {
-      const headers: Record<string, string> = {};
-      if (options?.contentType) {
-        headers['Content-Type'] = options.contentType;
-      }
-
-      const response = await fetch(url, {
-        method,
-        headers,
-        body: options?.body,
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        const body = await response.text().catch(() => undefined);
-        throw new GtSimApiError(
-          `GT_Sim API error: ${method} ${path} returned ${response.status}`,
-          response.status,
-          body,
-        );
-      }
-
-      return response;
-    } catch (error) {
-      if (error instanceof GtSimApiError) throw error;
-
-      const message =
-        error instanceof Error && error.name === 'AbortError'
-          ? `GT_Sim API timeout: ${method} ${path} (${this.timeout}ms)`
-          : `GT_Sim API network error: ${method} ${path}`;
-
-      throw new GtSimNetworkError(
-        message,
-        error instanceof Error ? error : undefined,
-      );
-    } finally {
-      clearTimeout(timer);
-    }
+    // Resolve the global fetch at call time (tests stub it after construction);
+    // bind so it keeps its expected receiver.
+    return gtSimFetch(
+      globalThis.fetch.bind(globalThis),
+      this.baseUrl,
+      method,
+      path,
+      this.timeout,
+      options,
+    );
   }
 }
