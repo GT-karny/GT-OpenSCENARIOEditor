@@ -34,6 +34,25 @@ export const common = {
     // (directory-ownership rules in CLAUDE.local.md); do not touch sibling blocks.
     ui: {
       // owned by L3 (features/gt-sim/ui/ shared primitives)
+      statusBadge: {
+        queued: 'Queued',
+        running: 'Running',
+        completed: 'Completed',
+        failed: 'Failed',
+        cancelled: 'Cancelled',
+        timeout: 'Timed out',
+      },
+      confirmDialog: {
+        cancel: 'Cancel',
+        confirmDefault: 'Confirm',
+      },
+      slidePanel: {
+        close: 'Close',
+      },
+      errorPanel: {
+        failedToLoad: 'Failed to load data: {{message}}',
+        retry: 'Retry',
+      },
     },
     runForm: {
       // cluster B (run form)

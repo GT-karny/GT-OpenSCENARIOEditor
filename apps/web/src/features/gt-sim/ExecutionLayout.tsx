@@ -18,6 +18,7 @@ import { useEffect } from 'react';
 import { useTranslation } from '@osce/i18n';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Boxes } from 'lucide-react';
+import './panels';
 import { gtSimQueryClient } from './query-client';
 import { GtSimStatusBanner } from './components/GtSimStatusBanner';
 import { initGtSimConnection } from './stores/gt-sim-connection-store';
