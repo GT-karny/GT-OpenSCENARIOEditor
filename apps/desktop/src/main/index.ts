@@ -7,6 +7,7 @@ import { createMenu } from './menu.js';
 import { registerIpcHandlers, unregisterIpcHandlers } from './ipc-handlers.js';
 import { restoreWindowState, saveWindowState } from './window-state.js';
 import { installCloseGuard } from './close-guard.js';
+import { installGtSimCorsBypass } from './gtsim-cors.js';
 import {
   getCurrentEndpoints,
   getCurrentStatus,
@@ -42,6 +43,12 @@ async function createWindow() {
       sandbox: false,
     },
   });
+
+  // Renderer-side fetches to the GT_Sim backend are cross-origin (the
+  // embedded server binds a random port) and the backend's own CORS
+  // allowlist only covers the Vite dev port — see gtsim-cors.ts for why this
+  // is required before the first REST call from a cluster panel.
+  installGtSimCorsBypass(mainWindow.webContents.session);
 
   registerIpcHandlers(mainWindow);
   createMenu(mainWindow);
