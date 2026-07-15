@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGtSimConnectionStore } from '../../../features/gt-sim/stores/gt-sim-connection-store';
 
 describe('gt-sim-connection-store', () => {
@@ -72,5 +72,40 @@ describe('gt-sim-connection-store', () => {
     expect(useGtSimConnectionStore.getState().endpoints?.wsBaseUrl).toBe(
       'wss://sim.example.com',
     );
+  });
+
+  describe('requestConnect', () => {
+    afterEach(() => {
+      delete (window as unknown as { electronAPI?: unknown }).electronAPI;
+    });
+
+    it('rejects when no Electron bridge is present (browser dev)', async () => {
+      delete (window as unknown as { electronAPI?: unknown }).electronAPI;
+      await expect(
+        useGtSimConnectionStore.getState().requestConnect({ host: '127.0.0.1', port: 8000 }),
+      ).rejects.toThrow(/bridge unavailable/i);
+    });
+
+    it('delegates to window.electronAPI.gtSimConnect with the given config', async () => {
+      const gtSimConnect = vi.fn().mockResolvedValue({
+        restBaseUrl: 'http://127.0.0.1:8000',
+        wsBaseUrl: 'ws://127.0.0.1:8000',
+        grpcPort: 50051,
+      });
+      (window as unknown as { electronAPI: unknown }).electronAPI = { gtSimConnect };
+
+      await useGtSimConnectionStore.getState().requestConnect({ host: '10.0.0.5', port: 9001 });
+
+      expect(gtSimConnect).toHaveBeenCalledWith({ host: '10.0.0.5', port: 9001 });
+    });
+
+    it('propagates a rejection from gtSimConnect', async () => {
+      const gtSimConnect = vi.fn().mockRejectedValue(new Error('unreachable'));
+      (window as unknown as { electronAPI: unknown }).electronAPI = { gtSimConnect };
+
+      await expect(
+        useGtSimConnectionStore.getState().requestConnect({ port: 8000 }),
+      ).rejects.toThrow('unreachable');
+    });
   });
 });

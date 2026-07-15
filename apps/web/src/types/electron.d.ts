@@ -1,4 +1,4 @@
-import type { GtSimEndpoints, GtSimBackendStatus } from '@osce/shared';
+import type { GtSimEndpoints, GtSimBackendStatus, GtSimConnectConfig } from '@osce/shared';
 
 interface ElectronOpenDialogResult {
   canceled: boolean;
@@ -64,6 +64,15 @@ interface ElectronAPI {
    * Returns an unsubscribe function.
    */
   onGtSimStatus?: (callback: (status: GtSimBackendStatus) => void) => () => void;
+  /**
+   * (Re)connect to a GT_Sim backend at the given host/port; persists the
+   * setting so it auto-connects on the next launch. Resolves with endpoints on
+   * success, rejects on failure — either way the outcome is also reported via
+   * `onGtSimStatus`.
+   */
+  gtSimConnect?: (config: GtSimConnectConfig) => Promise<GtSimEndpoints>;
+  /** Persisted connect-mode settings from a previous `gtSimConnect`, or `null`. */
+  gtSimGetConnectConfig?: () => Promise<GtSimConnectConfig | null>;
   platform: string;
   isElectron: boolean;
 }

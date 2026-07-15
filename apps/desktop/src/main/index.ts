@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
 import { DEFAULT_WEB_PORT, GTSIM_IPC_CHANNELS } from '@osce/shared';
+import type { GtSimConnectConfig } from '@osce/shared';
 import { startServer, stopServer } from './server.js';
 import { createMenu } from './menu.js';
 import { registerIpcHandlers, unregisterIpcHandlers } from './ipc-handlers.js';
@@ -9,8 +10,10 @@ import { installCloseGuard } from './close-guard.js';
 import {
   getCurrentEndpoints,
   getCurrentStatus,
-  isGtSimBackendEnabled,
+  getPersistedConnectConfig,
   onBackendStatus,
+  requestGtSimConnect,
+  resolveStartupPlan,
   startGtSimBackend,
   stopGtSimBackend,
 } from './python-server.js';
@@ -84,31 +87,52 @@ function wireGtSimStatus(window: BrowserWindow): void {
 }
 
 /**
- * Register the `gtsim:getEndpoints` invoke handler and kick off the backend if
- * enabled. Backend startup is fire-and-forget so a slow/failed backend never
- * blocks the editor UI (status is pushed to the renderer instead).
+ * Register the GT_Sim IPC handlers (endpoints query, status is a separate push
+ * wired in `wireGtSimStatus`, connect, and persisted-config query) and kick off
+ * the backend per `resolveStartupPlan` — env vars (`GTSIM_BACKEND` /
+ * `GTSIM_PORT`) override, else the persisted connect setting (from a previous
+ * settings-panel connect) auto-connects, else the backend stays disabled until
+ * the user connects from the settings panel. Backend startup is fire-and-forget
+ * so a slow/failed backend never blocks the editor UI (status is pushed to the
+ * renderer instead).
  *
- * TODO(WP3): fold the gtsim handler registration into ipc-handlers.ts once a
- * settings-based enable toggle replaces the env-var gate (the handler is
- * app-lifetime, not per-window, hence kept here for now).
+ * TODO(WP3): fold the gtsim handler registration into ipc-handlers.ts once this
+ * settings surface covers spawn mode too (the handler is app-lifetime, not
+ * per-window, hence kept here for now).
  */
 function initGtSimBackend(): void {
   ipcMain.handle(GTSIM_IPC_CHANNELS.getEndpoints, () => getCurrentEndpoints());
+  ipcMain.handle(GTSIM_IPC_CHANNELS.getConnectConfig, () => getPersistedConnectConfig());
+  ipcMain.handle(GTSIM_IPC_CHANNELS.connect, (_event, config: GtSimConnectConfig) =>
+    requestGtSimConnect(config),
+  );
 
-  if (!isGtSimBackendEnabled()) {
-    console.log('[gtsim] Backend disabled (set GTSIM_BACKEND=1 or GTSIM_PORT to enable).');
+  const plan = resolveStartupPlan();
+
+  if (plan.mode === 'disabled') {
+    console.log(
+      '[gtsim] Backend disabled (connect from the settings panel, or set GTSIM_BACKEND=1 / GTSIM_PORT to enable).',
+    );
     return;
   }
 
-  void startGtSimBackend({
-    isPackaged: app.isPackaged,
-    resourcesPath: process.resourcesPath,
-    mainDir: import.meta.dirname,
-  }).catch((err) => {
+  const startup =
+    plan.mode === 'spawn'
+      ? startGtSimBackend({
+          isPackaged: app.isPackaged,
+          resourcesPath: process.resourcesPath,
+          mainDir: import.meta.dirname,
+        })
+      : // `persist: false` — an env-var override should not silently overwrite
+        // a previously saved settings-panel connect target.
+        requestGtSimConnect(plan.config, { persist: false });
+
+  void startup.catch((err) => {
     // A `failed` status has been pushed on every failure path (spawn retries
     // exhausted and connect-mode health failure alike), so the renderer banner
     // is informed; this log is for the main-process console only. The editor
-    // keeps running without the backend.
+    // keeps running without the backend — retry is available via
+    // `gtsim:connect` from the settings panel.
     console.error('[gtsim] Backend startup failed:', err);
   });
 }

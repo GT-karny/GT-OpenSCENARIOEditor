@@ -1,5 +1,5 @@
 import { GTSIM_IPC_CHANNELS } from '@osce/shared';
-import type { GtSimBackendStatus } from '@osce/shared';
+import type { GtSimBackendStatus, GtSimConnectConfig, GtSimEndpoints } from '@osce/shared';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
@@ -82,6 +82,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.removeListener(GTSIM_IPC_CHANNELS.status, handler);
     };
   },
+  // (Re)connect to a backend at the given host/port; persists the setting for
+  // next launch. Resolves with endpoints on success — callers may also just
+  // watch `onGtSimStatus`, since the same outcome is pushed there.
+  gtSimConnect: (config: GtSimConnectConfig): Promise<GtSimEndpoints> =>
+    ipcRenderer.invoke(GTSIM_IPC_CHANNELS.connect, config),
+  // Persisted connect settings from a previous `gtSimConnect`, or `null`.
+  gtSimGetConnectConfig: (): Promise<GtSimConnectConfig | null> =>
+    ipcRenderer.invoke(GTSIM_IPC_CHANNELS.getConnectConfig),
 
   // Platform info
   platform: process.platform,

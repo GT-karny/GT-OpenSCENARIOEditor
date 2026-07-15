@@ -25,7 +25,8 @@ import http from 'node:http';
 import net from 'node:net';
 import path from 'node:path';
 import { EventEmitter } from 'node:events';
-import type { GtSimBackendStatus, GtSimEndpoints } from '@osce/shared';
+import Store from 'electron-store';
+import type { GtSimBackendStatus, GtSimConnectConfig, GtSimEndpoints } from '@osce/shared';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -72,35 +73,89 @@ let serverProcess: ChildProcess | null = null;
 let currentStatus: GtSimBackendStatus | null = null;
 let stopping = false;
 let starting = false;
+/**
+ * Monotonic counter identifying the most recent `connectToBackend` call. A
+ * connect attempt only applies its outcome (`setStatus`) if it is still the
+ * newest one when it settles — an older attempt superseded by a fresh
+ * `gtsim:connect` (different host/port, or a plain retry) must not clobber
+ * the newer attempt's status with its own late success/failure.
+ */
+let connectGeneration = 0;
 
 // ---------------------------------------------------------------------------
-// Enablement gate
+// Persisted connect-mode settings (electron-store)
+// ---------------------------------------------------------------------------
+
+interface ConnectStoreSchema {
+  connectConfig: GtSimConnectConfig | null;
+}
+
+// Lazily constructed: `Store` touches Electron's `app.getPath` on first use,
+// and this module is otherwise plain-Node/unit-testable (see header comment)
+// — importing it must not require an Electron runtime.
+let connectStore: Store<ConnectStoreSchema> | null = null;
+function getConnectStore(): Store<ConnectStoreSchema> {
+  connectStore ??= new Store<ConnectStoreSchema>({ defaults: { connectConfig: null } });
+  return connectStore;
+}
+
+/** Persisted connect-mode target from a previous `gtsim:connect`, or `null`. */
+export function getPersistedConnectConfig(): GtSimConnectConfig | null {
+  return getConnectStore().get('connectConfig');
+}
+
+function setPersistedConnectConfig(config: GtSimConnectConfig): void {
+  getConnectStore().set('connectConfig', config);
+}
+
+/** Fill in defaults (host) so downstream code always has a concrete target. */
+function normalizeConnectConfig(config: GtSimConnectConfig): Required<GtSimConnectConfig> {
+  const host = config.host?.trim();
+  return { host: host && host.length > 0 ? host : DEFAULT_HOST, port: config.port };
+}
+
+// ---------------------------------------------------------------------------
+// Enablement gate / startup plan
 // ---------------------------------------------------------------------------
 
 /**
- * Whether the GT_Sim backend should be launched.
- *
- * The editor has no dedicated GT_Sim toggle yet, so this is gated on env vars:
- *  - `GTSIM_BACKEND=1|true` → spawn the backend.
- *  - `GTSIM_PORT=<port>`    → "connect" mode: a backend was started manually
- *    (e.g. on the fork side); we only health-check it, never spawn.
- *
- * TODO(WP3/settings): replace with a persisted setting once the execution mode
- * ships a settings surface (electron-store), keeping the env vars as overrides.
+ * `GTSIM_PORT` as a connect-mode target, or `null` if unset/invalid.
+ * Env vars always take priority over persisted settings (dev override).
  */
-export function isGtSimBackendEnabled(): boolean {
-  const flag = process.env.GTSIM_BACKEND?.toLowerCase();
-  if (flag === '1' || flag === 'true' || flag === 'on') return true;
-  if (process.env.GTSIM_PORT) return true;
-  return false;
-}
-
-/** True when a pre-existing backend should be reused instead of spawned. */
-function connectModePort(): number | null {
+function resolveEnvConnectConfig(): GtSimConnectConfig | null {
   const raw = process.env.GTSIM_PORT;
   if (!raw) return null;
   const port = Number.parseInt(raw, 10);
-  return Number.isFinite(port) && port > 0 ? port : null;
+  return Number.isFinite(port) && port > 0 ? { host: DEFAULT_HOST, port } : null;
+}
+
+/** `GTSIM_BACKEND=1|true|on` — spawn the backend. */
+function isEnvSpawnRequested(): boolean {
+  const flag = process.env.GTSIM_BACKEND?.toLowerCase();
+  return flag === '1' || flag === 'true' || flag === 'on';
+}
+
+/** What `initGtSimBackend` (index.ts) should do at app startup. */
+export type GtSimStartupPlan =
+  | { mode: 'spawn' }
+  | { mode: 'connect'; config: GtSimConnectConfig }
+  | { mode: 'disabled' };
+
+/**
+ * Resolve the startup plan: env vars (`GTSIM_BACKEND` / `GTSIM_PORT`) always
+ * override, exactly as before; falling back to the persisted connect-mode
+ * setting (from a previous `gtsim:connect`, e.g. via the settings panel) when
+ * no env var is set; otherwise the backend is left disabled, as before.
+ */
+export function resolveStartupPlan(): GtSimStartupPlan {
+  const envConnect = resolveEnvConnectConfig();
+  if (envConnect) return { mode: 'connect', config: envConnect };
+  if (isEnvSpawnRequested()) return { mode: 'spawn' };
+
+  const persisted = getPersistedConnectConfig();
+  if (persisted) return { mode: 'connect', config: persisted };
+
+  return { mode: 'disabled' };
 }
 
 // ---------------------------------------------------------------------------
@@ -406,9 +461,11 @@ async function startOnce(opts: GtSimBackendOptions): Promise<GtSimEndpoints> {
 }
 
 /**
- * Start (or connect to) the GT_Sim backend. Emits status transitions and
- * resolves with the endpoints on success. On failure it emits `failed` and
- * rejects — callers (index.ts) should treat this as non-fatal for the editor.
+ * Start the GT_Sim backend by spawning it (`GTSIM_BACKEND=1` path only — see
+ * `resolveStartupPlan`; a pre-started backend is reached via
+ * `requestGtSimConnect` instead). Emits status transitions and resolves with
+ * the endpoints on success. On failure it emits `failed` and rejects —
+ * callers (index.ts) should treat this as non-fatal for the editor.
  */
 export async function startGtSimBackend(
   opts: GtSimBackendOptions,
@@ -425,33 +482,15 @@ export async function startGtSimBackend(
   stopping = false;
 
   try {
-    // Connect mode: reuse a manually-started backend (no spawn).
-    const preStartedPort = connectModePort();
-    if (preStartedPort !== null) {
-      const host = DEFAULT_HOST;
-      const grpcPort = Number.parseInt(
-        process.env.GTSIM_GRPC_PORT ?? String(BASE_GRPC_PORT),
-        10,
-      );
-      console.log(`[gtsim] Connect mode: health-checking existing backend on ${host}:${preStartedPort}`);
-      setStatus({ state: 'starting' });
-      try {
-        await waitForHealth(host, preStartedPort);
-      } catch (err) {
-        const message = `Could not reach pre-started backend on ${host}:${preStartedPort}: ${
-          (err as Error).message
-        }`;
-        setStatus({ state: 'failed', message });
-        throw new Error(message);
-      }
-      const endpoints = buildEndpoints(host, preStartedPort, grpcPort);
-      setStatus({ state: 'ready', endpoints });
-      return endpoints;
-    }
-
-    // Spawn mode with retry.
     let lastError: unknown;
     for (let attempt = 1; attempt <= MAX_START_ATTEMPTS; attempt++) {
+      // A `requestGtSimConnect` call may have stopped this spawn mid-retry
+      // (e.g. the user connected to a different backend via the settings
+      // panel) — abort silently rather than keep spawning or overwrite the
+      // newer connect's status with a stale `failed`.
+      if (stopping) {
+        throw new Error('GT_Sim backend start aborted (stopped)');
+      }
       try {
         console.log(`[gtsim] Start attempt ${attempt}/${MAX_START_ATTEMPTS}`);
         return await startOnce(opts);
@@ -461,6 +500,9 @@ export async function startGtSimBackend(
       }
     }
 
+    if (stopping) {
+      throw new Error('GT_Sim backend start aborted (stopped)');
+    }
     const message = `Backend failed to start after ${MAX_START_ATTEMPTS} attempts: ${
       (lastError as Error)?.message ?? 'unknown error'
     }`;
@@ -487,7 +529,11 @@ function killProcessTree(child: ChildProcess): void {
   }
 }
 
-/** Stop the backend and its child-process tree. Idempotent. */
+/**
+ * Stop the backend and its child-process tree. Idempotent, and safe to call
+ * with no spawned process (e.g. before connecting to a pre-started backend,
+ * which never spawns one) — it just marks any in-progress spawn as aborted.
+ */
 export function stopGtSimBackend(): void {
   stopping = true;
   const child = serverProcess;
@@ -496,4 +542,70 @@ export function stopGtSimBackend(): void {
   console.log(`[gtsim] Stopping (pid=${child.pid})...`);
   killProcessTree(child);
   serverProcess = null;
+}
+
+// ---------------------------------------------------------------------------
+// Connect mode (pre-started backend, e.g. the settings-panel "connect" flow)
+// ---------------------------------------------------------------------------
+
+/**
+ * Health-check a pre-started backend at `config` and, on success, mark it
+ * `ready`. Each call is independent (no `starting`-style reentrancy guard) so
+ * a failed connect can always be retried by calling this again — see
+ * `connectGeneration` for how overlapping calls are resolved.
+ */
+async function connectToBackend(config: Required<GtSimConnectConfig>): Promise<GtSimEndpoints> {
+  const generation = ++connectGeneration;
+  const grpcPort = Number.parseInt(process.env.GTSIM_GRPC_PORT ?? String(BASE_GRPC_PORT), 10);
+
+  console.log(`[gtsim] Connect mode: health-checking backend on ${config.host}:${config.port}`);
+  setStatus({ state: 'starting' });
+
+  try {
+    await waitForHealth(config.host, config.port);
+  } catch (err) {
+    if (generation !== connectGeneration) {
+      // Superseded by a newer connect request; that one owns the status now.
+      throw new Error('GT_Sim connect aborted (superseded by a newer connect request)');
+    }
+    const message = `Could not reach backend on ${config.host}:${config.port}: ${
+      (err as Error).message
+    }`;
+    setStatus({ state: 'failed', message });
+    throw new Error(message);
+  }
+
+  if (generation !== connectGeneration) {
+    throw new Error('GT_Sim connect aborted (superseded by a newer connect request)');
+  }
+  const endpoints = buildEndpoints(config.host, config.port, grpcPort);
+  setStatus({ state: 'ready', endpoints });
+  console.log('[gtsim] Connected.');
+  return endpoints;
+}
+
+/**
+ * (Re)connect to a manually-started GT_Sim backend at `config` — the
+ * `gtsim:connect` IPC handler's implementation. Stops any currently spawned
+ * backend or in-progress spawn attempt first, then persists `config` (unless
+ * `persist: false`, used for the env-var startup override so it does not
+ * silently clobber a user's saved settings) and health-checks the new target.
+ *
+ * Safe to call repeatedly — including immediately after a failure — which is
+ * how the settings panel's "Connect" button recovers from a bad host/port
+ * without requiring an app restart.
+ */
+export async function requestGtSimConnect(
+  rawConfig: GtSimConnectConfig,
+  options: { persist?: boolean } = {},
+): Promise<GtSimEndpoints> {
+  const config = normalizeConnectConfig(rawConfig);
+
+  stopGtSimBackend();
+
+  if (options.persist !== false) {
+    setPersistedConnectConfig({ host: config.host, port: config.port });
+  }
+
+  return connectToBackend(config);
 }

@@ -18,7 +18,12 @@
  *    supplied by `VITE_GTSIM_REST_URL` (or set manually via `setManualEndpoints`).
  */
 import { create } from 'zustand';
-import type { GtSimEndpoints, GtSimBackendStatus, GtSimBackendState } from '@osce/shared';
+import type {
+  GtSimEndpoints,
+  GtSimBackendStatus,
+  GtSimBackendState,
+  GtSimConnectConfig,
+} from '@osce/shared';
 
 /**
  * Whether an Electron GT_Sim backend bridge exists in this runtime. A module
@@ -64,6 +69,14 @@ interface GtSimConnectionStore {
    * WS base is derived by swapping the scheme (`http`→`ws`, `https`→`wss`).
    */
   setManualEndpoints: (restBaseUrl: string) => void;
+  /**
+   * Delegate a connect request (settings panel "Connect" button) to the main
+   * process. Thin wrapper only — the actual outcome always arrives via
+   * `applyStatus` (the `gtsim:status` push); this promise settling just tells
+   * the caller the request round-tripped, for button loading state. Throws if
+   * no Electron bridge is present (browser dev) or the connect itself failed.
+   */
+  requestConnect: (config: GtSimConnectConfig) => Promise<void>;
   /** Reset to the disconnected resting state (used on unmount / teardown). */
   reset: () => void;
 }
@@ -112,6 +125,17 @@ export const useGtSimConnectionStore = create<GtSimConnectionStore>((set, get) =
       },
       message: undefined,
     });
+  },
+
+  requestConnect: async (config) => {
+    const api = typeof window !== 'undefined' ? window.electronAPI : undefined;
+    if (!api?.gtSimConnect) {
+      throw new Error('GT_Sim connect bridge unavailable in this runtime (browser dev)');
+    }
+    // The status push (subscribed via `initGtSimConnection`) applies the
+    // resulting state; a rejection here still means the caller should surface
+    // an error even if the push races the invoke's own rejection.
+    await api.gtSimConnect(config);
   },
 
   reset: () => set({ ...initialState }),

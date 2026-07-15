@@ -26,7 +26,7 @@ export const common = {
       crashedDetail: 'Restart the app to reconnect.',
       disconnectedTitle: 'GT_Sim backend not connected',
       disconnectedDetailBridge:
-        'The backend is not running (launch with GTSIM_BACKEND=1, or connect to a manually started backend with GTSIM_PORT).',
+        'Open Settings in the execution mode’s side panel, enter the backend host/port, and press Connect. (Developers can also launch with GTSIM_BACKEND=1 or GTSIM_PORT.)',
       disconnectedDetailBrowser:
         'The backend is unavailable in this environment (browser). For development, set VITE_GTSIM_REST_URL.',
     },
@@ -679,6 +679,15 @@ export const common = {
         endpointLabel: 'Endpoint',
         pidLabel: 'Process ID',
         notAvailable: '-',
+        form: {
+          hostLabel: 'Host',
+          portLabel: 'Port',
+          connect: 'Connect',
+          connecting: 'Connecting…',
+          invalidPort: 'Port must be between 1 and 65535.',
+          connectError: 'Connect failed: {{message}}',
+          browserHint: 'Backend connection is only available in the desktop app.',
+        },
       },
       projectsRoot: {
         title: 'Projects Root Sync',

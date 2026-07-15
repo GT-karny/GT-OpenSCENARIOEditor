@@ -26,7 +26,7 @@ export const common = {
       crashedDetail: 'アプリを再起動して再接続してください。',
       disconnectedTitle: 'GT_Sim バックエンド未接続',
       disconnectedDetailBridge:
-        'バックエンドは起動していません(GTSIM_BACKEND=1 で自動起動、または GTSIM_PORT で手動起動したバックエンドに接続)。',
+        '実行モード右側パネルの「設定」でバックエンドのホスト/ポートを入力し、接続してください。(開発者向け: GTSIM_BACKEND=1 または GTSIM_PORT での起動も可能です。)',
       disconnectedDetailBrowser:
         'この環境(ブラウザ)ではバックエンドに接続できません。開発時は VITE_GTSIM_REST_URL を設定してください。',
     },
@@ -678,6 +678,15 @@ export const common = {
         endpointLabel: 'エンドポイント',
         pidLabel: 'プロセスID',
         notAvailable: '-',
+        form: {
+          hostLabel: 'ホスト',
+          portLabel: 'ポート',
+          connect: '接続',
+          connecting: '接続中…',
+          invalidPort: 'ポートは1〜65535の範囲で指定してください。',
+          connectError: '接続に失敗しました: {{message}}',
+          browserHint: 'バックエンド接続はデスクトップアプリでのみ利用できます。',
+        },
       },
       projectsRoot: {
         title: 'プロジェクトルート同期',
