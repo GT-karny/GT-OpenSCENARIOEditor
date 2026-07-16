@@ -4,9 +4,18 @@
  *
  * `GtSimWsService` itself is mocked (its own contract/WS behavior is covered
  * by `packages/esmini/src/__tests__/gt-sim-ws-service.test.ts`); this suite
- * pins the hook's wiring: sequential `onFrame` -> `addFrame` (not the WASM
- * batch pattern), completion -> `setCompleted` + autoplay, zero-frame
- * completion -> error, and `onError` -> the store + a toast.
+ * pins the hook's wiring: `onFrame` -> local buffer -> rAF-flushed
+ * `addFrames` batch (not the WASM one-shot batch pattern, and not a
+ * synchronous per-frame `addFrame` either — see the hook's file header for
+ * why), completion -> `setCompleted` + autoplay, zero-frame completion ->
+ * error, and `onError` -> the store + a toast.
+ *
+ * `requestAnimationFrame`/`cancelAnimationFrame` are mocked in `beforeEach`
+ * to fire synchronously (`cb(0)` immediately), so most tests can assert on
+ * the store right after `emitFrame`/`act()` without caring about the flush
+ * mechanism. The dedicated "buffering" tests below install a *controllable*
+ * (non-auto-firing) rAF mock locally to actually observe the pre-flush
+ * buffered state.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, act, cleanup } from '@testing-library/react';
@@ -123,6 +132,34 @@ beforeEach(async () => {
   useGtSimConnectionStore.getState().reset();
   useSimulationStore.getState().reset();
   vi.clearAllMocks();
+
+  // Default: rAF fires synchronously so the frame buffer flushes to the
+  // store within the same `act()` as `emitFrame` (see file header). Tests
+  // that need to observe the pre-flush buffered state override this locally.
+  //
+  // Guarded against re-entrant scheduling: `onComplete` -> `setCompleted` ->
+  // `play()` starts `simulation-store`'s own playback loop, whose `tick()`
+  // reschedules itself via `requestAnimationFrame(tick)` on every call. A
+  // naive `cb(0)` mock would invoke that reschedule synchronously from
+  // within `cb(0)` itself, recursing forever (stack overflow). Callbacks
+  // requested *while already draining* one are queued instead of invoked
+  // immediately — this hook's own flush callback never re-requests an rAF
+  // from inside itself, so this only changes behavior for that self-
+  // rescheduling loop, and none of these tests assert on its advancement.
+  let draining = false;
+  let rafIdCounter = 0;
+  vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((cb) => {
+    const id = ++rafIdCounter;
+    if (draining) return id;
+    draining = true;
+    try {
+      cb(0);
+    } finally {
+      draining = false;
+    }
+    return id;
+  });
+  vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {});
 });
 
 afterEach(() => {
@@ -131,6 +168,7 @@ afterEach(() => {
   // connection-loss watcher). A stale watcher from a previous test would
   // otherwise consume the store push first and skew the assertions.
   cleanup();
+  vi.restoreAllMocks();
 });
 
 describe('useGtSimSimulation', () => {
@@ -168,19 +206,84 @@ describe('useGtSimSimulation', () => {
     expect(result.current.getJobId()).toBe('job-abc-123');
   });
 
-  it('pushes streamed frames one at a time via addFrame (not a WASM-style batch)', async () => {
+  it('pushes streamed frames to the store via the rAF-flushed buffer (not a WASM-style one-shot batch)', async () => {
     setReady();
     const { result } = renderHook(() => useGtSimSimulation());
     await act(async () => {
       await result.current.startSimulation({ projectId: 'p1', scenarioId: 's1.xosc' });
     });
 
+    // rAF is mocked to fire synchronously (see beforeEach), so each emitted
+    // frame's scheduled flush resolves within the same `act()`.
     act(() => handle().emitFrame(frame(0)));
     expect(useSimulationStore.getState().frames).toHaveLength(1);
 
     act(() => handle().emitFrame(frame(0.1)));
     expect(useSimulationStore.getState().frames).toHaveLength(2);
     expect(useSimulationStore.getState().status).toBe('running');
+  });
+
+  it('buffers a burst of frames and delivers them as a single batch on the rAF flush, with none lost', async () => {
+    // Controllable (non-auto-firing) rAF for this test only, so the
+    // pre-flush buffered state is observable.
+    let rafCallback: FrameRequestCallback | null = null;
+    vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((cb) => {
+      rafCallback = cb;
+      return 1;
+    });
+
+    setReady();
+    const { result } = renderHook(() => useGtSimSimulation());
+    await act(async () => {
+      await result.current.startSimulation({ projectId: 'p1', scenarioId: 's1.xosc' });
+    });
+
+    const FRAME_COUNT = 50;
+    act(() => {
+      for (let i = 0; i < FRAME_COUNT; i++) {
+        handle().emitFrame(frame(i * 0.01));
+      }
+    });
+
+    // Nothing reaches the store until the (single) scheduled flush runs.
+    expect(useSimulationStore.getState().frames).toHaveLength(0);
+    expect(rafCallback).not.toBeNull();
+
+    act(() => rafCallback?.(0));
+
+    // Every buffered frame arrives in one batch -- none dropped.
+    expect(useSimulationStore.getState().frames).toHaveLength(FRAME_COUNT);
+    expect(useSimulationStore.getState().status).toBe('running');
+  });
+
+  it('flushes any buffered frames on teardown (unmount) so none are lost', async () => {
+    let rafCallback: FrameRequestCallback | null = null;
+    vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((cb) => {
+      rafCallback = cb;
+      return 1;
+    });
+
+    setReady();
+    const { result, unmount } = renderHook(() => useGtSimSimulation());
+    await act(async () => {
+      await result.current.startSimulation({ projectId: 'p1', scenarioId: 's1.xosc' });
+    });
+
+    act(() => {
+      handle().emitFrame(frame(0));
+      handle().emitFrame(frame(0.1));
+      handle().emitFrame(frame(0.2));
+    });
+
+    // Buffered, not yet in the store -- the rAF flush hasn't run.
+    expect(useSimulationStore.getState().frames).toHaveLength(0);
+    expect(rafCallback).not.toBeNull();
+
+    // Unmount tears the hook down (its `useEffect` cleanup) before any rAF
+    // flush fires -- the buffer must still be drained into the store.
+    act(() => unmount());
+
+    expect(useSimulationStore.getState().frames).toHaveLength(3);
   });
 
   it('onComplete with frames sets the store to completed and autoplays', async () => {

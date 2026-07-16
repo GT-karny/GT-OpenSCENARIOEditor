@@ -25,6 +25,13 @@ export interface SimulationState {
 
   // Actions (called by WASM service)
   addFrame: (frame: SimulationFrame) => void;
+  /**
+   * Batch counterpart to `addFrame` (WP: GT_Sim rAF-flush batching) — appends
+   * many frames in a single `set()` so a burst of streamed frames only
+   * triggers one store notification (and one subscriber re-render) instead of
+   * one per frame. No-op for an empty array.
+   */
+  addFrames: (frames: SimulationFrame[]) => void;
   setCompleted: (result: SimulationResult) => void;
   setError: (error: string) => void;
   setStatus: (status: SimulationStatus) => void;
@@ -208,6 +215,16 @@ export const useSimulationStore = create<SimulationState>()((set) => ({
       frames: [...state.frames, frame],
       status: state.status === 'idle' ? 'running' : state.status,
     })),
+
+  addFrames: (frames) =>
+    set((state) =>
+      frames.length === 0
+        ? state
+        : {
+            frames: [...state.frames, ...frames],
+            status: state.status === 'idle' ? 'running' : state.status,
+          },
+    ),
 
   setCompleted: (result) => {
     stopPlaybackLoop();

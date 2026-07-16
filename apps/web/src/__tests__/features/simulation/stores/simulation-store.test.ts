@@ -79,6 +79,51 @@ describe('simulation-store', () => {
     });
   });
 
+  describe('addFrame / addFrames (GT_Sim streaming path)', () => {
+    it('addFrame appends one frame and transitions idle -> running', () => {
+      expect(useSimulationStore.getState().status).toBe('idle');
+      useSimulationStore.getState().addFrame(makeFrames(1)[0]);
+
+      const s = useSimulationStore.getState();
+      expect(s.frames).toHaveLength(1);
+      expect(s.status).toBe('running');
+    });
+
+    it('addFrames appends a batch in a single call and transitions idle -> running', () => {
+      const batch = makeFrames(5);
+      useSimulationStore.getState().addFrames(batch);
+
+      const s = useSimulationStore.getState();
+      expect(s.frames).toHaveLength(5);
+      expect(s.frames).toEqual(batch);
+      expect(s.status).toBe('running');
+    });
+
+    it('addFrames accumulates across calls, preserving arrival order', () => {
+      useSimulationStore.getState().addFrames(makeFrames(3, 0.1));
+      useSimulationStore.getState().addFrames(makeFrames(2, 0.1).map((f) => ({ ...f, time: f.time + 10 })));
+
+      const s = useSimulationStore.getState();
+      expect(s.frames).toHaveLength(5);
+      expect(s.frames.map((f) => f.time)).toEqual([0, 0.1, 0.2, 10, 10.1]);
+    });
+
+    it('addFrames is a no-op for an empty array (no spurious status change)', () => {
+      expect(useSimulationStore.getState().status).toBe('idle');
+      useSimulationStore.getState().addFrames([]);
+
+      const s = useSimulationStore.getState();
+      expect(s.frames).toHaveLength(0);
+      expect(s.status).toBe('idle');
+    });
+
+    it('addFrames does not clobber a non-idle status (e.g. after setStatus)', () => {
+      useSimulationStore.getState().setStatus('running');
+      useSimulationStore.getState().addFrames(makeFrames(2));
+      expect(useSimulationStore.getState().status).toBe('running');
+    });
+  });
+
   describe('seek', () => {
     beforeEach(() => {
       useSimulationStore.getState().setCompleted(completed(makeFrames(10)));

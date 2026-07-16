@@ -1,5 +1,4 @@
 import { memo } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 import { ScenarioViewer } from '@osce/3d-viewer';
 import type {
   ViewerMode,
@@ -50,19 +49,28 @@ export const SimulationViewerBridge = memo(function SimulationViewerBridge(
   props: SimulationViewerBridgeProps,
 ) {
   const simStatus = useSimulationStore((s) => s.status);
-  const simFrames = useSimulationStore(useShallow((s) => s.frames));
-  const currentFrameIndex = useSimulationStore((s) => s.currentFrameIndex);
 
-  // Compute display frame based on simulation state:
-  // - running: show the latest frame (live streaming)
-  // - completed/error: show frame at currentFrameIndex (replay scrubbing)
-  // - idle: no frame
-  let currentFrame = null;
-  if (simStatus === 'running' && simFrames.length > 0) {
-    currentFrame = simFrames[simFrames.length - 1];
-  } else if ((simStatus === 'completed' || simStatus === 'error') && simFrames.length > 0) {
-    currentFrame = simFrames[currentFrameIndex] ?? simFrames[simFrames.length - 1];
-  }
+  // Subscribe to the *derived display frame* directly instead of the whole
+  // `frames` array: during a running GT_Sim stream, `frames` gets a new array
+  // identity on every batched flush, which previously re-rendered this
+  // component (and rebuilt the 3D scene) on every flush even though only the
+  // trailing frame is ever shown while running. Selecting the single frame
+  // object (or null) means React only re-renders when that specific
+  // reference actually changes — same default (referential) equality as the
+  // `simStatus` selector above, so no `useShallow` needed here.
+  const currentFrame = useSimulationStore((s) => {
+    // - running: show the latest frame (live streaming)
+    // - completed/error: show frame at currentFrameIndex (replay scrubbing)
+    // - idle: no frame
+    if (s.status === 'running') {
+      return s.frames.length > 0 ? s.frames[s.frames.length - 1] : null;
+    }
+    if (s.status === 'completed' || s.status === 'error') {
+      if (s.frames.length === 0) return null;
+      return s.frames[s.currentFrameIndex] ?? s.frames[s.frames.length - 1];
+    }
+    return null;
+  });
 
   return (
     <ScenarioViewer
