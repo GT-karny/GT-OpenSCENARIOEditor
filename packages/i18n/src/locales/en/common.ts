@@ -48,6 +48,10 @@ export const common = {
       },
       slidePanel: {
         close: 'Close',
+        // Visually-hidden Dialog description (a11y requirement — distinct
+        // text from `title` so tests/screen-readers can tell the heading and
+        // the description apart; see SlidePanel.tsx).
+        description: '{{title}} panel',
       },
       errorPanel: {
         failedToLoad: 'Failed to load data: {{message}}',

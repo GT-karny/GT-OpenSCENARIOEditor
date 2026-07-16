@@ -11,7 +11,7 @@
  * `activeJobId`/`latestJobId` — replacing the fork's react-router-driven job
  * navigation — live in this cluster's own `useRunFormStore` (D6).
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '@osce/i18n';
 import { toast } from 'sonner';
@@ -40,6 +40,23 @@ export function RunFormPanel() {
   const [paramOverrides, setParamOverrides] = useState<Record<string, string>>({});
   const [requestBuilder, setRequestBuilder] = useState<(() => GtSimSimulationRequest) | null>(
     null,
+  );
+  // Stable wrapper for `SimulationRunForm`'s `onRequestBuilder` — passing the
+  // raw `setRequestBuilder` setter directly (as `onRequestBuilder={setRequestBuilder}`)
+  // is a footgun: `useState` setters treat a plain-function argument as a
+  // *functional updater* and invoke it immediately rather than storing it, so
+  // handing it a function-typed value (which is exactly what this state
+  // holds) never stores that function — it stores whatever the function
+  // returns. The `() => builder` wrapping here is the standard idiom for
+  // storing a function value in `useState`. `useCallback` with an empty
+  // dependency array also keeps this prop's identity stable across
+  // `RunFormPanel` re-renders, which `SimulationRunForm`'s effect relies on
+  // to avoid re-notifying (and re-rendering) on every commit.
+  const handleRequestBuilder = useCallback(
+    (builder: (() => GtSimSimulationRequest) | null) => {
+      setRequestBuilder(() => builder);
+    },
+    [],
   );
 
   const scenariosQuery = useQuery({
@@ -118,7 +135,7 @@ export function RunFormPanel() {
               setLatestJobId(job.job_id);
               setActiveJobId(job.job_id);
             }}
-            onRequestBuilder={setRequestBuilder}
+            onRequestBuilder={handleRequestBuilder}
           />
 
           {latestJobId && (

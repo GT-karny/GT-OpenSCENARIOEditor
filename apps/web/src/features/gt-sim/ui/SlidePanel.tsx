@@ -42,6 +42,17 @@ export function SlidePanel({ open, onClose, title, children }: SlidePanelProps) 
         >
           <div className="flex items-center justify-between border-b border-[var(--color-glass-edge)] px-5 py-4">
             <DialogPrimitive.Title className="font-display text-lg font-bold">{title}</DialogPrimitive.Title>
+            {/* Visually hidden — silences Radix's a11y warning ("Missing
+                Description or aria-describedby") without a visible subtitle
+                under `title`; this drawer's content already establishes
+                context (see `apps/web/src/components/ui/dialog.tsx`'s
+                `sr-only` `Close` label for the same pattern). Deliberately
+                distinct text from `title` (not just a repeat of it) so the
+                heading and description remain individually addressable by
+                both assistive tech and `getByText` queries. */}
+            <DialogPrimitive.Description className="sr-only">
+              {t('gtSim.ui.slidePanel.description', { title })}
+            </DialogPrimitive.Description>
             <DialogPrimitive.Close
               className="cursor-pointer p-1 text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)]"
               aria-label={t('gtSim.ui.slidePanel.close')}

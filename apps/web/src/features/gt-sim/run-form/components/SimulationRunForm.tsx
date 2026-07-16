@@ -21,7 +21,7 @@
  * Monitor tab, replacing the fork's separate browser window (design
  * judgment D6 — no separate windows in the unified UI).
  */
-import { useEffect, useReducer } from 'react';
+import { useEffect, useReducer, useRef } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTranslation } from '@osce/i18n';
 import { toast } from 'sonner';
@@ -223,13 +223,35 @@ export function SimulationRunForm({
       paramOverrides: Object.keys(paramOverrides).length > 0 ? paramOverrides : undefined,
     });
 
-  // Expose request builder to parent (CopyApiRequest). Deliberately has no
-  // dependency array — buildRequest closes over every form value, so this
-  // must re-run on every render to stay current (matches the fork's
-  // SimulationRunForm.tsx behavior).
+  // Expose request builder to parent (CopyApiRequest). `buildRequest` closes
+  // over every form value, so it must stay current — but that must NOT mean
+  // re-invoking `onRequestBuilder` on every render: `onRequestBuilder` is
+  // ultimately a parent `useState` setter (`RunFormPanel`), and calling a
+  // `useState` setter with a plain function makes React treat it as a
+  // *functional updater* and invoke it immediately, storing the return value
+  // — not the function itself. Combined with a no-dependency-array effect,
+  // every commit would push a brand-new `buildRequest` closure, which React
+  // would immediately call and store a brand-new result object for, which
+  // always differs by reference from the previous state, which schedules
+  // another render, which re-runs this effect — an infinite
+  // "Maximum update depth exceeded" loop (observed in practice: it fires as
+  // soon as a scenario is selected and this component first mounts).
+  //
+  // Route the always-fresh closure through a ref (cheap per-render update,
+  // no state/re-render) and only notify the parent when `scenarioFile`'s
+  // presence actually changes; the exposed wrapper still calls through to
+  // the latest closure via the ref, so it never goes stale.
+  const buildRequestRef = useRef(buildRequest);
+  buildRequestRef.current = buildRequest;
+
   useEffect(() => {
-    onRequestBuilder?.(scenarioFile ? buildRequest : null);
-  });
+    onRequestBuilder?.(scenarioFile ? () => buildRequestRef.current() : null);
+    // `buildRequestRef` is a ref (stable identity, always current) and
+    // `onRequestBuilder` is expected to be a stable callback (see
+    // `RunFormPanel`'s `useCallback`-wrapped handler) — only `scenarioFile`'s
+    // truthiness should retrigger this.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scenarioFile]);
 
   const mutation = useMutation({
     mutationFn: () => {

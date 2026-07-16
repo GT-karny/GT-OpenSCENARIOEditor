@@ -48,6 +48,7 @@ export const common = {
       },
       slidePanel: {
         close: '閉じる',
+        description: '{{title}}パネル',
       },
       errorPanel: {
         failedToLoad: 'データの読み込みに失敗しました: {{message}}',
