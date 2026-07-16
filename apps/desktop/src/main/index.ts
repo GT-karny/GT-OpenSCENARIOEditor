@@ -8,6 +8,7 @@ import { registerIpcHandlers, unregisterIpcHandlers } from './ipc-handlers.js';
 import { restoreWindowState, saveWindowState } from './window-state.js';
 import { installCloseGuard } from './close-guard.js';
 import { installGtSimCorsBypass } from './gtsim-cors.js';
+import { applyGpuModeOverride, installGpuDiagnostics } from './gpu.js';
 import {
   getCurrentEndpoints,
   getCurrentStatus,
@@ -20,6 +21,10 @@ import {
 } from './python-server.js';
 
 const IS_DEV = !app.isPackaged;
+
+// Must run before the app is ready — see gpu.ts for the OSCE_GPU_MODE contract.
+applyGpuModeOverride();
+installGpuDiagnostics();
 
 let mainWindow: BrowserWindow | null = null;
 let serverPort: number | undefined;
