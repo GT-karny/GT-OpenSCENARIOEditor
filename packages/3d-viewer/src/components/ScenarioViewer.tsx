@@ -417,6 +417,13 @@ export interface ScenarioViewerProps {
   focusEntityId?: string | null;
   /** Show r3f-perf overlay for performance monitoring */
   showPerf?: boolean;
+  /**
+   * Called once automatic WebGL context-loss recovery gives up after
+   * repeated consecutive failures — the 3D view has stopped rendering and
+   * will not retry again on its own. The host app should surface a
+   * user-facing (localized) message; see ViewerCanvas's context-recovery.
+   */
+  onGpuRecoveryExhausted?: () => void;
 
   /** Route editing session configuration */
   routeEdit?: RouteEditConfig;
@@ -1028,6 +1035,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
   style,
   focusEntityId,
   showPerf,
+  onGpuRecoveryExhausted,
   routeEdit,
   trajectoryEdit,
   signalSelection,
@@ -1314,7 +1322,7 @@ export const ScenarioViewer: React.FC<ScenarioViewerProps> = ({
         />
       )}
 
-      <ViewerCanvas showPerf={showPerf}>
+      <ViewerCanvas showPerf={showPerf} onGpuRecoveryExhausted={onGpuRecoveryExhausted}>
         <ScenarioViewerScene
           scenarioStore={scenarioStore}
           openDriveDocument={openDriveDocument}

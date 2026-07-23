@@ -26,4 +26,8 @@ export const errors = {
     exportFailed: 'エクスポート失敗: {{reason}}',
     importFailed: 'インポート失敗: {{reason}}',
   },
+  viewer: {
+    gpuContextLost:
+      '3D表示がGPUエラーで停止し、自動復帰できませんでした。OSCE_GPU_MODE環境変数を設定して別の描画モードでアプリを起動し直してみてください。',
+  },
 } as const;

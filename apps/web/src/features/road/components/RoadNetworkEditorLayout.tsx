@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { toast } from 'sonner';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import type {
   OdrRoad,
@@ -13,6 +14,7 @@ import type {
   OpenDriveDocument,
 } from '@osce/shared';
 import { syncLaneLinksForDirectConnections } from '@osce/opendrive-engine';
+import { useTranslation } from '@osce/i18n';
 import { ScenarioViewer } from '@osce/3d-viewer';
 import type {
   RoadEditingConfig,
@@ -77,6 +79,14 @@ export function RoadNetworkEditorLayout() {
   const odrStoreApi = useOpenDriveStoreApi();
   const odrDocument = useOpenDriveStore((s) => s.document);
   const preferences = useEditorStore((s) => s.preferences);
+  const { t } = useTranslation('errors');
+
+  // The 3D view gave up recovering from a lost WebGL context (see
+  // ViewerCanvas's context-recovery) — surface a persistent, actionable
+  // message instead of leaving the user staring at a frozen viewport.
+  const handleGpuRecoveryExhausted = useCallback(() => {
+    toast.error(t('viewer.gpuContextLost'), { duration: 15000 });
+  }, [t]);
 
   // Sync roadNetwork from editorStore → openDriveStore on mode entry and file changes.
   // Reference comparison prevents infinite loops: the reverse subscription (below)
@@ -524,6 +534,7 @@ export function RoadNetworkEditorLayout() {
                   junctionTools={junctionToolsConfig}
                   signalPlace={signalPlaceConfig}
                   signalSelection={signalSelectionConfig}
+                  onGpuRecoveryExhausted={handleGpuRecoveryExhausted}
                 />
               </ErrorBoundary>
               </div>

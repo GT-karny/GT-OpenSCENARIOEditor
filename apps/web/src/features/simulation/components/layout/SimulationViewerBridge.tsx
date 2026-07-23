@@ -1,4 +1,5 @@
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
+import { toast } from 'sonner';
 import { ScenarioViewer } from '@osce/3d-viewer';
 import type {
   ViewerMode,
@@ -7,6 +8,7 @@ import type {
   SignalSelectionConfig,
   PositionPickConfig,
 } from '@osce/3d-viewer';
+import { useTranslation } from '@osce/i18n';
 import { useSimulationStore } from '../../stores/simulation-store';
 import type { useScenarioStoreApi } from '../../../../stores/use-scenario-store';
 
@@ -49,6 +51,14 @@ export const SimulationViewerBridge = memo(function SimulationViewerBridge(
   props: SimulationViewerBridgeProps,
 ) {
   const simStatus = useSimulationStore((s) => s.status);
+  const { t } = useTranslation('errors');
+
+  // The 3D view gave up recovering from a lost WebGL context (see
+  // ViewerCanvas's context-recovery) — surface a persistent, actionable
+  // message instead of leaving the user staring at a frozen viewport.
+  const handleGpuRecoveryExhausted = useCallback(() => {
+    toast.error(t('viewer.gpuContextLost'), { duration: 15000 });
+  }, [t]);
 
   // Subscribe to the *derived display frame* directly instead of the whole
   // `frames` array: during a running GT_Sim stream, `frames` gets a new array
@@ -92,6 +102,7 @@ export const SimulationViewerBridge = memo(function SimulationViewerBridge(
       positionPick={props.positionPick}
       showPerf={false}
       className="h-full w-full"
+      onGpuRecoveryExhausted={handleGpuRecoveryExhausted}
     />
   );
 });

@@ -26,4 +26,8 @@ export const errors = {
     exportFailed: 'Export failed: {{reason}}',
     importFailed: 'Import failed: {{reason}}',
   },
+  viewer: {
+    gpuContextLost:
+      'The 3D view stopped after a GPU error and could not recover automatically. Try restarting the app with the OSCE_GPU_MODE environment variable set to use a different rendering backend.',
+  },
 } as const;
