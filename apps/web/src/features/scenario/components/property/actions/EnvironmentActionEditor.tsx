@@ -27,6 +27,15 @@ interface EnvironmentActionEditorProps {
 // Option arrays come from @osce/shared, the single XSD-derived source of
 // truth, so UI options cannot drift from the spec enums.
 const FRACTIONAL_CLOUD_COVER_OPTIONS = FRACTIONAL_CLOUD_COVER_VALUES;
+
+// <input type="datetime-local"> drops the ":ss" part when the seconds are 00,
+// yielding "YYYY-MM-DDTHH:mm". xsd:dateTime requires seconds, so pad any
+// bare value (preserving an existing seconds/fractional part) back to
+// "YYYY-MM-DDTHH:mm:ss" before it is stored and serialized.
+function normalizeDateTime(value: string): string {
+  if (!value) return value;
+  return /T\d{2}:\d{2}$/.test(value) ? `${value}:00` : value;
+}
 const PRECIPITATION_TYPES = PRECIPITATION_TYPE_VALUES;
 const WETNESS_OPTIONS = WETNESS_VALUES;
 
@@ -80,7 +89,11 @@ export function EnvironmentActionEditor({ action, onUpdate }: EnvironmentActionE
             type="datetime-local"
             step={1}
             value={env.timeOfDay.dateTime.slice(0, 19)}
-            onChange={(e) => updateEnv({ timeOfDay: { ...env.timeOfDay, dateTime: e.target.value } })}
+            onChange={(e) =>
+              updateEnv({
+                timeOfDay: { ...env.timeOfDay, dateTime: normalizeDateTime(e.target.value) },
+              })
+            }
             className="h-8 text-sm"
           />
         </div>
