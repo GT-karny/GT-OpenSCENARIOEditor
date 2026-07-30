@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-07-31
+
+### Added
+
+- **GT_Sim runtime execution integration** — run scenarios against a GT_Sim
+  (esmini fork) backend alongside the in-browser WASM path:
+  - New execution editor mode bundling run form, job list/detail/results, live
+    view, VD verification, manual-drive settings, ODR metadata, and settings
+    panels in the unified UI.
+  - Runtime backend connection managed by the Electron desktop app with
+    persisted configuration; REST/WS communication layer and a frozen API
+    client contract in `@osce/esmini`.
+  - WASM/GT_Sim execution-target switch with cross-panel wiring.
+- **Controller handoff authoring** — scenarios can now express a
+  VirtualDriver ↔ manual-drive handoff:
+  - `ActivateControllerAction` gains the v1.3 `objectControllerRef` attribute,
+    emitted version-aware (`objectControllerRef` for `revMinor >= 3`,
+    `controllerRef` for `<= 2`) with lossless parser/serializer round-trip.
+  - Per-domain flags (`lateral` / `longitudinal` / `animation` / `lighting`)
+    are authored as an explicit tri-state (unspecified / on / off), so an
+    intended `false` is written distinctly from an omitted attribute.
+  - Entities can hold multiple `ObjectController` definitions (matching the
+    unbounded XSD cardinality), enabling split-domain setups such as
+    lateral = ManualDrive / longitudinal = VirtualDriver.
+
+### Changed
+
+- Add a `GlassPanel` component to `@osce/theme-apex`.
+- Batch GT_Sim frame ingestion per animation frame.
+
+### Fixed
+
+- 3D viewer auto-recovers from WebGL context loss, with GPU fallbacks.
+- Break an infinite render loop when a run-form scenario is selected.
+- Keep seconds in the Environment `TimeOfDay` dateTime value.
+- Inject CORS headers for GT_Sim backend API responses and keep inlined
+  workspace packages out of runtime dependencies.
+
 ## [0.5.0] - 2026-07-08
 
 ### Added
