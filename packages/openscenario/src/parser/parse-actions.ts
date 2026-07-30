@@ -307,11 +307,9 @@ function parseSpeedTarget(raw: RawXml | undefined): SpeedTarget {
       kind: 'relative',
       entityRef: strAttr(relativeTargetSpeed, 'entityRef'),
       value: numAttr(relativeTargetSpeed, 'value'),
-      speedTargetValueType: strAttr(
-        relativeTargetSpeed,
-        'speedTargetValueType',
-        'delta',
-      ) as 'delta' | 'factor',
+      speedTargetValueType: strAttr(relativeTargetSpeed, 'speedTargetValueType', 'delta') as
+        | 'delta'
+        | 'factor',
       continuous: boolAttr(relativeTargetSpeed, 'continuous'),
     };
   }
@@ -534,11 +532,9 @@ function parseFinalSpeed(raw: RawXml): FinalSpeed {
   if (relativeSpeedToMaster) {
     result.relativeSpeedToMaster = {
       value: numAttr(relativeSpeedToMaster, 'value'),
-      speedTargetValueType: strAttr(
-        relativeSpeedToMaster,
-        'speedTargetValueType',
-        'delta',
-      ) as 'delta' | 'factor',
+      speedTargetValueType: strAttr(relativeSpeedToMaster, 'speedTargetValueType', 'delta') as
+        | 'delta'
+        | 'factor',
       steadyState: optBoolAttr(relativeSpeedToMaster, 'steadyState'),
     };
   }
@@ -612,6 +608,7 @@ function parseActivateControllerAction(raw: RawXml | undefined): ActivateControl
     longitudinal: optBoolAttr(raw, 'longitudinal'),
     animation: optBoolAttr(raw, 'animation'),
     lighting: optBoolAttr(raw, 'lighting'),
+    objectControllerRef: optStrAttr(raw, 'objectControllerRef'),
     controllerRef: optStrAttr(raw, 'controllerRef'),
   };
 }
@@ -736,7 +733,8 @@ function parseFollowTrajectoryAction(raw: RawXml): FollowTrajectoryAction {
 
   const trajectoryRef = child(raw, 'TrajectoryRef');
   const inlineTrajectory = child(raw, 'Trajectory') ?? child(trajectoryRef, 'Trajectory');
-  const catalogReference = child(raw, 'CatalogReference') ?? child(trajectoryRef, 'CatalogReference');
+  const catalogReference =
+    child(raw, 'CatalogReference') ?? child(trajectoryRef, 'CatalogReference');
 
   if (inlineTrajectory) {
     result.trajectory = parseTrajectory(inlineTrajectory);
@@ -843,11 +841,9 @@ function parseTimeReference(raw: RawXml | undefined): TimeReference {
   if (timing) {
     return {
       timing: {
-        domainAbsoluteRelative: strAttr(
-          timing,
-          'domainAbsoluteRelative',
-          'absolute',
-        ) as 'absolute' | 'relative',
+        domainAbsoluteRelative: strAttr(timing, 'domainAbsoluteRelative', 'absolute') as
+          | 'absolute'
+          | 'relative',
         offset: numAttr(timing, 'offset'),
         scale: numAttr(timing, 'scale', 1),
       },
@@ -914,24 +910,30 @@ function parseAnimationType(raw: RawXml): string {
   // serializer emits; the others are read tolerantly for external inputs.
   const userDefinedAnimation = child(raw, 'UserDefinedAnimation');
   if (userDefinedAnimation) {
-    return strAttr(userDefinedAnimation, 'userDefinedAnimationType', '') ||
-      strAttr(userDefinedAnimation, 'type', '');
+    return (
+      strAttr(userDefinedAnimation, 'userDefinedAnimationType', '') ||
+      strAttr(userDefinedAnimation, 'type', '')
+    );
   }
   const componentAnimation = child(raw, 'ComponentAnimation');
   if (componentAnimation) {
-    return strAttr(child(componentAnimation, 'VehicleComponent'), 'vehicleComponentType', '') ||
-      strAttr(child(componentAnimation, 'UserDefinedComponent'), 'userDefinedComponentType', '');
+    return (
+      strAttr(child(componentAnimation, 'VehicleComponent'), 'vehicleComponentType', '') ||
+      strAttr(child(componentAnimation, 'UserDefinedComponent'), 'userDefinedComponentType', '')
+    );
   }
   const pedestrianAnimation = child(raw, 'PedestrianAnimation');
   if (pedestrianAnimation) {
     // Could be motion or gesture
-    return strAttr(pedestrianAnimation, 'motion', '') ||
-      strAttr(pedestrianAnimation, 'gesture', '');
+    return (
+      strAttr(pedestrianAnimation, 'motion', '') || strAttr(pedestrianAnimation, 'gesture', '')
+    );
   }
   const animationFile = child(raw, 'AnimationFile');
   if (animationFile) {
-    return strAttr(child(animationFile, 'File'), 'filepath', '') ||
-      strAttr(animationFile, 'file', '');
+    return (
+      strAttr(child(animationFile, 'File'), 'filepath', '') || strAttr(animationFile, 'file', '')
+    );
   }
   return '';
 }
@@ -978,7 +980,8 @@ function parseLightType(raw: RawXml | undefined): string {
   // Legacy: <VehicleLightType vehicleLightType="..."/>
   const vehicleLightTypeRaw = raw.VehicleLightType;
   if (vehicleLightTypeRaw) {
-    const vlt = strAttr(child(raw, 'VehicleLightType'), 'vehicleLightType', '') ||
+    const vlt =
+      strAttr(child(raw, 'VehicleLightType'), 'vehicleLightType', '') ||
       (typeof vehicleLightTypeRaw === 'string' ? vehicleLightTypeRaw : '');
     return vlt ? `vehicleLight:${vlt}` : '';
   }
@@ -1007,7 +1010,8 @@ function parseLightType(raw: RawXml | undefined): string {
 function parseConnectTrailerAction(raw: RawXml): ConnectTrailerAction {
   return {
     type: 'connectTrailerAction',
-    trailerRef: strAttr(raw, 'trailerRef', '') || strAttr(child(raw, 'TrailerRef'), 'entityRef', ''),
+    trailerRef:
+      strAttr(raw, 'trailerRef', '') || strAttr(child(raw, 'TrailerRef'), 'entityRef', ''),
   };
 }
 

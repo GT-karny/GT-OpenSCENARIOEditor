@@ -1,6 +1,6 @@
 /**
  * Entity types for OpenSCENARIO.
- * ScenarioObject = entity definition + optional controller.
+ * ScenarioObject = entity definition + optional object controllers.
  */
 
 import type { Property, CatalogReference } from './scenario.js';
@@ -20,7 +20,7 @@ export interface ScenarioEntity {
   name: string;
   type: EntityType;
   definition: VehicleDefinition | PedestrianDefinition | MiscObjectDefinition | CatalogReference;
-  controller?: ObjectController;
+  controllers?: ObjectController[];
 }
 
 // --- Vehicle ---
@@ -95,6 +95,8 @@ export interface MiscObjectDefinition {
 // --- Controller ---
 
 export interface ObjectController {
+  /** OpenSCENARIO v1.3 ObjectController wrapper name, used by objectControllerRef. */
+  name?: string;
   controller: ControllerDefinition | CatalogReference;
 }
 

@@ -18,13 +18,17 @@ import { buildAttrs } from '../utils/xml-helpers.js';
 
 type AllBindings = Record<string, Record<string, string>>;
 
-export function buildStoryboard(sb: Storyboard, allBindings: AllBindings = {}): Record<string, unknown> {
+export function buildStoryboard(
+  sb: Storyboard,
+  allBindings: AllBindings = {},
+  revMinor = 3,
+): Record<string, unknown> {
   const result: Record<string, unknown> = {
-    Init: buildInit(sb.init, allBindings),
+    Init: buildInit(sb.init, allBindings, revMinor),
   };
 
   if (sb.stories.length > 0) {
-    result.Story = sb.stories.map((s) => buildStory(s, allBindings));
+    result.Story = sb.stories.map((s) => buildStory(s, allBindings, revMinor));
   }
 
   result.StopTrigger = buildTrigger(sb.stopTrigger, allBindings);
@@ -32,18 +36,22 @@ export function buildStoryboard(sb: Storyboard, allBindings: AllBindings = {}): 
   return result;
 }
 
-function buildStory(story: Story, allBindings: AllBindings): Record<string, unknown> {
+function buildStory(
+  story: Story,
+  allBindings: AllBindings,
+  revMinor: number,
+): Record<string, unknown> {
   return {
     ...buildAttrs({ name: story.name }),
     ParameterDeclarations: buildParameterDeclarations(story.parameterDeclarations),
-    Act: story.acts.map((a) => buildAct(a, allBindings)),
+    Act: story.acts.map((a) => buildAct(a, allBindings, revMinor)),
   };
 }
 
-function buildAct(act: Act, allBindings: AllBindings): Record<string, unknown> {
+function buildAct(act: Act, allBindings: AllBindings, revMinor: number): Record<string, unknown> {
   const result: Record<string, unknown> = {
     ...buildAttrs({ name: act.name }),
-    ManeuverGroup: act.maneuverGroups.map((mg) => buildManeuverGroup(mg, allBindings)),
+    ManeuverGroup: act.maneuverGroups.map((mg) => buildManeuverGroup(mg, allBindings, revMinor)),
     StartTrigger: buildTrigger(act.startTrigger, allBindings),
   };
   if (act.stopTrigger) {
@@ -52,7 +60,11 @@ function buildAct(act: Act, allBindings: AllBindings): Record<string, unknown> {
   return result;
 }
 
-function buildManeuverGroup(mg: ManeuverGroup, allBindings: AllBindings): Record<string, unknown> {
+function buildManeuverGroup(
+  mg: ManeuverGroup,
+  allBindings: AllBindings,
+  revMinor: number,
+): Record<string, unknown> {
   const actors: Record<string, unknown> = buildAttrs({
     selectTriggeringEntities: mg.actors.selectTriggeringEntities,
   });
@@ -66,31 +78,43 @@ function buildManeuverGroup(mg: ManeuverGroup, allBindings: AllBindings): Record
       name: mg.name,
     }),
     Actors: actors,
-    Maneuver: mg.maneuvers.map((m) => buildManeuver(m, allBindings)),
+    Maneuver: mg.maneuvers.map((m) => buildManeuver(m, allBindings, revMinor)),
   };
 }
 
-export function buildManeuver(m: Maneuver, allBindings: AllBindings): Record<string, unknown> {
+export function buildManeuver(
+  m: Maneuver,
+  allBindings: AllBindings,
+  revMinor = 3,
+): Record<string, unknown> {
   return {
     ...buildAttrs({ name: m.name }),
     ParameterDeclarations: buildParameterDeclarations(m.parameterDeclarations),
-    Event: m.events.map((e) => buildEvent(e, allBindings)),
+    Event: m.events.map((e) => buildEvent(e, allBindings, revMinor)),
   };
 }
 
-function buildEvent(e: ScenarioEvent, allBindings: AllBindings): Record<string, unknown> {
+function buildEvent(
+  e: ScenarioEvent,
+  allBindings: AllBindings,
+  revMinor: number,
+): Record<string, unknown> {
   return {
     ...buildAttrs({
       priority: e.priority,
       maximumExecutionCount: e.maximumExecutionCount,
       name: e.name,
     }),
-    Action: e.actions.map((sa) => buildScenarioAction(sa, allBindings)),
+    Action: e.actions.map((sa) => buildScenarioAction(sa, allBindings, revMinor)),
     StartTrigger: buildTrigger(e.startTrigger, allBindings),
   };
 }
 
-function buildScenarioAction(sa: ScenarioAction, allBindings: AllBindings): Record<string, unknown> {
+function buildScenarioAction(
+  sa: ScenarioAction,
+  allBindings: AllBindings,
+  revMinor: number,
+): Record<string, unknown> {
   const result: Record<string, unknown> = buildAttrs({ name: sa.name });
   const elementBindings = allBindings[sa.id] ?? {};
 
@@ -104,7 +128,7 @@ function buildScenarioAction(sa: ScenarioAction, allBindings: AllBindings): Reco
   } else if ((GLOBAL_ACTION_TYPES as readonly string[]).includes(action.type)) {
     result.GlobalAction = buildGlobalAction(action as GlobalAction, elementBindings);
   } else {
-    result.PrivateAction = buildPrivateAction(action as PrivateAction, elementBindings);
+    result.PrivateAction = buildPrivateAction(action as PrivateAction, elementBindings, revMinor);
   }
 
   return result;

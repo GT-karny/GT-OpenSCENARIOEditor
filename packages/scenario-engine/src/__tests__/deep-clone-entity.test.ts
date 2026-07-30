@@ -77,17 +77,22 @@ describe('deepCloneWithNewIds — entity', () => {
 
   it('regenerates controller parameter ids when present', () => {
     const source = makeEntity();
-    source.controller = {
-      controller: {
-        kind: 'controller',
-        name: 'Ctrl',
-        parameterDeclarations: [{ id: 'ctrl-p', name: 'g', parameterType: 'double', value: '9.8' }],
-        properties: [],
+    source.controllers = [
+      {
+        controller: {
+          kind: 'controller',
+          name: 'Ctrl',
+          parameterDeclarations: [
+            { id: 'ctrl-p', name: 'g', parameterType: 'double', value: '9.8' },
+          ],
+          properties: [],
+        },
       },
-    };
+    ];
     const clone = deepCloneWithNewIds(source, 'entity');
-    const ctrlParams = (clone.controller!.controller as { parameterDeclarations: { id: string }[] })
-      .parameterDeclarations;
+    const ctrlParams = (
+      clone.controllers![0].controller as { parameterDeclarations: { id: string }[] }
+    ).parameterDeclarations;
     expect(ctrlParams[0].id).not.toBe('ctrl-p');
   });
 });

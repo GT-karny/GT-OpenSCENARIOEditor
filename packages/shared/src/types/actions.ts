@@ -212,6 +212,9 @@ export interface ActivateControllerAction {
   longitudinal?: boolean;
   animation?: boolean;
   lighting?: boolean;
+  /** OpenSCENARIO v1.3+ ObjectController wrapper name. */
+  objectControllerRef?: string;
+  /** @deprecated OpenSCENARIO v1.2 compatibility attribute. */
   controllerRef?: string;
 }
 
@@ -326,7 +329,13 @@ export interface Weather {
   atmosphericPressure?: number;
   temperature?: number;
   sun?: { intensity: number; azimuth: number; elevation: number };
-  fog?: { visualRange: number; boundingBox?: { center: { x: number; y: number; z: number }; dimensions: { width: number; length: number; height: number } } };
+  fog?: {
+    visualRange: number;
+    boundingBox?: {
+      center: { x: number; y: number; z: number };
+      dimensions: { width: number; length: number; height: number };
+    };
+  };
   precipitation?: { precipitationType: PrecipitationType; precipitationIntensity: number };
   wind?: { direction: number; speed: number };
 }
@@ -428,7 +437,6 @@ export interface TransitionDynamics {
   value: number;
 }
 
-
 export type SpeedTarget =
   | { kind: 'absolute'; value: number }
   | {
@@ -477,7 +485,15 @@ export interface Trajectory {
 
 export type TrajectoryShape =
   | { type: 'polyline'; vertices: TrajectoryVertex[] }
-  | { type: 'clothoid'; curvature: number; curvatureDot: number; length: number; startTime?: number; stopTime?: number; position?: Position }
+  | {
+      type: 'clothoid';
+      curvature: number;
+      curvatureDot: number;
+      length: number;
+      startTime?: number;
+      stopTime?: number;
+      position?: Position;
+    }
   | { type: 'clothoidSpline'; segments: ClothoidSplineSegment[]; timeEnd?: number }
   | { type: 'nurbs'; order: number; controlPoints: NurbsControlPoint[]; knots: number[] };
 

@@ -34,7 +34,11 @@ export class XoscSerializer implements IXoscSerializer {
         CatalogLocations: buildCatalogLocations(doc.catalogLocations),
         RoadNetwork: buildRoadNetwork(doc.roadNetwork),
         Entities: buildEntities(doc.entities),
-        Storyboard: buildStoryboard(doc.storyboard, doc._editor.parameterBindings),
+        Storyboard: buildStoryboard(
+          doc.storyboard,
+          doc._editor.parameterBindings,
+          doc.fileHeader.revMinor,
+        ),
       },
     };
 

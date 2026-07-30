@@ -163,8 +163,8 @@ export interface EditorState {
   setSaveAsFileType: (type: 'xosc' | 'xodr') => void;
 
   // Entity property tab persistence
-  entityPropertyTab: 'definition' | 'initialState';
-  setEntityPropertyTab: (tab: 'definition' | 'initialState') => void;
+  entityPropertyTab: 'definition' | 'initialState' | 'controllers';
+  setEntityPropertyTab: (tab: 'definition' | 'initialState' | 'controllers') => void;
 
   // Focus entity in 3D viewer (from panel double-click)
   focusEntityId: string | null;
@@ -255,7 +255,7 @@ const defaultPanelVisibility: Record<EditorPanel, boolean> = {
 export interface EditorPersistedState {
   preferences: EditorPreferencesExt;
   panelVisibility: Record<EditorPanel, boolean>;
-  entityPropertyTab: 'definition' | 'initialState';
+  entityPropertyTab: 'definition' | 'initialState' | 'controllers';
   showIntersectionTimeline: boolean;
 }
 
@@ -375,7 +375,9 @@ export const useEditorStore = create<EditorState>()(
           selectedSignalKey: key,
           // Clear entity selection when signal is selected
           ...(key
-            ? { selection: { selectedElementIds: [], hoveredElementId: null, focusedPanelId: null } }
+            ? {
+                selection: { selectedElementIds: [], hoveredElementId: null, focusedPanelId: null },
+              }
             : {}),
         }),
 
@@ -404,7 +406,8 @@ export const useEditorStore = create<EditorState>()(
 
       // Selected controller
       selectedControllerId: null,
-      setSelectedControllerId: (id) => set({ selectedControllerId: id, highlightedSignalIds: null }),
+      setSelectedControllerId: (id) =>
+        set({ selectedControllerId: id, highlightedSignalIds: null }),
 
       // Highlighted signal IDs
       highlightedSignalIds: null,
@@ -413,9 +416,19 @@ export const useEditorStore = create<EditorState>()(
       // Signal pick mode
       signalPickMode: null,
       enterSignalPickMode: (mode) =>
-        set({ signalPickMode: mode, selectedSignalKey: null, pendingSignalPick: null, highlightedSignalIds: null }),
+        set({
+          signalPickMode: mode,
+          selectedSignalKey: null,
+          pendingSignalPick: null,
+          highlightedSignalIds: null,
+        }),
       exitSignalPickMode: () =>
-        set({ signalPickMode: null, pendingSignalPick: null, pickModeHoveredSignalId: null, highlightedSignalIds: null }),
+        set({
+          signalPickMode: null,
+          pendingSignalPick: null,
+          pickModeHoveredSignalId: null,
+          highlightedSignalIds: null,
+        }),
       pendingSignalPick: null,
       submitSignalPick: (signalKey) => set({ pendingSignalPick: signalKey }),
       clearPendingSignalPick: () => set({ pendingSignalPick: null }),

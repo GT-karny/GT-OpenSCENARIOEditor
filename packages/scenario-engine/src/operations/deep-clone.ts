@@ -90,7 +90,7 @@ function regenerateActionIds(action: ScenarioAction): ScenarioAction {
 
 /**
  * Regenerate the entity `id` and all nested ParameterDeclaration ids
- * (definition and, when present, controller). The `name` is intentionally
+ * (definition and, when present, object controllers). The `name` is intentionally
  * left untouched here — unique-name assignment is the caller's responsibility
  * so that dependent init actions can reference the final name.
  */
@@ -102,11 +102,13 @@ function regenerateEntityIds(entity: ScenarioEntity): ScenarioEntity {
     regenerateParameterIds(definition.parameterDeclarations);
   }
 
-  const controllerDef = entity.controller?.controller as
-    | { parameterDeclarations?: ParameterDeclaration[] }
-    | undefined;
-  if (controllerDef && Array.isArray(controllerDef.parameterDeclarations)) {
-    regenerateParameterIds(controllerDef.parameterDeclarations);
+  for (const objectController of entity.controllers ?? []) {
+    const controllerDef = objectController.controller as
+      | { parameterDeclarations?: ParameterDeclaration[] }
+      | undefined;
+    if (controllerDef && Array.isArray(controllerDef.parameterDeclarations)) {
+      regenerateParameterIds(controllerDef.parameterDeclarations);
+    }
   }
 
   return entity;

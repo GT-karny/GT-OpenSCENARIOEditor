@@ -147,7 +147,11 @@ export function createActionFromPartial(partial: Partial<ScenarioAction>): Scena
   return {
     id: partial.id ?? uuidv4(),
     name: partial.name ?? 'NewAction',
-    action: partial.action ?? { type: 'speedAction', dynamics: { dynamicsShape: 'step', dynamicsDimension: 'time', value: 0 }, target: { kind: 'absolute', value: 0 } },
+    action: partial.action ?? {
+      type: 'speedAction',
+      dynamics: { dynamicsShape: 'step', dynamicsDimension: 'time', value: 0 },
+      target: { kind: 'absolute', value: 0 },
+    },
   };
 }
 
@@ -164,7 +168,9 @@ export function createConditionFromPartial(partial: Partial<Condition>): Conditi
   };
 }
 
-export function createParameterFromPartial(partial: Partial<ParameterDeclaration>): ParameterDeclaration {
+export function createParameterFromPartial(
+  partial: Partial<ParameterDeclaration>,
+): ParameterDeclaration {
   return {
     id: partial.id ?? uuidv4(),
     name: partial.name ?? 'NewParameter',
@@ -174,7 +180,9 @@ export function createParameterFromPartial(partial: Partial<ParameterDeclaration
   };
 }
 
-export function createVariableFromPartial(partial: Partial<VariableDeclaration>): VariableDeclaration {
+export function createVariableFromPartial(
+  partial: Partial<VariableDeclaration>,
+): VariableDeclaration {
   return {
     id: partial.id ?? uuidv4(),
     name: partial.name ?? 'NewVariable',
@@ -190,7 +198,7 @@ export function createEntityFromPartial(partial: Partial<ScenarioEntity>): Scena
     name,
     type: partial.type ?? 'vehicle',
     definition: partial.definition ?? createDefaultVehicleDefinition(name),
-    controller: partial.controller,
+    controllers: partial.controllers,
   };
 }
 

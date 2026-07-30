@@ -7,6 +7,8 @@ import type {
   CatalogReference,
   ParameterAssignment,
   Property,
+  ObjectController,
+  ControllerDefinition,
 } from '@osce/shared';
 import { Input } from '../../../../components/ui/input';
 import { Label } from '../../../../components/ui/label';
@@ -27,6 +29,8 @@ import {
 } from '../../constants/osc-enum-values';
 import { useSpeedUnit } from '../../../../hooks/use-speed-unit';
 import { PropertiesEditor } from '../catalog/PropertiesEditor';
+import { SegmentedControl } from './SegmentedControl';
+import { Plus, Trash2 } from 'lucide-react';
 
 type SourceMode = 'inline' | 'catalog';
 
@@ -43,9 +47,7 @@ export function EntityPropertyEditor({ entity }: EntityPropertyEditorProps) {
 
   // Look up EntityInitActions by entity name
   const entityInit = useScenarioStore((s) =>
-    s.document.storyboard.init.entityActions.find(
-      (ea) => ea.entityRef === entity.name,
-    ),
+    s.document.storyboard.init.entityActions.find((ea) => ea.entityRef === entity.name),
   );
 
   return (
@@ -59,13 +61,19 @@ export function EntityPropertyEditor({ entity }: EntityPropertyEditorProps) {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'definition' | 'initialState')}>
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => setActiveTab(v as 'definition' | 'initialState' | 'controllers')}
+      >
         <TabsList className="w-full">
           <TabsTrigger value="definition" className="flex-1 text-[11px]">
             {t('labels.definitionTab')}
           </TabsTrigger>
           <TabsTrigger value="initialState" className="flex-1 text-[11px]">
             {t('labels.initialStateTab')}
+          </TabsTrigger>
+          <TabsTrigger value="controllers" className="flex-1 text-[11px]">
+            Controllers
           </TabsTrigger>
         </TabsList>
 
@@ -77,12 +85,172 @@ export function EntityPropertyEditor({ entity }: EntityPropertyEditorProps) {
           {entityInit ? (
             <InitPropertyEditorContent entityInit={entityInit} />
           ) : (
-            <p className="text-xs text-muted-foreground italic p-2">
-              No initial state configured.
-            </p>
+            <p className="text-xs text-muted-foreground italic p-2">No initial state configured.</p>
           )}
         </TabsContent>
+        <TabsContent value="controllers">
+          <EntityControllersEditor entity={entity} />
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function EntityControllersEditor({ entity }: { entity: ScenarioEntity }) {
+  const storeApi = useScenarioStoreApi();
+  const controllers = entity.controllers ?? [];
+  const updateControllers = (next: ObjectController[]) =>
+    storeApi.getState().updateEntity(entity.id, { controllers: next });
+
+  const addController = () =>
+    updateControllers([
+      ...controllers,
+      { name: '', controller: { kind: 'controller', name: '', properties: [] } },
+    ]);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-[var(--color-text-secondary)]">
+          Object controller names are used by Activate Controller Action.
+        </p>
+        <button
+          type="button"
+          onClick={addController}
+          className="flex items-center gap-1 text-xs text-[var(--color-accent-1)] hover:underline"
+        >
+          <Plus className="h-3 w-3" /> Add controller
+        </button>
+      </div>
+      {controllers.length === 0 ? (
+        <p className="text-xs italic text-muted-foreground">No controllers attached.</p>
+      ) : (
+        controllers.map((objectController, index) => (
+          <ObjectControllerEditor
+            key={index}
+            objectController={objectController}
+            onChange={(next) =>
+              updateControllers(controllers.map((item, i) => (i === index ? next : item)))
+            }
+            onRemove={() => updateControllers(controllers.filter((_, i) => i !== index))}
+          />
+        ))
+      )}
+    </div>
+  );
+}
+
+function ObjectControllerEditor({
+  objectController,
+  onChange,
+  onRemove,
+}: {
+  objectController: ObjectController;
+  onChange: (controller: ObjectController) => void;
+  onRemove: () => void;
+}) {
+  const sourceMode = objectController.controller.kind === 'catalogReference' ? 'catalog' : 'inline';
+  const setSourceMode = (mode: 'inline' | 'catalog') => {
+    onChange({
+      ...objectController,
+      controller:
+        mode === 'inline'
+          ? { kind: 'controller', name: '', properties: [] }
+          : { kind: 'catalogReference', catalogName: '', entryName: '', parameterAssignments: [] },
+    });
+  };
+  const controller = objectController.controller;
+
+  return (
+    <div className="space-y-3 border border-[var(--color-glass-edge)] p-2 rounded-none">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium">Object Controller</p>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="text-destructive hover:text-destructive/80"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <div className="grid gap-1">
+        <Label className="text-xs">Reference Name</Label>
+        <Input
+          value={objectController.name ?? ''}
+          placeholder="e.g. VirtualDriverController"
+          onChange={(e) => onChange({ ...objectController, name: e.target.value })}
+          className="h-8 text-sm"
+        />
+      </div>
+      <div className="grid gap-1">
+        <Label className="text-xs">Source</Label>
+        <SegmentedControl
+          value={sourceMode}
+          options={['inline', 'catalog'] as const}
+          labels={{ inline: 'Inline', catalog: 'Catalog' }}
+          onValueChange={setSourceMode}
+        />
+      </div>
+      {controller.kind === 'controller' ? (
+        <InlineControllerFields
+          controller={controller}
+          onChange={(next) => onChange({ ...objectController, controller: next })}
+        />
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          <div className="grid gap-1">
+            <Label className="text-xs">Catalog Name</Label>
+            <Input
+              value={controller.catalogName}
+              onChange={(e) =>
+                onChange({
+                  ...objectController,
+                  controller: { ...controller, catalogName: e.target.value },
+                })
+              }
+              className="h-8 text-sm"
+            />
+          </div>
+          <div className="grid gap-1">
+            <Label className="text-xs">Entry Name</Label>
+            <Input
+              value={controller.entryName}
+              onChange={(e) =>
+                onChange({
+                  ...objectController,
+                  controller: { ...controller, entryName: e.target.value },
+                })
+              }
+              className="h-8 text-sm"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InlineControllerFields({
+  controller,
+  onChange,
+}: {
+  controller: ControllerDefinition;
+  onChange: (controller: ControllerDefinition) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="grid gap-1">
+        <Label className="text-xs">Controller Name</Label>
+        <Input
+          value={controller.name}
+          onChange={(e) => onChange({ ...controller, name: e.target.value })}
+          className="h-8 text-sm"
+        />
+      </div>
+      <PropertiesEditor
+        properties={controller.properties}
+        onChange={(properties) => onChange({ ...controller, properties })}
+      />
     </div>
   );
 }
@@ -208,16 +376,16 @@ function EntityDefinitionContent({ entity }: { entity: ScenarioEntity }) {
             />
           )}
 
-          {def.catalogName && def.entryName && (
-            <ResolvedEntryPreview catalogRef={def} />
-          )}
+          {def.catalogName && def.entryName && <ResolvedEntryPreview catalogRef={def} />}
         </div>
       )}
     </div>
   );
 }
 
-function createDefaultDefinition(type: string): VehicleDefinition | PedestrianDefinition | MiscObjectDefinition {
+function createDefaultDefinition(
+  type: string,
+): VehicleDefinition | PedestrianDefinition | MiscObjectDefinition {
   switch (type) {
     case 'pedestrian':
       return {
@@ -227,7 +395,10 @@ function createDefaultDefinition(type: string): VehicleDefinition | PedestrianDe
         mass: 80,
         model: '',
         parameterDeclarations: [],
-        boundingBox: { center: { x: 0, y: 0, z: 0.9 }, dimensions: { width: 0.5, length: 0.6, height: 1.8 } },
+        boundingBox: {
+          center: { x: 0, y: 0, z: 0.9 },
+          dimensions: { width: 0.5, length: 0.6, height: 1.8 },
+        },
         properties: [],
       };
     case 'miscObject':
@@ -237,7 +408,10 @@ function createDefaultDefinition(type: string): VehicleDefinition | PedestrianDe
         miscObjectCategory: 'none',
         mass: 0,
         parameterDeclarations: [],
-        boundingBox: { center: { x: 0, y: 0, z: 0.5 }, dimensions: { width: 1, length: 1, height: 1 } },
+        boundingBox: {
+          center: { x: 0, y: 0, z: 0.5 },
+          dimensions: { width: 1, length: 1, height: 1 },
+        },
         properties: [],
       };
     default:
@@ -247,10 +421,25 @@ function createDefaultDefinition(type: string): VehicleDefinition | PedestrianDe
         vehicleCategory: 'car',
         parameterDeclarations: [],
         performance: { maxSpeed: 69, maxAcceleration: 5, maxDeceleration: 10 },
-        boundingBox: { center: { x: 1.4, y: 0, z: 0.75 }, dimensions: { width: 2.0, length: 5.0, height: 1.5 } },
+        boundingBox: {
+          center: { x: 1.4, y: 0, z: 0.75 },
+          dimensions: { width: 2.0, length: 5.0, height: 1.5 },
+        },
         axles: {
-          frontAxle: { maxSteering: 0.52, wheelDiameter: 0.8, trackWidth: 1.68, positionX: 2.98, positionZ: 0.4 },
-          rearAxle: { maxSteering: 0, wheelDiameter: 0.8, trackWidth: 1.68, positionX: 0, positionZ: 0.4 },
+          frontAxle: {
+            maxSteering: 0.52,
+            wheelDiameter: 0.8,
+            trackWidth: 1.68,
+            positionX: 2.98,
+            positionZ: 0.4,
+          },
+          rearAxle: {
+            maxSteering: 0,
+            wheelDiameter: 0.8,
+            trackWidth: 1.68,
+            positionX: 0,
+            positionZ: 0.4,
+          },
           additionalAxles: [],
         },
         properties: [],
@@ -264,7 +453,11 @@ interface DefinitionDetailsProps {
   onPropertiesChange: (properties: Property[]) => void;
 }
 
-function DefinitionDetails({ definition, onDefinitionChange, onPropertiesChange }: DefinitionDetailsProps) {
+function DefinitionDetails({
+  definition,
+  onDefinitionChange,
+  onPropertiesChange,
+}: DefinitionDetailsProps) {
   const { t } = useTranslation('common');
   const { label: speedLabel, toDisplay } = useSpeedUnit();
 
@@ -282,7 +475,9 @@ function DefinitionDetails({ definition, onDefinitionChange, onPropertiesChange 
         </div>
         {definition.performance && (
           <div className="grid gap-1">
-            <Label className="text-xs">Max {t('labels.speed')} ({speedLabel})</Label>
+            <Label className="text-xs">
+              Max {t('labels.speed')} ({speedLabel})
+            </Label>
             <Input
               value={String(toDisplay(definition.performance.maxSpeed ?? 0))}
               readOnly
@@ -290,10 +485,7 @@ function DefinitionDetails({ definition, onDefinitionChange, onPropertiesChange 
             />
           </div>
         )}
-        <PropertiesEditor
-          properties={definition.properties}
-          onChange={onPropertiesChange}
-        />
+        <PropertiesEditor properties={definition.properties} onChange={onPropertiesChange} />
       </div>
     );
   }
@@ -312,16 +504,9 @@ function DefinitionDetails({ definition, onDefinitionChange, onPropertiesChange 
         </div>
         <div className="grid gap-1">
           <Label className="text-xs">Mass (kg)</Label>
-          <Input
-            value={String(definition.mass ?? 0)}
-            readOnly
-            className="h-8 text-sm bg-muted"
-          />
+          <Input value={String(definition.mass ?? 0)} readOnly className="h-8 text-sm bg-muted" />
         </div>
-        <PropertiesEditor
-          properties={definition.properties}
-          onChange={onPropertiesChange}
-        />
+        <PropertiesEditor properties={definition.properties} onChange={onPropertiesChange} />
       </div>
     );
   }
@@ -340,16 +525,9 @@ function DefinitionDetails({ definition, onDefinitionChange, onPropertiesChange 
         </div>
         <div className="grid gap-1">
           <Label className="text-xs">Mass (kg)</Label>
-          <Input
-            value={String(definition.mass ?? 0)}
-            readOnly
-            className="h-8 text-sm bg-muted"
-          />
+          <Input value={String(definition.mass ?? 0)} readOnly className="h-8 text-sm bg-muted" />
         </div>
-        <PropertiesEditor
-          properties={definition.properties}
-          onChange={onPropertiesChange}
-        />
+        <PropertiesEditor properties={definition.properties} onChange={onPropertiesChange} />
       </div>
     );
   }

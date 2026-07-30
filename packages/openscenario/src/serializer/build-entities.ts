@@ -41,14 +41,17 @@ function buildScenarioObject(entity: ScenarioEntity): Record<string, unknown> {
       break;
   }
 
-  if (entity.controller) {
-    result.ObjectController = buildObjectController(entity.controller);
+  if (entity.controllers && entity.controllers.length > 0) {
+    result.ObjectController = entity.controllers.map(buildObjectController);
   }
 
   return result;
 }
 
-export function buildVehicle(v: VehicleDefinition, bindings?: Record<string, string>): Record<string, unknown> {
+export function buildVehicle(
+  v: VehicleDefinition,
+  bindings?: Record<string, string>,
+): Record<string, unknown> {
   return {
     ...buildAttrs({
       name: v.name,
@@ -58,8 +61,14 @@ export function buildVehicle(v: VehicleDefinition, bindings?: Record<string, str
       model3d: v.model3d,
     }),
     ParameterDeclarations: buildParameterDeclarations(v.parameterDeclarations),
-    BoundingBox: buildBoundingBox(v.boundingBox, bindings ? getSubBindings(bindings, 'boundingBox') : undefined),
-    Performance: buildPerformance(v.performance, bindings ? getSubBindings(bindings, 'performance') : undefined),
+    BoundingBox: buildBoundingBox(
+      v.boundingBox,
+      bindings ? getSubBindings(bindings, 'boundingBox') : undefined,
+    ),
+    Performance: buildPerformance(
+      v.performance,
+      bindings ? getSubBindings(bindings, 'performance') : undefined,
+    ),
     Axles: buildAxles(v.axles, bindings ? getSubBindings(bindings, 'axles') : undefined),
     Properties: buildProperties(v.properties),
   };
@@ -109,7 +118,10 @@ function buildCatalogReference(cr: CatalogReference): Record<string, unknown> {
   return result;
 }
 
-function buildBoundingBox(bb: BoundingBox, bindings?: Record<string, string>): Record<string, unknown> {
+function buildBoundingBox(
+  bb: BoundingBox,
+  bindings?: Record<string, string>,
+): Record<string, unknown> {
   return {
     Center: buildAttrs(
       { x: bb.center.x, y: bb.center.y, z: bb.center.z },
@@ -122,13 +134,19 @@ function buildBoundingBox(bb: BoundingBox, bindings?: Record<string, string>): R
   };
 }
 
-function buildPerformance(p: Performance, bindings?: Record<string, string>): Record<string, string> {
-  return buildAttrs({
-    maxSpeed: p.maxSpeed,
-    maxAcceleration: p.maxAcceleration,
-    maxDeceleration: p.maxDeceleration,
-    mass: p.mass,
-  }, bindings);
+function buildPerformance(
+  p: Performance,
+  bindings?: Record<string, string>,
+): Record<string, string> {
+  return buildAttrs(
+    {
+      maxSpeed: p.maxSpeed,
+      maxAcceleration: p.maxAcceleration,
+      maxDeceleration: p.maxDeceleration,
+      mass: p.mass,
+    },
+    bindings,
+  );
 }
 
 function buildAxles(a: Axles, bindings?: Record<string, string>): Record<string, unknown> {
@@ -143,13 +161,16 @@ function buildAxles(a: Axles, bindings?: Record<string, string>): Record<string,
 }
 
 function buildAxle(a: Axle, bindings?: Record<string, string>): Record<string, string> {
-  return buildAttrs({
-    maxSteering: a.maxSteering,
-    wheelDiameter: a.wheelDiameter,
-    trackWidth: a.trackWidth,
-    positionX: a.positionX,
-    positionZ: a.positionZ,
-  }, bindings);
+  return buildAttrs(
+    {
+      maxSteering: a.maxSteering,
+      wheelDiameter: a.wheelDiameter,
+      trackWidth: a.trackWidth,
+      positionX: a.positionX,
+      positionZ: a.positionZ,
+    },
+    bindings,
+  );
 }
 
 function buildProperties(props: Property[]): Record<string, unknown> | string {
@@ -163,11 +184,13 @@ function buildObjectController(oc: ObjectController): Record<string, unknown> {
   const ctrl = oc.controller;
   if (ctrl.kind === 'controller') {
     return {
+      ...buildAttrs({ name: oc.name }),
       Controller: buildControllerDefinition(ctrl),
     };
   }
   // CatalogReference
   return {
+    ...buildAttrs({ name: oc.name }),
     CatalogReference: buildCatalogReference(ctrl as CatalogReference),
   };
 }

@@ -18,7 +18,16 @@ import type {
 import type { RawXml } from '../utils/xml-helpers.js';
 import { parseParameterDeclarations } from './parse-parameters.js';
 import { generateId } from '@osce/shared';
-import { numAttr, strAttr, optNumAttr, optStrAttr, pushBindingFieldPrefix, popBindingFieldPrefix, child, children } from '../utils/xml-helpers.js';
+import {
+  numAttr,
+  strAttr,
+  optNumAttr,
+  optStrAttr,
+  pushBindingFieldPrefix,
+  popBindingFieldPrefix,
+  child,
+  children,
+} from '../utils/xml-helpers.js';
 
 export function parseEntities(raw: RawXml | undefined): ScenarioEntity[] {
   if (!raw) return [];
@@ -36,15 +45,18 @@ function parseScenarioObject(raw: RawXml): ScenarioEntity {
     definition,
   };
 
-  const objectController = child(raw, 'ObjectController');
-  if (objectController) {
-    entity.controller = parseObjectController(objectController);
+  const objectControllers = children(raw, 'ObjectController').map(parseObjectController);
+  if (objectControllers.length > 0) {
+    entity.controllers = objectControllers;
   }
 
   return entity;
 }
 
-function parseEntityDefinition(raw: RawXml): { type: EntityType; definition: ScenarioEntity['definition'] } {
+function parseEntityDefinition(raw: RawXml): {
+  type: EntityType;
+  definition: ScenarioEntity['definition'];
+} {
   const vehicle = child(raw, 'Vehicle');
   if (vehicle) {
     return { type: 'vehicle', definition: parseVehicleDefinition(vehicle) };
@@ -109,7 +121,11 @@ export function parsePedestrianDefinition(raw: RawXml): PedestrianDefinition {
   return {
     kind: 'pedestrian',
     name: strAttr(raw, 'name'),
-    pedestrianCategory: strAttr(raw, 'pedestrianCategory', 'pedestrian') as PedestrianDefinition['pedestrianCategory'],
+    pedestrianCategory: strAttr(
+      raw,
+      'pedestrianCategory',
+      'pedestrian',
+    ) as PedestrianDefinition['pedestrianCategory'],
     mass: numAttr(raw, 'mass'),
     model: strAttr(raw, 'model'),
     parameterDeclarations: parseParameterDeclarations(child(raw, 'ParameterDeclarations')),
@@ -125,7 +141,11 @@ export function parseMiscObjectDefinition(raw: RawXml): MiscObjectDefinition {
   return {
     kind: 'miscObject',
     name: strAttr(raw, 'name'),
-    miscObjectCategory: strAttr(raw, 'miscObjectCategory', 'none') as MiscObjectDefinition['miscObjectCategory'],
+    miscObjectCategory: strAttr(
+      raw,
+      'miscObjectCategory',
+      'none',
+    ) as MiscObjectDefinition['miscObjectCategory'],
     mass: numAttr(raw, 'mass'),
     parameterDeclarations: parseParameterDeclarations(child(raw, 'ParameterDeclarations')),
     boundingBox: parseBoundingBox(child(raw, 'BoundingBox')),
@@ -200,7 +220,13 @@ function parseBoundingBox(raw: RawXml | undefined): BoundingBox {
 
 function parseAxles(raw: RawXml | undefined): Axles {
   if (!raw) {
-    const defaultAxle: Axle = { maxSteering: 0, wheelDiameter: 0, trackWidth: 0, positionX: 0, positionZ: 0 };
+    const defaultAxle: Axle = {
+      maxSteering: 0,
+      wheelDiameter: 0,
+      trackWidth: 0,
+      positionX: 0,
+      positionZ: 0,
+    };
     return { frontAxle: { ...defaultAxle }, rearAxle: { ...defaultAxle }, additionalAxles: [] };
   }
 
@@ -248,17 +274,20 @@ function parseObjectController(raw: RawXml): ObjectController {
   const controller = child(raw, 'Controller');
   if (controller) {
     return {
+      name: optStrAttr(raw, 'name'),
       controller: parseControllerDefinition(controller),
     };
   }
   const catalogReference = child(raw, 'CatalogReference');
   if (catalogReference) {
     return {
+      name: optStrAttr(raw, 'name'),
       controller: parseCatalogReference(catalogReference),
     };
   }
   // Fallback
   return {
+    name: optStrAttr(raw, 'name'),
     controller: { kind: 'controller', name: '', properties: [] },
   };
 }

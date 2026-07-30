@@ -25,23 +25,36 @@ import { buildAttrs, getSubBindings } from '../utils/xml-helpers.js';
 
 // ─── Private Action ──────────────────────────────────────────────────────────
 
-export function buildPrivateAction(action: PrivateAction, elementBindings: Record<string, string> = {}): Record<string, unknown> {
+export function buildPrivateAction(
+  action: PrivateAction,
+  elementBindings: Record<string, string> = {},
+  revMinor = 3,
+): Record<string, unknown> {
   switch (action.type) {
     case 'speedAction':
       return {
         LongitudinalAction: {
           SpeedAction: {
-            SpeedActionDynamics: buildTransitionDynamics(action.dynamics, getSubBindings(elementBindings, 'dynamics')),
-            SpeedActionTarget: buildSpeedTarget(action.target, getSubBindings(elementBindings, 'target')),
+            SpeedActionDynamics: buildTransitionDynamics(
+              action.dynamics,
+              getSubBindings(elementBindings, 'dynamics'),
+            ),
+            SpeedActionTarget: buildSpeedTarget(
+              action.target,
+              getSubBindings(elementBindings, 'target'),
+            ),
           },
         },
       };
 
     case 'speedProfileAction': {
-      const spa: Record<string, unknown> = buildAttrs({
-        entityRef: action.entityRef,
-        followingMode: action.followingMode,
-      }, elementBindings);
+      const spa: Record<string, unknown> = buildAttrs(
+        {
+          entityRef: action.entityRef,
+          followingMode: action.followingMode,
+        },
+        elementBindings,
+      );
       if (action.dynamicsDimension !== undefined) {
         spa.DynamicsDimension = buildAttrs({ dynamicsDimension: action.dynamicsDimension });
       }
@@ -52,61 +65,97 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
     }
 
     case 'laneChangeAction': {
-      const lca: Record<string, unknown> = buildAttrs({ targetLaneOffset: action.targetLaneOffset }, elementBindings);
-      lca.LaneChangeActionDynamics = buildTransitionDynamics(action.dynamics, getSubBindings(elementBindings, 'dynamics'));
-      lca.LaneChangeTarget = buildLaneChangeTarget(action.target, getSubBindings(elementBindings, 'target'));
+      const lca: Record<string, unknown> = buildAttrs(
+        { targetLaneOffset: action.targetLaneOffset },
+        elementBindings,
+      );
+      lca.LaneChangeActionDynamics = buildTransitionDynamics(
+        action.dynamics,
+        getSubBindings(elementBindings, 'dynamics'),
+      );
+      lca.LaneChangeTarget = buildLaneChangeTarget(
+        action.target,
+        getSubBindings(elementBindings, 'target'),
+      );
       return { LateralAction: { LaneChangeAction: lca } };
     }
 
     case 'laneOffsetAction': {
-      const loa: Record<string, unknown> = buildAttrs({ continuous: action.continuous }, elementBindings);
-      loa.LaneOffsetActionDynamics = buildLaneOffsetDynamics(action.dynamics, getSubBindings(elementBindings, 'dynamics'));
-      loa.LaneOffsetTarget = buildLaneOffsetTarget(action.target, getSubBindings(elementBindings, 'target'));
+      const loa: Record<string, unknown> = buildAttrs(
+        { continuous: action.continuous },
+        elementBindings,
+      );
+      loa.LaneOffsetActionDynamics = buildLaneOffsetDynamics(
+        action.dynamics,
+        getSubBindings(elementBindings, 'dynamics'),
+      );
+      loa.LaneOffsetTarget = buildLaneOffsetTarget(
+        action.target,
+        getSubBindings(elementBindings, 'target'),
+      );
       return { LateralAction: { LaneOffsetAction: loa } };
     }
 
     case 'lateralDistanceAction': {
-      const lda: Record<string, unknown> = buildAttrs({
-        entityRef: action.entityRef,
-        distance: action.distance,
-        freespace: action.freespace,
-        continuous: action.continuous,
-        coordinateSystem: action.coordinateSystem,
-        displacement: action.displacement,
-      }, elementBindings);
+      const lda: Record<string, unknown> = buildAttrs(
+        {
+          entityRef: action.entityRef,
+          distance: action.distance,
+          freespace: action.freespace,
+          continuous: action.continuous,
+          coordinateSystem: action.coordinateSystem,
+          displacement: action.displacement,
+        },
+        elementBindings,
+      );
       if (action.dynamics) {
-        lda.DynamicConstraints = buildDynamicConstraints(action.dynamics, getSubBindings(elementBindings, 'dynamics'));
+        lda.DynamicConstraints = buildDynamicConstraints(
+          action.dynamics,
+          getSubBindings(elementBindings, 'dynamics'),
+        );
       }
       return { LateralAction: { LateralDistanceAction: lda } };
     }
 
     case 'longitudinalDistanceAction': {
-      const lda: Record<string, unknown> = buildAttrs({
-        entityRef: action.entityRef,
-        distance: action.distance,
-        timeGap: action.timeGap,
-        freespace: action.freespace,
-        continuous: action.continuous,
-        coordinateSystem: action.coordinateSystem,
-        displacement: action.displacement,
-      }, elementBindings);
+      const lda: Record<string, unknown> = buildAttrs(
+        {
+          entityRef: action.entityRef,
+          distance: action.distance,
+          timeGap: action.timeGap,
+          freespace: action.freespace,
+          continuous: action.continuous,
+          coordinateSystem: action.coordinateSystem,
+          displacement: action.displacement,
+        },
+        elementBindings,
+      );
       if (action.dynamics) {
-        lda.DynamicConstraints = buildDynamicConstraints(action.dynamics, getSubBindings(elementBindings, 'dynamics'));
+        lda.DynamicConstraints = buildDynamicConstraints(
+          action.dynamics,
+          getSubBindings(elementBindings, 'dynamics'),
+        );
       }
       return { LongitudinalAction: { LongitudinalDistanceAction: lda } };
     }
 
     case 'teleportAction':
       return {
-        TeleportAction: buildPositionWrapped(action.position, getSubBindings(elementBindings, 'position')),
+        TeleportAction: buildPositionWrapped(
+          action.position,
+          getSubBindings(elementBindings, 'position'),
+        ),
       };
 
     case 'synchronizeAction': {
-      const sa: Record<string, unknown> = buildAttrs({
-        masterEntityRef: action.masterEntityRef,
-        toleranceMaster: action.toleranceMaster,
-        tolerance: action.tolerance,
-      }, elementBindings);
+      const sa: Record<string, unknown> = buildAttrs(
+        {
+          masterEntityRef: action.masterEntityRef,
+          toleranceMaster: action.toleranceMaster,
+          tolerance: action.tolerance,
+        },
+        elementBindings,
+      );
       // Position content goes DIRECTLY inside TargetPositionMaster/TargetPosition (not wrapped in <Position>)
       sa.TargetPositionMaster = buildPosition(action.targetPositionMaster);
       sa.TargetPosition = buildPosition(action.targetPosition);
@@ -117,9 +166,12 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
     }
 
     case 'followTrajectoryAction': {
-      const fta: Record<string, unknown> = buildAttrs({
-        initialDistanceOffset: action.initialDistanceOffset,
-      }, elementBindings);
+      const fta: Record<string, unknown> = buildAttrs(
+        {
+          initialDistanceOffset: action.initialDistanceOffset,
+        },
+        elementBindings,
+      );
       // XSD: TrajectoryRef → Trajectory | CatalogReference. Emit a catalog
       // reference via <TrajectoryRef>, otherwise an inline <Trajectory>.
       if (action.trajectoryRef) {
@@ -216,7 +268,10 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
       return { ControllerAction: { AssignControllerAction: aca } };
     }
 
-    case 'activateControllerAction':
+    case 'activateControllerAction': // v1.3 replaces the deprecated controllerRef with objectControllerRef.
+    // Keep either parsed representation usable so older files can be upgraded on save.
+    {
+      const controllerRef = action.objectControllerRef ?? action.controllerRef;
       return {
         ControllerAction: {
           ActivateControllerAction: buildAttrs({
@@ -224,10 +279,11 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
             longitudinal: action.longitudinal,
             animation: action.animation,
             lighting: action.lighting,
-            controllerRef: action.controllerRef,
+            ...(revMinor >= 3 ? { objectControllerRef: controllerRef } : { controllerRef }),
           }),
         },
       };
+    }
 
     case 'overrideControllerAction': {
       const ocva: Record<string, unknown> = {};
@@ -263,7 +319,6 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
       };
 
     case 'appearanceAction': {
-       
       const { type: _type, ...rest } = action;
       return { AppearanceAction: rest };
     }
@@ -281,10 +336,7 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
       if (action.state !== undefined) {
         aa.AnimationState = buildAttrs({ state: action.state });
       }
-      Object.assign(
-        aa,
-        buildAttrs({ loop: action.loop, animationDuration: action.duration }),
-      );
+      Object.assign(aa, buildAttrs({ loop: action.loop, animationDuration: action.duration }));
       return { AnimationAction: aa };
     }
 
@@ -349,7 +401,10 @@ export function buildPrivateAction(action: PrivateAction, elementBindings: Recor
 
 // ─── Global Action ───────────────────────────────────────────────────────────
 
-export function buildGlobalAction(action: GlobalAction, elementBindings: Record<string, string> = {}): Record<string, unknown> {
+export function buildGlobalAction(
+  action: GlobalAction,
+  elementBindings: Record<string, string> = {},
+): Record<string, unknown> {
   switch (action.type) {
     case 'environmentAction':
       // XSD EnvironmentAction: choice(Environment | CatalogReference).
@@ -370,7 +425,10 @@ export function buildGlobalAction(action: GlobalAction, elementBindings: Record<
       };
 
     case 'entityAction': {
-      const ea: Record<string, unknown> = buildAttrs({ entityRef: action.entityRef }, elementBindings);
+      const ea: Record<string, unknown> = buildAttrs(
+        { entityRef: action.entityRef },
+        elementBindings,
+      );
       if (action.actionType === 'addEntity') {
         const addEntity: Record<string, unknown> = {};
         if (action.position) {
@@ -443,7 +501,6 @@ export function buildGlobalAction(action: GlobalAction, elementBindings: Record<
       };
 
     case 'trafficAction': {
-
       const { type: _type, ...rest } = action;
       return { TrafficAction: rest };
     }
@@ -471,66 +528,102 @@ export function buildUserDefinedAction(action: UserDefinedAction): Record<string
 
 // ─── Helper builders ────────────────────────────────────────────────────────
 
-function buildTransitionDynamics(d: TransitionDynamics, bindings: Record<string, string> = {}): Record<string, string> {
-  return buildAttrs({
-    dynamicsShape: d.dynamicsShape,
-    value: d.value,
-    dynamicsDimension: d.dynamicsDimension,
-  }, bindings);
+function buildTransitionDynamics(
+  d: TransitionDynamics,
+  bindings: Record<string, string> = {},
+): Record<string, string> {
+  return buildAttrs(
+    {
+      dynamicsShape: d.dynamicsShape,
+      value: d.value,
+      dynamicsDimension: d.dynamicsDimension,
+    },
+    bindings,
+  );
 }
 
-function buildSpeedTarget(target: SpeedTarget, bindings: Record<string, string> = {}): Record<string, unknown> {
+function buildSpeedTarget(
+  target: SpeedTarget,
+  bindings: Record<string, string> = {},
+): Record<string, unknown> {
   if (target.kind === 'absolute') {
     return { AbsoluteTargetSpeed: buildAttrs({ value: target.value }, bindings) };
   }
   return {
-    RelativeTargetSpeed: buildAttrs({
-      entityRef: target.entityRef,
-      value: target.value,
-      speedTargetValueType: target.speedTargetValueType,
-      continuous: target.continuous,
-    }, bindings),
+    RelativeTargetSpeed: buildAttrs(
+      {
+        entityRef: target.entityRef,
+        value: target.value,
+        speedTargetValueType: target.speedTargetValueType,
+        continuous: target.continuous,
+      },
+      bindings,
+    ),
   };
 }
 
-function buildLaneChangeTarget(target: LaneChangeTarget, bindings: Record<string, string> = {}): Record<string, unknown> {
+function buildLaneChangeTarget(
+  target: LaneChangeTarget,
+  bindings: Record<string, string> = {},
+): Record<string, unknown> {
   if (target.kind === 'absolute') {
     return { AbsoluteTargetLane: buildAttrs({ value: target.value }, bindings) };
   }
   return {
-    RelativeTargetLane: buildAttrs({
-      entityRef: target.entityRef,
-      value: target.value,
-    }, bindings),
+    RelativeTargetLane: buildAttrs(
+      {
+        entityRef: target.entityRef,
+        value: target.value,
+      },
+      bindings,
+    ),
   };
 }
 
-function buildLaneOffsetTarget(target: LaneOffsetTarget, bindings: Record<string, string> = {}): Record<string, unknown> {
+function buildLaneOffsetTarget(
+  target: LaneOffsetTarget,
+  bindings: Record<string, string> = {},
+): Record<string, unknown> {
   if (target.kind === 'absolute') {
     return { AbsoluteTargetLaneOffset: buildAttrs({ value: target.value }, bindings) };
   }
   return {
-    RelativeTargetLaneOffset: buildAttrs({
-      entityRef: target.entityRef,
-      value: target.value,
-    }, bindings),
+    RelativeTargetLaneOffset: buildAttrs(
+      {
+        entityRef: target.entityRef,
+        value: target.value,
+      },
+      bindings,
+    ),
   };
 }
 
-function buildLaneOffsetDynamics(d: LaneOffsetDynamics, bindings: Record<string, string> = {}): Record<string, string> {
-  return buildAttrs({
-    maxSpeed: d.maxSpeed,
-    maxLateralAcc: d.maxLateralAcc,
-    dynamicsShape: d.dynamicsShape,
-  }, bindings);
+function buildLaneOffsetDynamics(
+  d: LaneOffsetDynamics,
+  bindings: Record<string, string> = {},
+): Record<string, string> {
+  return buildAttrs(
+    {
+      maxSpeed: d.maxSpeed,
+      maxLateralAcc: d.maxLateralAcc,
+      dynamicsShape: d.dynamicsShape,
+    },
+    bindings,
+  );
 }
 
-function buildDynamicConstraints(d: DynamicConstraints, bindings: Record<string, string> = {}): Record<string, string> {
-  return buildAttrs({
-    maxAcceleration: d.maxAcceleration,
-    maxDeceleration: d.maxDeceleration,
-    maxSpeed: d.maxSpeed,
-  }, bindings);
+function buildDynamicConstraints(
+  d: DynamicConstraints,
+  bindings: Record<string, string> = {},
+): Record<string, string> {
+  return buildAttrs(
+    {
+      maxAcceleration: d.maxAcceleration,
+      maxDeceleration: d.maxDeceleration,
+      maxSpeed: d.maxSpeed,
+    },
+    bindings,
+  );
 }
 
 function buildFinalSpeed(fs: FinalSpeed): Record<string, unknown> {

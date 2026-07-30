@@ -4,7 +4,11 @@ import { buildAttrs } from '../utils/xml-helpers.js';
 
 type AllBindings = Record<string, Record<string, string>>;
 
-export function buildInit(init: Init, allBindings: AllBindings = {}): Record<string, unknown> {
+export function buildInit(
+  init: Init,
+  allBindings: AllBindings = {},
+  revMinor = 3,
+): Record<string, unknown> {
   const actions: Record<string, unknown> = {};
 
   if (init.globalActions.length > 0) {
@@ -17,7 +21,7 @@ export function buildInit(init: Init, allBindings: AllBindings = {}): Record<str
     actions.Private = init.entityActions.map((ea) => ({
       ...buildAttrs({ entityRef: ea.entityRef }),
       PrivateAction: ea.privateActions.map((pa) =>
-        buildPrivateAction(pa.action, allBindings[pa.id] ?? {}),
+        buildPrivateAction(pa.action, allBindings[pa.id] ?? {}, revMinor),
       ),
     }));
   }
